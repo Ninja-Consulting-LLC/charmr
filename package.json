@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios --simulator 'iPhone 16 Pro Max'",
+    "ios:device": "react-native run-ios --device 'Ninja phone'",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "ts-node src/test/backend.integration.test.ts",
