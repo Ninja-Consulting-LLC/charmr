@@ -1,0 +1,37 @@
+import {config} from '../config/config';
+
+interface GenerateReplyRequest {
+  prompt: string;
+  images: string[];
+  userId: string;
+}
+
+interface GenerateReplyResponse {
+  reply: string;
+}
+
+export const generateReply = async (
+  request: GenerateReplyRequest,
+): Promise<GenerateReplyResponse> => {
+  try {
+    const url = `${config.apiBaseUrl}/api/generate-reply`;
+    console.log('Making request to:', url);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error generating reply:', error);
+    throw error;
+  }
+};
