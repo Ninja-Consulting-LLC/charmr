@@ -28,10 +28,27 @@ const OnboardingScreen = () => {
     }
   };
 
+  const handleSkip = async () => {
+    try {
+      await AsyncStorage.setItem('hasOnboarded', 'true');
+      // In dev mode with auth bypass, go straight to Home
+      if (DevUtils.shouldBypassAuth()) {
+        navigation.navigate('Home');
+      } else {
+        navigation.navigate('Login');
+      }
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Onboarding
         onDone={handleDone}
+        onSkip={handleSkip}
+        skipLabel="Skip"
+        showSkip={true}
         containerStyles={styles.onboardingContainer}
         titleStyles={styles.title}
         subTitleStyles={styles.subtitle}
