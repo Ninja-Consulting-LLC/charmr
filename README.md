@@ -1,3 +1,83 @@
+# AI Dating Keyboard
+
+A React Native keyboard extension that uses AI to help users craft better dating messages.
+
+## Project Structure
+
+- `src/` - React Native frontend code
+- `backend/` - Backend server code
+- `ios/` - iOS native code
+- `android/` - Android native code
+
+## Prerequisites
+
+- Node.js (v14 or later)
+- Ruby (for iOS development)
+- Xcode (for iOS development)
+- Android Studio (for Android development)
+- CocoaPods (for iOS dependencies)
+
+## Setup
+
+1. Clone the repository
+2. Install dependencies:
+
+   ```sh
+   # Install JavaScript dependencies
+   npm install
+
+   # Install iOS dependencies
+   cd ios
+   bundle install
+   bundle exec pod install
+   cd ..
+   ```
+
+3. Set up environment variables:
+   ```sh
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+## Development
+
+### Start Metro Bundler
+
+```sh
+npm start
+```
+
+### Run on iOS
+
+```sh
+npm run ios
+```
+
+### Run on Android
+
+```sh
+npm run android
+```
+
+## Features
+
+- AI-powered message suggestions
+- Custom keyboard extension for iOS and Android
+- Real-time message analysis
+- Context-aware responses
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
@@ -66,7 +146,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
