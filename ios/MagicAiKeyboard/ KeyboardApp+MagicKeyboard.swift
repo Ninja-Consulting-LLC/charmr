@@ -6,7 +6,11 @@ extension KeyboardApp {
             name: "Magic Keyboard",
             licenseKey: nil,      // Optional unless using KeyboardKit Pro
             appGroupId: nil,      // Set later if using App Groups
-            locales: [.english]
+            locales: .keyboardKitSupported,
+            autocomplete: .init(
+//                nextWordPredictionRequest: .standard,  // Use standard iOS prediction
+//                suggestions: .standard                 // Use standard iOS suggestions
+            )
         )
     }
 }
