@@ -1,24 +1,37 @@
-import React, {useState} from 'react';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {FAB, Text} from 'react-native-paper';
 import DevMenu from '../components/DevMenu';
 import KeyboardModal from '../components/KeyboardModal';
+import {RootStackParamList} from '../navigation/types';
+import {useStore} from '../store';
 
-const HomeScreen = () => {
-  const [modalVisible, setModalVisible] = useState(false);
+type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const HomeScreen: React.FC<HomeScreenProps> = () => {
+  const {showKeyboardModal, setShowKeyboardModal} = useStore();
+
+  console.log('HomeScreen render with modalVisible:', showKeyboardModal);
 
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium">You're in!</Text>
       <DevMenu />
       <KeyboardModal
-        visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
+        visible={showKeyboardModal}
+        onDismiss={() => {
+          console.log('Modal dismissed');
+          setShowKeyboardModal(false);
+        }}
       />
       <FAB
         icon="magic-staff"
         style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        onPress={() => {
+          console.log('FAB pressed, showing modal');
+          setShowKeyboardModal(true);
+        }}
         label="Magic Keyboard"
       />
     </View>
