@@ -7,18 +7,38 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>IsASCIICapable</key>
-			<false/>
+			<true/>
 			<key>PrefersRightToLeft</key>
 			<false/>
 			<key>PrimaryLanguage</key>
 			<string>en-US</string>
 			<key>RequestsOpenAccess</key>
-			<false/>
+			<true/>
+			<key>SupportsDictation</key>
+			<true/>
+			<key>SupportsInputModeSelection</key>
+			<true/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.keyboard-service</string>
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
 	</dict>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.apple.keyboard-service</string>
+	</array>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>CFBundleDisplayName</key>
+	<string>Magic AI Keyboard</string>
+	<key>CFBundleName</key>
+	<string>Magic AI Keyboard</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
 </dict>
 </plist>

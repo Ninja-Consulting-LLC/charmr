@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,16 +12,16 @@
 		428EFC2C506D9C2516DC7A8E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		BC15F8292DB1C14B00DC1E61 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */; };
-		BCB912032DB179370033AE63 /* MagicAiKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCB911FC2DB179370033AE63 /* MagicAiKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCB29EA42DB2F40100A24B21 /* MagicAiKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCB29EB92DB2F5B400A24B21 /* KeyboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = BCB29EB82DB2F5B400A24B21 /* KeyboardKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		BCB912012DB179370033AE63 /* PBXContainerItemProxy */ = {
+		BCB29EA22DB2F40100A24B21 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = BCB911FB2DB179370033AE63;
+			remoteGlobalIDString = BCB29E9C2DB2F40100A24B21;
 			remoteInfo = MagicAiKeyboard;
 		};
 /* End PBXContainerItemProxy section */
@@ -33,7 +33,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				BCB912032DB179370033AE63 /* MagicAiKeyboard.appex in Embed Foundation Extensions */,
+				BCB29EA42DB2F40100A24B21 /* MagicAiKeyboard.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -51,9 +51,23 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = AIDatingKeyboard/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardViewController.swift; path = MagicAiKeyboard/KeyboardViewController.swift; sourceTree = "<group>"; };
 		BC7A10B2FDAC2B481CB603E6 /* libPods-AIDatingKeyboard.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-AIDatingKeyboard.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BCB911FC2DB179370033AE63 /* MagicAiKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MagicAiKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MagicAiKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BCB29EA52DB2F40100A24B21 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BCB29EA52DB2F40100A24B21 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MagicAiKeyboard; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
@@ -64,10 +78,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BCB911F92DB179370033AE63 /* Frameworks */ = {
+		BCB29E9A2DB2F40100A24B21 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BCB29EB92DB2F5B400A24B21 /* KeyboardKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -108,7 +123,7 @@
 				BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */,
 				13B07FAE1A68108700A75B9A /* AIDatingKeyboard */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
-				BCB911FD2DB179370033AE63 /* MagicAiKeyboard */,
+				BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -122,7 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* AIDatingKeyboard.app */,
-				BCB911FC2DB179370033AE63 /* MagicAiKeyboard.appex */,
+				BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,13 +149,6 @@
 				6B0C6E4A44C307822C1E2ED8 /* Pods-AIDatingKeyboard.release.xcconfig */,
 			);
 			path = Pods;
-			sourceTree = "<group>";
-		};
-		BCB911FD2DB179370033AE63 /* MagicAiKeyboard */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = MagicAiKeyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -162,28 +170,34 @@
 			buildRules = (
 			);
 			dependencies = (
-				BCB912022DB179370033AE63 /* PBXTargetDependency */,
+				BCB29EA32DB2F40100A24B21 /* PBXTargetDependency */,
 			);
 			name = AIDatingKeyboard;
 			productName = AIDatingKeyboard;
 			productReference = 13B07F961A680F5B00A75B9A /* AIDatingKeyboard.app */;
 			productType = "com.apple.product-type.application";
 		};
-		BCB911FB2DB179370033AE63 /* MagicAiKeyboard */ = {
+		BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BCB912082DB179370033AE63 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */;
+			buildConfigurationList = BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */;
 			buildPhases = (
-				BCB911F82DB179370033AE63 /* Sources */,
-				BCB911F92DB179370033AE63 /* Frameworks */,
-				BCB911FA2DB179370033AE63 /* Resources */,
+				BCB29E992DB2F40100A24B21 /* Sources */,
+				BCB29E9A2DB2F40100A24B21 /* Frameworks */,
+				BCB29E9B2DB2F40100A24B21 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */,
+			);
 			name = MagicAiKeyboard;
+			packageProductDependencies = (
+				BCB29EB82DB2F5B400A24B21 /* KeyboardKit */,
+			);
 			productName = MagicAiKeyboard;
-			productReference = BCB911FC2DB179370033AE63 /* MagicAiKeyboard.appex */;
+			productReference = BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -198,7 +212,7 @@
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1120;
 					};
-					BCB911FB2DB179370033AE63 = {
+					BCB29E9C2DB2F40100A24B21 = {
 						CreatedOnToolsVersion = 16.3;
 					};
 				};
@@ -212,12 +226,15 @@
 				Base,
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
+			packageReferences = (
+				BCB29EB72DB2F5B400A24B21 /* XCRemoteSwiftPackageReference "KeyboardKit" */,
+			);
 			productRefGroup = 83CBBA001A601CBA00E9B192 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* AIDatingKeyboard */,
-				BCB911FB2DB179370033AE63 /* MagicAiKeyboard */,
+				BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */,
 			);
 		};
 /* End PBXProject section */
@@ -233,7 +250,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BCB911FA2DB179370033AE63 /* Resources */ = {
+		BCB29E9B2DB2F40100A24B21 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -334,21 +351,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BCB911F82DB179370033AE63 /* Sources */ = {
+		BCB29E992DB2F40100A24B21 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BC15F8292DB1C14B00DC1E61 /* KeyboardViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		BCB912022DB179370033AE63 /* PBXTargetDependency */ = {
+		BCB29EA32DB2F40100A24B21 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BCB911FB2DB179370033AE63 /* MagicAiKeyboard */;
-			targetProxy = BCB912012DB179370033AE63 /* PBXContainerItemProxy */;
+			target = BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */;
+			targetProxy = BCB29EA22DB2F40100A24B21 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -555,7 +571,7 @@
 			};
 			name = Release;
 		};
-		BCB912052DB179370033AE63 /* Debug */ = {
+		BCB29EA72DB2F40100A24B21 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -582,7 +598,6 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACH_O_TYPE = mh_bundle;
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -597,7 +612,7 @@
 			};
 			name = Debug;
 		};
-		BCB912062DB179370033AE63 /* Release */ = {
+		BCB29EA82DB2F40100A24B21 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -625,7 +640,6 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACH_O_TYPE = mh_bundle;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.AIDatingKeyboard.temp.MagicAiKeyboard;
@@ -659,16 +673,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BCB912082DB179370033AE63 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */ = {
+		BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BCB912052DB179370033AE63 /* Debug */,
-				BCB912062DB179370033AE63 /* Release */,
+				BCB29EA72DB2F40100A24B21 /* Debug */,
+				BCB29EA82DB2F40100A24B21 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BCB29EB72DB2F5B400A24B21 /* XCRemoteSwiftPackageReference "KeyboardKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/KeyboardKit/KeyboardKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.3.7;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BCB29EB82DB2F5B400A24B21 /* KeyboardKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BCB29EB72DB2F5B400A24B21 /* XCRemoteSwiftPackageReference "KeyboardKit" */;
+			productName = KeyboardKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }
