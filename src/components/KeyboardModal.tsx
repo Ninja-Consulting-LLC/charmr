@@ -228,6 +228,9 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       });
 
       setResponse(result.reply);
+      // Automatically copy the response to clipboard
+      Clipboard.setString(result.reply);
+      setShowSnackbar(true);
     } catch (error) {
       console.error('Error generating response:', error);
       setError('Failed to generate response. Please try again.');
@@ -343,11 +346,9 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
             {response && (
               <Surface style={styles.responseContainer} elevation={0}>
                 <Text variant="bodyLarge">Response:</Text>
-                <Text variant="bodyMedium" onPress={copyToClipboard}>
-                  {response}
-                </Text>
+                <Text variant="bodyMedium">{response}</Text>
                 <Text variant="bodySmall" style={styles.tapToCopy}>
-                  Tap to copy
+                  Message copied to clipboard!
                 </Text>
               </Surface>
             )}
