@@ -31,6 +31,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     return true
   }
+
+  func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    print("Opening URL: \(url.absoluteString)")
+
+    // Send the URL to React Native
+    NotificationCenter.default.post(
+      name: NSNotification.Name("RCTOpenURLNotification"),
+      object: nil,
+      userInfo: ["url": url.absoluteString]
+    )
+
+    // If the app is not in the foreground, we need to ensure it's brought to the foreground
+    if app.applicationState != .active {
+      DispatchQueue.main.async {
+        if let window = self.window {
+          window.makeKeyAndVisible()
+        }
+      }
+    }
+
+    return true
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
