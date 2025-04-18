@@ -17,7 +17,7 @@ class KeyboardViewController: KeyboardInputViewController {
     }
 
     override func viewWillSetupKeyboardView() {
-        setupKeyboardView { controller in
+        setupKeyboardView { (controller: KeyboardInputViewController) in
             KeyboardView(
                 state: controller.state,
                 services: controller.services,
@@ -26,13 +26,23 @@ class KeyboardViewController: KeyboardInputViewController {
                 collapsedView: { $0.view },
                 emojiKeyboard: { $0.view },
                 toolbar: { _ in
-                    Button("✨") {
-                        controller.textDocumentProxy.insertText("You're cute, what's your story?")
+                    HStack {
+                        Button("Dating Buddy 🤖") {
+                            controller.textDocumentProxy.insertText("You're cute, what's your story?")
+                        }
+                        .padding(8)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+
+                        Button("Paste AI Message ❤️") {
+                            controller.textDocumentProxy.insertText("Let's get to know each other better!")
+                        }
+                        .padding(8)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                     }
-                    .padding(8)
-                    .background(Color.purple)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
                 }
             )
         }
