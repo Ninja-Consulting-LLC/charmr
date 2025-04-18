@@ -1,5 +1,6 @@
 import KeyboardKit
 import SwiftUI
+import UIKit
 
 class KeyboardViewController: KeyboardInputViewController {
     @Environment(\.openURL) private var openURL
@@ -41,7 +42,20 @@ class KeyboardViewController: KeyboardInputViewController {
                         .cornerRadius(8)
 
                         Button("Paste AI Message ❤️") {
-                            controller.textDocumentProxy.insertText("Let's get to know each other better!")
+                            print("Attempting to paste from clipboard...")
+                            if let clipboardText = UIPasteboard.general.string {
+                                print("Found clipboard text:", clipboardText)
+                                do {
+                                    try controller.textDocumentProxy.insertText(clipboardText)
+                                    print("Successfully inserted text")
+                                } catch {
+                                    print("Error inserting text:", error)
+                                    controller.textDocumentProxy.insertText("Error pasting message. Please try again.")
+                                }
+                            } else {
+                                print("Clipboard is empty")
+                                controller.textDocumentProxy.insertText("No message in clipboard. Try copying a message first!")
+                            }
                         }
                         .padding(8)
                         .background(Color.blue)
