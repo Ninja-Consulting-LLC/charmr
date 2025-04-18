@@ -2,6 +2,7 @@ import KeyboardKit
 import SwiftUI
 
 class KeyboardViewController: KeyboardInputViewController {
+    @Environment(\.openURL) private var openURL
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,7 +29,11 @@ class KeyboardViewController: KeyboardInputViewController {
                 toolbar: { _ in
                     HStack {
                         Button("Dating Buddy 🤖") {
-                            controller.textDocumentProxy.insertText("You're cute, what's your story?")
+                            controller.advanceToNextInputMode()
+
+                            if let url = URL(string: "aidatingkeyboard://open/gptmodal?source=keyboard") {
+                                controller.openUrl(url)
+                            }
                         }
                         .padding(8)
                         .background(Color.blue)
