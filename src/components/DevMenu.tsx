@@ -1,7 +1,8 @@
 import React, {useState} from 'react';
 import {Alert, StyleSheet, View} from 'react-native';
-import {Button, Switch, Text} from 'react-native-paper';
+import {Button, Portal, Switch, Text} from 'react-native-paper';
 import {generateReply} from '../services/api';
+import {useStore} from '../store';
 import {DevUtils} from '../utils/devUtils';
 
 const DevMenu = () => {
@@ -11,6 +12,7 @@ const DevMenu = () => {
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
+  const {showDevMenu, setShowDevMenu} = useStore();
 
   if (!__DEV__) {
     return null;
@@ -97,98 +99,134 @@ const DevMenu = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="titleMedium" style={styles.title}>
-        Development Menu
-      </Text>
-
-      <View style={styles.toggleContainer}>
-        <Text>Skip Rate Limiting</Text>
-        <Switch value={skipRateLimiting} onValueChange={setSkipRateLimiting} />
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button
-          mode="contained"
-          onPress={handleResetOnboarding}
-          style={styles.button}>
-          Reset Onboarding
-        </Button>
-
-        <Button
-          mode="contained"
-          onPress={handleClearStorage}
-          style={styles.button}>
-          Clear Storage
-        </Button>
-
-        <Button
-          mode="contained"
-          onPress={handleInspectStorage}
-          style={styles.button}>
-          Inspect Storage
-        </Button>
-
-        <Button
-          mode="contained"
-          onPress={handleTestRateLimiting}
-          style={styles.button}>
-          Test Rate Limiting
-        </Button>
-      </View>
-
-      {testStatus && (
-        <Text style={styles.statusText} variant="bodySmall">
-          {testStatus}
-        </Text>
-      )}
-
-      {testResults.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <Text variant="bodySmall" style={styles.resultsTitle}>
-            Test Results:
-          </Text>
-          {testResults.map((result, index) => (
-            <Text
-              key={index}
-              style={[
-                styles.resultText,
-                result.success ? styles.successText : styles.errorText,
-              ]}
-              variant="bodySmall">
-              {index + 1}. "{result.prompt}" -{' '}
-              {result.success ? 'Success' : `Failed: ${result.error}`}
+    <Portal>
+      <View style={[styles.container, showDevMenu && styles.containerVisible]}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="titleMedium" style={styles.title}>
+              Development Menu
             </Text>
-          ))}
-        </View>
-      )}
+            <Button
+              mode="text"
+              onPress={() => setShowDevMenu(false)}
+              style={styles.closeButton}>
+              Close
+            </Button>
+          </View>
 
-      {error && (
-        <Text style={styles.errorText} variant="bodySmall">
-          {error}
-        </Text>
-      )}
-    </View>
+          <View style={styles.toggleContainer}>
+            <Text>Skip Rate Limiting</Text>
+            <Switch
+              value={skipRateLimiting}
+              onValueChange={setSkipRateLimiting}
+            />
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <Button
+              mode="contained"
+              onPress={handleResetOnboarding}
+              style={styles.button}>
+              Reset Onboarding
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleClearStorage}
+              style={styles.button}>
+              Clear Storage
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleInspectStorage}
+              style={styles.button}>
+              Inspect Storage
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleTestRateLimiting}
+              style={styles.button}>
+              Test Rate Limiting
+            </Button>
+          </View>
+
+          {testStatus && (
+            <Text style={styles.statusText} variant="bodySmall">
+              {testStatus}
+            </Text>
+          )}
+
+          {testResults.length > 0 && (
+            <View style={styles.resultsContainer}>
+              <Text variant="bodySmall" style={styles.resultsTitle}>
+                Test Results:
+              </Text>
+              {testResults.map((result, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    styles.resultText,
+                    result.success ? styles.successText : styles.errorText,
+                  ]}
+                  variant="bodySmall">
+                  {index + 1}. "{result.prompt}" -{' '}
+                  {result.success ? 'Success' : `Failed: ${result.error}`}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {error && (
+            <Text style={styles.errorText} variant="bodySmall">
+              {error}
+            </Text>
+          )}
+        </View>
+      </View>
+    </Portal>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    padding: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    elevation: 4,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    elevation: 5,
+    transform: [{translateY: 1000}],
+    transition: 'transform 0.3s ease-in-out',
+  },
+  containerVisible: {
+    transform: [{translateY: 0}],
+  },
+  content: {
+    padding: 16,
+    gap: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    marginBottom: 12,
-    textAlign: 'center',
+    flex: 1,
+  },
+  closeButton: {
+    marginLeft: 8,
   },
   toggleContainer: {
     flexDirection: 'row',
