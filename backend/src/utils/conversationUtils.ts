@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
 }
@@ -72,7 +72,7 @@ export async function saveMessage(
 export async function appendConversation(
   userId: string,
   matchId: string,
-  userMessage: string,
+  summary: string,
   assistantMessage: string,
 ): Promise<void> {
   const timestamp = new Date().toISOString();
@@ -82,9 +82,20 @@ export async function appendConversation(
   console.log('\n=== Saving Conversation ===');
   console.log('User Directory:', userDir);
   console.log('Conversation Path:', conversationPath);
+  console.log('Summary:', summary);
   console.log('Assistant Message:', assistantMessage);
   console.log('==========================\n');
 
+  // Save the summary as a system message if it exists
+  if (summary) {
+    await saveMessage(userId, matchId, {
+      role: 'system',
+      content: summary,
+      timestamp,
+    });
+  }
+
+  // Save the assistant message
   await saveMessage(userId, matchId, {
     role: 'assistant',
     content: assistantMessage,

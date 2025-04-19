@@ -61,7 +61,12 @@ export const mockResponses = [
         index: 0,
         message: {
           role: 'assistant',
-          content: "Here's a fun and confident message you can send.",
+          content: `<summary>
+Based on the conversation history, this match seems to enjoy outdoor activities and has a playful sense of humor. They've responded positively to light-hearted messages and seem interested in getting to know each other better.
+</summary>
+<message>
+That hiking photo looks amazing! I bet you have some great stories from the trail. What's the most unexpected thing you've encountered on a hike?
+</message>`,
         },
         finish_reason: 'stop',
       },
@@ -82,7 +87,12 @@ export const mockResponses = [
         index: 0,
         message: {
           role: 'assistant',
-          content: 'Try this engaging and witty response!',
+          content: `<summary>
+The match has shown interest in travel and food. They've shared photos from different locations and seem to enjoy trying new cuisines. Previous messages have been casual and friendly.
+</summary>
+<message>
+That pasta dish looks incredible! I'm always on the hunt for new Italian spots. Any other hidden gems you'd recommend in the city?
+</message>`,
         },
         finish_reason: 'stop',
       },
@@ -103,7 +113,12 @@ export const mockResponses = [
         index: 0,
         message: {
           role: 'assistant',
-          content: 'This message will definitely catch their attention!',
+          content: `<summary>
+The match has a creative side and enjoys photography. They've shared several artistic shots and seem to appreciate thoughtful comments about their work.
+</summary>
+<message>
+The lighting in that photo is stunning! You've got a great eye for composition. Do you shoot with a specific camera or mostly use your phone?
+</message>`,
         },
         finish_reason: 'stop',
       },
@@ -279,7 +294,15 @@ Remember to:
 - Use the provided photos to make relevant, specific comments
 - Maintain a natural, conversational tone
 - Always respect and follow the user's specific prompt while maintaining appropriate boundaries
-- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate`,
+- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate
+
+Your response must be in the following format:
+<summary>
+[Provide a brief summary of the conversation context and what you've learned about the match]
+</summary>
+<message>
+[The actual message to send to the match]
+</message>`,
           },
           ...(contextMessage
             ? [
@@ -341,11 +364,31 @@ Remember to:
         await new Promise(resolve => setTimeout(resolve, 1500));
         const mockResponse =
           mockResponses[Math.floor(Math.random() * mockResponses.length)];
-        const reply = mockResponse.choices[0].message.content;
 
-        // Save the conversation even in sandbox mode
-        await appendConversation(userId, matchId, prompt, reply);
+        console.log('\n=== Mock ChatGPT Response ===');
+        console.log('Full Response:', mockResponse.choices[0].message.content);
+        console.log('==========================\n');
 
+        // Parse the response to extract summary and message
+        const responseContent = mockResponse.choices[0].message.content;
+        const summaryMatch = responseContent.match(
+          /<summary>(.*?)<\/summary>/s,
+        );
+        const messageMatch = responseContent.match(
+          /<message>(.*?)<\/message>/s,
+        );
+
+        if (!messageMatch) {
+          throw new Error('Invalid response format from ChatGPT');
+        }
+
+        const summary = summaryMatch ? summaryMatch[1].trim() : '';
+        const reply = messageMatch[1].trim();
+
+        // Save both the summary and the message
+        await appendConversation(userId, matchId, summary, reply);
+
+        // Only send the message part to the frontend
         return res.json({reply});
       }
 
@@ -388,7 +431,15 @@ Remember to:
 - Use the provided photos to make relevant, specific comments
 - Maintain a natural, conversational tone
 - Always respect and follow the user's specific prompt while maintaining appropriate boundaries
-- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate`,
+- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate
+
+Your response must be in the following format:
+<summary>
+[Provide a brief summary of the conversation context and what you've learned about the match]
+</summary>
+<message>
+[The actual message to send to the match]
+</message>`,
         },
         ...(contextMessage
           ? [
@@ -420,11 +471,26 @@ Remember to:
         messages,
       });
 
-      const reply = response.choices[0].message.content || '';
+      // Parse the response to extract summary and message
+      const responseContent = response.choices[0].message.content;
+      if (!responseContent) {
+        throw new Error('Empty response from ChatGPT');
+      }
 
-      // Save the conversation
-      await appendConversation(userId, matchId, prompt, reply);
+      const summaryMatch = responseContent.match(/<summary>(.*?)<\/summary>/s);
+      const messageMatch = responseContent.match(/<message>(.*?)<\/message>/s);
 
+      if (!messageMatch) {
+        throw new Error('Invalid response format from ChatGPT');
+      }
+
+      const summary = summaryMatch ? summaryMatch[1].trim() : '';
+      const reply = messageMatch[1].trim();
+
+      // Save both the summary and the message
+      await appendConversation(userId, matchId, summary, reply);
+
+      // Only send the message part to the frontend
       res.json({reply});
     } catch (error) {
       console.error('Error generating reply:', error);
