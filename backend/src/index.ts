@@ -155,31 +155,28 @@ const generalLimiter = rateLimit({
 
 const generateReplyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each user to 5 requests per hour
+  max: 5, // Limit each device to 5 requests per hour
   message: 'Too many message generation requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   skip: req => {
     // Only skip rate limiting if explicitly requested via skipRateLimiting flag
-    // This allows testing rate limiting even in development mode
     const shouldSkip = req.body.skipRateLimiting === true;
-    console.log('Checking if should skip rate limit:', shouldSkip, {
+    console.log('Rate limit check for device:', req.body.userId, {
+      shouldSkip,
       skipRateLimiting: req.body.skipRateLimiting,
       isDevelopment,
     });
     return shouldSkip;
   },
   keyGenerator: req => {
-    // Use userId if available, otherwise fallback to IP
-    const key = req.body.userId || req.ip;
-    console.log('Generate reply rate limit key:', key);
-    return key;
+    // Use device ID for rate limiting
+    const deviceId = req.body.userId;
+    console.log('Rate limit key (Device ID):', deviceId);
+    return deviceId || req.ip; // Fallback to IP if no device ID
   },
   handler: (req, res) => {
-    console.log(
-      'Generate reply rate limit exceeded for key:',
-      req.body.userId || req.ip,
-    );
+    console.log('Rate limit exceeded for device:', req.body.userId);
     const retryAfter = Number(res.getHeader('Retry-After') || 3600); // Default to 1 hour if not set
     res.status(429).json({
       error: `Please try again in ${formatRetryAfter(retryAfter)}`,

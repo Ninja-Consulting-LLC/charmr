@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import React, {useEffect, useState} from 'react';
@@ -22,6 +21,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import {generateReply} from '../services/api';
+import {getDeviceId} from '../utils/deviceUtils';
 
 interface CameraRollAsset {
   node: {
@@ -66,27 +66,20 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
-  const [userId, setUserId] = useState<string>('');
+  const [deviceId, setDeviceId] = useState<string>('');
 
-  // Get or create user ID on component mount
+  // Get device ID on component mount
   useEffect(() => {
-    const getOrCreateUserId = async () => {
+    const initDeviceId = async () => {
       try {
-        let storedUserId = await AsyncStorage.getItem('userId');
-        if (!storedUserId) {
-          // Generate a new user ID if none exists
-          storedUserId = `user-${Date.now()}-${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-          await AsyncStorage.setItem('userId', storedUserId);
-        }
-        setUserId(storedUserId);
+        const id = await getDeviceId();
+        setDeviceId(id);
       } catch (error) {
-        console.error('Error managing user ID:', error);
+        console.error('Error getting device ID:', error);
       }
     };
 
-    getOrCreateUserId();
+    initDeviceId();
   }, []);
 
   // Reset all state when modal is closed
@@ -247,7 +240,7 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       const result = await generateReply({
         prompt,
         images: imagesWithBase64.map(img => img.base64!),
-        userId: userId, // Use the actual user ID
+        userId: deviceId, // Use device ID instead of generated user ID
       });
 
       setResponse(result.reply);

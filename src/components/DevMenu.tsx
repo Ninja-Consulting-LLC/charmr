@@ -1,8 +1,9 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, View} from 'react-native';
 import {Button, Switch, Text} from 'react-native-paper';
 import {generateReply} from '../services/api';
 import {DevUtils} from '../utils/devUtils';
+import {getDeviceId} from '../utils/deviceUtils';
 
 const DevMenu = () => {
   const [error, setError] = useState<string | null>(null);
@@ -11,6 +12,21 @@ const DevMenu = () => {
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
+  const [deviceId, setDeviceId] = useState<string>('');
+
+  useEffect(() => {
+    const initDeviceId = async () => {
+      try {
+        const id = await getDeviceId();
+        setDeviceId(id);
+        console.log('Device ID for testing:', id);
+      } catch (error) {
+        console.error('Error getting device ID:', error);
+      }
+    };
+
+    initDeviceId();
+  }, []);
 
   if (!__DEV__) {
     return null;
@@ -68,7 +84,7 @@ const DevMenu = () => {
         const result = await generateReply({
           prompt: currentPrompt,
           images: ['test-image-base64'], // Using a dummy image
-          userId: 'test-user',
+          userId: deviceId, // Use device ID for testing
           skipRateLimiting,
         });
         console.log(`Request ${i + 1} succeeded:`, result);
