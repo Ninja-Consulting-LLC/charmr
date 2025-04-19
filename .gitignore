@@ -84,3 +84,6 @@ coverage/
 # Backend
 backend/dist/
 backend/node_modules/
+
+# Conversation files
+backend/conversations

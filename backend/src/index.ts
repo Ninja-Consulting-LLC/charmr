@@ -3,18 +3,20 @@ import cors from 'cors';
 import express, {NextFunction, Request, Response} from 'express';
 import rateLimit from 'express-rate-limit';
 import OpenAI from 'openai';
+import {appendConversation, loadConversation} from './utils/conversationUtils';
 
 interface GenerateReplyRequest {
   prompt: string;
   images: string[];
   userId: string;
-  style: string;
+  matchId: string;
   deleteAfterResponse: boolean;
   skipRateLimiting?: boolean;
 }
 
 interface GenerateReplyResponse {
   reply: string;
+  error?: string;
 }
 
 const app = express();
@@ -217,7 +219,18 @@ app.post(
     res: Response<GenerateReplyResponse>,
   ) => {
     try {
-      const {prompt, images, userId, style} = req.body;
+      const {prompt, images, userId, matchId} = req.body;
+
+      // Log the full request context
+      console.log('\n=== Generate Reply Request ===');
+      console.log('Request Body:', {
+        prompt,
+        userId,
+        matchId,
+        imageCount: images?.length || 0,
+        skipRateLimiting: req.body.skipRateLimiting,
+      });
+      console.log('==========================\n');
 
       if (!images || images.length === 0) {
         throw new Error('No images provided');
@@ -226,28 +239,62 @@ app.post(
       // Check if we're in sandbox mode
       if (process.env.OPENAI_SANDBOX_MODE === 'true' || !openai) {
         console.log('Running in sandbox mode - using mock response');
-        // Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const mockResponse =
-          mockResponses[Math.floor(Math.random() * mockResponses.length)];
-        return res.json({reply: mockResponse.choices[0].message.content});
-      }
 
-      // Combine style and prompt
-      const fullPrompt = `${prompt} (${style} style)`;
+        // Load conversation history
+        const conversationHistory = await loadConversation(userId, matchId);
+        const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
 
-      // Use the first image
-      const imageBase64 = images[0];
+        // Extract assistant messages and format them with context
+        const previousAssistantMessages = recentMessages
+          .filter(msg => msg.role === 'assistant')
+          .map(msg => msg.content)
+          .join('\n');
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4-vision-preview',
-        messages: [
+        const contextMessage = previousAssistantMessages
+          ? `Here are the previous messages we sent to this person for context in generating your response:\n${previousAssistantMessages}`
+          : '';
+
+        // Use the first image
+        const imageBase64 = images[0];
+
+        // Prepare messages array with conversation history
+        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+          {
+            role: 'system',
+            content: `You are an expert dating assistant that helps craft engaging, natural, and contextually appropriate messages for dating apps. Your goal is to help users create messages that:
+
+1. Match the tone and style of the conversation history
+2. Are authentic and feel natural, not overly scripted
+3. Show genuine interest in the other person
+4. Include specific references to their profile or photos when relevant
+5. Maintain appropriate boundaries and respect
+6. Are concise and engaging (1-2 sentences typically)
+7. End with a question or clear next step when appropriate
+8. Follow the user's specific instructions (e.g., "make it flirty", "make it funny", etc.)
+
+Remember to:
+- Keep messages light and fun
+- Avoid being too forward or suggestive unless specifically requested
+- Match the energy level of the previous conversation
+- Use the provided photos to make relevant, specific comments
+- Maintain a natural, conversational tone
+- Always respect and follow the user's specific prompt while maintaining appropriate boundaries
+- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate`,
+          },
+          ...(contextMessage
+            ? [
+                {
+                  role: 'system' as const,
+                  content: contextMessage,
+                },
+              ]
+            : []),
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: fullPrompt,
+                text: prompt,
               },
               {
                 type: 'image_url',
@@ -257,19 +304,131 @@ app.post(
               },
             ],
           },
-        ],
-        max_tokens: 300,
+        ];
+
+        console.log('\n=== ChatGPT Payload (Sandbox Mode) ===');
+        console.log('Model: gpt-4-vision-preview');
+        console.log(
+          'Full Payload Structure:',
+          JSON.stringify(
+            {
+              model: 'gpt-4-vision-preview',
+              messages: messages.map(msg => {
+                // For system messages, show the full content
+                if (msg.role === 'system') {
+                  return {
+                    role: msg.role,
+                    content: msg.content,
+                  };
+                }
+                // For user messages, just show the structure without content
+                if (msg.role === 'user') {
+                  return {
+                    role: msg.role,
+                    content: '[USER MESSAGE WITH IMAGE]',
+                  };
+                }
+                return msg;
+              }),
+            },
+            null,
+            2,
+          ),
+        );
+        console.log('==========================\n');
+
+        // Simulate processing delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const mockResponse =
+          mockResponses[Math.floor(Math.random() * mockResponses.length)];
+        const reply = mockResponse.choices[0].message.content;
+
+        // Save the conversation even in sandbox mode
+        await appendConversation(userId, matchId, prompt, reply);
+
+        return res.json({reply});
+      }
+
+      // Load conversation history
+      const conversationHistory = await loadConversation(userId, matchId);
+      const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
+
+      // Extract assistant messages and format them with context
+      const previousAssistantMessages = recentMessages
+        .filter(msg => msg.role === 'assistant')
+        .map(msg => msg.content)
+        .join('\n');
+
+      const contextMessage = previousAssistantMessages
+        ? `Here are the previous messages we sent to this person for context in generating your response:\n${previousAssistantMessages}`
+        : '';
+
+      // Use the first image
+      const imageBase64 = images[0];
+
+      // Prepare messages array with conversation history
+      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: `You are an expert dating assistant that helps craft engaging, natural, and contextually appropriate messages for dating apps. Your goal is to help users create messages that:
+
+1. Match the tone and style of the conversation history
+2. Are authentic and feel natural, not overly scripted
+3. Show genuine interest in the other person
+4. Include specific references to their profile or photos when relevant
+5. Maintain appropriate boundaries and respect
+6. Are concise and engaging (1-2 sentences typically)
+7. End with a question or clear next step when appropriate
+8. Follow the user's specific instructions (e.g., "make it flirty", "make it funny", etc.)
+
+Remember to:
+- Keep messages light and fun
+- Avoid being too forward or suggestive unless specifically requested
+- Match the energy level of the previous conversation
+- Use the provided photos to make relevant, specific comments
+- Maintain a natural, conversational tone
+- Always respect and follow the user's specific prompt while maintaining appropriate boundaries
+- If the user asks for a specific tone (flirty, funny, etc.), prioritize that tone while keeping the message natural and appropriate`,
+        },
+        ...(contextMessage
+          ? [
+              {
+                role: 'system' as const,
+                content: contextMessage,
+              },
+            ]
+          : []),
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+              },
+            },
+          ],
+        },
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4-vision-preview',
+        messages,
       });
 
-      const reply = response.choices[0]?.message?.content || '';
+      const reply = response.choices[0].message.content || '';
+
+      // Save the conversation
+      await appendConversation(userId, matchId, prompt, reply);
 
       res.json({reply});
     } catch (error) {
       console.error('Error generating reply:', error);
-      res.status(500).json({
-        reply:
-          'Sorry, I encountered an error while generating your reply. Please try again.',
-      });
+      res.status(500).json({reply: '', error: 'Failed to generate reply'});
     }
   },
 );
