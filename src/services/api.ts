@@ -4,6 +4,7 @@ interface GenerateReplyRequest {
   prompt: string;
   images: string[];
   userId: string;
+  skipRateLimiting?: boolean;
 }
 
 interface GenerateReplyResponse {
