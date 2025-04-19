@@ -1,6 +1,7 @@
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import express, {NextFunction, Request, Response} from 'express';
+import rateLimit from 'express-rate-limit';
 import OpenAI from 'openai';
 
 interface GenerateReplyRequest {
@@ -9,6 +10,7 @@ interface GenerateReplyRequest {
   userId: string;
   style: string;
   deleteAfterResponse: boolean;
+  skipRateLimiting?: boolean;
 }
 
 interface GenerateReplyResponse {
@@ -17,6 +19,33 @@ interface GenerateReplyResponse {
 
 const app = express();
 const port = 3001;
+
+// Log all environment variables
+try {
+  console.log('\n=== Environment Variables ===');
+  const envVars = Object.keys(process.env).sort();
+  envVars.forEach(key => {
+    // Skip sensitive values
+    if (
+      key.toLowerCase().includes('key') ||
+      key.toLowerCase().includes('secret')
+    ) {
+      console.log(`${key}: [REDACTED]`);
+    } else {
+      console.log(`${key}: ${process.env[key]}`);
+    }
+  });
+  console.log('==========================\n');
+} catch (error) {
+  console.error('Error logging environment variables:', error);
+}
+
+// Helper function to format retry time
+function formatRetryAfter(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
 // Mock responses for sandbox mode
 export const mockResponses = [
@@ -86,13 +115,83 @@ export const mockResponses = [
 ];
 
 // Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+let openai: OpenAI | null = null;
+if (process.env.OPENAI_SANDBOX_MODE !== 'true' && process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
+
+// Rate limiters
+const isDevelopment = process.env.NODE_ENV === 'development';
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('isDevelopment:', isDevelopment);
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each user to 100 requests per 15 minutes
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: req => {
+    console.log('Checking if should skip rate limit:', isDevelopment);
+    return isDevelopment;
+  },
+  keyGenerator: req => {
+    // Use userId if available, otherwise fallback to IP
+    const key = req.body.userId || req.ip;
+    console.log('Rate limit key:', key);
+    return key;
+  },
+  handler: (req, res) => {
+    console.log('Rate limit exceeded for key:', req.body.userId || req.ip);
+    const retryAfter = Number(res.getHeader('Retry-After') || 900); // Default to 15 minutes if not set
+    res.status(429).json({
+      error: `Please try again in ${formatRetryAfter(retryAfter)}`,
+      retryAfter,
+    });
+  },
+});
+
+const generateReplyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each user to 5 requests per hour
+  message: 'Too many message generation requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: req => {
+    // Only skip rate limiting if explicitly requested via skipRateLimiting flag
+    // This allows testing rate limiting even in development mode
+    const shouldSkip = req.body.skipRateLimiting === true;
+    console.log('Checking if should skip rate limit:', shouldSkip, {
+      skipRateLimiting: req.body.skipRateLimiting,
+      isDevelopment,
+    });
+    return shouldSkip;
+  },
+  keyGenerator: req => {
+    // Use userId if available, otherwise fallback to IP
+    const key = req.body.userId || req.ip;
+    console.log('Generate reply rate limit key:', key);
+    return key;
+  },
+  handler: (req, res) => {
+    console.log(
+      'Generate reply rate limit exceeded for key:',
+      req.body.userId || req.ip,
+    );
+    const retryAfter = Number(res.getHeader('Retry-After') || 3600); // Default to 1 hour if not set
+    res.status(429).json({
+      error: `Please try again in ${formatRetryAfter(retryAfter)}`,
+      retryAfter,
+    });
+  },
 });
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({limit: '50mb'}));
+app.use(generalLimiter); // Apply general rate limiting to all routes
 
 // Logger middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -112,6 +211,7 @@ app.get('/health', (req: Request, res: Response) => {
 // POST endpoint
 app.post(
   '/api/generate-reply',
+  generateReplyLimiter, // Apply stricter rate limiting to this endpoint
   async (
     req: Request<{}, {}, GenerateReplyRequest>,
     res: Response<GenerateReplyResponse>,
@@ -124,7 +224,7 @@ app.post(
       }
 
       // Check if we're in sandbox mode
-      if (process.env.OPENAI_SANDBOX_MODE === 'true') {
+      if (process.env.OPENAI_SANDBOX_MODE === 'true' || !openai) {
         console.log('Running in sandbox mode - using mock response');
         // Simulate processing delay
         await new Promise(resolve => setTimeout(resolve, 1500));
@@ -175,11 +275,16 @@ app.post(
 );
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(
-    `Sandbox mode: ${
-      process.env.OPENAI_SANDBOX_MODE === 'true' ? 'enabled' : 'disabled'
-    }`,
-  );
-});
+try {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log(
+      `Sandbox mode: ${
+        process.env.OPENAI_SANDBOX_MODE === 'true' ? 'enabled' : 'disabled'
+      }`,
+    );
+  });
+} catch (error) {
+  console.error('Error starting server:', error);
+  process.exit(1);
+}

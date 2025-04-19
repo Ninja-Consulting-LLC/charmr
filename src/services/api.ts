@@ -25,6 +25,13 @@ export const generateReply = async (
       body: JSON.stringify(request),
     });
 
+    if (response.status === 429) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || 'Too many requests. Please try again later.',
+      );
+    }
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

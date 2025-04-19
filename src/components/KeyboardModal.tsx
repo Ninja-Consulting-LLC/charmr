@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import React, {useEffect, useState} from 'react';
@@ -65,6 +66,28 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
+  const [userId, setUserId] = useState<string>('');
+
+  // Get or create user ID on component mount
+  useEffect(() => {
+    const getOrCreateUserId = async () => {
+      try {
+        let storedUserId = await AsyncStorage.getItem('userId');
+        if (!storedUserId) {
+          // Generate a new user ID if none exists
+          storedUserId = `user-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+          await AsyncStorage.setItem('userId', storedUserId);
+        }
+        setUserId(storedUserId);
+      } catch (error) {
+        console.error('Error managing user ID:', error);
+      }
+    };
+
+    getOrCreateUserId();
+  }, []);
 
   // Reset all state when modal is closed
   useEffect(() => {
@@ -224,7 +247,7 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       const result = await generateReply({
         prompt,
         images: imagesWithBase64.map(img => img.base64!),
-        userId: 'test-user', // TODO: Replace with actual user ID
+        userId: userId, // Use the actual user ID
       });
 
       setResponse(result.reply);
@@ -232,8 +255,12 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       Clipboard.setString(result.reply);
       setShowSnackbar(true);
     } catch (error) {
-      console.error('Error generating response:', error);
-      setError('Failed to generate response. Please try again.');
+      console.error('Error generating reply:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to generate response. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -331,9 +358,24 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
             </Button>
 
             {error && (
-              <Text variant="bodySmall" style={styles.errorText}>
-                {error}
-              </Text>
+              <Surface style={styles.errorContainer} elevation={0}>
+                <Text variant="bodySmall" style={styles.errorText}>
+                  {error}
+                </Text>
+                {error.includes('Please try again in') && (
+                  <View style={styles.errorActions}>
+                    <Button
+                      mode="contained"
+                      onPress={() => {
+                        // TODO: Implement upgrade flow
+                        console.log('Upgrade clicked');
+                      }}
+                      style={styles.upgradeButton}>
+                      Upgrade to get more messages
+                    </Button>
+                  </View>
+                )}
+              </Surface>
             )}
 
             {loading && (
@@ -421,9 +463,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
   },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#FFF3F3',
+    borderRadius: 8,
+    marginTop: 8,
+  },
   errorText: {
-    color: 'red',
-    textAlign: 'center',
+    color: '#D32F2F',
+    marginBottom: 8,
+  },
+  errorActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  upgradeButton: {
+    backgroundColor: '#4CAF50',
   },
   buttonContainer: {
     flexDirection: 'row',
