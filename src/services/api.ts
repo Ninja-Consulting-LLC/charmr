@@ -4,11 +4,13 @@ interface GenerateReplyRequest {
   prompt: string;
   images: string[];
   userId: string;
+  matchId: string;
   skipRateLimiting?: boolean;
 }
 
 interface GenerateReplyResponse {
   reply: string;
+  error?: string;
 }
 
 export const generateReply = async (

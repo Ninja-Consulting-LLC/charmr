@@ -12,6 +12,9 @@ import {
 import ImagePicker from 'react-native-image-crop-picker';
 import {
   Button,
+  IconButton,
+  List,
+  Menu,
   Modal,
   Portal,
   Snackbar,
@@ -22,6 +25,14 @@ import {
 } from 'react-native-paper';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
+import {
+  Match,
+  addMatch,
+  deleteMatch,
+  generateMatchId,
+  getMatches,
+  updateMatchLastUsed,
+} from '../utils/matchUtils';
 
 interface CameraRollAsset {
   node: {
@@ -57,7 +68,12 @@ const messageStyles = [
   {label: 'Funny', value: 'funny'},
 ];
 
-const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
+const PLATFORMS = ['hinge', 'tinder', 'bumble'];
+
+const KeyboardModal: React.FC<KeyboardModalProps> = ({
+  visible,
+  onDismiss,
+}): React.ReactElement => {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<string>('');
@@ -67,6 +83,56 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const {userId} = useStore();
+
+  // Match management state
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [showNewMatchInput, setShowNewMatchInput] = useState(false);
+  const [newMatchName, setNewMatchName] = useState('');
+  const [newMatchPlatform, setNewMatchPlatform] = useState('');
+  const [showMatchMenu, setShowMatchMenu] = useState(false);
+  const [showPlatformMenu, setShowPlatformMenu] = useState(false);
+  const [platformError, setPlatformError] = useState('');
+
+  // Load matches on mount
+  useEffect(() => {
+    loadMatches();
+  }, []);
+
+  const loadMatches = async () => {
+    const loadedMatches = await getMatches();
+    setMatches(loadedMatches);
+  };
+
+  const handleAddMatch = async () => {
+    if (!newMatchName) return;
+
+    if (!newMatchPlatform) {
+      setPlatformError('Please select a platform');
+      return;
+    }
+
+    const newMatch: Match = {
+      name: newMatchName,
+      platform: newMatchPlatform,
+    };
+
+    await addMatch(newMatch);
+    setMatches(prev => [...prev, newMatch]);
+    setSelectedMatch(newMatch);
+    setNewMatchName('');
+    setNewMatchPlatform('');
+    setShowNewMatchInput(false);
+    setPlatformError('');
+  };
+
+  const handleDeleteMatch = async (match: Match) => {
+    await deleteMatch(match);
+    setMatches(prev => prev.filter(m => m !== match));
+    if (selectedMatch === match) {
+      setSelectedMatch(null);
+    }
+  };
 
   // Reset all state when modal is closed
   useEffect(() => {
@@ -210,12 +276,11 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
   };
 
   const handleSubmit = async () => {
-    if (images.length === 0) return;
+    if (images.length === 0 || !selectedMatch) return;
 
     setLoading(true);
     setError(null);
     try {
-      // Convert all images to base64
       const imagesWithBase64 = await Promise.all(
         images.map(async img => ({
           ...img,
@@ -226,11 +291,15 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       const result = await generateReply({
         prompt,
         images: imagesWithBase64.map(img => img.base64!),
-        userId: userId, // Use the userId from global store
+        userId,
+        matchId: generateMatchId(selectedMatch),
       });
 
+      // Update last used timestamp
+      await updateMatchLastUsed(selectedMatch);
+      setMatches(await getMatches()); // Refresh sorted list
+
       setResponse(result.reply);
-      // Automatically copy the response to clipboard
       Clipboard.setString(result.reply);
       setShowSnackbar(true);
     } catch (error) {
@@ -268,6 +337,93 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
               <Button mode="text" onPress={handleDismiss} compact>
                 ✕
               </Button>
+            </View>
+
+            {/* Match Selection */}
+            <View style={styles.matchSection}>
+              <View style={styles.matchHeader}>
+                <Text variant="bodyMedium">Select Match:</Text>
+                <Button
+                  mode="text"
+                  onPress={() => setShowNewMatchInput(true)}
+                  icon="plus">
+                  Add New Match
+                </Button>
+              </View>
+
+              {showNewMatchInput ? (
+                <View style={styles.newMatchInput}>
+                  <TextInput
+                    label="Name"
+                    value={newMatchName}
+                    onChangeText={setNewMatchName}
+                    style={styles.input}
+                  />
+                  <Menu
+                    visible={showPlatformMenu}
+                    onDismiss={() => setShowPlatformMenu(false)}
+                    anchor={
+                      <Button
+                        mode="outlined"
+                        onPress={() => setShowPlatformMenu(true)}
+                        style={styles.platformButton}>
+                        {newMatchPlatform || 'Select Platform'}
+                      </Button>
+                    }>
+                    {PLATFORMS.map(platform => (
+                      <Menu.Item
+                        key={platform}
+                        onPress={() => {
+                          setNewMatchPlatform(platform);
+                          setShowPlatformMenu(false);
+                          setPlatformError('');
+                        }}
+                        title={platform}
+                      />
+                    ))}
+                  </Menu>
+                  {platformError && (
+                    <Text style={styles.errorText}>{platformError}</Text>
+                  )}
+                  <View style={styles.newMatchActions}>
+                    <Button onPress={handleAddMatch}>Add</Button>
+                    <Button
+                      onPress={() => {
+                        setShowNewMatchInput(false);
+                        setPlatformError('');
+                      }}>
+                      Cancel
+                    </Button>
+                  </View>
+                </View>
+              ) : (
+                <ScrollView style={styles.matchList}>
+                  {matches.map((match, index) => (
+                    <List.Item
+                      key={index}
+                      title={`${match.name} (${match.platform})`}
+                      left={props => <List.Icon {...props} icon="account" />}
+                      right={props => (
+                        <IconButton
+                          {...props}
+                          icon="delete"
+                          onPress={() => handleDeleteMatch(match)}
+                        />
+                      )}
+                      onPress={() => setSelectedMatch(match)}
+                      style={[
+                        styles.matchItem,
+                        selectedMatch === match && styles.selectedMatch,
+                      ]}
+                    />
+                  ))}
+                  {matches.length === 0 && (
+                    <Text style={styles.emptyText}>
+                      No matches yet. Add one to get started!
+                    </Text>
+                  )}
+                </ScrollView>
+              )}
             </View>
 
             <View style={styles.toggleContainer}>
@@ -332,6 +488,16 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
               Generate Response
             </Button>
 
+            {response && (
+              <Surface style={styles.responseContainer} elevation={0}>
+                <Text variant="bodyLarge">Response:</Text>
+                <Text variant="bodyMedium">{response}</Text>
+                <Text variant="bodySmall" style={styles.tapToCopy}>
+                  Message copied to clipboard!
+                </Text>
+              </Surface>
+            )}
+
             <Button mode="outlined" onPress={handleFinish}>
               Finish
             </Button>
@@ -362,16 +528,6 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
                 <ActivityIndicator size="large" />
                 <Text>Generating response...</Text>
               </View>
-            )}
-
-            {response && (
-              <Surface style={styles.responseContainer} elevation={0}>
-                <Text variant="bodyLarge">Response:</Text>
-                <Text variant="bodyMedium">{response}</Text>
-                <Text variant="bodySmall" style={styles.tapToCopy}>
-                  Message copied to clipboard!
-                </Text>
-              </Surface>
             )}
           </View>
         </Surface>
@@ -449,7 +605,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   errorText: {
-    color: '#D32F2F',
+    color: 'red',
     marginBottom: 8,
   },
   errorActions: {
@@ -462,6 +618,43 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  matchSection: {
+    marginBottom: 16,
+  },
+  matchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  matchList: {
+    maxHeight: 120,
+  },
+  matchItem: {
+    paddingVertical: 4,
+  },
+  selectedMatch: {
+    backgroundColor: '#e3f2fd',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    padding: 16,
+  },
+  newMatchInput: {
+    marginTop: 8,
+  },
+  input: {
+    marginBottom: 8,
+  },
+  newMatchActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  platformButton: {
+    marginBottom: 8,
   },
 });
 

@@ -1,6 +1,7 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, View} from 'react-native';
-import {Button, Portal, Switch, Text} from 'react-native-paper';
+import {Button, Modal, Portal, Switch, Text} from 'react-native-paper';
+import {config} from '../config/config';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
 import {DevUtils} from '../utils/devUtils';
@@ -12,7 +13,16 @@ const DevMenu = () => {
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
-  const {showDevMenu, setShowDevMenu} = useStore();
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
+  const {showDevMenu, setShowDevMenu, userId} = useStore();
+
+  useEffect(() => {
+    const checkSandboxMode = async () => {
+      const mode = await DevUtils.isSandboxMode();
+      setIsSandboxMode(mode);
+    };
+    checkSandboxMode();
+  }, []);
 
   if (!__DEV__) {
     return null;
@@ -36,12 +46,35 @@ const DevMenu = () => {
     }
   };
 
+  const handleClearMatchStorage = async () => {
+    try {
+      await DevUtils.clearMatchStorage();
+      Alert.alert('Development', 'Match storage cleared successfully');
+    } catch (error) {
+      Alert.alert('Development Error', 'Failed to clear match storage');
+    }
+  };
+
   const handleInspectStorage = async () => {
     try {
       await DevUtils.inspectStorage();
       Alert.alert('Development', 'Storage contents logged to console');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to inspect storage');
+    }
+  };
+
+  const handleToggleSandboxMode = async () => {
+    try {
+      await DevUtils.toggleSandboxMode();
+      const newMode = await DevUtils.isSandboxMode();
+      setIsSandboxMode(newMode);
+      Alert.alert(
+        'Development',
+        `Sandbox mode ${newMode ? 'enabled' : 'disabled'}`,
+      );
+    } catch (error) {
+      Alert.alert('Development Error', 'Failed to toggle sandbox mode');
     }
   };
 
@@ -98,9 +131,48 @@ const DevMenu = () => {
     setTestStatus('Test completed');
   };
 
+  const handleTestContext = async () => {
+    try {
+      const url = `${config.apiBaseUrl}/api/test-context`;
+      console.log('Testing context with URL:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          timestamp: new Date().toISOString(),
+          testData: 'This is a test request to verify context',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Test context response:', data);
+      Alert.alert(
+        'Test Context',
+        'Request context logged to console. Check the logs for details.',
+      );
+    } catch (error) {
+      console.error('Error testing context:', error);
+      Alert.alert(
+        'Test Error',
+        'Failed to test context. Check console for details.',
+      );
+    }
+  };
+
   return (
     <Portal>
-      <View style={[styles.container, showDevMenu && styles.containerVisible]}>
+      <Modal
+        visible={showDevMenu}
+        onDismiss={() => setShowDevMenu(false)}
+        contentContainerStyle={styles.modal}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text variant="titleMedium" style={styles.title}>
@@ -122,6 +194,14 @@ const DevMenu = () => {
             />
           </View>
 
+          <View style={styles.toggleContainer}>
+            <Text>Sandbox Mode (No ChatGPT)</Text>
+            <Switch
+              value={isSandboxMode}
+              onValueChange={handleToggleSandboxMode}
+            />
+          </View>
+
           <View style={styles.buttonContainer}>
             <Button
               mode="contained"
@@ -139,9 +219,23 @@ const DevMenu = () => {
 
             <Button
               mode="contained"
+              onPress={handleClearMatchStorage}
+              style={styles.button}>
+              Clear Match Storage
+            </Button>
+
+            <Button
+              mode="contained"
               onPress={handleInspectStorage}
               style={styles.button}>
               Inspect Storage
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleTestContext}
+              style={styles.button}>
+              Test Context
             </Button>
 
             <Button
@@ -184,33 +278,17 @@ const DevMenu = () => {
             </Text>
           )}
         </View>
-      </View>
+      </Modal>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  modal: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    transform: [{translateY: 1000}],
-    transition: 'transform 0.3s ease-in-out',
-  },
-  containerVisible: {
-    transform: [{translateY: 0}],
+    padding: 20,
+    margin: 20,
+    borderRadius: 8,
   },
   content: {
     padding: 16,
