@@ -64,7 +64,67 @@ npm run android
 - AI-powered message suggestions
 - Custom keyboard extension for iOS and Android
 - Real-time message analysis
-- Context-aware responses
+- Context-aware responses with conversation history
+- Conversation summaries for better context
+- Sandbox mode for development and testing
+
+### Product Features
+
+#### Message Generation
+
+- **AI-Powered Responses**: Generate engaging, context-aware messages using GPT-4 Vision
+- **Image Analysis**: Analyze profile photos to create personalized messages
+- **Tone Customization**: Choose from different message styles (flirty, funny, smooth)
+- **Context Awareness**: Maintain conversation history for more personalized responses
+
+#### Conversation Management
+
+- **Match Storage**: Save and organize conversations by match
+- **Conversation History**: Track previous messages and responses
+- **Context Summaries**: AI-generated summaries of conversation context
+- **Platform Support**: Works with multiple dating apps (Tinder, Hinge, Bumble)
+
+#### Development Tools
+
+- **Sandbox Mode**: Test message generation without API calls
+- **Dev Menu**: Access development tools and utilities
+- **Storage Management**: Clear and inspect stored data
+- **Rate Limiting**: Control API usage and prevent abuse
+
+#### User Experience
+
+- **Custom Keyboard**: Seamless integration with dating apps
+- **Image Selection**: Easy photo picking from camera roll
+- **Message Copying**: One-tap copy to clipboard
+- **Match Organization**: Sort and manage multiple matches
+
+### Conversation Context
+
+The app maintains conversation context by:
+
+- Storing previous messages in a structured format
+- Using summaries to maintain context between messages
+- Providing context-aware responses based on conversation history
+
+#### Response Format
+
+The AI responses follow a structured format:
+
+```xml
+<summary>
+[Brief summary of conversation context and match information]
+</summary>
+<message>
+[The actual message to send to the match]
+</message>
+```
+
+This format allows the app to:
+
+- Maintain conversation context
+- Provide more personalized responses
+- Track conversation history
+- Improve response quality over time
 
 ## Contributing
 
