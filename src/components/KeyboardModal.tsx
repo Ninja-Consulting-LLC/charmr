@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import React, {useEffect, useState} from 'react';
@@ -22,6 +21,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import {generateReply} from '../services/api';
+import {useStore} from '../store';
 
 interface CameraRollAsset {
   node: {
@@ -66,28 +66,7 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
-  const [userId, setUserId] = useState<string>('');
-
-  // Get or create user ID on component mount
-  useEffect(() => {
-    const getOrCreateUserId = async () => {
-      try {
-        let storedUserId = await AsyncStorage.getItem('userId');
-        if (!storedUserId) {
-          // Generate a new user ID if none exists
-          storedUserId = `user-${Date.now()}-${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-          await AsyncStorage.setItem('userId', storedUserId);
-        }
-        setUserId(storedUserId);
-      } catch (error) {
-        console.error('Error managing user ID:', error);
-      }
-    };
-
-    getOrCreateUserId();
-  }, []);
+  const {userId} = useStore();
 
   // Reset all state when modal is closed
   useEffect(() => {
@@ -247,7 +226,7 @@ const KeyboardModal: React.FC<KeyboardModalProps> = ({visible, onDismiss}) => {
       const result = await generateReply({
         prompt,
         images: imagesWithBase64.map(img => img.base64!),
-        userId: userId, // Use the actual user ID
+        userId: userId, // Use the userId from global store
       });
 
       setResponse(result.reply);
