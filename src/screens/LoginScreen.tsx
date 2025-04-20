@@ -33,21 +33,28 @@ const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
+    <View testID="screen-container" style={styles.container}>
+      <View testID="content-container" style={styles.content}>
+        <View testID="logo-container" style={styles.logoContainer}>
+          <View testID="logo-placeholder" style={styles.logoPlaceholder}>
             <Text style={styles.logoText}>DB</Text>
           </View>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text
+            testID="app-title"
+            variant="headlineMedium"
+            style={styles.title}>
             Dating Buddy
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text
+            testID="app-subtitle"
+            variant="bodyLarge"
+            style={styles.subtitle}>
             Your AI-powered dating assistant
           </Text>
         </View>
-        <View style={styles.buttonContainer}>
+        <View testID="button-container" style={styles.buttonContainer}>
           <Button
+            testID="login-button"
             mode="contained"
             onPress={handleLogin}
             style={styles.loginButton}
@@ -56,6 +63,7 @@ const LoginScreen = () => {
             Login
           </Button>
           <Button
+            testID="get-started-button"
             mode="outlined"
             onPress={handleGetStarted}
             style={styles.getStartedButton}
@@ -65,6 +73,7 @@ const LoginScreen = () => {
           </Button>
           {DevUtils.shouldBypassAuth() && (
             <Button
+              testID="skip-to-home-button"
               mode="text"
               onPress={handleSkipToHome}
               style={styles.devButton}

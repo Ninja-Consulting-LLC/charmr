@@ -111,10 +111,18 @@ const OnboardingScreen = () => {
       <Surface style={styles.content}>
         {renderStep()}
         <View style={styles.footer}>
-          <Button mode="outlined" onPress={handleSkip} style={styles.button}>
+          <Button
+            mode="outlined"
+            onPress={handleSkip}
+            style={styles.button}
+            testID="skip-button">
             Skip
           </Button>
-          <Button mode="contained" onPress={handleNext} style={styles.button}>
+          <Button
+            mode="contained"
+            onPress={handleNext}
+            style={styles.button}
+            testID={currentStep === 3 ? 'register-button' : 'next-button'}>
             {currentStep === 3 ? 'Register' : 'Next'}
           </Button>
         </View>
