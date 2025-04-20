@@ -3,7 +3,7 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
-import {Button, Text} from 'react-native-paper';
+import {Button, Surface, Text} from 'react-native-paper';
 import {RootStackParamList} from '../navigation/types';
 import {DevUtils} from '../utils/devUtils';
 
@@ -24,19 +24,43 @@ const LoginScreen = () => {
     }
   };
 
+  const handleGetStarted = () => {
+    navigation.navigate('Onboarding');
+  };
+
+  const handleSkipToHome = () => {
+    navigation.navigate('Home');
+  };
+
   return (
     <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
-        Welcome Back
-      </Text>
-      <Button mode="contained" onPress={handleLogin} style={styles.button}>
-        Login
-      </Button>
-      {DevUtils.shouldBypassAuth() && (
-        <Button mode="outlined" onPress={handleLogin} style={styles.button}>
-          Bypass Auth (Dev Mode)
-        </Button>
-      )}
+      <Surface style={styles.content}>
+        <Text variant="headlineMedium" style={styles.title}>
+          Welcome to Dating Buddy
+        </Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>
+          Your AI-powered dating assistant
+        </Text>
+        <View style={styles.buttonContainer}>
+          <Button mode="contained" onPress={handleLogin} style={styles.button}>
+            Login
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={handleGetStarted}
+            style={styles.button}>
+            Get Started
+          </Button>
+          {DevUtils.shouldBypassAuth() && (
+            <Button
+              mode="text"
+              onPress={handleSkipToHome}
+              style={styles.devButton}>
+              Skip to Home (Dev Mode)
+            </Button>
+          )}
+        </View>
+      </Surface>
     </View>
   );
 };
@@ -44,18 +68,35 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
     justifyContent: 'center',
+    padding: 16,
+  },
+  content: {
+    padding: 24,
+    borderRadius: 8,
     alignItems: 'center',
-    padding: 20,
   },
   title: {
-    marginBottom: 20,
+    marginBottom: 8,
     textAlign: 'center',
   },
+  subtitle: {
+    marginBottom: 32,
+    textAlign: 'center',
+    color: '#666',
+  },
+  buttonContainer: {
+    width: '100%',
+    maxWidth: 300,
+    gap: 16,
+  },
   button: {
-    marginTop: 10,
-    minWidth: 200,
+    width: '100%',
+  },
+  devButton: {
+    width: '100%',
+    marginTop: 8,
   },
 });
 
