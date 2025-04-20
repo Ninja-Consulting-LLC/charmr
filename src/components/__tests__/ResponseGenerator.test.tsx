@@ -159,7 +159,9 @@ describe('ResponseGenerator', () => {
     expect(getByTestId('response-generator-container')).toBeTruthy();
     expect(getByTestId('image-picker-button')).toBeTruthy();
     expect(getByTestId('prompt-input')).toBeTruthy();
-    expect(getByTestId('style-dropdown')).toBeTruthy();
+    expect(getByTestId('style-flirty-button')).toBeTruthy();
+    expect(getByTestId('style-smooth-button')).toBeTruthy();
+    expect(getByTestId('style-funny-button')).toBeTruthy();
     expect(getByTestId('submit-button')).toBeTruthy();
   });
 
@@ -281,10 +283,9 @@ describe('ResponseGenerator', () => {
       new Error('API error message'),
     );
 
-    // Add image and generate response
+    // Add image
     await act(async () => {
       fireEvent.press(getByTestId('image-picker-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
     await waitFor(() => {
@@ -295,10 +296,9 @@ describe('ResponseGenerator', () => {
     await act(async () => {
       fireEvent.changeText(getByTestId('prompt-input'), 'Test prompt');
       fireEvent.press(getByTestId('submit-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
-    // Wait for error snackbar to appear with correct message
+    // Wait for error snackbar to appear
     await waitFor(() => {
       expect(getByTestId('error-snackbar')).toBeTruthy();
       expect(
@@ -307,7 +307,7 @@ describe('ResponseGenerator', () => {
     });
   });
 
-  it.skip('handles image deletion correctly', async () => {
+  it('handles image deletion correctly', async () => {
     const {getByTestId} = renderWithProviders(<ResponseGenerator />);
 
     // Mock image picker and successful API response
@@ -317,7 +317,7 @@ describe('ResponseGenerator', () => {
       error: null,
     });
 
-    // Add image and generate response
+    // Add image
     await act(async () => {
       fireEvent.press(getByTestId('image-picker-button'));
     });
@@ -350,25 +350,6 @@ describe('ResponseGenerator', () => {
     });
   });
 
-  it('should persist style selection', async () => {
-    const {getByTestId, getByText} = renderWithProviders(<ResponseGenerator />);
-
-    // Open style dropdown
-    await act(async () => {
-      fireEvent.press(getByTestId('style-dropdown'));
-    });
-
-    // Select Flirty style
-    await act(async () => {
-      fireEvent.press(getByText('Flirty'));
-    });
-
-    // Verify style is set in state
-    expect(
-      getByTestId('style-dropdown').props.accessibilityState.expanded,
-    ).toBe(false);
-  });
-
   it.skip('handles modal dismissal correctly', async () => {
     const {getByTestId, queryByTestId} = renderWithProviders(
       <ResponseGenerator />,
@@ -381,10 +362,9 @@ describe('ResponseGenerator', () => {
       error: null,
     });
 
-    // Add image and generate response
+    // Add image
     await act(async () => {
       fireEvent.press(getByTestId('image-picker-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
     await waitFor(() => {
@@ -395,7 +375,8 @@ describe('ResponseGenerator', () => {
     await act(async () => {
       fireEvent.changeText(getByTestId('prompt-input'), 'Test prompt');
       fireEvent.press(getByTestId('submit-button'));
-      await Promise.resolve(); // Wait for state updates
+      // Trigger FileReader onload to simulate base64 conversion
+      mockFileReader.onload();
     });
 
     // Wait for modal to appear
@@ -403,17 +384,19 @@ describe('ResponseGenerator', () => {
       expect(getByTestId('modal')).toBeTruthy();
     });
 
-    // Dismiss modal and wait for cleanup
+    // Press finish button and wait for state updates
     await act(async () => {
       fireEvent.press(getByTestId('finish-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
-    // Wait for state updates to complete
-    await waitFor(() => {
-      expect(queryByTestId('modal')).toBeNull();
-      expect(queryByTestId('selected-image-0')).toBeNull();
-    });
+    // Wait for modal to disappear and images to be cleared
+    await waitFor(
+      () => {
+        expect(queryByTestId('modal')).toBeNull();
+        expect(queryByTestId('selected-image-0')).toBeNull();
+      },
+      {timeout: 2000},
+    );
   });
 
   it.skip('should show error snackbar when API call fails', async () => {
@@ -422,28 +405,42 @@ describe('ResponseGenerator', () => {
 
     const {getByTestId, getByText} = renderWithProviders(<ResponseGenerator />);
 
-    // Add an image first
+    // Add an image
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
     await act(async () => {
       fireEvent.press(getByTestId('image-picker-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
     await waitFor(() => {
       expect(getByTestId('selected-image-0')).toBeTruthy();
     });
 
-    // Trigger the error
+    // Set prompt and generate response
     await act(async () => {
+      fireEvent.changeText(getByTestId('prompt-input'), 'Test prompt');
       fireEvent.press(getByTestId('submit-button'));
-      await Promise.resolve(); // Wait for state updates
     });
 
+    // Wait for error snackbar to appear
     await waitFor(() => {
       expect(getByTestId('error-snackbar')).toBeTruthy();
       expect(
         getByText('Failed to generate response. Please try again.'),
       ).toBeTruthy();
+    });
+  });
+
+  it('should persist style selection', async () => {
+    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+
+    // Select Flirty style
+    await act(async () => {
+      fireEvent.press(getByTestId('style-flirty-button'));
+    });
+
+    // Verify style is selected
+    await waitFor(() => {
+      expect(getByTestId('style-flirty-button').props.mode).toBe('contained');
     });
   });
 });
