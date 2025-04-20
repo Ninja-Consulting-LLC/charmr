@@ -26,5 +26,6 @@ export const mockCameraRoll = {
     save: jest.fn(),
     getPhotos: jest.fn(),
     saveToCameraRoll: jest.fn(),
+    deletePhotos: jest.fn(),
   },
 };
