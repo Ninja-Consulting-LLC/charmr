@@ -77,6 +77,8 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
               size={24}
               onPress={onDismiss}
               style={styles.closeButton}
+              testID="close-button"
+              accessibilityLabel="Close modal"
             />
           </View>
 
@@ -95,10 +97,12 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
                   styles.tierCard,
                   selectedTier === tier.id && styles.selectedTier,
                 ]}
-                elevation={selectedTier === tier.id ? 4 : 1}>
+                testID={`${tier.id}-tier-card`}>
                 <Pressable
                   style={styles.tierCardPressable}
-                  onPress={() => setSelectedTier(tier.id)}>
+                  onPress={() => setSelectedTier(tier.id)}
+                  testID={`${tier.id}-tier`}
+                  accessibilityLabel={`Select ${tier.name} tier`}>
                   <Text variant="titleMedium" style={styles.tierName}>
                     {tier.name}
                   </Text>
@@ -126,7 +130,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <Button
             mode="contained"
             onPress={() => onUpgrade(selectedTier)}
-            style={styles.upgradeButton}>
+            style={styles.upgradeButton}
+            testID="upgrade-button"
+            accessibilityLabel="Upgrade to selected plan">
             Upgrade Now
           </Button>
         </View>
@@ -166,7 +172,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tierCard: {
-    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
@@ -176,6 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
   },
   tierCardPressable: {
+    padding: 12,
     alignItems: 'center',
   },
   tierName: {
