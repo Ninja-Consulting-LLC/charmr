@@ -17,7 +17,6 @@ import {
   Button,
   IconButton,
   List,
-  Menu,
   Snackbar,
   Surface,
   Switch,
@@ -25,6 +24,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import AddMatchModal from '../components/AddMatchModal';
 import DevMenu from '../components/DevMenu';
 import UpgradeModal from '../components/UpgradeModal';
 import {RootStackParamList} from '../navigation/types';
@@ -94,12 +94,8 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
   // Match management state
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
-  const [showNewMatchInput, setShowNewMatchInput] = useState(false);
-  const [newMatchName, setNewMatchName] = useState('');
-  const [newMatchPlatform, setNewMatchPlatform] = useState('');
-  const [showMatchMenu, setShowMatchMenu] = useState(false);
-  const [showPlatformMenu, setShowPlatformMenu] = useState(false);
-  const [platformError, setPlatformError] = useState('');
+  const [showAddMatchModal, setShowAddMatchModal] = useState(false);
+  const [showMatchDropdown, setShowMatchDropdown] = useState(false);
 
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -115,26 +111,15 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
     setMatches(loadedMatches);
   };
 
-  const handleAddMatch = async () => {
-    if (!newMatchName) return;
-
-    if (!newMatchPlatform) {
-      setPlatformError('Please select a platform');
-      return;
-    }
-
+  const handleAddMatch = async (name: string, platform: string) => {
     const newMatch: Match = {
-      name: newMatchName,
-      platform: newMatchPlatform,
+      name,
+      platform,
     };
 
     await addMatch(newMatch);
-    setMatches(prev => [...prev, newMatch]);
+    setMatches(prev => [newMatch, ...prev]);
     setSelectedMatch(newMatch);
-    setNewMatchName('');
-    setNewMatchPlatform('');
-    setShowNewMatchInput(false);
-    setPlatformError('');
   };
 
   const handleDeleteMatch = async (match: Match) => {
@@ -388,85 +373,80 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
               <Text variant="bodyMedium">Select Match:</Text>
               <Button
                 mode="text"
-                onPress={() => setShowNewMatchInput(true)}
+                onPress={() => setShowAddMatchModal(true)}
                 icon="plus">
                 Add New Match
               </Button>
             </View>
 
-            {showNewMatchInput ? (
-              <View style={styles.newMatchInput}>
-                <TextInput
-                  label="Name"
-                  value={newMatchName}
-                  onChangeText={setNewMatchName}
-                  style={styles.input}
-                />
-                <Menu
-                  visible={showPlatformMenu}
-                  onDismiss={() => setShowPlatformMenu(false)}
-                  anchor={
-                    <Button
-                      mode="outlined"
-                      onPress={() => setShowPlatformMenu(true)}
-                      style={styles.platformButton}>
-                      {newMatchPlatform || 'Select Platform'}
-                    </Button>
-                  }>
-                  {PLATFORMS.map(platform => (
-                    <Menu.Item
-                      key={platform}
-                      onPress={() => {
-                        setNewMatchPlatform(platform);
-                        setShowPlatformMenu(false);
-                        setPlatformError('');
-                      }}
-                      title={platform}
-                    />
-                  ))}
-                </Menu>
-                {platformError && (
-                  <Text style={styles.errorText}>{platformError}</Text>
-                )}
-                <View style={styles.newMatchActions}>
-                  <Button onPress={handleAddMatch}>Add</Button>
-                  <Button
-                    onPress={() => {
-                      setShowNewMatchInput(false);
-                      setPlatformError('');
-                    }}>
-                    Cancel
-                  </Button>
+            <Surface style={styles.matchDropdown} elevation={1}>
+              <Pressable
+                style={styles.matchDropdownHeader}
+                onPress={() => setShowMatchDropdown(!showMatchDropdown)}>
+                <View style={styles.matchDropdownTitle}>
+                  <List.Icon icon="account" />
+                  <Text variant="bodyMedium">
+                    {selectedMatch
+                      ? `${selectedMatch.name} (${selectedMatch.platform})`
+                      : 'Select a match'}
+                  </Text>
                 </View>
-              </View>
-            ) : (
-              <ScrollView style={styles.matchList}>
-                {matches.map((match, index) => (
-                  <List.Item
-                    key={index}
-                    title={`${match.name} (${match.platform})`}
-                    left={props => <List.Icon {...props} icon="account" />}
-                    right={props => (
+                <IconButton
+                  icon={showMatchDropdown ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  onPress={() => setShowMatchDropdown(!showMatchDropdown)}
+                />
+              </Pressable>
+
+              {showMatchDropdown && (
+                <ScrollView style={styles.matchDropdownContent}>
+                  {matches.map((match, index) => (
+                    <Pressable
+                      key={index}
+                      style={[
+                        styles.matchDropdownItem,
+                        selectedMatch === match && styles.selectedMatch,
+                      ]}
+                      onPress={() => {
+                        setSelectedMatch(match);
+                        setShowMatchDropdown(false);
+                      }}>
+                      <List.Icon
+                        icon="account"
+                        color={selectedMatch === match ? '#1976D2' : undefined}
+                      />
+                      <Text
+                        variant="bodyMedium"
+                        style={[
+                          styles.matchName,
+                          selectedMatch === match && styles.selectedMatchText,
+                        ]}>
+                        {match.name} ({match.platform})
+                      </Text>
+                      {selectedMatch === match && (
+                        <IconButton
+                          icon="check-circle"
+                          size={20}
+                          iconColor="#1976D2"
+                          style={styles.checkIcon}
+                        />
+                      )}
+                      <View style={styles.spacer} />
                       <IconButton
-                        {...props}
                         icon="delete"
+                        size={20}
                         onPress={() => handleDeleteMatch(match)}
                       />
-                    )}
-                    onPress={() => setSelectedMatch(match)}
-                    style={[
-                      styles.matchItem,
-                      selectedMatch === match && styles.selectedMatch,
-                    ]}
-                  />
-                ))}
-                {matches.length === 0 && (
-                  <Text style={styles.emptyText}>
-                    No matches yet. Add one to get started!
-                  </Text>
-                )}
-              </ScrollView>
-            )}
+                    </Pressable>
+                  ))}
+                  {matches.length === 0 && (
+                    <Text style={styles.emptyText}>
+                      No matches yet. Add one to get started!
+                    </Text>
+                  )}
+                </ScrollView>
+              )}
+            </Surface>
           </View>
 
           <View style={styles.buttonContainer}>
@@ -587,6 +567,11 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
         </View>
       </ScrollView>
 
+      <AddMatchModal
+        visible={showAddMatchModal}
+        onDismiss={() => setShowAddMatchModal(false)}
+        onAdd={handleAddMatch}
+      />
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
@@ -699,33 +684,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  matchList: {
-    maxHeight: 120,
+  matchDropdown: {
+    borderRadius: 8,
+    overflow: 'hidden',
   },
-  matchItem: {
-    paddingVertical: 4,
+  matchDropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+  },
+  matchDropdownTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  matchDropdownContent: {
+    maxHeight: 200,
+  },
+  matchDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
   selectedMatch: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#E3F2FD',
+    borderLeftWidth: 3,
+    borderLeftColor: '#1976D2',
+    borderTopColor: '#1976D2',
+    borderBottomColor: '#1976D2',
+  },
+  selectedMatchText: {
+    color: '#1976D2',
+    fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
     color: '#666',
     padding: 16,
-  },
-  newMatchInput: {
-    marginTop: 8,
-  },
-  input: {
-    marginBottom: 8,
-  },
-  newMatchActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  platformButton: {
-    marginBottom: 8,
   },
   screenshotsContainer: {
     marginBottom: 8,
@@ -733,6 +732,15 @@ const styles = StyleSheet.create({
   },
   promptInput: {
     marginTop: 0,
+  },
+  matchName: {
+    flex: 1,
+  },
+  checkIcon: {
+    margin: 0,
+  },
+  spacer: {
+    flex: 1,
   },
 });
 
