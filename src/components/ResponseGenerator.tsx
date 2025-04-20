@@ -33,6 +33,7 @@ import {
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
+import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
 interface CameraRollAsset {
@@ -94,6 +95,9 @@ const HomeContent: React.FC = () => {
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+
+  // Reply modal state
+  const [showReplyModal, setShowReplyModal] = useState(false);
 
   // Load matches on mount
   useEffect(() => {
@@ -269,6 +273,9 @@ const HomeContent: React.FC = () => {
         setShowSnackbar(true);
       } else {
         setResponse(response.reply);
+        // Copy to clipboard immediately upon generation
+        Clipboard.setString(response.reply);
+        setShowReplyModal(true);
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
         }
@@ -298,6 +305,7 @@ const HomeContent: React.FC = () => {
     setPrompt('');
     setResponse(null);
     setSelectedStyle('');
+    setShowReplyModal(false);
   };
 
   const handleCopyToClipboard = () => {
@@ -310,6 +318,15 @@ const HomeContent: React.FC = () => {
   const handleUpgrade = (tierId: string) => {
     // Handle upgrade logic here
     setShowUpgradeModal(false);
+  };
+
+  const handleGenerateNew = () => {
+    setResponse(null);
+    handleSubmit();
+  };
+
+  const handleModifyResponse = () => {
+    setShowReplyModal(false);
   };
 
   return (
@@ -429,23 +446,6 @@ const HomeContent: React.FC = () => {
           style={styles.generateButton}>
           Generate Response
         </Button>
-
-        {/* Response Display */}
-        {response && (
-          <Surface style={styles.responseSection}>
-            <View style={styles.responseHeader}>
-              <Text variant="titleMedium">Generated Reply</Text>
-              <IconButton icon="content-copy" onPress={handleCopyToClipboard} />
-            </View>
-            <Text style={styles.responseText}>{response}</Text>
-            <Button
-              mode="outlined"
-              onPress={handleFinish}
-              style={styles.finishButton}>
-              Finish
-            </Button>
-          </Surface>
-        )}
       </ScrollView>
 
       {/* Modals */}
@@ -460,6 +460,15 @@ const HomeContent: React.FC = () => {
         onDismiss={() => setShowUpgradeModal(false)}
         onUpgrade={handleUpgrade}
         showRateLimitMessage={isRateLimited}
+      />
+
+      <ReplyModal
+        visible={showReplyModal}
+        onDismiss={() => setShowReplyModal(false)}
+        reply={response || ''}
+        onFinish={handleFinish}
+        onCopy={handleCopyToClipboard}
+        onModifyResponse={handleModifyResponse}
       />
 
       <Snackbar
@@ -563,23 +572,6 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     marginBottom: 16,
-  },
-  responseSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  responseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  responseText: {
-    marginBottom: 16,
-  },
-  finishButton: {
-    alignSelf: 'flex-end',
   },
 });
 
