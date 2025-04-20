@@ -52,6 +52,11 @@ react {
 
     /* Autolinking */
     autolinkLibrariesWithApp()
+
+    // Enable Fabric
+    fabricEnabled = false
+    // Enable new architecture
+    newArchEnabled = false
 }
 
 /**
@@ -77,14 +82,21 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.aidatingkeyboard"
+    namespace "com.ninjadating.aidatingkeyboard"
     defaultConfig {
-        applicationId "com.aidatingkeyboard"
+        applicationId "com.ninjadating.aidatingkeyboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
+
+    // Add this block for vector icons
+    project.ext.vectoricons = [
+        iconFontNames: [ 'MaterialCommunityIcons.ttf' ]
+    ]
+    apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -92,6 +104,7 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // Add your release signing config here
     }
     buildTypes {
         debug {
