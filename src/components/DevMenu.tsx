@@ -12,9 +12,14 @@ const DevMenu = () => {
   const [testResults, setTestResults] = useState<
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
-  const [skipRateLimiting, setSkipRateLimiting] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
-  const {showDevMenu, setShowDevMenu, userId} = useStore();
+  const {
+    showDevMenu,
+    setShowDevMenu,
+    userId,
+    skipRateLimiting,
+    setSkipRateLimiting,
+  } = useStore();
 
   useEffect(() => {
     const checkSandboxMode = async () => {
@@ -166,6 +171,8 @@ const DevMenu = () => {
       );
     }
   };
+
+  if (!showDevMenu) return null;
 
   return (
     <Portal>
