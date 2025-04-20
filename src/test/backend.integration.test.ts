@@ -35,6 +35,8 @@ async function testGenerateReplyEndpoint() {
     prompt: 'make it funny',
     images: ['data:image/jpeg;base64,test123'],
     userId: 'test-user-1',
+    matchId: 'test-match-1',
+    deleteAfterResponse: true,
   };
 
   try {
