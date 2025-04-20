@@ -2,14 +2,7 @@ import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import {Image, Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {
   Button,
@@ -330,125 +323,116 @@ const HomeContent: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      testID="response-generator-container">
       <ScrollView style={styles.scrollView}>
-        {/* Match Selection */}
-        <Surface style={styles.matchSection}>
-          <View style={styles.matchHeader}>
-            <Text variant="titleMedium">Select Match</Text>
-            <IconButton
-              icon="plus"
-              onPress={() => setShowAddMatchModal(true)}
-            />
-          </View>
-          {matches.length > 0 ? (
-            <List.Accordion
-              title={
-                selectedMatch
-                  ? `${selectedMatch.name} (${selectedMatch.platform})`
-                  : 'Select a match'
-              }
-              expanded={showMatchDropdown}
-              onPress={() => setShowMatchDropdown(!showMatchDropdown)}>
-              {matches.map(match => (
-                <List.Item
-                  key={`${match.platform}::${match.name}`}
-                  title={match.name}
-                  description={match.platform}
-                  right={props => (
-                    <IconButton
-                      {...props}
-                      icon="delete"
-                      onPress={() => handleDeleteMatch(match)}
-                    />
-                  )}
-                  onPress={() => {
-                    setSelectedMatch(match);
-                    setShowMatchDropdown(false);
-                  }}
-                />
-              ))}
-            </List.Accordion>
-          ) : (
-            <Text>No matches added yet</Text>
-          )}
-        </Surface>
-
-        {/* Image Selection */}
-        <Surface style={styles.imageSection}>
-          <View style={styles.imageHeader}>
-            <Text variant="titleMedium">Selected Images</Text>
-            <View style={styles.imageActions}>
-              <Text>Delete after use</Text>
-              <Switch
-                value={deleteScreenshots}
-                onValueChange={setDeleteScreenshots}
-              />
-            </View>
-          </View>
-          <View style={styles.imageGrid}>
+        <Surface style={styles.surface}>
+          <View style={styles.imageContainer}>
             {images.map((image, index) => (
-              <View key={index} style={styles.imageContainer}>
+              <View key={index} style={styles.imageWrapper}>
                 <Image
                   source={{uri: image.path}}
                   style={styles.image}
-                  resizeMode="cover"
+                  testID={`selected-image-${index}`}
                 />
                 <IconButton
                   icon="close"
                   size={20}
-                  style={styles.removeImage}
                   onPress={() => removeImage(index)}
+                  testID={`remove-image-${index}`}
                 />
               </View>
             ))}
-            <Pressable style={styles.addImageButton} onPress={pickImages}>
-              <Text>Add Images</Text>
-            </Pressable>
           </View>
-        </Surface>
 
-        {/* Prompt Input */}
-        <Surface style={styles.promptSection}>
-          <Text variant="titleMedium">
-            Enter your prompt (e.g. 'make it flirty')
-          </Text>
+          <Button
+            mode="contained"
+            onPress={pickImages}
+            style={styles.button}
+            testID="image-picker-button">
+            Select Images
+          </Button>
+
           <TextInput
+            label="Prompt"
             value={prompt}
             onChangeText={setPrompt}
             multiline
-            numberOfLines={4}
-            style={styles.promptInput}
+            style={styles.input}
+            testID="prompt-input"
           />
-        </Surface>
 
-        {/* Style Selection */}
-        <Surface style={styles.styleSection}>
-          <Text variant="titleMedium">Select Style</Text>
-          <View style={styles.styleButtons}>
+          <List.Accordion
+            title="Message Style"
+            expanded={showMatchDropdown}
+            onPress={() => setShowMatchDropdown(!showMatchDropdown)}
+            testID="style-dropdown">
             {messageStyles.map(style => (
-              <Button
+              <List.Item
                 key={style.value}
-                mode={selectedStyle === style.value ? 'contained' : 'outlined'}
-                onPress={() => setSelectedStyle(style.value)}>
-                {style.label}
-              </Button>
+                title={style.label}
+                onPress={() => {
+                  setSelectedStyle(style.value);
+                  setShowMatchDropdown(false);
+                }}
+              />
             ))}
-          </View>
-        </Surface>
+          </List.Accordion>
 
-        {/* Generate Button */}
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading || images.length === 0}
-          style={styles.generateButton}>
-          Generate Response
-        </Button>
+          <View style={styles.switchContainer}>
+            <Text>Delete screenshots after use</Text>
+            <Switch
+              value={deleteScreenshots}
+              onValueChange={setDeleteScreenshots}
+              testID="delete-screenshots-switch"
+            />
+          </View>
+
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={loading}
+            style={styles.button}
+            testID="submit-button">
+            Generate Response
+          </Button>
+
+          {response && (
+            <View style={styles.responseContainer}>
+              <TextInput
+                value={response}
+                multiline
+                editable={false}
+                style={styles.responseInput}
+                testID="response-text"
+              />
+              <Button
+                mode="contained"
+                onPress={handleCopyToClipboard}
+                style={styles.button}
+                testID="copy-button">
+                Copy to Clipboard
+              </Button>
+            </View>
+          )}
+
+          {error && (
+            <Snackbar
+              visible={showSnackbar}
+              onDismiss={() => setShowSnackbar(false)}
+              action={{
+                label: 'Dismiss',
+                onPress: () => setShowSnackbar(false),
+              }}
+              testID="error-snackbar">
+              {error}
+            </Snackbar>
+          )}
+        </Surface>
       </ScrollView>
 
-      {/* Modals */}
       <AddMatchModal
         visible={showAddMatchModal}
         onDismiss={() => setShowAddMatchModal(false)}
@@ -459,7 +443,6 @@ const HomeContent: React.FC = () => {
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={isRateLimited}
       />
 
       <ReplyModal
@@ -470,16 +453,6 @@ const HomeContent: React.FC = () => {
         onCopy={handleCopyToClipboard}
         onModifyResponse={handleModifyResponse}
       />
-
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setShowSnackbar(false),
-        }}>
-        {error || copyMessage}
-      </Snackbar>
     </SafeAreaView>
   );
 };
@@ -493,39 +466,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  matchSection: {
+  surface: {
     padding: 16,
     marginBottom: 16,
     borderRadius: 8,
   },
-  matchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  imageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  imageGrid: {
+  imageContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  imageContainer: {
+  imageWrapper: {
     width: 100,
     height: 100,
     borderRadius: 8,
@@ -535,43 +486,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  removeImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    margin: 4,
-  },
-  addImageButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#ccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  promptSection: {
-    padding: 16,
+  button: {
     marginBottom: 16,
-    borderRadius: 8,
   },
-  promptInput: {
+  input: {
     marginTop: 8,
   },
-  styleSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  styleButtons: {
+  switchContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
+    alignItems: 'center',
+    gap: 8,
   },
-  generateButton: {
-    marginBottom: 16,
+  responseContainer: {
+    marginTop: 16,
+  },
+  responseInput: {
+    marginBottom: 8,
   },
 });
 
