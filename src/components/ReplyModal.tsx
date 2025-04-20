@@ -36,11 +36,16 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
     <Modal
       visible={visible}
       onDismiss={onDismiss}
+      testID="modal"
       contentContainerStyle={styles.modalContainer}>
       <Surface style={styles.modalContent}>
         <View style={styles.header}>
           <Text variant="titleMedium">Generated Reply</Text>
-          <IconButton icon="content-copy" onPress={handleCopyToClipboard} />
+          <IconButton
+            testID="copy-button"
+            icon="content-copy"
+            onPress={handleCopyToClipboard}
+          />
         </View>
         <Text style={styles.replyText}>{reply}</Text>
         <View style={styles.messageSection}>
@@ -59,10 +64,15 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
           <Button
             mode="outlined"
             onPress={onModifyResponse}
+            testID="modify-button"
             style={styles.button}>
             Modify Response
           </Button>
-          <Button mode="outlined" onPress={onFinish} style={styles.button}>
+          <Button
+            mode="outlined"
+            onPress={onFinish}
+            testID="finish-button"
+            style={styles.button}>
             Finish
           </Button>
         </View>
