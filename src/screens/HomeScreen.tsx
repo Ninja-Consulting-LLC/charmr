@@ -51,15 +51,18 @@ interface CameraRollResponse {
   edges: CameraRollAsset[];
 }
 
+interface PickerImage {
+  path: string;
+  localIdentifier?: string;
+  id?: string;
+  mime?: string;
+}
+
 interface SelectedImage {
   path: string;
   assetId?: string;
   base64?: string;
-}
-
-interface PickerImage {
-  path: string;
-  assetId?: string;
+  mime?: string;
 }
 
 const messageStyles = [
@@ -144,6 +147,12 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
 
   const pickImages = async () => {
     try {
+      // Get currently selected image paths for comparison
+      const existingPaths = new Set(images.map(img => img.path));
+      const existingAssetIds = new Set(
+        images.filter(img => img.assetId).map(img => img.assetId),
+      );
+
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
         multiple: true,
@@ -151,24 +160,38 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
+        selectedAssets: images.map(img => ({
+          uri: img.path,
+          type: img.mime || 'image/jpeg',
+          ...(img.assetId && {id: img.assetId}),
+        })),
       });
 
       console.log('Image picker result:', result);
 
-      const newImages = Array.isArray(result)
-        ? result.map((img: any) => ({
-            path: img.path,
-            assetId: img.localIdentifier || img.id,
-          }))
-        : [
-            {
-              path: (result as any).path,
-              assetId: (result as any).localIdentifier || (result as any).id,
-            },
-          ];
+      const newImages = (
+        (Array.isArray(result) ? result : [result]) as PickerImage[]
+      )
+        .filter(img => {
+          // Filter out duplicates based on path or assetId
+          const isDuplicate =
+            existingPaths.has(img.path) ||
+            (img.localIdentifier && existingAssetIds.has(img.localIdentifier));
+          if (isDuplicate) {
+            console.log('Skipping duplicate image:', img.path);
+          }
+          return !isDuplicate;
+        })
+        .map(img => ({
+          path: img.path,
+          assetId: img.localIdentifier || img.id,
+          mime: img.mime,
+        }));
 
-      console.log('Processed images:', newImages);
-      setImages(prev => [...prev, ...newImages]);
+      console.log('New unique images:', newImages);
+      if (newImages.length > 0) {
+        setImages(prev => [...prev, ...newImages]);
+      }
     } catch (error: any) {
       if (error?.message !== 'User cancelled image selection') {
         console.error('Error picking images:', error);
@@ -446,35 +469,36 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
             )}
           </View>
 
-          <View style={styles.toggleContainer}>
-            <Text>Delete screenshots after response</Text>
-            <Switch
-              value={deleteScreenshots}
-              onValueChange={setDeleteScreenshots}
-            />
-          </View>
-
           <View style={styles.buttonContainer}>
             <Button mode="outlined" onPress={pickImages}>
               Select Screenshots
             </Button>
+            <View style={styles.toggleContainer}>
+              <Text variant="bodySmall">Delete after</Text>
+              <Switch
+                value={deleteScreenshots}
+                onValueChange={setDeleteScreenshots}
+              />
+            </View>
           </View>
 
           {images.length > 0 && (
-            <ScrollView horizontal>
-              {images.map((img, index) => (
-                <View key={index} style={styles.thumbnailWrapper}>
-                  <Image source={{uri: img.path}} style={styles.thumbnail} />
-                  <Button
-                    mode="text"
-                    onPress={() => removeImage(index)}
-                    style={styles.removeButton}
-                    compact>
-                    ✕
-                  </Button>
-                </View>
-              ))}
-            </ScrollView>
+            <View style={styles.screenshotsContainer}>
+              <ScrollView horizontal>
+                {images.map((img, index) => (
+                  <View key={index} style={styles.thumbnailWrapper}>
+                    <Image source={{uri: img.path}} style={styles.thumbnail} />
+                    <Button
+                      mode="text"
+                      onPress={() => removeImage(index)}
+                      style={styles.removeButton}
+                      compact>
+                      ✕
+                    </Button>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
           )}
 
           <TextInput
@@ -482,6 +506,7 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
             value={prompt}
             onChangeText={setPrompt}
             multiline
+            style={styles.promptInput}
           />
 
           <View>
@@ -586,7 +611,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    gap: 16,
+    gap: 0,
   },
   header: {
     flexDirection: 'row',
@@ -599,8 +624,8 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
   },
   styleButtons: {
     flexDirection: 'row',
@@ -661,7 +686,9 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
   },
   matchSection: {
     marginBottom: 16,
@@ -699,6 +726,13 @@ const styles = StyleSheet.create({
   },
   platformButton: {
     marginBottom: 8,
+  },
+  screenshotsContainer: {
+    marginBottom: 8,
+    height: 100,
+  },
+  promptInput: {
+    marginTop: 0,
   },
 });
 
