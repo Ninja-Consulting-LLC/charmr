@@ -54,4 +54,66 @@ describe('ReplyModal', () => {
     render(<ReplyModal {...mockProps} />);
     expect(mockProps.onDismiss).toBeDefined();
   });
+
+  // New test cases
+  it('displays the correct reply text', () => {
+    const {getByText} = render(<ReplyModal {...mockProps} />);
+    expect(getByText(mockProps.reply)).toBeTruthy();
+  });
+
+  it('shows the correct title', () => {
+    const {getByText} = render(<ReplyModal {...mockProps} />);
+    expect(getByText('Generated Reply')).toBeTruthy();
+  });
+
+  it('displays the return message', () => {
+    const {getByText} = render(<ReplyModal {...mockProps} />);
+    expect(
+      getByText('Return to your dating app to paste the message'),
+    ).toBeTruthy();
+  });
+
+  it('displays the modify message', () => {
+    const {getByText} = render(<ReplyModal {...mockProps} />);
+    const modifyText = getByText(/Not happy with this response\?/);
+    expect(modifyText).toBeTruthy();
+    expect(modifyText.props.children).toContain(
+      'Modify your prompt to generate a new one',
+    );
+  });
+
+  it('renders with correct button labels', () => {
+    const {getByTestId} = render(<ReplyModal {...mockProps} />);
+    const modifyButton = getByTestId('modify-button');
+    const finishButton = getByTestId('finish-button');
+
+    expect(modifyButton.props.children).toBe('Modify Response');
+    expect(finishButton.props.children).toBe('Finish');
+  });
+
+  it('applies correct styling to the modal container', () => {
+    const {getByTestId} = render(<ReplyModal {...mockProps} />);
+    const modal = getByTestId('modal');
+    expect(modal.props.contentContainerStyle).toEqual(
+      expect.objectContaining({
+        padding: 16,
+      }),
+    );
+  });
+
+  it('handles visibility prop correctly', () => {
+    const {getByTestId, rerender} = render(<ReplyModal {...mockProps} />);
+    expect(getByTestId('modal').props.visible).toBe(true);
+
+    rerender(<ReplyModal {...mockProps} visible={false} />);
+    expect(getByTestId('modal').props.visible).toBe(false);
+  });
+
+  it('calls onDismiss when modal is dismissed', () => {
+    const {getByTestId} = render(<ReplyModal {...mockProps} />);
+    const modal = getByTestId('modal');
+
+    fireEvent(modal, 'onDismiss');
+    expect(mockProps.onDismiss).toHaveBeenCalled();
+  });
 });
