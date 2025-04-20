@@ -57,6 +57,7 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
               size={24}
               onPress={onDismiss}
               style={styles.closeButton}
+              testID="close-button"
             />
           </View>
 
@@ -80,21 +81,24 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                     setPlatform(p);
                     setPlatformError('');
                   }}
-                  style={styles.platformButton}>
+                  style={styles.platformButton}
+                  testID={`platform-${p}-button`}>
                   {p}
                 </Button>
               ))}
             </View>
             {platformError && (
-              <Text style={styles.errorText}>{platformError}</Text>
+              <Text style={styles.errorText} testID="platform-error">
+                {platformError}
+              </Text>
             )}
           </View>
 
           <View style={styles.actions}>
-            <Button mode="outlined" onPress={onDismiss}>
+            <Button mode="outlined" onPress={onDismiss} testID="cancel-button">
               Cancel
             </Button>
-            <Button mode="contained" onPress={handleAdd}>
+            <Button mode="contained" onPress={handleAdd} testID="add-button">
               Add
             </Button>
           </View>
