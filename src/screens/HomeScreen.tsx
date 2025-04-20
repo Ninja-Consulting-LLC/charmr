@@ -1,6 +1,7 @@
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ import {
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DevMenu from '../components/DevMenu';
+import UpgradeModal from '../components/UpgradeModal';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
@@ -95,6 +97,10 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
   const [showMatchMenu, setShowMatchMenu] = useState(false);
   const [showPlatformMenu, setShowPlatformMenu] = useState(false);
   const [platformError, setPlatformError] = useState('');
+
+  // Upgrade modal state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   // Load matches on mount
   useEffect(() => {
@@ -294,8 +300,14 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
       setShowSnackbar(true);
     } catch (error) {
       console.error('Error generating reply:', error);
-      if (error instanceof Error) {
-        setError(error.message);
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        setIsRateLimited(true);
+        setShowUpgradeModal(true);
+        setError(
+          "You've reached your daily message limit. Upgrade to continue.",
+        );
+      } else if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.error || error.message);
       } else {
         setError('Failed to generate response. Please try again.');
       }
@@ -320,6 +332,12 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
       setCopyMessage('Copied again!');
       setShowSnackbar(true);
     }
+  };
+
+  const handleUpgrade = (tierId: string) => {
+    // TODO: Implement upgrade flow
+    console.log('Upgrading to tier:', tierId);
+    setShowUpgradeModal(false);
   };
 
   return (
@@ -543,6 +561,13 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
           </Snackbar>
         </View>
       </ScrollView>
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onDismiss={() => setShowUpgradeModal(false)}
+        onUpgrade={handleUpgrade}
+        showRateLimitMessage={isRateLimited}
+      />
     </SafeAreaView>
   );
 };
