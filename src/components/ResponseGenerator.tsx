@@ -82,7 +82,7 @@ const HomeContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(
-    'Message copied to clipboard!',
+    'Message copied to clipboard! Return to your dating app to paste the message.',
   );
 
   // Match management state
@@ -179,27 +179,7 @@ const HomeContent: React.FC = () => {
   };
 
   const removeImage = async (index: number) => {
-    const imageToRemove = images[index];
-    console.log('Attempting to remove image:', imageToRemove);
-
-    if (deleteScreenshots) {
-      try {
-        if (Platform.OS === 'ios' && imageToRemove.assetId) {
-          console.log(
-            'iOS: Deleting photo with assetId:',
-            imageToRemove.assetId,
-          );
-          await CameraRoll.deletePhotos([imageToRemove.assetId]);
-          console.log('Successfully deleted photo from library');
-        } else {
-          console.log('Android: Cleaning up temporary file');
-          await ImagePicker.cleanSingle(imageToRemove.path);
-        }
-      } catch (error: any) {
-        console.error('Error deleting image:', error);
-        // Continue with removing from state even if file deletion fails
-      }
-    }
+    // Simply remove from selection without deleting
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -382,11 +362,11 @@ const HomeContent: React.FC = () => {
           <View style={styles.imageHeader}>
             <Text variant="titleMedium">Selected Images</Text>
             <View style={styles.imageActions}>
+              <Text>Delete after use</Text>
               <Switch
                 value={deleteScreenshots}
                 onValueChange={setDeleteScreenshots}
               />
-              <Text>Delete after use</Text>
             </View>
           </View>
           <View style={styles.imageGrid}>
@@ -529,6 +509,7 @@ const styles = StyleSheet.create({
   imageActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   imageGrid: {
     flexDirection: 'row',
@@ -549,7 +530,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    margin: 4,
   },
   addImageButton: {
     width: 100,

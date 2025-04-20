@@ -23,7 +23,7 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
             alignItems: 'center',
             paddingHorizontal: 16,
           }}>
-          <Text variant="headlineSmall">Magic Keyboard</Text>
+          <Text variant="headlineSmall">Dating Buddy</Text>
           {__DEV__ && (
             <IconButton
               icon="cog"
