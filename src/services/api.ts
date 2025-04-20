@@ -1,3 +1,4 @@
+import axios from 'axios';
 import {config} from '../config/config';
 
 interface GenerateReplyRequest {
@@ -13,35 +14,42 @@ interface GenerateReplyResponse {
   error?: string;
 }
 
+// Create an axios instance with default config
+const api = axios.create({
+  baseURL: config.apiBaseUrl,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {
   try {
-    const url = `${config.apiBaseUrl}/api/generate-reply`;
-    console.log('Making request to:', url);
+    console.log(
+      'Making request to:',
+      `${config.apiBaseUrl}/api/generate-reply`,
+    );
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
+    const response = await api.post<GenerateReplyResponse>(
+      '/api/generate-reply',
+      request,
+    );
 
-    if (response.status === 429) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || 'Too many requests. Please try again later.',
-      );
-    }
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error generating reply:', error);
+
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 429) {
+        throw new Error(
+          error.response.data.error ||
+            'Too many requests. Please try again later.',
+        );
+      }
+      throw new Error(error.response?.data?.error || error.message);
+    }
+
     throw error;
   }
 };
