@@ -11,7 +11,7 @@ import {useStore} from '../store';
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC<HomeScreenProps> = () => {
-  const {setShowDevMenu} = useStore();
+  const {setShowDevMenu, showDevMenu} = useStore();
 
   return (
     <SafeAreaView style={{flex: 1}}>
@@ -23,9 +23,10 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
             alignItems: 'center',
             paddingHorizontal: 16,
           }}>
-          <Text variant="headlineSmall">Magic Keyboard</Text>
+          <Text variant="headlineSmall">Dating Buddy</Text>
           {__DEV__ && (
             <IconButton
+              testID="dev-menu-button"
               icon="cog"
               size={24}
               onPress={() => setShowDevMenu(true)}
@@ -33,7 +34,7 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
           )}
         </View>
         <ResponseGenerator />
-        <DevMenu />
+        {__DEV__ && showDevMenu && <DevMenu />}
       </View>
     </SafeAreaView>
   );

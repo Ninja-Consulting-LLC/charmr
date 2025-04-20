@@ -2,14 +2,7 @@ import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import {Image, Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {
   Button,
@@ -33,6 +26,7 @@ import {
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
+import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
 interface CameraRollAsset {
@@ -82,7 +76,7 @@ const HomeContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(
-    'Message copied to clipboard!',
+    'Message copied to clipboard! Return to your dating app to paste the message.',
   );
 
   // Match management state
@@ -94,6 +88,9 @@ const HomeContent: React.FC = () => {
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+
+  // Reply modal state
+  const [showReplyModal, setShowReplyModal] = useState(false);
 
   // Load matches on mount
   useEffect(() => {
@@ -179,27 +176,7 @@ const HomeContent: React.FC = () => {
   };
 
   const removeImage = async (index: number) => {
-    const imageToRemove = images[index];
-    console.log('Attempting to remove image:', imageToRemove);
-
-    if (deleteScreenshots) {
-      try {
-        if (Platform.OS === 'ios' && imageToRemove.assetId) {
-          console.log(
-            'iOS: Deleting photo with assetId:',
-            imageToRemove.assetId,
-          );
-          await CameraRoll.deletePhotos([imageToRemove.assetId]);
-          console.log('Successfully deleted photo from library');
-        } else {
-          console.log('Android: Cleaning up temporary file');
-          await ImagePicker.cleanSingle(imageToRemove.path);
-        }
-      } catch (error: any) {
-        console.error('Error deleting image:', error);
-        // Continue with removing from state even if file deletion fails
-      }
-    }
+    // Simply remove from selection without deleting
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -289,6 +266,9 @@ const HomeContent: React.FC = () => {
         setShowSnackbar(true);
       } else {
         setResponse(response.reply);
+        // Copy to clipboard immediately upon generation
+        Clipboard.setString(response.reply);
+        setShowReplyModal(true);
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
         }
@@ -318,6 +298,7 @@ const HomeContent: React.FC = () => {
     setPrompt('');
     setResponse(null);
     setSelectedStyle('');
+    setShowReplyModal(false);
   };
 
   const handleCopyToClipboard = () => {
@@ -332,143 +313,126 @@ const HomeContent: React.FC = () => {
     setShowUpgradeModal(false);
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Match Selection */}
-        <Surface style={styles.matchSection}>
-          <View style={styles.matchHeader}>
-            <Text variant="titleMedium">Select Match</Text>
-            <IconButton
-              icon="plus"
-              onPress={() => setShowAddMatchModal(true)}
-            />
-          </View>
-          {matches.length > 0 ? (
-            <List.Accordion
-              title={
-                selectedMatch
-                  ? `${selectedMatch.name} (${selectedMatch.platform})`
-                  : 'Select a match'
-              }
-              expanded={showMatchDropdown}
-              onPress={() => setShowMatchDropdown(!showMatchDropdown)}>
-              {matches.map(match => (
-                <List.Item
-                  key={`${match.platform}::${match.name}`}
-                  title={match.name}
-                  description={match.platform}
-                  right={props => (
-                    <IconButton
-                      {...props}
-                      icon="delete"
-                      onPress={() => handleDeleteMatch(match)}
-                    />
-                  )}
-                  onPress={() => {
-                    setSelectedMatch(match);
-                    setShowMatchDropdown(false);
-                  }}
-                />
-              ))}
-            </List.Accordion>
-          ) : (
-            <Text>No matches added yet</Text>
-          )}
-        </Surface>
+  const handleGenerateNew = () => {
+    setResponse(null);
+    handleSubmit();
+  };
 
-        {/* Image Selection */}
-        <Surface style={styles.imageSection}>
-          <View style={styles.imageHeader}>
-            <Text variant="titleMedium">Selected Images</Text>
-            <View style={styles.imageActions}>
-              <Switch
-                value={deleteScreenshots}
-                onValueChange={setDeleteScreenshots}
-              />
-              <Text>Delete after use</Text>
-            </View>
-          </View>
-          <View style={styles.imageGrid}>
+  const handleModifyResponse = () => {
+    setShowReplyModal(false);
+  };
+
+  return (
+    <SafeAreaView
+      style={styles.container}
+      testID="response-generator-container">
+      <ScrollView style={styles.scrollView}>
+        <Surface style={styles.surface}>
+          <View style={styles.imageContainer}>
             {images.map((image, index) => (
-              <View key={index} style={styles.imageContainer}>
+              <View key={index} style={styles.imageWrapper}>
                 <Image
                   source={{uri: image.path}}
                   style={styles.image}
-                  resizeMode="cover"
+                  testID={`selected-image-${index}`}
                 />
                 <IconButton
                   icon="close"
                   size={20}
-                  style={styles.removeImage}
                   onPress={() => removeImage(index)}
+                  testID={`remove-image-${index}`}
                 />
               </View>
             ))}
-            <Pressable style={styles.addImageButton} onPress={pickImages}>
-              <Text>Add Images</Text>
-            </Pressable>
           </View>
-        </Surface>
 
-        {/* Prompt Input */}
-        <Surface style={styles.promptSection}>
-          <Text variant="titleMedium">
-            Enter your prompt (e.g. 'make it flirty')
-          </Text>
+          <Button
+            mode="contained"
+            onPress={pickImages}
+            style={styles.button}
+            testID="image-picker-button">
+            Select Images
+          </Button>
+
           <TextInput
+            label="Prompt"
             value={prompt}
             onChangeText={setPrompt}
             multiline
-            numberOfLines={4}
-            style={styles.promptInput}
+            style={styles.input}
+            testID="prompt-input"
           />
-        </Surface>
 
-        {/* Style Selection */}
-        <Surface style={styles.styleSection}>
-          <Text variant="titleMedium">Select Style</Text>
-          <View style={styles.styleButtons}>
+          <List.Accordion
+            title="Message Style"
+            expanded={showMatchDropdown}
+            onPress={() => setShowMatchDropdown(!showMatchDropdown)}
+            testID="style-dropdown">
             {messageStyles.map(style => (
-              <Button
+              <List.Item
                 key={style.value}
-                mode={selectedStyle === style.value ? 'contained' : 'outlined'}
-                onPress={() => setSelectedStyle(style.value)}>
-                {style.label}
-              </Button>
+                title={style.label}
+                onPress={() => {
+                  setSelectedStyle(style.value);
+                  setShowMatchDropdown(false);
+                }}
+              />
             ))}
+          </List.Accordion>
+
+          <View style={styles.switchContainer}>
+            <Text>Delete screenshots after use</Text>
+            <Switch
+              value={deleteScreenshots}
+              onValueChange={setDeleteScreenshots}
+              testID="delete-screenshots-switch"
+            />
           </View>
-        </Surface>
 
-        {/* Generate Button */}
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading || images.length === 0}
-          style={styles.generateButton}>
-          Generate Response
-        </Button>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={loading}
+            style={styles.button}
+            testID="submit-button">
+            Generate Response
+          </Button>
 
-        {/* Response Display */}
-        {response && (
-          <Surface style={styles.responseSection}>
-            <View style={styles.responseHeader}>
-              <Text variant="titleMedium">Generated Reply</Text>
-              <IconButton icon="content-copy" onPress={handleCopyToClipboard} />
+          {response && (
+            <View style={styles.responseContainer}>
+              <TextInput
+                value={response}
+                multiline
+                editable={false}
+                style={styles.responseInput}
+                testID="response-text"
+              />
+              <Button
+                mode="contained"
+                onPress={handleCopyToClipboard}
+                style={styles.button}
+                testID="copy-button">
+                Copy to Clipboard
+              </Button>
             </View>
-            <Text style={styles.responseText}>{response}</Text>
-            <Button
-              mode="outlined"
-              onPress={handleFinish}
-              style={styles.finishButton}>
-              Finish
-            </Button>
-          </Surface>
-        )}
+          )}
+
+          {error && (
+            <Snackbar
+              visible={showSnackbar}
+              onDismiss={() => setShowSnackbar(false)}
+              action={{
+                label: 'Dismiss',
+                onPress: () => setShowSnackbar(false),
+              }}
+              testID="error-snackbar">
+              {error}
+            </Snackbar>
+          )}
+        </Surface>
       </ScrollView>
 
-      {/* Modals */}
       <AddMatchModal
         visible={showAddMatchModal}
         onDismiss={() => setShowAddMatchModal(false)}
@@ -479,18 +443,16 @@ const HomeContent: React.FC = () => {
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={isRateLimited}
       />
 
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setShowSnackbar(false),
-        }}>
-        {error || copyMessage}
-      </Snackbar>
+      <ReplyModal
+        visible={showReplyModal}
+        onDismiss={() => setShowReplyModal(false)}
+        reply={response || ''}
+        onFinish={handleFinish}
+        onCopy={handleCopyToClipboard}
+        onModifyResponse={handleModifyResponse}
+      />
     </SafeAreaView>
   );
 };
@@ -504,38 +466,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  matchSection: {
+  surface: {
     padding: 16,
     marginBottom: 16,
     borderRadius: 8,
   },
-  matchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  imageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  imageGrid: {
+  imageContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  imageContainer: {
+  imageWrapper: {
     width: 100,
     height: 100,
     borderRadius: 8,
@@ -545,59 +486,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  removeImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  addImageButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#ccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  promptSection: {
-    padding: 16,
+  button: {
     marginBottom: 16,
-    borderRadius: 8,
   },
-  promptInput: {
+  input: {
     marginTop: 8,
   },
-  styleSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  styleButtons: {
+  switchContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
-  generateButton: {
-    marginBottom: 16,
-  },
-  responseSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  responseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+  },
+  responseContainer: {
+    marginTop: 16,
+  },
+  responseInput: {
     marginBottom: 8,
-  },
-  responseText: {
-    marginBottom: 16,
-  },
-  finishButton: {
-    alignSelf: 'flex-end',
   },
 });
 

@@ -1,12 +1,18 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Switch, Text} from 'react-native-paper';
-import {config} from '../config/config';
-import {generateReply} from '../services/api';
+import {RootStackParamList} from '../navigation/types';
+import {generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
 import {DevUtils} from '../utils/devUtils';
 
+type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 const DevMenu = () => {
+  const navigation = useNavigation<DevMenuNavigationProp>();
   const [error, setError] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<string>('');
   const [testResults, setTestResults] = useState<
@@ -107,9 +113,10 @@ const DevMenu = () => {
       try {
         const result = await generateReply({
           prompt: currentPrompt,
-          images: ['test-image-base64'], // Using a dummy image
+          images: ['test-image-base64'],
           userId: 'test-user',
           skipRateLimiting,
+          matchId: 'test-match',
         });
         console.log(`Request ${i + 1} succeeded:`, result);
         setTestResults(prev => [
@@ -129,7 +136,6 @@ const DevMenu = () => {
           break;
         }
       }
-      // Add a small delay between requests
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
@@ -138,37 +144,21 @@ const DevMenu = () => {
 
   const handleTestContext = async () => {
     try {
-      const url = `${config.apiBaseUrl}/api/test-context`;
-      console.log('Testing context with URL:', url);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          timestamp: new Date().toISOString(),
-          testData: 'This is a test request to verify context',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Test context response:', data);
-      Alert.alert(
-        'Test Context',
-        'Request context logged to console. Check the logs for details.',
-      );
+      await testContext();
+      Alert.alert('Success', 'Context test completed successfully');
     } catch (error) {
       console.error('Error testing context:', error);
-      Alert.alert(
-        'Test Error',
-        'Failed to test context. Check console for details.',
-      );
+      Alert.alert('Error', 'Failed to test context');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('isAuthenticated');
+      setShowDevMenu(false);
+      navigation.navigate('Login');
+    } catch (error) {
+      Alert.alert('Development Error', 'Failed to logout');
     }
   };
 
@@ -210,6 +200,13 @@ const DevMenu = () => {
           </View>
 
           <View style={styles.buttonContainer}>
+            <Button
+              mode="contained"
+              onPress={handleLogout}
+              style={styles.button}>
+              Logout
+            </Button>
+
             <Button
               mode="contained"
               onPress={handleResetOnboarding}

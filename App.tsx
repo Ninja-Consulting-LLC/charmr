@@ -12,12 +12,11 @@ import {PaperProvider} from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
 import {RootStackParamList} from './src/navigation/types';
 import {StoreProvider} from './src/store';
-import {DevUtils} from './src/utils/devUtils';
 
 function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
   const [initialRoute, setInitialRoute] =
-    useState<keyof RootStackParamList>('Onboarding');
+    useState<keyof RootStackParamList>('Login');
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -27,9 +26,7 @@ function App(): React.JSX.Element {
 
         console.log('App status:', {hasOnboarded, isAuthenticated});
 
-        if (hasOnboarded !== 'true') {
-          setInitialRoute('Onboarding');
-        } else if (isAuthenticated === 'true' || DevUtils.shouldBypassAuth()) {
+        if (isAuthenticated === 'true') {
           setInitialRoute('Home');
         } else {
           setInitialRoute('Login');

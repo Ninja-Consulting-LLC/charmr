@@ -42,3 +42,16 @@ export const generateReply = async (
     throw error; // Pass through the axios error directly
   }
 };
+
+export const testContext = async (): Promise<void> => {
+  try {
+    console.log(
+      'Testing context with URL:',
+      `${config.apiBaseUrl}/api/test-context`,
+    );
+    await api.post('/api/test-context');
+  } catch (error) {
+    console.error('Error testing context:', error);
+    throw error;
+  }
+};
