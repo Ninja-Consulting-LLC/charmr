@@ -59,24 +59,155 @@ exports[`ResponseGenerator renders initial state correctly 1`] = `
             <View
               style={
                 {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Select Match
+              </Text>
+              <IconButton
+                icon="plus"
+                onPress={[Function]}
+                testID="add-match-button"
+              />
+            </View>
+            <Text>
+              No matches added yet
+            </Text>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <View
+              style={
+                {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Selected Images
+              </Text>
+              <View
+                style={
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                    "gap": 8,
+                  }
+                }
+              >
+                <Text>
+                  Delete after use
+                </Text>
+                <RCTSwitch
+                  accessibilityRole="switch"
+                  onChange={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  onTintColor="rgba(103, 80, 164, 1)"
+                  style={
+                    {
+                      "height": 31,
+                      "width": 51,
+                    }
+                  }
+                  testID="delete-screenshots-switch"
+                  tintColor="rgba(103, 80, 164, 1)"
+                  value={true}
+                />
+              </View>
+            </View>
+            <View
+              style={
+                {
                   "flexDirection": "row",
                   "flexWrap": "wrap",
                   "gap": 8,
                 }
               }
-            />
-            <Button
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
-                }
-              }
-              testID="image-picker-button"
             >
-              Select Images
-            </Button>
+              <View
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  {
+                    "alignItems": "center",
+                    "borderColor": "#ccc",
+                    "borderRadius": 8,
+                    "borderStyle": "dashed",
+                    "borderWidth": 1,
+                    "height": 100,
+                    "justifyContent": "center",
+                    "width": 100,
+                  }
+                }
+                testID="image-picker-button"
+              >
+                <Text>
+                  Add Images
+                </Text>
+              </View>
+            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <Text
+              variant="titleMedium"
+            >
+              Enter your prompt (e.g. 'make it flirty')
+            </Text>
             <View
               style={
                 [
@@ -134,163 +265,12 @@ exports[`ResponseGenerator renders initial state correctly 1`] = `
                   ]
                 }
               >
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "height": 24,
-                        "zIndex": 2,
-                      },
-                      {
-                        "backgroundColor": "rgba(231, 224, 236, 1)",
-                        "left": 16,
-                        "right": 16,
-                      },
-                    ]
-                  }
-                  testID="patch-container"
-                />
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "overflow": "hidden",
-                      },
-                      {
-                        "zIndex": 3,
-                      },
-                    ]
-                  }
-                >
-                  <View
-                    collapsable={false}
-                    pointerEvents="none"
-                    style={
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "opacity": 1,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                        "transform": [
-                          {
-                            "translateX": 0,
-                          },
-                        ],
-                        "width": 750,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        {
-                          "width": 73,
-                        }
-                      }
-                    >
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        onLayout={[Function]}
-                        onTextLayout={[Function]}
-                        style={
-                          {
-                            "color": "rgba(103, 80, 164, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 73,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-active"
-                      >
-                        Prompt
-                      </Text>
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        style={
-                          {
-                            "color": "rgba(73, 69, 79, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 73,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-inactive"
-                      >
-                        Prompt
-                      </Text>
-                    </View>
-                  </View>
-                </View>
                 <TextInput
                   cursorColor="rgba(103, 80, 164, 1)"
                   editable={true}
                   maxFontSizeMultiplier={1.5}
                   multiline={true}
+                  numberOfLines={4}
                   onBlur={[Function]}
                   onChangeText={[Function]}
                   onFocus={[Function]}
@@ -304,8 +284,8 @@ exports[`ResponseGenerator renders initial state correctly 1`] = `
                       },
                       {},
                       {
-                        "paddingBottom": 4,
-                        "paddingTop": 31,
+                        "paddingBottom": 23,
+                        "paddingTop": 23,
                       },
                       {
                         "color": "rgba(28, 27, 31, 1)",
@@ -333,211 +313,67 @@ exports[`ResponseGenerator renders initial state correctly 1`] = `
                 />
               </View>
             </View>
-            <View>
-              <View
-                style={
-                  {
-                    "backgroundColor": "rgba(255, 251, 254, 1)",
-                  }
-                }
-              >
-                <View
-                  accessibilityRole="button"
-                  accessibilityState={
-                    {
-                      "busy": undefined,
-                      "checked": undefined,
-                      "disabled": false,
-                      "expanded": false,
-                      "selected": undefined,
-                    }
-                  }
-                  accessibilityValue={
-                    {
-                      "max": undefined,
-                      "min": undefined,
-                      "now": undefined,
-                      "text": undefined,
-                    }
-                  }
-                  accessible={true}
-                  collapsable={false}
-                  focusable={true}
-                  onBlur={[Function]}
-                  onClick={[Function]}
-                  onFocus={[Function]}
-                  onResponderGrant={[Function]}
-                  onResponderMove={[Function]}
-                  onResponderRelease={[Function]}
-                  onResponderTerminate={[Function]}
-                  onResponderTerminationRequest={[Function]}
-                  onStartShouldSetResponder={[Function]}
-                  style={
-                    [
-                      {
-                        "overflow": "hidden",
-                      },
-                      [
-                        {
-                          "paddingRight": 24,
-                          "paddingVertical": 8,
-                        },
-                        undefined,
-                      ],
-                    ]
-                  }
-                  testID="style-dropdown"
-                >
-                  <View
-                    pointerEvents="none"
-                    style={
-                      {
-                        "flexDirection": "row",
-                        "marginVertical": 6,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        [
-                          {
-                            "paddingLeft": 16,
-                          },
-                          {
-                            "flex": 1,
-                            "justifyContent": "center",
-                          },
-                        ]
-                      }
-                    >
-                      <Text
-                        numberOfLines={1}
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "textAlign": "left",
-                            },
-                            {
-                              "color": "rgba(28, 27, 31, 1)",
-                              "fontFamily": "System",
-                              "fontWeight": "400",
-                              "letterSpacing": 0,
-                            },
-                            {
-                              "writingDirection": "ltr",
-                            },
-                            [
-                              {
-                                "fontSize": 16,
-                              },
-                              {
-                                "color": "rgba(28, 27, 31, 1)",
-                              },
-                              undefined,
-                            ],
-                          ]
-                        }
-                      >
-                        Message Style
-                      </Text>
-                    </View>
-                    <View
-                      style={
-                        [
-                          {
-                            "marginVertical": 6,
-                            "paddingLeft": 8,
-                          },
-                          undefined,
-                        ]
-                      }
-                    >
-                      <Text
-                        accessibilityElementsHidden={true}
-                        allowFontScaling={false}
-                        importantForAccessibility="no-hide-descendants"
-                        pointerEvents="none"
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "color": "rgba(73, 69, 79, 1)",
-                              "fontSize": 24,
-                            },
-                            [
-                              {
-                                "lineHeight": 24,
-                                "transform": [
-                                  {
-                                    "scaleX": 1,
-                                  },
-                                ],
-                              },
-                              {
-                                "backgroundColor": "transparent",
-                              },
-                            ],
-                            {
-                              "fontFamily": "Material Design Icons",
-                              "fontStyle": "normal",
-                              "fontWeight": "normal",
-                            },
-                            {},
-                          ]
-                        }
-                      >
-                        󰅀
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <Text
+              variant="titleMedium"
+            >
+              Select Style
+            </Text>
             <View
               style={
                 {
-                  "alignItems": "center",
                   "flexDirection": "row",
-                  "gap": 8,
+                  "justifyContent": "space-around",
+                  "marginTop": 8,
                 }
               }
             >
-              <Text>
-                Delete screenshots after use
-              </Text>
-              <RCTSwitch
-                accessibilityRole="switch"
-                onChange={[Function]}
-                onResponderTerminationRequest={[Function]}
-                onStartShouldSetResponder={[Function]}
-                onTintColor="rgba(103, 80, 164, 1)"
-                style={
-                  {
-                    "height": 31,
-                    "width": 51,
-                  }
-                }
-                testID="delete-screenshots-switch"
-                tintColor="rgba(103, 80, 164, 1)"
-                value={true}
-              />
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-flirty-button"
+              >
+                Flirty
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-smooth-button"
+              >
+                Smooth
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-funny-button"
+              >
+                Funny
+              </Button>
             </View>
-            <Button
-              disabled={false}
-              loading={false}
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
-                }
-              }
-              testID="submit-button"
-            >
-              Generate Response
-            </Button>
           </Surface>
+          <Button
+            disabled={true}
+            loading={false}
+            mode="contained"
+            onPress={[Function]}
+            style={
+              {
+                "marginTop": 16,
+              }
+            }
+            testID="submit-button"
+          >
+            Generate Response
+          </Button>
         </View>
       </RCTScrollView>
       <Modal
@@ -1604,6 +1440,243 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
             <View
               style={
                 {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Select Match
+              </Text>
+              <IconButton
+                icon="plus"
+                onPress={[Function]}
+                testID="add-match-button"
+              />
+            </View>
+            <View>
+              <View
+                style={
+                  {
+                    "backgroundColor": "rgba(255, 251, 254, 1)",
+                  }
+                }
+              >
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": false,
+                      "expanded": false,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  style={
+                    [
+                      {
+                        "overflow": "hidden",
+                      },
+                      [
+                        {
+                          "paddingRight": 24,
+                          "paddingVertical": 8,
+                        },
+                        undefined,
+                      ],
+                    ]
+                  }
+                  testID="match-dropdown"
+                >
+                  <View
+                    pointerEvents="none"
+                    style={
+                      {
+                        "flexDirection": "row",
+                        "marginVertical": 6,
+                      }
+                    }
+                  >
+                    <View
+                      style={
+                        [
+                          {
+                            "paddingLeft": 16,
+                          },
+                          {
+                            "flex": 1,
+                            "justifyContent": "center",
+                          },
+                        ]
+                      }
+                    >
+                      <Text
+                        numberOfLines={1}
+                        selectable={false}
+                        style={
+                          [
+                            {
+                              "textAlign": "left",
+                            },
+                            {
+                              "color": "rgba(28, 27, 31, 1)",
+                              "fontFamily": "System",
+                              "fontWeight": "400",
+                              "letterSpacing": 0,
+                            },
+                            {
+                              "writingDirection": "ltr",
+                            },
+                            [
+                              {
+                                "fontSize": 16,
+                              },
+                              {
+                                "color": "rgba(28, 27, 31, 1)",
+                              },
+                              undefined,
+                            ],
+                          ]
+                        }
+                      >
+                        Select a match
+                      </Text>
+                    </View>
+                    <View
+                      style={
+                        [
+                          {
+                            "marginVertical": 6,
+                            "paddingLeft": 8,
+                          },
+                          undefined,
+                        ]
+                      }
+                    >
+                      <Text
+                        accessibilityElementsHidden={true}
+                        allowFontScaling={false}
+                        importantForAccessibility="no-hide-descendants"
+                        pointerEvents="none"
+                        selectable={false}
+                        style={
+                          [
+                            {
+                              "color": "rgba(73, 69, 79, 1)",
+                              "fontSize": 24,
+                            },
+                            [
+                              {
+                                "lineHeight": 24,
+                                "transform": [
+                                  {
+                                    "scaleX": 1,
+                                  },
+                                ],
+                              },
+                              {
+                                "backgroundColor": "transparent",
+                              },
+                            ],
+                            {
+                              "fontFamily": "Material Design Icons",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                            },
+                            {},
+                          ]
+                        }
+                      >
+                        󰅀
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <View
+              style={
+                {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Selected Images
+              </Text>
+              <View
+                style={
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                    "gap": 8,
+                  }
+                }
+              >
+                <Text>
+                  Delete after use
+                </Text>
+                <RCTSwitch
+                  accessibilityRole="switch"
+                  onChange={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  onTintColor="rgba(103, 80, 164, 1)"
+                  style={
+                    {
+                      "height": 31,
+                      "width": 51,
+                    }
+                  }
+                  testID="delete-screenshots-switch"
+                  tintColor="rgba(103, 80, 164, 1)"
+                  value={true}
+                />
+              </View>
+            </View>
+            <View
+              style={
+                {
                   "flexDirection": "row",
                   "flexWrap": "wrap",
                   "gap": 8,
@@ -1613,14 +1686,14 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
               <View
                 style={
                   {
-                    "borderRadius": 8,
-                    "height": 100,
-                    "overflow": "hidden",
-                    "width": 100,
+                    "flexDirection": "row",
+                    "flexWrap": "wrap",
+                    "gap": 8,
                   }
                 }
               >
                 <Image
+                  resizeMode="cover"
                   source={
                     {
                       "uri": "test-image-path",
@@ -1638,22 +1711,78 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
                   icon="close"
                   onPress={[Function]}
                   size={20}
+                  style={
+                    {
+                      "marginLeft": 8,
+                    }
+                  }
                   testID="remove-image-0"
                 />
               </View>
-            </View>
-            <Button
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
+              <View
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
                 }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  {
+                    "alignItems": "center",
+                    "borderColor": "#ccc",
+                    "borderRadius": 8,
+                    "borderStyle": "dashed",
+                    "borderWidth": 1,
+                    "height": 100,
+                    "justifyContent": "center",
+                    "width": 100,
+                  }
+                }
+                testID="image-picker-button"
+              >
+                <Text>
+                  Add Images
+                </Text>
+              </View>
+            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
               }
-              testID="image-picker-button"
+            }
+          >
+            <Text
+              variant="titleMedium"
             >
-              Select Images
-            </Button>
+              Enter your prompt (e.g. 'make it flirty')
+            </Text>
             <View
               style={
                 [
@@ -1711,163 +1840,12 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
                   ]
                 }
               >
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "height": 24,
-                        "zIndex": 2,
-                      },
-                      {
-                        "backgroundColor": "rgba(231, 224, 236, 1)",
-                        "left": 16,
-                        "right": 16,
-                      },
-                    ]
-                  }
-                  testID="patch-container"
-                />
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "overflow": "hidden",
-                      },
-                      {
-                        "zIndex": 3,
-                      },
-                    ]
-                  }
-                >
-                  <View
-                    collapsable={false}
-                    pointerEvents="none"
-                    style={
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "opacity": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                        "transform": [
-                          {
-                            "translateX": 0,
-                          },
-                        ],
-                        "width": 750,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        {
-                          "width": 97.33333333333333,
-                        }
-                      }
-                    >
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        onLayout={[Function]}
-                        onTextLayout={[Function]}
-                        style={
-                          {
-                            "color": "rgba(103, 80, 164, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 97.33333333333333,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-active"
-                      >
-                        Prompt
-                      </Text>
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        style={
-                          {
-                            "color": "rgba(73, 69, 79, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 97.33333333333333,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-inactive"
-                      >
-                        Prompt
-                      </Text>
-                    </View>
-                  </View>
-                </View>
                 <TextInput
                   cursorColor="rgba(103, 80, 164, 1)"
                   editable={true}
                   maxFontSizeMultiplier={1.5}
                   multiline={true}
+                  numberOfLines={4}
                   onBlur={[Function]}
                   onChangeText={[Function]}
                   onFocus={[Function]}
@@ -1881,8 +1859,8 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
                       },
                       {},
                       {
-                        "paddingBottom": 4,
-                        "paddingTop": 31,
+                        "paddingBottom": 23,
+                        "paddingTop": 23,
                       },
                       {
                         "color": "rgba(28, 27, 31, 1)",
@@ -1910,477 +1888,67 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
                 />
               </View>
             </View>
-            <View>
-              <View
-                style={
-                  {
-                    "backgroundColor": "rgba(255, 251, 254, 1)",
-                  }
-                }
-              >
-                <View
-                  accessibilityRole="button"
-                  accessibilityState={
-                    {
-                      "busy": undefined,
-                      "checked": undefined,
-                      "disabled": false,
-                      "expanded": false,
-                      "selected": undefined,
-                    }
-                  }
-                  accessibilityValue={
-                    {
-                      "max": undefined,
-                      "min": undefined,
-                      "now": undefined,
-                      "text": undefined,
-                    }
-                  }
-                  accessible={true}
-                  collapsable={false}
-                  focusable={true}
-                  onBlur={[Function]}
-                  onClick={[Function]}
-                  onFocus={[Function]}
-                  onResponderGrant={[Function]}
-                  onResponderMove={[Function]}
-                  onResponderRelease={[Function]}
-                  onResponderTerminate={[Function]}
-                  onResponderTerminationRequest={[Function]}
-                  onStartShouldSetResponder={[Function]}
-                  style={
-                    [
-                      {
-                        "overflow": "hidden",
-                      },
-                      [
-                        {
-                          "paddingRight": 24,
-                          "paddingVertical": 8,
-                        },
-                        undefined,
-                      ],
-                    ]
-                  }
-                  testID="style-dropdown"
-                >
-                  <View
-                    pointerEvents="none"
-                    style={
-                      {
-                        "flexDirection": "row",
-                        "marginVertical": 6,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        [
-                          {
-                            "paddingLeft": 16,
-                          },
-                          {
-                            "flex": 1,
-                            "justifyContent": "center",
-                          },
-                        ]
-                      }
-                    >
-                      <Text
-                        numberOfLines={1}
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "textAlign": "left",
-                            },
-                            {
-                              "color": "rgba(28, 27, 31, 1)",
-                              "fontFamily": "System",
-                              "fontWeight": "400",
-                              "letterSpacing": 0,
-                            },
-                            {
-                              "writingDirection": "ltr",
-                            },
-                            [
-                              {
-                                "fontSize": 16,
-                              },
-                              {
-                                "color": "rgba(28, 27, 31, 1)",
-                              },
-                              undefined,
-                            ],
-                          ]
-                        }
-                      >
-                        Message Style
-                      </Text>
-                    </View>
-                    <View
-                      style={
-                        [
-                          {
-                            "marginVertical": 6,
-                            "paddingLeft": 8,
-                          },
-                          undefined,
-                        ]
-                      }
-                    >
-                      <Text
-                        accessibilityElementsHidden={true}
-                        allowFontScaling={false}
-                        importantForAccessibility="no-hide-descendants"
-                        pointerEvents="none"
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "color": "rgba(73, 69, 79, 1)",
-                              "fontSize": 24,
-                            },
-                            [
-                              {
-                                "lineHeight": 24,
-                                "transform": [
-                                  {
-                                    "scaleX": 1,
-                                  },
-                                ],
-                              },
-                              {
-                                "backgroundColor": "transparent",
-                              },
-                            ],
-                            {
-                              "fontFamily": "Material Design Icons",
-                              "fontStyle": "normal",
-                              "fontWeight": "normal",
-                            },
-                            {},
-                          ]
-                        }
-                      >
-                        󰅀
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <Text
+              variant="titleMedium"
+            >
+              Select Style
+            </Text>
             <View
               style={
                 {
-                  "alignItems": "center",
                   "flexDirection": "row",
-                  "gap": 8,
+                  "justifyContent": "space-around",
+                  "marginTop": 8,
                 }
               }
             >
-              <Text>
-                Delete screenshots after use
-              </Text>
-              <RCTSwitch
-                accessibilityRole="switch"
-                onChange={[Function]}
-                onResponderTerminationRequest={[Function]}
-                onStartShouldSetResponder={[Function]}
-                onTintColor="rgba(103, 80, 164, 1)"
-                style={
-                  {
-                    "height": 31,
-                    "width": 51,
-                  }
-                }
-                testID="delete-screenshots-switch"
-                tintColor="rgba(103, 80, 164, 1)"
-                value={true}
-              />
-            </View>
-            <Button
-              disabled={false}
-              loading={false}
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
-                }
-              }
-              testID="submit-button"
-            >
-              Generate Response
-            </Button>
-            <View
-              pointerEvents="box-none"
-              style={
-                [
-                  {
-                    "bottom": 0,
-                    "position": "absolute",
-                    "width": "100%",
-                  },
-                  {
-                    "paddingBottom": 0,
-                    "paddingHorizontal": 0,
-                  },
-                  undefined,
-                ]
-              }
-            >
-              <View
-                collapsable={false}
-                style={
-                  {
-                    "backgroundColor": "rgba(49, 48, 51, 1)",
-                    "borderRadius": 4,
-                    "margin": 8,
-                    "opacity": 0,
-                    "shadowColor": "#000",
-                    "shadowOffset": {
-                      "height": 2,
-                      "width": 0,
-                    },
-                    "shadowOpacity": 0.15,
-                    "shadowRadius": 6,
-                    "transform": [
-                      {
-                        "scale": 0.9,
-                      },
-                    ],
-                  }
-                }
-                testID="error-snackbar-outer-layer"
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-flirty-button"
               >
-                <View
-                  accessibilityLiveRegion="polite"
-                  collapsable={false}
-                  pointerEvents="box-none"
-                  style={
-                    {
-                      "backgroundColor": "rgba(49, 48, 51, 1)",
-                      "borderRadius": 4,
-                      "flex": undefined,
-                      "flexDirection": "row",
-                      "justifyContent": "space-between",
-                      "minHeight": 48,
-                      "shadowColor": "#000",
-                      "shadowOffset": {
-                        "height": 1,
-                        "width": 0,
-                      },
-                      "shadowOpacity": 0.3,
-                      "shadowRadius": 2,
-                    }
-                  }
-                  testID="error-snackbar"
-                >
-                  <Text
-                    style={
-                      [
-                        {
-                          "textAlign": "left",
-                        },
-                        {
-                          "color": "rgba(28, 27, 31, 1)",
-                          "writingDirection": "ltr",
-                        },
-                        [
-                          {
-                            "fontFamily": "System",
-                            "fontSize": 14,
-                            "fontWeight": "400",
-                            "letterSpacing": 0.25,
-                            "lineHeight": 20,
-                          },
-                          [
-                            {
-                              "flex": 1,
-                              "marginHorizontal": 16,
-                              "marginVertical": 14,
-                            },
-                            {
-                              "color": "rgba(244, 239, 244, 1)",
-                            },
-                          ],
-                        ],
-                      ]
-                    }
-                  >
-                    Please select at least one image
-                  </Text>
-                  <View
-                    style={
-                      [
-                        {
-                          "alignItems": "center",
-                          "flexDirection": "row",
-                          "justifyContent": "flex-end",
-                          "minHeight": 48,
-                        },
-                        {
-                          "marginLeft": -12,
-                        },
-                      ]
-                    }
-                  >
-                    <View
-                      collapsable={false}
-                      style={
-                        {
-                          "backgroundColor": "transparent",
-                          "borderRadius": 20,
-                          "marginLeft": 4,
-                          "marginRight": 8,
-                          "shadowColor": "#000",
-                          "shadowOffset": {
-                            "height": 0,
-                            "width": 0,
-                          },
-                          "shadowOpacity": 0,
-                          "shadowRadius": 0,
-                        }
-                      }
-                      testID="button-container-outer-layer"
-                    >
-                      <View
-                        collapsable={false}
-                        style={
-                          {
-                            "backgroundColor": "transparent",
-                            "borderColor": "transparent",
-                            "borderRadius": 20,
-                            "borderStyle": "solid",
-                            "borderWidth": 0,
-                            "flex": undefined,
-                            "minWidth": 64,
-                            "shadowColor": "#000",
-                            "shadowOffset": {
-                              "height": 0,
-                              "width": 0,
-                            },
-                            "shadowOpacity": 0,
-                            "shadowRadius": 0,
-                          }
-                        }
-                        testID="button-container"
-                      >
-                        <View
-                          accessibilityRole="button"
-                          accessibilityState={
-                            {
-                              "busy": undefined,
-                              "checked": undefined,
-                              "disabled": false,
-                              "expanded": undefined,
-                              "selected": undefined,
-                            }
-                          }
-                          accessibilityValue={
-                            {
-                              "max": undefined,
-                              "min": undefined,
-                              "now": undefined,
-                              "text": undefined,
-                            }
-                          }
-                          accessible={true}
-                          collapsable={false}
-                          focusable={true}
-                          onBlur={[Function]}
-                          onClick={[Function]}
-                          onFocus={[Function]}
-                          onResponderGrant={[Function]}
-                          onResponderMove={[Function]}
-                          onResponderRelease={[Function]}
-                          onResponderTerminate={[Function]}
-                          onResponderTerminationRequest={[Function]}
-                          onStartShouldSetResponder={[Function]}
-                          style={
-                            [
-                              {
-                                "overflow": "hidden",
-                              },
-                              {
-                                "borderRadius": 20,
-                              },
-                            ]
-                          }
-                          testID="button"
-                        >
-                          <View
-                            style={
-                              [
-                                {
-                                  "alignItems": "center",
-                                  "flexDirection": "row",
-                                  "justifyContent": "center",
-                                },
-                                undefined,
-                              ]
-                            }
-                          >
-                            <Text
-                              numberOfLines={1}
-                              selectable={false}
-                              style={
-                                [
-                                  {
-                                    "textAlign": "left",
-                                  },
-                                  {
-                                    "color": "rgba(28, 27, 31, 1)",
-                                    "writingDirection": "ltr",
-                                  },
-                                  [
-                                    {
-                                      "fontFamily": "System",
-                                      "fontSize": 14,
-                                      "fontWeight": "500",
-                                      "letterSpacing": 0.1,
-                                      "lineHeight": 20,
-                                    },
-                                    [
-                                      {
-                                        "marginHorizontal": 16,
-                                        "marginVertical": 9,
-                                        "textAlign": "center",
-                                      },
-                                      false,
-                                      {
-                                        "marginHorizontal": 12,
-                                      },
-                                      false,
-                                      false,
-                                      {
-                                        "color": "rgba(208, 188, 255, 1)",
-                                        "fontFamily": "System",
-                                        "fontSize": 14,
-                                        "fontWeight": "500",
-                                        "letterSpacing": 0.1,
-                                        "lineHeight": 20,
-                                      },
-                                      undefined,
-                                    ],
-                                  ],
-                                ]
-                              }
-                              testID="button-text"
-                            >
-                              Dismiss
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </View>
+                Flirty
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-smooth-button"
+              >
+                Smooth
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-funny-button"
+              >
+                Funny
+              </Button>
             </View>
           </Surface>
+          <Button
+            disabled={false}
+            loading={false}
+            mode="contained"
+            onPress={[Function]}
+            style={
+              {
+                "marginTop": 16,
+              }
+            }
+            testID="submit-button"
+          >
+            Generate Response
+          </Button>
         </View>
       </RCTScrollView>
       <Modal
@@ -2517,6 +2085,272 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
           </View>
         </Surface>
       </Modal>
+      <View
+        pointerEvents="box-none"
+        style={
+          [
+            {
+              "bottom": 0,
+              "position": "absolute",
+              "width": "100%",
+            },
+            {
+              "paddingBottom": 0,
+              "paddingHorizontal": 0,
+            },
+            undefined,
+          ]
+        }
+      >
+        <View
+          collapsable={false}
+          style={
+            {
+              "backgroundColor": "rgba(49, 48, 51, 1)",
+              "borderRadius": 4,
+              "margin": 8,
+              "opacity": 0,
+              "shadowColor": "#000",
+              "shadowOffset": {
+                "height": 2,
+                "width": 0,
+              },
+              "shadowOpacity": 0.15,
+              "shadowRadius": 6,
+              "transform": [
+                {
+                  "scale": 0.9,
+                },
+              ],
+            }
+          }
+          testID="error-snackbar-outer-layer"
+        >
+          <View
+            accessibilityLiveRegion="polite"
+            collapsable={false}
+            pointerEvents="box-none"
+            style={
+              {
+                "backgroundColor": "rgba(49, 48, 51, 1)",
+                "borderRadius": 4,
+                "flex": undefined,
+                "flexDirection": "row",
+                "justifyContent": "space-between",
+                "minHeight": 48,
+                "shadowColor": "#000",
+                "shadowOffset": {
+                  "height": 1,
+                  "width": 0,
+                },
+                "shadowOpacity": 0.3,
+                "shadowRadius": 2,
+              }
+            }
+            testID="error-snackbar"
+          >
+            <Text
+              style={
+                [
+                  {
+                    "textAlign": "left",
+                  },
+                  {
+                    "color": "rgba(28, 27, 31, 1)",
+                    "writingDirection": "ltr",
+                  },
+                  [
+                    {
+                      "fontFamily": "System",
+                      "fontSize": 14,
+                      "fontWeight": "400",
+                      "letterSpacing": 0.25,
+                      "lineHeight": 20,
+                    },
+                    [
+                      {
+                        "flex": 1,
+                        "marginHorizontal": 16,
+                        "marginVertical": 14,
+                      },
+                      {
+                        "color": "rgba(244, 239, 244, 1)",
+                      },
+                    ],
+                  ],
+                ]
+              }
+            >
+              Please select at least one image
+            </Text>
+            <View
+              style={
+                [
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                    "justifyContent": "flex-end",
+                    "minHeight": 48,
+                  },
+                  {
+                    "marginLeft": -12,
+                  },
+                ]
+              }
+            >
+              <View
+                collapsable={false}
+                style={
+                  {
+                    "backgroundColor": "transparent",
+                    "borderRadius": 20,
+                    "marginLeft": 4,
+                    "marginRight": 8,
+                    "shadowColor": "#000",
+                    "shadowOffset": {
+                      "height": 0,
+                      "width": 0,
+                    },
+                    "shadowOpacity": 0,
+                    "shadowRadius": 0,
+                  }
+                }
+                testID="button-container-outer-layer"
+              >
+                <View
+                  collapsable={false}
+                  style={
+                    {
+                      "backgroundColor": "transparent",
+                      "borderColor": "transparent",
+                      "borderRadius": 20,
+                      "borderStyle": "solid",
+                      "borderWidth": 0,
+                      "flex": undefined,
+                      "minWidth": 64,
+                      "shadowColor": "#000",
+                      "shadowOffset": {
+                        "height": 0,
+                        "width": 0,
+                      },
+                      "shadowOpacity": 0,
+                      "shadowRadius": 0,
+                    }
+                  }
+                  testID="button-container"
+                >
+                  <View
+                    accessibilityRole="button"
+                    accessibilityState={
+                      {
+                        "busy": undefined,
+                        "checked": undefined,
+                        "disabled": false,
+                        "expanded": undefined,
+                        "selected": undefined,
+                      }
+                    }
+                    accessibilityValue={
+                      {
+                        "max": undefined,
+                        "min": undefined,
+                        "now": undefined,
+                        "text": undefined,
+                      }
+                    }
+                    accessible={true}
+                    collapsable={false}
+                    focusable={true}
+                    onBlur={[Function]}
+                    onClick={[Function]}
+                    onFocus={[Function]}
+                    onResponderGrant={[Function]}
+                    onResponderMove={[Function]}
+                    onResponderRelease={[Function]}
+                    onResponderTerminate={[Function]}
+                    onResponderTerminationRequest={[Function]}
+                    onStartShouldSetResponder={[Function]}
+                    style={
+                      [
+                        {
+                          "overflow": "hidden",
+                        },
+                        {
+                          "borderRadius": 20,
+                        },
+                      ]
+                    }
+                    testID="button"
+                  >
+                    <View
+                      style={
+                        [
+                          {
+                            "alignItems": "center",
+                            "flexDirection": "row",
+                            "justifyContent": "center",
+                          },
+                          undefined,
+                        ]
+                      }
+                    >
+                      <Text
+                        numberOfLines={1}
+                        selectable={false}
+                        style={
+                          [
+                            {
+                              "textAlign": "left",
+                            },
+                            {
+                              "color": "rgba(28, 27, 31, 1)",
+                              "writingDirection": "ltr",
+                            },
+                            [
+                              {
+                                "fontFamily": "System",
+                                "fontSize": 14,
+                                "fontWeight": "500",
+                                "letterSpacing": 0.1,
+                                "lineHeight": 20,
+                              },
+                              [
+                                {
+                                  "marginHorizontal": 16,
+                                  "marginVertical": 9,
+                                  "textAlign": "center",
+                                },
+                                false,
+                                {
+                                  "marginHorizontal": 12,
+                                },
+                                false,
+                                false,
+                                {
+                                  "color": "rgba(208, 188, 255, 1)",
+                                  "fontFamily": "System",
+                                  "fontSize": 14,
+                                  "fontWeight": "500",
+                                  "letterSpacing": 0.1,
+                                  "lineHeight": 20,
+                                },
+                                undefined,
+                              ],
+                            ],
+                          ]
+                        }
+                        testID="button-text"
+                      >
+                        Dismiss
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
     </RNCSafeAreaView>
   </View>
   <View
@@ -3447,6 +3281,243 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
             <View
               style={
                 {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Select Match
+              </Text>
+              <IconButton
+                icon="plus"
+                onPress={[Function]}
+                testID="add-match-button"
+              />
+            </View>
+            <View>
+              <View
+                style={
+                  {
+                    "backgroundColor": "rgba(255, 251, 254, 1)",
+                  }
+                }
+              >
+                <View
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": false,
+                      "expanded": false,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  style={
+                    [
+                      {
+                        "overflow": "hidden",
+                      },
+                      [
+                        {
+                          "paddingRight": 24,
+                          "paddingVertical": 8,
+                        },
+                        undefined,
+                      ],
+                    ]
+                  }
+                  testID="match-dropdown"
+                >
+                  <View
+                    pointerEvents="none"
+                    style={
+                      {
+                        "flexDirection": "row",
+                        "marginVertical": 6,
+                      }
+                    }
+                  >
+                    <View
+                      style={
+                        [
+                          {
+                            "paddingLeft": 16,
+                          },
+                          {
+                            "flex": 1,
+                            "justifyContent": "center",
+                          },
+                        ]
+                      }
+                    >
+                      <Text
+                        numberOfLines={1}
+                        selectable={false}
+                        style={
+                          [
+                            {
+                              "textAlign": "left",
+                            },
+                            {
+                              "color": "rgba(28, 27, 31, 1)",
+                              "fontFamily": "System",
+                              "fontWeight": "400",
+                              "letterSpacing": 0,
+                            },
+                            {
+                              "writingDirection": "ltr",
+                            },
+                            [
+                              {
+                                "fontSize": 16,
+                              },
+                              {
+                                "color": "rgba(28, 27, 31, 1)",
+                              },
+                              undefined,
+                            ],
+                          ]
+                        }
+                      >
+                        Select a match
+                      </Text>
+                    </View>
+                    <View
+                      style={
+                        [
+                          {
+                            "marginVertical": 6,
+                            "paddingLeft": 8,
+                          },
+                          undefined,
+                        ]
+                      }
+                    >
+                      <Text
+                        accessibilityElementsHidden={true}
+                        allowFontScaling={false}
+                        importantForAccessibility="no-hide-descendants"
+                        pointerEvents="none"
+                        selectable={false}
+                        style={
+                          [
+                            {
+                              "color": "rgba(73, 69, 79, 1)",
+                              "fontSize": 24,
+                            },
+                            [
+                              {
+                                "lineHeight": 24,
+                                "transform": [
+                                  {
+                                    "scaleX": 1,
+                                  },
+                                ],
+                              },
+                              {
+                                "backgroundColor": "transparent",
+                              },
+                            ],
+                            {
+                              "fontFamily": "Material Design Icons",
+                              "fontStyle": "normal",
+                              "fontWeight": "normal",
+                            },
+                            {},
+                          ]
+                        }
+                      >
+                        󰅀
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <View
+              style={
+                {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "space-between",
+                  "marginBottom": 8,
+                }
+              }
+            >
+              <Text
+                variant="titleMedium"
+              >
+                Selected Images
+              </Text>
+              <View
+                style={
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                    "gap": 8,
+                  }
+                }
+              >
+                <Text>
+                  Delete after use
+                </Text>
+                <RCTSwitch
+                  accessibilityRole="switch"
+                  onChange={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  onTintColor="rgba(103, 80, 164, 1)"
+                  style={
+                    {
+                      "height": 31,
+                      "width": 51,
+                    }
+                  }
+                  testID="delete-screenshots-switch"
+                  tintColor="rgba(103, 80, 164, 1)"
+                  value={true}
+                />
+              </View>
+            </View>
+            <View
+              style={
+                {
                   "flexDirection": "row",
                   "flexWrap": "wrap",
                   "gap": 8,
@@ -3456,14 +3527,14 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
               <View
                 style={
                   {
-                    "borderRadius": 8,
-                    "height": 100,
-                    "overflow": "hidden",
-                    "width": 100,
+                    "flexDirection": "row",
+                    "flexWrap": "wrap",
+                    "gap": 8,
                   }
                 }
               >
                 <Image
+                  resizeMode="cover"
                   source={
                     {
                       "uri": "test-image-path",
@@ -3481,22 +3552,78 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
                   icon="close"
                   onPress={[Function]}
                   size={20}
+                  style={
+                    {
+                      "marginLeft": 8,
+                    }
+                  }
                   testID="remove-image-0"
                 />
               </View>
-            </View>
-            <Button
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
+              <View
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
                 }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  {
+                    "alignItems": "center",
+                    "borderColor": "#ccc",
+                    "borderRadius": 8,
+                    "borderStyle": "dashed",
+                    "borderWidth": 1,
+                    "height": 100,
+                    "justifyContent": "center",
+                    "width": 100,
+                  }
+                }
+                testID="image-picker-button"
+              >
+                <Text>
+                  Add Images
+                </Text>
+              </View>
+            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
               }
-              testID="image-picker-button"
+            }
+          >
+            <Text
+              variant="titleMedium"
             >
-              Select Images
-            </Button>
+              Enter your prompt (e.g. 'make it flirty')
+            </Text>
             <View
               style={
                 [
@@ -3554,163 +3681,12 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
                   ]
                 }
               >
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "height": 24,
-                        "zIndex": 2,
-                      },
-                      {
-                        "backgroundColor": "rgba(231, 224, 236, 1)",
-                        "left": 16,
-                        "right": 16,
-                      },
-                    ]
-                  }
-                  testID="patch-container"
-                />
-                <View
-                  pointerEvents="none"
-                  style={
-                    [
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                      },
-                      {
-                        "overflow": "hidden",
-                      },
-                      {
-                        "zIndex": 3,
-                      },
-                    ]
-                  }
-                >
-                  <View
-                    collapsable={false}
-                    pointerEvents="none"
-                    style={
-                      {
-                        "bottom": 0,
-                        "left": 0,
-                        "opacity": 1,
-                        "position": "absolute",
-                        "right": 0,
-                        "top": 0,
-                        "transform": [
-                          {
-                            "translateX": 0,
-                          },
-                        ],
-                        "width": 750,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        {
-                          "width": 73,
-                        }
-                      }
-                    >
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        onLayout={[Function]}
-                        onTextLayout={[Function]}
-                        style={
-                          {
-                            "color": "rgba(103, 80, 164, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 73,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-active"
-                      >
-                        Prompt
-                      </Text>
-                      <Text
-                        collapsable={false}
-                        maxFontSizeMultiplier={1.5}
-                        numberOfLines={1}
-                        style={
-                          {
-                            "color": "rgba(73, 69, 79, 1)",
-                            "fontFamily": "System",
-                            "fontSize": 16,
-                            "fontWeight": undefined,
-                            "left": 0,
-                            "letterSpacing": 0.15,
-                            "lineHeight": undefined,
-                            "maxWidth": 73,
-                            "opacity": 0,
-                            "paddingLeft": 16,
-                            "paddingRight": 16,
-                            "position": "absolute",
-                            "textAlign": "left",
-                            "top": 30,
-                            "transform": [
-                              {
-                                "translateX": 0,
-                              },
-                              {
-                                "translateY": 0,
-                              },
-                              {
-                                "scale": 1,
-                              },
-                            ],
-                            "writingDirection": "ltr",
-                          }
-                        }
-                        testID="prompt-input-label-inactive"
-                      >
-                        Prompt
-                      </Text>
-                    </View>
-                  </View>
-                </View>
                 <TextInput
                   cursorColor="rgba(103, 80, 164, 1)"
                   editable={true}
                   maxFontSizeMultiplier={1.5}
                   multiline={true}
+                  numberOfLines={4}
                   onBlur={[Function]}
                   onChangeText={[Function]}
                   onFocus={[Function]}
@@ -3724,8 +3700,8 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
                       },
                       {},
                       {
-                        "paddingBottom": 4,
-                        "paddingTop": 31,
+                        "paddingBottom": 23,
+                        "paddingTop": 23,
                       },
                       {
                         "color": "rgba(28, 27, 31, 1)",
@@ -3753,211 +3729,67 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
                 />
               </View>
             </View>
-            <View>
-              <View
-                style={
-                  {
-                    "backgroundColor": "rgba(255, 251, 254, 1)",
-                  }
-                }
-              >
-                <View
-                  accessibilityRole="button"
-                  accessibilityState={
-                    {
-                      "busy": undefined,
-                      "checked": undefined,
-                      "disabled": false,
-                      "expanded": false,
-                      "selected": undefined,
-                    }
-                  }
-                  accessibilityValue={
-                    {
-                      "max": undefined,
-                      "min": undefined,
-                      "now": undefined,
-                      "text": undefined,
-                    }
-                  }
-                  accessible={true}
-                  collapsable={false}
-                  focusable={true}
-                  onBlur={[Function]}
-                  onClick={[Function]}
-                  onFocus={[Function]}
-                  onResponderGrant={[Function]}
-                  onResponderMove={[Function]}
-                  onResponderRelease={[Function]}
-                  onResponderTerminate={[Function]}
-                  onResponderTerminationRequest={[Function]}
-                  onStartShouldSetResponder={[Function]}
-                  style={
-                    [
-                      {
-                        "overflow": "hidden",
-                      },
-                      [
-                        {
-                          "paddingRight": 24,
-                          "paddingVertical": 8,
-                        },
-                        undefined,
-                      ],
-                    ]
-                  }
-                  testID="style-dropdown"
-                >
-                  <View
-                    pointerEvents="none"
-                    style={
-                      {
-                        "flexDirection": "row",
-                        "marginVertical": 6,
-                      }
-                    }
-                  >
-                    <View
-                      style={
-                        [
-                          {
-                            "paddingLeft": 16,
-                          },
-                          {
-                            "flex": 1,
-                            "justifyContent": "center",
-                          },
-                        ]
-                      }
-                    >
-                      <Text
-                        numberOfLines={1}
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "textAlign": "left",
-                            },
-                            {
-                              "color": "rgba(28, 27, 31, 1)",
-                              "fontFamily": "System",
-                              "fontWeight": "400",
-                              "letterSpacing": 0,
-                            },
-                            {
-                              "writingDirection": "ltr",
-                            },
-                            [
-                              {
-                                "fontSize": 16,
-                              },
-                              {
-                                "color": "rgba(28, 27, 31, 1)",
-                              },
-                              undefined,
-                            ],
-                          ]
-                        }
-                      >
-                        Message Style
-                      </Text>
-                    </View>
-                    <View
-                      style={
-                        [
-                          {
-                            "marginVertical": 6,
-                            "paddingLeft": 8,
-                          },
-                          undefined,
-                        ]
-                      }
-                    >
-                      <Text
-                        accessibilityElementsHidden={true}
-                        allowFontScaling={false}
-                        importantForAccessibility="no-hide-descendants"
-                        pointerEvents="none"
-                        selectable={false}
-                        style={
-                          [
-                            {
-                              "color": "rgba(73, 69, 79, 1)",
-                              "fontSize": 24,
-                            },
-                            [
-                              {
-                                "lineHeight": 24,
-                                "transform": [
-                                  {
-                                    "scaleX": 1,
-                                  },
-                                ],
-                              },
-                              {
-                                "backgroundColor": "transparent",
-                              },
-                            ],
-                            {
-                              "fontFamily": "Material Design Icons",
-                              "fontStyle": "normal",
-                              "fontWeight": "normal",
-                            },
-                            {},
-                          ]
-                        }
-                      >
-                        󰅀
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
+          </Surface>
+          <Surface
+            style={
+              {
+                "borderRadius": 8,
+                "marginBottom": 16,
+                "padding": 16,
+              }
+            }
+          >
+            <Text
+              variant="titleMedium"
+            >
+              Select Style
+            </Text>
             <View
               style={
                 {
-                  "alignItems": "center",
                   "flexDirection": "row",
-                  "gap": 8,
+                  "justifyContent": "space-around",
+                  "marginTop": 8,
                 }
               }
             >
-              <Text>
-                Delete screenshots after use
-              </Text>
-              <RCTSwitch
-                accessibilityRole="switch"
-                onChange={[Function]}
-                onResponderTerminationRequest={[Function]}
-                onStartShouldSetResponder={[Function]}
-                onTintColor="rgba(103, 80, 164, 1)"
-                style={
-                  {
-                    "height": 31,
-                    "width": 51,
-                  }
-                }
-                testID="delete-screenshots-switch"
-                tintColor="rgba(103, 80, 164, 1)"
-                value={true}
-              />
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-flirty-button"
+              >
+                Flirty
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-smooth-button"
+              >
+                Smooth
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={[Function]}
+                testID="style-funny-button"
+              >
+                Funny
+              </Button>
             </View>
-            <Button
-              disabled={false}
-              loading={false}
-              mode="contained"
-              onPress={[Function]}
-              style={
-                {
-                  "marginBottom": 16,
-                }
-              }
-              testID="submit-button"
-            >
-              Generate Response
-            </Button>
           </Surface>
+          <Button
+            disabled={false}
+            loading={false}
+            mode="contained"
+            onPress={[Function]}
+            style={
+              {
+                "marginTop": 16,
+              }
+            }
+            testID="submit-button"
+          >
+            Generate Response
+          </Button>
         </View>
       </RCTScrollView>
       <Modal
