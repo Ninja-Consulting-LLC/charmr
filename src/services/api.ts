@@ -39,17 +39,6 @@ export const generateReply = async (
     return response.data;
   } catch (error) {
     console.error('Error generating reply:', error);
-
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 429) {
-        throw new Error(
-          error.response.data.error ||
-            'Too many requests. Please try again later.',
-        );
-      }
-      throw new Error(error.response?.data?.error || error.message);
-    }
-
-    throw error;
+    throw error; // Pass through the axios error directly
   }
 };
