@@ -4,6 +4,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Surface, Text} from 'react-native-paper';
+import LoginModal from '../components/LoginModal';
 import {RootStackParamList} from '../navigation/types';
 import {DevUtils} from '../utils/devUtils';
 
@@ -15,12 +16,13 @@ type OnboardingScreenNavigationProp = NativeStackNavigationProp<
 const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
   const [currentStep, setCurrentStep] = React.useState(1);
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
 
   const handleNext = () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
-      handleDone();
+      setShowLoginModal(true);
     }
   };
 
@@ -39,6 +41,11 @@ const OnboardingScreen = () => {
     } catch (error) {
       console.error('Error saving onboarding status:', error);
     }
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    handleDone();
   };
 
   const renderStep = () => {
@@ -127,6 +134,10 @@ const OnboardingScreen = () => {
           </Button>
         </View>
       </Surface>
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
     </View>
   );
 };
