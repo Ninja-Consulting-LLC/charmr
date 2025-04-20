@@ -9,6 +9,8 @@ interface Store {
   setUserId: (userId: string) => void;
   showDevMenu: boolean;
   setShowDevMenu: (show: boolean) => void;
+  skipRateLimiting: boolean;
+  setSkipRateLimiting: (skip: boolean) => void;
 }
 
 // Create context with a default value
@@ -19,6 +21,8 @@ const StoreContext = createContext<Store>({
   setUserId: () => {},
   showDevMenu: false,
   setShowDevMenu: () => {},
+  skipRateLimiting: false,
+  setSkipRateLimiting: () => {},
 });
 
 // Custom hook to use the store
@@ -31,6 +35,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [showKeyboardModal, setShowKeyboardModal] = useState(false);
   const [userId, setUserId] = useState('');
   const [showDevMenu, setShowDevMenu] = useState(false);
+  const [skipRateLimiting, setSkipRateLimiting] = useState(false);
 
   // Get or create user ID on component mount
   useEffect(() => {
@@ -60,6 +65,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setUserId,
     showDevMenu,
     setShowDevMenu,
+    skipRateLimiting,
+    setSkipRateLimiting,
   };
 
   return (
