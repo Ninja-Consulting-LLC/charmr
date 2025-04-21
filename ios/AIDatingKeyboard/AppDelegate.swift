@@ -2,6 +2,8 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import FirebaseCore
+import GoogleSignIn // ✅ required for proper redirect handling
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,6 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // ✅ Initialize Firebase
+    FirebaseApp.configure()
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -32,26 +37,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     return true
   }
 
+  // ✅ Handles OAuth redirect from Safari/Chrome to your app
+  @available(iOS 9.0, *)
   func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-    print("Opening URL: \(url.absoluteString)")
+    // 🔥 Handle Google Sign-In redirect
+    if GIDSignIn.sharedInstance.handle(url) {
+      return true
+    }
 
-    // Send the URL to React Native
+    // 🔄 Optional: still notify RN for other deep links
     NotificationCenter.default.post(
       name: NSNotification.Name("RCTOpenURLNotification"),
       object: nil,
       userInfo: ["url": url.absoluteString]
     )
 
-    // If the app is not in the foreground, we need to ensure it's brought to the foreground
-    if app.applicationState != .active {
-      DispatchQueue.main.async {
-        if let window = self.window {
-          window.makeKeyAndVisible()
-        }
-      }
-    }
-
-    return true
+    return false
   }
 }
 
@@ -62,9 +63,9 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }

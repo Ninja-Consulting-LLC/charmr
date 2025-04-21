@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "86028540367",
+    "project_id": "ai-dating-keyboard",
+    "storage_bucket": "ai-dating-keyboard.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86028540367:android:c4f127d218f11e3007daba",
+        "android_client_info": {
+          "package_name": "com.ninjadating.aidatingkeyboard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "GOOGLE_API_KEY_REDACTED"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ninjadating.aidatingkeyboard"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

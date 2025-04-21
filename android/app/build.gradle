@@ -89,6 +89,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        manifestPlaceholders = [
+            'appAuthRedirectScheme': 'com.googleusercontent.apps.86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn'
+        ]
     }
 
     // Add this block for vector icons
