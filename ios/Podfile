@@ -11,7 +11,7 @@ target 'AIDatingKeyboard' do
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/..",
-    :hermes_enabled => false
+    :hermes_enabled => true
   )
 
   # 🔐 Firebase Auth + Google Sign-In (NO modular headers!)
