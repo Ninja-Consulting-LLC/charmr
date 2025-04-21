@@ -1,20 +1,39 @@
 import React from 'react';
 import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {signInWithGoogle} from '../config/firebase';
+import {signInWithApple, signInWithGoogle} from '../config/firebase';
 
 interface LoginModalProps {
   visible: boolean;
   onClose: () => void;
+  onLoginSuccess?: () => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({visible, onClose}) => {
+const LoginModal: React.FC<LoginModalProps> = ({
+  visible,
+  onClose,
+  onLoginSuccess,
+}) => {
   const handleGoogleLogin = async () => {
+    console.log('Google login button pressed');
     try {
+      console.log('Attempting Google sign-in...');
       await signInWithGoogle();
+      console.log('Google sign-in successful');
       onClose();
+      onLoginSuccess?.();
     } catch (error) {
       console.error('Login failed:', error);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    try {
+      await signInWithApple();
+      onClose();
+      onLoginSuccess?.();
+    } catch (error) {
+      console.error('Apple login failed:', error);
     }
   };
 
@@ -35,9 +54,17 @@ const LoginModal: React.FC<LoginModalProps> = ({visible, onClose}) => {
 
           <TouchableOpacity
             style={[styles.button, styles.googleButton]}
-            onPress={handleGoogleLogin}>
+            onPress={handleGoogleLogin}
+            testID="google-login-button">
             <Icon name="google" size={24} color="#fff" />
             <Text style={styles.buttonText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.appleButton]}
+            onPress={handleAppleLogin}>
+            <Icon name="apple" size={24} color="#fff" />
+            <Text style={styles.buttonText}>Continue with Apple</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -86,6 +113,9 @@ const styles = StyleSheet.create({
   },
   googleButton: {
     backgroundColor: '#DB4437',
+  },
+  appleButton: {
+    backgroundColor: '#000000',
   },
   facebookButton: {
     backgroundColor: '#4267B2',

@@ -4,6 +4,7 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Text} from 'react-native-paper';
+import LoginModal from '../components/LoginModal';
 import {RootStackParamList} from '../navigation/types';
 import {DevUtils} from '../utils/devUtils';
 
@@ -14,10 +15,14 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
 
-  const handleLogin = async () => {
+  console.log('LoginScreen');
+
+  const handleLoginSuccess = async () => {
     try {
       await AsyncStorage.setItem('isAuthenticated', 'true');
+      setShowLoginModal(false);
       navigation.navigate('Home');
     } catch (error) {
       console.error('Error during login:', error);
@@ -56,7 +61,7 @@ const LoginScreen = () => {
           <Button
             testID="login-button"
             mode="contained"
-            onPress={handleLogin}
+            onPress={() => setShowLoginModal(true)}
             style={styles.loginButton}
             labelStyle={styles.buttonLabel}
             textColor="#4B2EFF">
@@ -83,6 +88,11 @@ const LoginScreen = () => {
           )}
         </View>
       </View>
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </View>
   );
 };
