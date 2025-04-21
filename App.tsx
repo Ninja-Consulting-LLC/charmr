@@ -6,6 +6,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useState} from 'react';
 import {StatusBar, View} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
@@ -39,6 +40,16 @@ function App(): React.JSX.Element {
     };
 
     checkOnboardingStatus();
+
+    console.log('🔥 Configuring Google Sign-In');
+
+    GoogleSignin.configure({
+      iosClientId:
+        '86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n.apps.googleusercontent.com',
+      webClientId:
+        '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
+      offlineAccess: false,
+    });
   }, []);
 
   if (!isReady) {
