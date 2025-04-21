@@ -13,6 +13,7 @@ import {
 import ImagePicker from 'react-native-image-crop-picker';
 import {
   Button,
+  Icon,
   IconButton,
   List,
   Snackbar,
@@ -402,13 +403,12 @@ const HomeContent: React.FC = () => {
                   resizeMode="cover"
                   testID={`selected-image-${index}`}
                 />
-                <IconButton
-                  icon="close"
-                  size={20}
+                <Pressable
                   style={styles.removeImage}
                   onPress={() => removeImage(index)}
-                  testID={`remove-image-${index}`}
-                />
+                  testID={`remove-image-${index}`}>
+                  <Icon source="close" size={16} color="black" />
+                </Pressable>
               </View>
             ))}
             <Pressable
@@ -526,9 +526,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   imageContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   imageWrapper: {
     width: 100,
@@ -604,7 +606,21 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   removeImage: {
-    marginLeft: 8,
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeImageContent: {
+    padding: 0,
+    margin: 0,
+    width: 16,
+    height: 16,
   },
 });
 
