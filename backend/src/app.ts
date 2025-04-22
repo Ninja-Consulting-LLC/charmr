@@ -2,6 +2,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
 import {config} from './config/config';
+import {emailConfig} from './config/email';
 import {createReplyController} from './controllers/replyController';
 import {
   createErrorHandler,
@@ -9,6 +10,8 @@ import {
   createGenerateReplyLimiter,
   createRequestValidator,
 } from './middleware';
+import supportRoutes from './routes/supportRoutes';
+import {createEmailService, createSupportEmailService} from './services/email';
 import {logEnvironmentVariables} from './utils/envUtils';
 
 export const createApp = () => {
@@ -26,6 +29,17 @@ export const createApp = () => {
   );
   app.use(bodyParser.json({limit: '50mb'}));
   app.use(createGeneralLimiter());
+
+  // Initialize email services
+  const emailService = createEmailService(emailConfig);
+  const supportEmailService = createSupportEmailService(
+    emailService,
+    process.env.SUPPORT_EMAIL || 'support@example.invalid',
+  );
+
+  // Make services available to routes
+  app.locals.emailService = emailService;
+  app.locals.supportEmailService = supportEmailService;
 
   // Logger middleware
   app.use((req, res, next) => {
@@ -48,6 +62,9 @@ export const createApp = () => {
     createRequestValidator(),
     (req, res) => replyController.generateReply(req, res),
   );
+
+  // Routes
+  app.use('/api/support', supportRoutes);
 
   // Initialize error handling
   app.use(createErrorHandler());

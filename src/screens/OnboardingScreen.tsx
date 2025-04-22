@@ -137,6 +137,7 @@ const OnboardingScreen = () => {
       <LoginModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </View>
   );

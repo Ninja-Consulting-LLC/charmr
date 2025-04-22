@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {config} from '../config/config';
+import {getAuthToken} from '../config/firebase';
 
 interface GenerateReplyRequest {
   prompt: string;
@@ -12,6 +13,17 @@ interface GenerateReplyRequest {
 interface GenerateReplyResponse {
   reply: string;
   error?: string;
+}
+
+interface SupportRequest {
+  userId: string;
+  email: string;
+  phone?: string;
+  message: string;
+  plan: string;
+  dailyMessagesUsed: number;
+  dailyMessageLimit: number;
+  extraMessages: number;
 }
 
 // Create an axios instance with default config
@@ -54,4 +66,33 @@ export const testContext = async (): Promise<void> => {
     console.error('Error testing context:', error);
     throw error;
   }
+};
+
+export const submitSupportRequest = async (
+  request: SupportRequest,
+  authBypass: boolean = false,
+) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Only add auth header if not bypassing auth
+  if (!authBypass) {
+    headers.Authorization = `Bearer ${await getAuthToken()}`;
+  } else {
+    // Add auth bypass header
+    headers['X-Auth-Bypass'] = 'true';
+  }
+
+  const response = await fetch(`${config.apiBaseUrl}/api/support`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to submit support request');
+  }
+
+  return response.json();
 };
