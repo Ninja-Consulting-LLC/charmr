@@ -107,3 +107,11 @@ export const signOut = async () => {
     throw error;
   }
 };
+
+export const getAuthToken = async (): Promise<string> => {
+  const user = auth().currentUser;
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  return user.getIdToken();
+};

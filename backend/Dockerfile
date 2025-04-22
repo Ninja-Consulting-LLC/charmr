@@ -2,19 +2,19 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 
-RUN npm install
+# Install dependencies
+RUN npm ci
 
+# Copy source code
 COPY . .
 
 # Build the TypeScript code
 RUN npm run build
 
-# Verify the build was successful
-RUN ls -la dist/
-
 EXPOSE 3001
 
-# Use a shell script to ensure the server starts properly
-CMD ["sh", "-c", "npm run build && npm start"]
+# Start the server
+CMD ["npm", "start"]
