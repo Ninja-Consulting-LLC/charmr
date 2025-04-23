@@ -22,12 +22,21 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({initialRouteName}) => {
           headerShown: false,
           animation: 'slide_from_right',
         }}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{headerShown: false}}
+        />
         <Stack.Screen
           name="Home"
           component={HomeScreen}
           options={{
+            headerShown: false,
             gestureEnabled: false, // Prevent swipe back to login/onboarding
           }}
         />

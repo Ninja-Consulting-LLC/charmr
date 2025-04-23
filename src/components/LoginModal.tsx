@@ -1,7 +1,18 @@
 import React from 'react';
-import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {signInWithApple, signInWithGoogle} from '../config/firebase';
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
+const MODAL_WIDTH = Math.min(SCREEN_WIDTH - 48, 280);
 
 interface LoginModalProps {
   visible: boolean;
@@ -15,11 +26,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onLoginSuccess,
 }) => {
   const handleGoogleLogin = async () => {
-    console.log('Google login button pressed');
     try {
-      console.log('Attempting Google sign-in...');
       await signInWithGoogle();
-      console.log('Google sign-in successful');
       onClose();
       onLoginSuccess?.();
     } catch (error) {
@@ -49,34 +57,52 @@ const LoginModal: React.FC<LoginModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>Choose Login Method</Text>
+        <View style={styles.modalWrapper}>
+          <LinearGradient
+            colors={['#7E22CE', '#3B0764']}
+            style={styles.modalContent}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[styles.button, styles.googleButton]}
+                onPress={handleGoogleLogin}
+                testID="google-login-button">
+                <View style={styles.buttonContent}>
+                  <Icon name="google" size={20} color="#000" />
+                  <Text style={styles.googleButtonText}>
+                    Continue with Google
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.googleButton]}
-            onPress={handleGoogleLogin}
-            testID="google-login-button">
-            <Icon name="google" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Continue with Google</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.appleButton]}
+                onPress={handleAppleLogin}>
+                <View style={styles.buttonContent}>
+                  <Icon name="apple" size={20} color="#fff" />
+                  <Text style={styles.appleButtonText}>
+                    Continue with Apple
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.appleButton]}
-            onPress={handleAppleLogin}>
-            <Icon name="apple" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Continue with Apple</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.facebookButton]}
+                onPress={() => {}}>
+                <View style={styles.buttonContent}>
+                  <Icon name="facebook" size={20} color="#fff" />
+                  <Text style={styles.facebookButtonText}>
+                    Continue with Facebook
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={[styles.button, styles.facebookButton]}
-            onPress={handleFacebookLogin}>
-            <Icon name="facebook" size={24} color="#fff" />
-            <Text style={styles.buttonText}>Continue with Facebook</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Cancel</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Text style={styles.closeButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
       </View>
     </Modal>
@@ -90,49 +116,74 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    width: '80%',
-    alignItems: 'center',
+  modalWrapper: {
+    width: MODAL_WIDTH,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  modalContent: {
+    width: '100%',
+    minHeight: 280,
+    paddingTop: 24,
+    borderRadius: 16,
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    gap: 16,
+    marginBottom: 24,
   },
   button: {
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  buttonContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-    marginBottom: 10,
+    paddingHorizontal: 16,
   },
   googleButton: {
-    backgroundColor: '#DB4437',
+    backgroundColor: '#96F2D7',
   },
   appleButton: {
-    backgroundColor: '#000000',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'transparent',
   },
   facebookButton: {
-    backgroundColor: '#4267B2',
+    backgroundColor: '#1877F2',
   },
-  buttonText: {
-    color: 'white',
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: 'bold',
+  googleButtonText: {
+    color: '#000',
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  appleButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  facebookButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '500',
   },
   closeButton: {
-    marginTop: 10,
-    padding: 10,
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   closeButtonText: {
-    color: '#666',
-    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
 
