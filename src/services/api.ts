@@ -10,9 +10,17 @@ interface GenerateReplyRequest {
   skipRateLimiting?: boolean;
 }
 
+interface MessageLimit {
+  dailyMessagesUsed: number;
+  dailyMessageLimit: number;
+  extraMessages: number;
+}
+
 interface GenerateReplyResponse {
   reply: string;
   error?: string;
+  type?: string;
+  limits?: MessageLimit;
 }
 
 interface SupportRequest {

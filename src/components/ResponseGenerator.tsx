@@ -248,6 +248,18 @@ const HomeContent: React.FC = () => {
       return;
     }
 
+    // Check message limits before submitting
+    if (
+      user.dailyMessagesUsed >= user.dailyMessageLimit &&
+      user.extraMessages <= 0
+    ) {
+      setError(
+        'You have reached your daily message limit. Please purchase more messages to continue.',
+      );
+      setShowSnackbar(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -266,11 +278,16 @@ const HomeContent: React.FC = () => {
         images: base64Images,
         userId,
         matchId: selectedMatch ? generateMatchId(selectedMatch) : '',
-        skipRateLimiting,
       });
 
       if (response.error) {
-        setError(response.error);
+        if (response.type === 'MESSAGE_LIMIT') {
+          setError(
+            'You have reached your daily message limit. Please purchase more messages to continue.',
+          );
+        } else {
+          setError(response.error);
+        }
         setShowSnackbar(true);
       } else {
         setResponse(response.reply);
@@ -280,21 +297,28 @@ const HomeContent: React.FC = () => {
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
         }
-        // Increment the daily messages used count
-        setUser({
-          dailyMessagesUsed: user.dailyMessagesUsed + 1,
-        });
+        // Update the user's message counts from the backend response
+        if (response.limits) {
+          setUser({
+            dailyMessagesUsed: response.limits.dailyMessagesUsed,
+            dailyMessageLimit: response.limits.dailyMessageLimit,
+            extraMessages: response.limits.extraMessages,
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error generating reply:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 429) {
-        setIsRateLimited(true);
-        setShowUpgradeModal(true);
-        setError(
-          "You've reached your daily message limit. Upgrade to continue.",
-        );
-      } else if (axios.isAxiosError(error)) {
-        setError(error.response?.data?.error || error.message);
+      if (axios.isAxiosError(error)) {
+        if (
+          error.response?.status === 403 &&
+          error.response?.data?.type === 'MESSAGE_LIMIT'
+        ) {
+          setError(
+            'You have reached your daily message limit. Please purchase more messages to continue.',
+          );
+        } else {
+          setError(error.response?.data?.error || error.message);
+        }
       } else {
         setError('Failed to generate response. Please try again.');
       }
@@ -625,6 +649,11 @@ const styles = StyleSheet.create({
     margin: 0,
     width: 16,
     height: 16,
+  },
+  messageLimitSection: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
   },
 });
 
