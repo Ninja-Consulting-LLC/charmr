@@ -1,93 +1,134 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, Text} from 'react-native-paper';
+import React, {useState} from 'react';
+import {
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
-import {RootStackParamList} from '../navigation/types';
-import {DevUtils} from '../utils/devUtils';
+import {RootStackScreenProps} from '../navigation/types';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Login'
->;
+const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+const GLOW_SIZE = Math.max(SCREEN_WIDTH, SCREEN_HEIGHT) * 2;
 
-const LoginScreen = () => {
-  const navigation = useNavigation<LoginScreenNavigationProp>();
-  const [showLoginModal, setShowLoginModal] = React.useState(false);
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
-  console.log('LoginScreen');
+type Props = RootStackScreenProps<'Login'>;
 
-  const handleLoginSuccess = async () => {
-    try {
-      await AsyncStorage.setItem('isAuthenticated', 'true');
-      setShowLoginModal(false);
-      navigation.navigate('Home');
-    } catch (error) {
-      console.error('Error during login:', error);
-    }
+const LoginScreen: React.FC<Props> = ({navigation}) => {
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Animation value for the glow effect
+  const glowAnimation = useSharedValue(0);
+
+  React.useEffect(() => {
+    // Start the glow animation
+    glowAnimation.value = withRepeat(
+      withSequence(
+        withTiming(1, {duration: 4000}),
+        withTiming(0, {duration: 4000}),
+      ),
+      -1,
+      true,
+    );
+  }, []);
+
+  const glowStyle = useAnimatedStyle(() => {
+    const scale = interpolate(glowAnimation.value, [0, 1], [0.9, 1.1]);
+    const opacity = interpolate(glowAnimation.value, [0, 1], [0.7, 1]);
+    const rotate = interpolate(glowAnimation.value, [0, 1], [0, 45]);
+
+    return {
+      transform: [{scale}, {rotate: `${rotate}deg`}],
+      opacity,
+    };
+  });
+
+  const handleLogin = () => {
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    navigation.navigate('Home');
   };
 
   const handleGetStarted = () => {
     navigation.navigate('Onboarding');
   };
 
-  const handleSkipToHome = () => {
-    navigation.navigate('Home');
-  };
-
   return (
-    <View testID="screen-container" style={styles.container}>
-      <View testID="content-container" style={styles.content}>
-        <View testID="logo-container" style={styles.logoContainer}>
-          <View testID="logo-placeholder" style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>DB</Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#7E22CE', '#3B0764']}
+        style={styles.gradientBackground}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      />
+
+      {/* Animated glow effect */}
+      <AnimatedLinearGradient
+        colors={[
+          'transparent',
+          'rgba(99, 39, 120, 0.1)',
+          'rgba(99, 39, 120, 0.4)',
+          'rgba(99, 39, 120, 0.8)',
+          'rgba(99, 39, 120, 0.4)',
+          'rgba(99, 39, 120, 0.1)',
+          'transparent',
+        ]}
+        style={[styles.glowEffect, glowStyle]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      />
+
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <View style={styles.logoSection}>
+            <Image
+              source={require('../../assets/logo-with-name.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            {/* <Text style={styles.title}>Flirtonic</Text> */}
           </View>
-          <Text
-            testID="app-title"
-            variant="headlineMedium"
-            style={styles.title}>
-            Dating Buddy
-          </Text>
-          <Text
-            testID="app-subtitle"
-            variant="bodyLarge"
-            style={styles.subtitle}>
-            Your AI-powered dating assistant
-          </Text>
+
+          <View style={styles.bottomSection}>
+            <TouchableOpacity
+              style={styles.getStartedButton}
+              onPress={handleGetStarted}
+              testID="get-started-button">
+              <Text style={styles.getStartedButtonText}>Get Started</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              testID="login-button">
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.termsText}>
+              By clicking above, you agree to our{' '}
+              <Text style={styles.linkText}>Terms of Use</Text> and{' '}
+              <Text style={styles.linkText}>Privacy Policy</Text>.
+            </Text>
+          </View>
         </View>
-        <View testID="button-container" style={styles.buttonContainer}>
-          <Button
-            testID="login-button"
-            mode="contained"
-            onPress={() => setShowLoginModal(true)}
-            style={styles.loginButton}
-            labelStyle={styles.buttonLabel}
-            textColor="#4B2EFF">
-            Login
-          </Button>
-          <Button
-            testID="get-started-button"
-            mode="outlined"
-            onPress={handleGetStarted}
-            style={styles.getStartedButton}
-            labelStyle={styles.buttonLabel}
-            textColor="#FFFFFF">
-            Get Started
-          </Button>
-          {DevUtils.shouldBypassAuth() && (
-            <Button
-              testID="skip-to-home-button"
-              mode="text"
-              onPress={handleSkipToHome}
-              style={styles.devButton}
-              textColor="#FFFFFF">
-              Skip to Home (Dev Mode)
-            </Button>
-          )}
-        </View>
-      </View>
+      </SafeAreaView>
+
       <LoginModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -100,69 +141,94 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#2A1B8C',
+    overflow: 'hidden',
+  },
+  safeArea: {
+    flex: 1,
+    zIndex: 2,
+  },
+  gradientBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  glowEffect: {
+    position: 'absolute',
+    width: GLOW_SIZE,
+    height: GLOW_SIZE,
+    borderRadius: GLOW_SIZE / 2,
+    left: -GLOW_SIZE / 4,
+    top: -GLOW_SIZE / 4,
+    opacity: 0.8,
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    padding: 24,
+    padding: 20,
   },
-  logoContainer: {
+  logoSection: {
     alignItems: 'center',
-    marginTop: 80,
+    marginTop: SCREEN_HEIGHT * 0.15,
   },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#2A1B8C',
+  logo: {
+    width: 400,
+    height: 400,
+    marginBottom: 20,
   },
   title: {
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    color: '#FFFFFF',
-    opacity: 0.9,
+    fontSize: 40,
+    fontWeight: '600',
+    color: '#fff',
     textAlign: 'center',
   },
-  buttonContainer: {
-    marginBottom: 40,
+  bottomSection: {
     gap: 16,
-  },
-  loginButton: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    marginBottom: 40,
+    paddingHorizontal: 20,
   },
   getStartedButton: {
-    borderColor: '#FFFFFF',
-    borderWidth: 2,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(150, 242, 215, 0.9)',
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
+    shadowColor: '#96F2D7',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  devButton: {
-    marginTop: 8,
-  },
-  buttonLabel: {
+  getStartedButtonText: {
+    color: '#000',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
+  },
+  loginButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  termsText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    fontSize: 13,
+    marginTop: 16,
+  },
+  linkText: {
+    color: '#fff',
+    textDecorationLine: 'underline',
   },
 });
 
