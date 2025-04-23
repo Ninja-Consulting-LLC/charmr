@@ -7,6 +7,7 @@ interface User {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
+  lastResetDate: string;
 }
 
 // Define the store state and methods
@@ -42,6 +43,7 @@ const StoreContext = createContext<Store>({
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
+    lastResetDate: new Date().toISOString().split('T')[0],
   },
   setUser: () => {},
 });
@@ -63,32 +65,76 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
+    lastResetDate: new Date().toISOString().split('T')[0],
   });
 
   const setUser = (newUser: Partial<User>) => {
-    setUserState(prev => ({...prev, ...newUser}));
+    setUserState(prev => {
+      const updatedUser = {...prev, ...newUser};
+      // Persist user data to AsyncStorage
+      AsyncStorage.setItem('userData', JSON.stringify(updatedUser)).catch(
+        error => console.error('Error saving user data:', error),
+      );
+      return updatedUser;
+    });
   };
 
-  // Get or create user ID on component mount
+  // Get or create user ID and load user data on component mount
   useEffect(() => {
-    const getOrCreateUserId = async () => {
+    const initializeUserData = async () => {
       try {
+        // Get or create user ID
         let storedUserId = await AsyncStorage.getItem('userId');
         if (!storedUserId) {
-          // Generate a new user ID if none exists
           storedUserId = `user-${Date.now()}-${Math.random()
             .toString(36)
             .substr(2, 9)}`;
           await AsyncStorage.setItem('userId', storedUserId);
         }
         setUserId(storedUserId);
+
+        // Load user data
+        const storedUserData = await AsyncStorage.getItem('userData');
+        if (storedUserData) {
+          const parsedUserData = JSON.parse(storedUserData);
+          // Check if we need to reset the message count
+          const today = new Date().toISOString().split('T')[0];
+          if (parsedUserData.lastResetDate !== today) {
+            setUserState({
+              ...parsedUserData,
+              dailyMessagesUsed: 0,
+              lastResetDate: today,
+            });
+          } else {
+            setUserState(parsedUserData);
+          }
+        }
       } catch (error) {
-        console.error('Error managing user ID:', error);
+        console.error('Error initializing user data:', error);
       }
     };
 
-    getOrCreateUserId();
+    initializeUserData();
   }, []);
+
+  // Check and reset daily message count
+  useEffect(() => {
+    const checkAndResetDailyCount = () => {
+      const today = new Date().toISOString().split('T')[0];
+      if (user.lastResetDate !== today) {
+        setUser({
+          dailyMessagesUsed: 0,
+          lastResetDate: today,
+        });
+      }
+    };
+
+    // Check on mount and every minute
+    checkAndResetDailyCount();
+    const interval = setInterval(checkAndResetDailyCount, 60000);
+
+    return () => clearInterval(interval);
+  }, [user.lastResetDate]);
 
   const value = {
     showKeyboardModal,
