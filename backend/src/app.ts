@@ -4,8 +4,15 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
+import {
+  createUser,
+  getUserMessages,
+  getUsers,
+  resetUserMessageLimit,
+} from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
+import {adminAuth} from './middleware/adminAuth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import {createEmailService, createSupportEmailService} from './services/email';
@@ -28,6 +35,15 @@ export const createApp = async () => {
       credentials: true,
     }),
   );
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: config.server.environment,
+    });
+  });
 
   // Rate limiting
   const limiter = rateLimit({
@@ -61,10 +77,13 @@ export const createApp = async () => {
   const replyController = await createReplyController();
 
   // Routes
-  app.post('/api/generate-reply', (req, res) =>
-    replyController.generateReplyHandler(req, res),
-  );
+  app.post('/api/generate-reply', (req, res) => {
+    logger.info('Route instantiated: POST /api/generate-reply');
+    return replyController.generateReplyHandler(req, res);
+  });
+
   app.post('/api/support', async (req, res) => {
+    logger.info('Route instantiated: POST /api/support');
     try {
       const supportRequest: SupportRequest = req.body;
       await supportEmailService.sendSupportRequest(supportRequest);
@@ -74,6 +93,26 @@ export const createApp = async () => {
       res.status(500).json({error: 'Failed to process support request'});
     }
   });
+
+  // Admin routes
+  app.get('/api/admin/users', adminAuth, getUsers);
+  app.post('/api/admin/users', adminAuth, createUser);
+  app.get('/api/admin/users/:userId/messages', adminAuth, getUserMessages);
+  app.post(
+    '/api/admin/users/:userId/reset-limit',
+    adminAuth,
+    resetUserMessageLimit,
+  );
+
+  // Log all available routes on startup
+  const routes = app._router.stack
+    .filter((r: any) => r.route)
+    .map((r: any) => {
+      const methods = Object.keys(r.route.methods).join(', ').toUpperCase();
+      return `${methods} ${r.route.path}`;
+    });
+
+  logger.info('Available routes:', {routes});
 
   // Error handling middleware
   app.use(

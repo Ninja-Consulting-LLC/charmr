@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 
 interface User {
@@ -88,13 +89,49 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, []);
 
-  const setUser = (newUser: Partial<User>) => {
-    setUserState(prev => {
-      const updatedUser = {...prev, ...newUser};
-      // Persist user data to AsyncStorage
-      AsyncStorage.setItem('userData', JSON.stringify(updatedUser)).catch(
-        error => console.error('Error saving user data:', error),
+  const syncUserWithBackend = async (userId: string, userData: User) => {
+    try {
+      // First check if user exists
+      const response = await axios.get(
+        'http://localhost:3001/api/admin/users',
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+          },
+        },
       );
+
+      const existingUser = response.data.find((u: User) => u.id === userId);
+
+      if (!existingUser) {
+        // Create the user if they don't exist
+        await axios.post(
+          'http://localhost:3001/api/admin/users',
+          {
+            id: userId,
+            email: `${userId}@example.com`, // Default email for dev users
+            name: `Dev User ${userId.slice(0, 6)}`, // Default name using part of the ID
+          },
+          {
+            headers: {
+              Authorization: 'Bearer dev-admin-token',
+            },
+          },
+        );
+        console.log('Created dev user in database:', userId);
+      }
+    } catch (error) {
+      console.error('Error syncing dev user:', error);
+    }
+  };
+
+  const setUser = (newUser: Partial<User>) => {
+    setUserState(prevUser => {
+      const updatedUser = {...prevUser, ...newUser};
+      // Only sync with backend if the user ID exists
+      if (updatedUser.id) {
+        syncUserWithBackend(updatedUser.id, updatedUser);
+      }
       return updatedUser;
     });
   };
@@ -120,14 +157,29 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           // Check if we need to reset the message count
           const today = new Date().toISOString().split('T')[0];
           if (parsedUserData.lastResetDate !== today) {
-            setUserState({
+            const updatedUser = {
               ...parsedUserData,
               dailyMessagesUsed: 0,
               lastResetDate: today,
-            });
+            };
+            setUserState(updatedUser);
+            syncUserWithBackend(storedUserId, updatedUser);
           } else {
             setUserState(parsedUserData);
+            syncUserWithBackend(storedUserId, parsedUserData);
           }
+        } else {
+          // Create new user data
+          const newUser: User = {
+            id: storedUserId,
+            plan: 'free' as const,
+            dailyMessagesUsed: 0,
+            dailyMessageLimit: 5,
+            extraMessages: 0,
+            lastResetDate: new Date().toISOString().split('T')[0],
+          };
+          setUserState(newUser);
+          syncUserWithBackend(storedUserId, newUser);
         }
 
         // Check authentication status

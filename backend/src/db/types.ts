@@ -6,11 +6,22 @@ export interface MessageLimit {
 
 export interface User {
   id: string;
+  email?: string;
+  name?: string;
   plan: string;
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
   lastResetDate: string;
+}
+
+export interface Message {
+  id: number;
+  userId: string;
+  matchId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
 }
 
 export interface Database {
@@ -29,15 +40,15 @@ export interface Database {
       content: string;
       timestamp: string;
     },
-  ) => Promise<void>;
-  getMessages: (
-    userId: string,
-    matchId: string,
-  ) => Promise<
-    Array<{
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: string;
-    }>
-  >;
+  ) => Promise<{
+    id: number;
+    userId: string;
+    matchId: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp: string;
+  }>;
+  getMessages: (userId: string, matchId: string) => Promise<Message[]>;
+  all: (sql: string, params?: any[]) => Promise<any[]>;
+  run: (sql: string, params?: any[]) => Promise<any>;
 }

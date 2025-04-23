@@ -15,12 +15,24 @@ export const createSqliteDatabase = async (): Promise<Database> => {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      email TEXT,
+      name TEXT,
       plan TEXT NOT NULL,
       dailyMessagesUsed INTEGER NOT NULL,
       dailyMessageLimit INTEGER NOT NULL,
       extraMessages INTEGER NOT NULL,
       lastResetDate TEXT NOT NULL
-    )
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT NOT NULL,
+      matchId TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
   `);
 
   return {
@@ -95,9 +107,21 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         const today = new Date().toISOString().split('T')[0];
         const result = await db.run(
           `UPDATE users
-           SET dailyMessagesUsed = CASE WHEN lastResetDate = ? THEN dailyMessagesUsed + 1 ELSE 1 END,
-               lastResetDate = ?
-           WHERE id = ? AND (dailyMessagesUsed < dailyMessageLimit OR lastResetDate != ?)`,
+           SET dailyMessagesUsed = CASE
+             WHEN lastResetDate = ? THEN dailyMessagesUsed + 1
+             ELSE 1
+           END,
+           extraMessages = CASE
+             WHEN dailyMessagesUsed >= dailyMessageLimit AND extraMessages > 0
+             THEN extraMessages - 1
+             ELSE extraMessages
+           END,
+           lastResetDate = ?
+           WHERE id = ? AND (
+             dailyMessagesUsed < dailyMessageLimit
+             OR lastResetDate != ?
+             OR extraMessages > 0
+           )`,
           [today, today, userId, today],
         );
         return (result.changes ?? 0) > 0;
@@ -165,12 +189,27 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         content: string;
         timestamp: string;
       },
-    ): Promise<void> => {
+    ): Promise<{
+      id: number;
+      userId: string;
+      matchId: string;
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: string;
+    }> => {
       try {
-        await db.run(
+        const result = await db.run(
           'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
           [userId, matchId, message.role, message.content, message.timestamp],
         );
+
+        // Get the inserted message
+        const insertedMessage = await db.get(
+          'SELECT * FROM messages WHERE id = ?',
+          [result.lastID],
+        );
+
+        return insertedMessage;
       } catch (error) {
         logger.error('Failed to save message', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -185,6 +224,9 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       matchId: string,
     ): Promise<
       Array<{
+        id: number;
+        userId: string;
+        matchId: string;
         role: 'user' | 'assistant' | 'system';
         content: string;
         timestamp: string;
@@ -192,12 +234,36 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     > => {
       try {
         const messages = await db.all(
-          'SELECT role, content, timestamp FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+          'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
           [userId, matchId],
         );
         return messages;
       } catch (error) {
         logger.error('Failed to get messages', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    all: async (sql: string, params: any[] = []): Promise<any[]> => {
+      try {
+        return await db.all(sql, params);
+      } catch (error) {
+        logger.error('Failed to execute query', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    run: async (sql: string, params: any[] = []): Promise<any> => {
+      try {
+        return await db.run(sql, params);
+      } catch (error) {
+        logger.error('Failed to execute query', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         });
