@@ -5,18 +5,16 @@ import {
   EmailService,
   SupportRequest,
 } from '../../types/email';
+import logger from '../../utils/logger';
 
 // Create email service instance
 export const createEmailService = (config: EmailConfig): EmailService => {
-  console.log(
-    `[${new Date().toISOString()}] [Email] Creating email service with config:`,
-    {
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: config.auth ? 'configured' : 'none',
-    },
-  );
+  logger.info('Creating email service', {
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: config.auth ? 'configured' : 'none',
+  });
 
   const transporterConfig = {
     host: config.host,
@@ -28,16 +26,14 @@ export const createEmailService = (config: EmailConfig): EmailService => {
   const transporter = nodemailer.createTransport(transporterConfig);
 
   // Verify transporter configuration
-  transporter.verify((error, success) => {
+  transporter.verify(error => {
     if (error) {
-      console.error(
-        `[${new Date().toISOString()}] [Email] Transporter verification failed:`,
-        error,
-      );
+      logger.error('Failed to verify email transporter', {
+        error: error.message,
+        stack: error.stack,
+      });
     } else {
-      console.log(
-        `[${new Date().toISOString()}] [Email] Transporter verified successfully`,
-      );
+      logger.info('Email transporter verified successfully');
     }
   });
 
@@ -54,18 +50,18 @@ export const createEmailService = (config: EmailConfig): EmailService => {
 
       try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(
-          `[${new Date().toISOString()}] [Email] Email sent successfully:`,
-          {
-            messageId: info.messageId,
-            to: options.to,
-          },
-        );
+        logger.info('Email sent successfully', {
+          to: options.to,
+          subject: options.subject,
+          messageId: info.messageId,
+        });
       } catch (error) {
-        console.error(
-          `[${new Date().toISOString()}] [Email] Error sending email:`,
-          error,
-        );
+        logger.error('Failed to send email', {
+          to: options.to,
+          subject: options.subject,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         throw error;
       }
     },
@@ -100,14 +96,12 @@ ${request.message}
           text,
           replyTo: request.email,
         });
-        console.log(
-          `[${new Date().toISOString()}] [Support] Support request email sent successfully`,
-        );
+        logger.info('Support request email sent successfully');
       } catch (error) {
-        console.error(
-          `[${new Date().toISOString()}] [Support] Error sending support request email:`,
-          error,
-        );
+        logger.error('Failed to send support request email', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         throw error;
       }
     },
