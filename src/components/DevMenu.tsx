@@ -27,6 +27,8 @@ const DevMenu = () => {
     setSkipRateLimiting,
     authBypass,
     setAuthBypass,
+    user,
+    setUser,
   } = useStore();
 
   useEffect(() => {
@@ -164,6 +166,28 @@ const DevMenu = () => {
     }
   };
 
+  const handleResetMessageCount = () => {
+    setUser({
+      ...user,
+      dailyMessagesUsed: 0,
+      lastResetDate: new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleAddTestMessages = () => {
+    setUser({
+      ...user,
+      extraMessages: (user.extraMessages || 0) + 10,
+    });
+  };
+
+  const handleRemoveTestMessages = () => {
+    setUser({
+      ...user,
+      extraMessages: Math.max(0, (user.extraMessages || 0) - 10),
+    });
+  };
+
   if (!showDevMenu) return null;
 
   return (
@@ -254,6 +278,27 @@ const DevMenu = () => {
               onPress={handleTestRateLimiting}
               style={styles.button}>
               Test Rate Limiting
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleResetMessageCount}
+              style={styles.button}>
+              Reset Message Count
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleAddTestMessages}
+              style={styles.button}>
+              Add Test Messages (+10)
+            </Button>
+
+            <Button
+              mode="contained"
+              onPress={handleRemoveTestMessages}
+              style={styles.button}>
+              Remove Test Messages (-10)
             </Button>
           </View>
 

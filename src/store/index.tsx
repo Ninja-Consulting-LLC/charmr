@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 
 interface User {
+  id: string;
   email?: string;
   plan: 'free' | 'plus' | 'premium';
   dailyMessagesUsed: number;
@@ -24,6 +25,10 @@ interface Store {
   setAuthBypass: (bypass: boolean) => void;
   user: User;
   setUser: (user: Partial<User>) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+  isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void;
 }
 
 // Create context with a default value
@@ -39,6 +44,7 @@ const StoreContext = createContext<Store>({
   authBypass: false,
   setAuthBypass: () => {},
   user: {
+    id: '',
     plan: 'free',
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
@@ -46,6 +52,10 @@ const StoreContext = createContext<Store>({
     lastResetDate: new Date().toISOString().split('T')[0],
   },
   setUser: () => {},
+  isAuthenticated: false,
+  setIsAuthenticated: () => {},
+  isLoading: true,
+  setIsLoading: () => {},
 });
 
 // Custom hook to use the store
@@ -60,13 +70,23 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [showDevMenu, setShowDevMenu] = useState(false);
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
   const [authBypass, setAuthBypass] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [user, setUserState] = useState<User>({
+    id: '',
     plan: 'free',
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
     lastResetDate: new Date().toISOString().split('T')[0],
   });
+
+  // Set auth bypass in development mode
+  useEffect(() => {
+    if (__DEV__ || process.env.NODE_ENV === 'development') {
+      setAuthBypass(true);
+    }
+  }, []);
 
   const setUser = (newUser: Partial<User>) => {
     setUserState(prev => {
@@ -109,8 +129,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             setUserState(parsedUserData);
           }
         }
+
+        // Check authentication status
+        const authStatus = await AsyncStorage.getItem('isAuthenticated');
+        setIsAuthenticated(authStatus === 'true');
       } catch (error) {
         console.error('Error initializing user data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -149,6 +175,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setAuthBypass,
     user,
     setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    isLoading,
+    setIsLoading,
   };
 
   return (

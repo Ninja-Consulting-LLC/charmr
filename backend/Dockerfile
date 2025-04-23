@@ -6,16 +6,18 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
-# Copy source code
-COPY . .
+# Copy source code and other necessary files
+COPY src/ ./src/
+COPY tsconfig.json ./
+COPY .env* ./
 
 # Build the TypeScript code
 RUN npm run build
 
-# Create logs directory
-RUN mkdir -p logs
+# Create required directories
+RUN mkdir -p logs data
 
 EXPOSE 3001
 
