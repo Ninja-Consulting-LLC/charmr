@@ -1,86 +1,98 @@
-import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import {config} from './config/config';
-import {emailConfig} from './config/email';
 import {createReplyController} from './controllers/replyController';
-import {
-  createErrorHandler,
-  createGeneralLimiter,
-  createGenerateReplyLimiter,
-  createRequestValidator,
-} from './middleware';
-import supportRoutes from './routes/supportRoutes';
+import {createGeneralLimiter} from './middleware/rateLimit';
+import {requestLogger} from './middleware/requestLogger';
 import {createEmailService, createSupportEmailService} from './services/email';
-import {logEnvironmentVariables} from './utils/envUtils';
+import {SupportRequest} from './services/email/types';
+import logger, {stream} from './utils/logger';
 
-export const createApp = () => {
-  const app = express();
-  const replyController = createReplyController();
+const app = express();
 
-  // Log environment variables
-  logEnvironmentVariables();
+// Security middleware
+app.use(helmet());
 
-  // Initialize middleware
-  app.use(
-    cors({
-      origin: config.security.cors.origin,
-    }),
-  );
-  app.use(bodyParser.json({limit: '50mb'}));
-  app.use(createGeneralLimiter());
+// CORS configuration
+app.use(
+  cors({
+    origin: config.security.cors.origin,
+    credentials: true,
+  }),
+);
 
-  // Initialize email services
-  const emailService = createEmailService(emailConfig);
-  const supportEmailService = createSupportEmailService(
-    emailService,
-    process.env.SUPPORT_EMAIL || 'support@charmr.app',
-  );
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-  // Make services available to routes
-  app.locals.emailService = emailService;
-  app.locals.supportEmailService = supportEmailService;
+app.use(limiter);
 
-  // Logger middleware
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
+// Logging middleware
+app.use(morgan('combined', {stream}));
 
-  // Initialize routes
-  app.get('/health', (req, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+// Body parsing middleware
+app.use(express.json({limit: '50mb'}));
+app.use(express.urlencoded({extended: true}));
+
+// Initialize middleware
+app.use(createGeneralLimiter());
+app.use(requestLogger);
+
+// Initialize email services
+const emailService = createEmailService(config.email);
+const supportEmailService = createSupportEmailService(
+  emailService,
+  config.email.defaultFrom,
+);
+
+// Initialize controllers
+const replyController = createReplyController();
+
+// Routes
+app.post('/api/generate-reply', (req, res) =>
+  replyController.generateReplyHandler(req, res),
+);
+app.post('/api/support', async (req, res) => {
+  try {
+    const supportRequest: SupportRequest = req.body;
+    await supportEmailService.sendSupportRequest(supportRequest);
+    res.status(200).json({message: 'Support request received'});
+  } catch (error) {
+    logger.error('Failed to send support email:', {error});
+    res.status(500).json({error: 'Failed to process support request'});
+  }
+});
+
+// Error handling middleware
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    logger.error('Unhandled error:', {
+      error: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
     });
-  });
 
-  app.post(
-    '/api/generate-reply',
-    createGenerateReplyLimiter(),
-    createRequestValidator(),
-    (req, res) => replyController.generateReply(req, res),
-  );
-
-  // Routes
-  app.use('/api/support', supportRoutes);
-
-  // Initialize error handling
-  app.use(createErrorHandler());
-
-  const start = () => {
-    const port = config.server.port;
-    app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
-      console.log(`Environment: ${config.server.environment}`);
-      console.log(
-        `Sandbox mode: ${config.openai.sandboxMode ? 'enabled' : 'disabled'}`,
-      );
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'An unexpected error occurred'
+          : err.message,
     });
-  };
+  },
+);
 
-  return {
-    start,
-  };
-};
+export default app;

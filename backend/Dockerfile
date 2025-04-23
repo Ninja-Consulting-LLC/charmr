@@ -14,6 +14,9 @@ COPY . .
 # Build the TypeScript code
 RUN npm run build
 
+# Create logs directory
+RUN mkdir -p logs
+
 EXPOSE 3001
 
 # Start the server
