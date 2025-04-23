@@ -1686,9 +1686,11 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
               <View
                 style={
                   {
-                    "flexDirection": "row",
-                    "flexWrap": "wrap",
-                    "gap": 8,
+                    "borderRadius": 8,
+                    "height": 100,
+                    "overflow": "hidden",
+                    "position": "relative",
+                    "width": 100,
                   }
                 }
               >
@@ -1707,17 +1709,88 @@ exports[`ResponseGenerator renders response modal correctly 1`] = `
                   }
                   testID="selected-image-0"
                 />
-                <IconButton
-                  icon="close"
-                  onPress={[Function]}
-                  size={20}
+                <View
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": undefined,
+                      "expanded": undefined,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
                   style={
                     {
-                      "marginLeft": 8,
+                      "alignItems": "center",
+                      "backgroundColor": "white",
+                      "borderRadius": 8,
+                      "height": 24,
+                      "justifyContent": "center",
+                      "position": "absolute",
+                      "right": 2,
+                      "top": 2,
+                      "width": 24,
                     }
                   }
                   testID="remove-image-0"
-                />
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "black",
+                          "fontSize": 16,
+                        },
+                        [
+                          {
+                            "lineHeight": 16,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰅖
+                  </Text>
+                </View>
               </View>
               <View
                 accessibilityState={
@@ -3527,9 +3600,11 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
               <View
                 style={
                   {
-                    "flexDirection": "row",
-                    "flexWrap": "wrap",
-                    "gap": 8,
+                    "borderRadius": 8,
+                    "height": 100,
+                    "overflow": "hidden",
+                    "position": "relative",
+                    "width": 100,
                   }
                 }
               >
@@ -3548,17 +3623,88 @@ exports[`ResponseGenerator renders with selected images correctly 1`] = `
                   }
                   testID="selected-image-0"
                 />
-                <IconButton
-                  icon="close"
-                  onPress={[Function]}
-                  size={20}
+                <View
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": undefined,
+                      "expanded": undefined,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
                   style={
                     {
-                      "marginLeft": 8,
+                      "alignItems": "center",
+                      "backgroundColor": "white",
+                      "borderRadius": 8,
+                      "height": 24,
+                      "justifyContent": "center",
+                      "position": "absolute",
+                      "right": 2,
+                      "top": 2,
+                      "width": 24,
                     }
                   }
                   testID="remove-image-0"
-                />
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "black",
+                          "fontSize": 16,
+                        },
+                        [
+                          {
+                            "lineHeight": 16,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰅖
+                  </Text>
+                </View>
               </View>
               <View
                 accessibilityState={

@@ -1,6 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 
+interface User {
+  email?: string;
+  plan: 'free' | 'plus' | 'premium';
+  dailyMessagesUsed: number;
+  dailyMessageLimit: number;
+  extraMessages: number;
+}
+
 // Define the store state and methods
 interface Store {
   showKeyboardModal: boolean;
@@ -11,6 +19,10 @@ interface Store {
   setShowDevMenu: (show: boolean) => void;
   skipRateLimiting: boolean;
   setSkipRateLimiting: (skip: boolean) => void;
+  authBypass: boolean;
+  setAuthBypass: (bypass: boolean) => void;
+  user: User;
+  setUser: (user: Partial<User>) => void;
 }
 
 // Create context with a default value
@@ -23,6 +35,15 @@ const StoreContext = createContext<Store>({
   setShowDevMenu: () => {},
   skipRateLimiting: false,
   setSkipRateLimiting: () => {},
+  authBypass: false,
+  setAuthBypass: () => {},
+  user: {
+    plan: 'free',
+    dailyMessagesUsed: 0,
+    dailyMessageLimit: 5,
+    extraMessages: 0,
+  },
+  setUser: () => {},
 });
 
 // Custom hook to use the store
@@ -36,6 +57,17 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [userId, setUserId] = useState('');
   const [showDevMenu, setShowDevMenu] = useState(false);
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
+  const [authBypass, setAuthBypass] = useState(false);
+  const [user, setUserState] = useState<User>({
+    plan: 'free',
+    dailyMessagesUsed: 0,
+    dailyMessageLimit: 5,
+    extraMessages: 0,
+  });
+
+  const setUser = (newUser: Partial<User>) => {
+    setUserState(prev => ({...prev, ...newUser}));
+  };
 
   // Get or create user ID on component mount
   useEffect(() => {
@@ -67,6 +99,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setShowDevMenu,
     skipRateLimiting,
     setSkipRateLimiting,
+    authBypass,
+    setAuthBypass,
+    user,
+    setUser,
   };
 
   return (

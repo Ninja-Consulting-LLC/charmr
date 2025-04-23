@@ -1,75 +1,43 @@
 import {Request, Response} from 'express';
-import {createOpenAIService} from '../services/openaiService';
-import {GenerateReplyRequest} from '../types';
-import {loadConversation} from '../utils/conversationUtils';
+import logger from '../utils/logger';
 
 export const createReplyController = () => {
-  const openaiService = createOpenAIService();
-
-  const generateReply = async (req: Request, res: Response): Promise<void> => {
+  const generateReplyHandler = async (req: Request, res: Response) => {
     try {
-      const request: GenerateReplyRequest = req.body;
-      console.log(
-        `[${new Date().toISOString()}] [Controller] Processing request:`,
-        {
-          ...request,
-          images: request.images.map(img => {
-            // Remove the data:image/jpeg;base64, prefix if present
-            const base64Data = img.includes('base64,')
-              ? img.split('base64,')[1]
-              : img;
-            // Truncate to first 20 characters of the actual base64 data
-            return `data:image/jpeg;base64,${base64Data.substring(0, 20)}...`;
-          }),
-        },
-      );
+      const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-      // Load conversation history
-      const conversationHistory = await loadConversation(
-        request.userId,
-        request.matchId,
-      );
-      const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
+      logger.debug('Generating reply', {
+        userId,
+        matchId,
+        hasImages: images?.length > 0,
+        skipRateLimiting,
+      });
 
-      // Extract assistant messages and format them with context
-      const previousAssistantMessages = recentMessages
-        .filter(msg => msg.role === 'assistant')
-        .map(msg => msg.content)
-        .join('\n');
-
-      const contextMessage = previousAssistantMessages
-        ? `Here are the previous messages we sent to this person for context in generating your response:\n${previousAssistantMessages}`
-        : '';
-
-      // Generate reply using OpenAI service
-      const response = await openaiService.generateReply(request);
-
-      if (response.error) {
-        console.log(
-          `[${new Date().toISOString()}] [Controller] Error response:`,
-          response,
-        );
-        res.status(500).json(response);
-        return;
+      // TODO: Implement rate limiting check if not skipped
+      if (!skipRateLimiting) {
+        // Check rate limits
       }
 
-      console.log(
-        `[${new Date().toISOString()}] [Controller] Success response:`,
-        response,
-      );
-      res.json(response);
-    } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] [Controller] Error in generateReply:`,
-        error,
-      );
-      res.status(500).json({
-        error: 'Failed to generate reply',
+      // TODO: Implement OpenAI integration
+      const reply = 'This is a placeholder reply';
+
+      logger.info('Reply generated successfully', {
+        userId,
+        matchId,
+        replyLength: reply.length,
       });
+
+      res.json({reply});
+    } catch (error) {
+      logger.error('Failed to generate reply', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      res.status(500).json({error: 'Failed to generate reply'});
     }
   };
 
   return {
-    generateReply,
+    generateReplyHandler,
   };
 };
