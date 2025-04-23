@@ -4,6 +4,22 @@ interface GenerateReplyResponse {
   reply: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+}
+
+interface Message {
+  id: string;
+  userId: string;
+  matchId: string;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
 async function testHealthEndpoint() {
   console.log('\n🔍 Testing health endpoint...');
   console.log(`Using API base URL: ${apiBaseUrl}`);
@@ -37,6 +53,7 @@ async function testGenerateReplyEndpoint() {
     userId: 'test-user-1',
     matchId: 'test-match-1',
     deleteAfterResponse: true,
+    skipRateLimiting: true,
   };
 
   try {
@@ -65,12 +82,72 @@ async function testGenerateReplyEndpoint() {
   return true;
 }
 
+async function testAdminEndpoints() {
+  console.log('\n🔍 Testing admin endpoints...');
+
+  try {
+    // Fetch all users
+    const usersResponse = await fetch(`${apiBaseUrl}/api/admin/users`, {
+      headers: {
+        Authorization: 'Bearer dev-admin-token',
+      },
+    });
+
+    if (!usersResponse.ok) {
+      console.error('❌ Failed to fetch users:', usersResponse.status);
+      return false;
+    }
+
+    const users = (await usersResponse.json()) as User[];
+    console.log('\n📊 Users:', JSON.stringify(users, null, 2));
+
+    // Fetch messages for each user
+    console.log('\n📝 Fetching messages for each user...');
+    for (const user of users) {
+      const messagesResponse = await fetch(
+        `${apiBaseUrl}/api/admin/users/${user.id}/messages`,
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+          },
+        },
+      );
+
+      if (!messagesResponse.ok) {
+        console.error(
+          `❌ Failed to fetch messages for user ${user.id}:`,
+          messagesResponse.status,
+        );
+        continue;
+      }
+
+      const messages = (await messagesResponse.json()) as Message[];
+      console.log(
+        `\n📱 Messages for user ${user.id}:`,
+        JSON.stringify(messages, null, 2),
+      );
+    }
+
+    console.log('✅ Admin endpoints test completed');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to test admin endpoints:', error);
+    return false;
+  }
+}
+
 async function runTests() {
   console.log('🚀 Starting backend tests...');
 
   const healthPassed = await testHealthEndpoint();
   if (!healthPassed) {
     console.error('❌ Health check failed - skipping remaining tests');
+    process.exit(1);
+  }
+
+  const adminEndpointsPassed = await testAdminEndpoints();
+  if (!adminEndpointsPassed) {
+    console.error('❌ Admin endpoints test failed');
     process.exit(1);
   }
 

@@ -45,7 +45,48 @@ export const createMessageLimitService = async () => {
 
   const incrementMessageCount = async (userId: string): Promise<boolean> => {
     try {
-      return await db.incrementMessageCount(userId);
+      const user = await db.getUser(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      // Reset daily count if it's a new day
+      if (user.lastResetDate !== today) {
+        await db.updateUser(userId, {
+          dailyMessagesUsed: 0,
+          lastResetDate: today,
+        });
+        return true;
+      }
+
+      // Check if we can increment based on limits
+      const canIncrement =
+        user.dailyMessagesUsed < user.dailyMessageLimit ||
+        user.extraMessages > 0;
+
+      if (!canIncrement) {
+        return false;
+      }
+
+      // If we have extra messages, use those first
+      if (
+        user.dailyMessagesUsed >= user.dailyMessageLimit &&
+        user.extraMessages > 0
+      ) {
+        await db.updateUser(userId, {
+          extraMessages: user.extraMessages - 1,
+        });
+      }
+
+      const success = await db.incrementMessageCount(userId);
+      if (!success) {
+        logger.warn('Failed to increment message count', {userId});
+        return false;
+      }
+
+      return true;
     } catch (error) {
       logger.error('Failed to increment message count', {
         error: error instanceof Error ? error.message : 'Unknown error',

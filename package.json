@@ -19,7 +19,8 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
     "firebase:deploy:functions": "firebase deploy --only functions",
-    "docker:up": "COMPOSE_BAKE=true docker-compose up -d --build"
+    "docker:up": "cd backend &&COMPOSE_BAKE=true docker-compose up -d --build",
+    "delete-db": "rm -f backend/data/charmr.db"
   },
   "dependencies": {
     "@invertase/react-native-apple-authentication": "^2.4.1",

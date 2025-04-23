@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Switch, Text} from 'react-native-paper';
@@ -166,12 +167,33 @@ const DevMenu = () => {
     }
   };
 
-  const handleResetMessageCount = () => {
-    setUser({
-      ...user,
-      dailyMessagesUsed: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
-    });
+  const handleResetMessageLimit = async () => {
+    try {
+      const response = await axios.post(
+        `http://localhost:3001/api/admin/users/${userId}/reset-limit`,
+        {},
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+          },
+        },
+      );
+
+      if (response.data.message === 'Message limit reset successfully') {
+        // Update the user state with the reset values
+        setUser({
+          ...user,
+          dailyMessagesUsed: 0,
+          lastResetDate: new Date().toISOString().split('T')[0],
+        });
+        Alert.alert('Success', 'Message limit reset successfully');
+      } else {
+        throw new Error('Unexpected response from server');
+      }
+    } catch (error) {
+      console.error('Reset message limit error:', error);
+      Alert.alert('Error', 'Failed to reset message limit');
+    }
   };
 
   const handleAddTestMessages = () => {
@@ -207,14 +229,6 @@ const DevMenu = () => {
               style={styles.closeButton}>
               Close
             </Button>
-          </View>
-
-          <View style={styles.toggleContainer}>
-            <Text>Skip Rate Limiting</Text>
-            <Switch
-              value={skipRateLimiting}
-              onValueChange={setSkipRateLimiting}
-            />
           </View>
 
           <View style={styles.toggleContainer}>
@@ -282,9 +296,9 @@ const DevMenu = () => {
 
             <Button
               mode="contained"
-              onPress={handleResetMessageCount}
+              onPress={handleResetMessageLimit}
               style={styles.button}>
-              Reset Message Count
+              Reset Message Limit (Current User)
             </Button>
 
             <Button
@@ -399,6 +413,10 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#D32F2F',
     textAlign: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 
