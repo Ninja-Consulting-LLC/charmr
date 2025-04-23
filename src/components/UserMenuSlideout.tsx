@@ -1,8 +1,16 @@
 import React, {useState} from 'react';
-import {Animated, Dimensions, Linking, StyleSheet, View} from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Linking,
+  SafeAreaView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {Button, IconButton, Text, useTheme} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {useStore} from '../store';
+import MessagePackModal from './MessagePackModal';
+import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
   visible: boolean;
@@ -18,8 +26,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   onOpenSupport,
 }) => {
   const theme = useTheme();
-  const {user} = useStore();
+  const {user, setUser} = useStore();
   const [slideAnim] = useState(new Animated.Value(0));
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isMessagePackModalVisible, setIsMessagePackModalVisible] =
+    useState(false);
 
   React.useEffect(() => {
     Animated.timing(slideAnim, {
@@ -40,21 +51,47 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   };
 
   const handleUpgrade = () => {
-    // TODO: Navigate to UpgradeScreen
-    console.log('Upgrade pressed');
+    setShowUpgradeModal(true);
   };
 
   const handleBuyMessages = () => {
-    // TODO: Open MessagePackModal
-    console.log('Buy messages pressed');
+    setIsMessagePackModalVisible(true);
+  };
+
+  const handleUpgradeComplete = (tierId: string) => {
+    // Update user plan based on selected tier
+    let newPlan: 'free' | 'plus' | 'premium' = 'free';
+    let newMessageLimit = 5;
+
+    switch (tierId) {
+      case 'basic':
+        newPlan = 'plus';
+        newMessageLimit = 50;
+        break;
+      case 'pro':
+        newPlan = 'premium';
+        newMessageLimit = 200;
+        break;
+      case 'unlimited':
+        newPlan = 'premium';
+        newMessageLimit = 9999; // Effectively unlimited
+        break;
+    }
+
+    setUser({
+      plan: newPlan,
+      dailyMessageLimit: newMessageLimit,
+    });
+
+    setShowUpgradeModal(false);
   };
 
   const openTerms = () => {
-    Linking.openURL('https://charmr.app/terms');
+    Linking.openURL('file:///assets/legal/terms.html');
   };
 
   const openPrivacy = () => {
-    Linking.openURL('https://charmr.app/privacy');
+    Linking.openURL('file:///assets/legal/privacy.html');
   };
 
   const renderSection = (title: string, children: React.ReactNode) => (
@@ -88,6 +125,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         }),
       },
     ],
+  };
+
+  const handlePurchase = (packId: string) => {
+    // TODO: Implement purchase logic
+    console.log('Purchasing pack:', packId);
+    setIsMessagePackModalVisible(false);
   };
 
   return (
@@ -203,6 +246,19 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           </View>
         </SafeAreaView>
       </Animated.View>
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onDismiss={() => setShowUpgradeModal(false)}
+        onUpgrade={handleUpgradeComplete}
+        showRateLimitMessage={user.dailyMessagesUsed >= user.dailyMessageLimit}
+      />
+
+      <MessagePackModal
+        visible={isMessagePackModalVisible}
+        onDismiss={() => setIsMessagePackModalVisible(false)}
+        onPurchase={handlePurchase}
+      />
     </>
   );
 };
