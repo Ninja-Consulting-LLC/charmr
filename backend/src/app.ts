@@ -4,95 +4,140 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
+import {
+  createUser,
+  getUserMessages,
+  getUsers,
+  resetUserMessageLimit,
+} from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
-import {createGeneralLimiter} from './middleware/rateLimit';
+import {getDatabase} from './db';
+import {adminAuth} from './middleware/adminAuth';
+import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
 import logger, {stream} from './utils/logger';
 
-const app = express();
+export const createApp = async () => {
+  const app = express();
 
-// Security middleware
-app.use(helmet());
+  // Initialize database
+  await getDatabase();
 
-// CORS configuration
-app.use(
-  cors({
-    origin: config.security.cors.origin,
-    credentials: true,
-  }),
-);
+  // Security middleware
+  app.use(helmet());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.max,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+  // CORS configuration
+  app.use(
+    cors({
+      origin: config.security.cors.origin,
+      credentials: true,
+    }),
+  );
 
-app.use(limiter);
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: config.server.environment,
+    });
+  });
 
-// Logging middleware
-app.use(morgan('combined', {stream}));
+  // Rate limiting
+  const limiter = rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.max,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
-// Body parsing middleware
-app.use(express.json({limit: '50mb'}));
-app.use(express.urlencoded({extended: true}));
+  app.use(limiter);
 
-// Initialize middleware
-app.use(createGeneralLimiter());
-app.use(requestLogger);
+  // Logging middleware
+  app.use(morgan('combined', {stream}));
 
-// Initialize email services
-const emailService = createEmailService(config.email);
-const supportEmailService = createSupportEmailService(
-  emailService,
-  config.email.defaultFrom,
-);
+  // Body parsing middleware
+  app.use(express.json({limit: '50mb'}));
+  app.use(express.urlencoded({extended: true}));
 
-// Initialize controllers
-const replyController = createReplyController();
+  // Initialize middleware
+  app.use(createRateLimiter());
+  app.use(requestLogger);
 
-// Routes
-app.post('/api/generate-reply', (req, res) =>
-  replyController.generateReplyHandler(req, res),
-);
-app.post('/api/support', async (req, res) => {
-  try {
-    const supportRequest: SupportRequest = req.body;
-    await supportEmailService.sendSupportRequest(supportRequest);
-    res.status(200).json({message: 'Support request received'});
-  } catch (error) {
-    logger.error('Failed to send support email:', {error});
-    res.status(500).json({error: 'Failed to process support request'});
-  }
-});
+  // Initialize email services
+  const emailService = createEmailService(config.email);
+  const supportEmailService = createSupportEmailService(
+    emailService,
+    config.email.defaultFrom,
+  );
 
-// Error handling middleware
-app.use(
-  (
-    err: Error,
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction,
-  ) => {
-    logger.error('Unhandled error:', {
-      error: err.message,
-      stack: err.stack,
-      path: req.path,
-      method: req.method,
+  // Initialize controllers
+  const replyController = await createReplyController();
+
+  // Routes
+  app.post('/api/generate-reply', (req, res) => {
+    logger.info('Route instantiated: POST /api/generate-reply');
+    return replyController.generateReplyHandler(req, res);
+  });
+
+  app.post('/api/support', async (req, res) => {
+    logger.info('Route instantiated: POST /api/support');
+    try {
+      const supportRequest: SupportRequest = req.body;
+      await supportEmailService.sendSupportRequest(supportRequest);
+      res.status(200).json({message: 'Support request received'});
+    } catch (error) {
+      logger.error('Failed to send support email:', {error});
+      res.status(500).json({error: 'Failed to process support request'});
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/users', adminAuth, getUsers);
+  app.post('/api/admin/users', adminAuth, createUser);
+  app.get('/api/admin/users/:userId/messages', adminAuth, getUserMessages);
+  app.post(
+    '/api/admin/users/:userId/reset-limit',
+    adminAuth,
+    resetUserMessageLimit,
+  );
+
+  // Log all available routes on startup
+  const routes = app._router.stack
+    .filter((r: any) => r.route)
+    .map((r: any) => {
+      const methods = Object.keys(r.route.methods).join(', ').toUpperCase();
+      return `${methods} ${r.route.path}`;
     });
 
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message:
-        process.env.NODE_ENV === 'production'
-          ? 'An unexpected error occurred'
-          : err.message,
-    });
-  },
-);
+  logger.info('Available routes:', {routes});
 
-export default app;
+  // Error handling middleware
+  app.use(
+    (
+      err: Error,
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      logger.error('Unhandled error:', {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+      });
+
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message:
+          process.env.NODE_ENV === 'production'
+            ? 'An unexpected error occurred'
+            : err.message,
+      });
+    },
+  );
+
+  return app;
+};

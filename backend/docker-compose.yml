@@ -24,6 +24,8 @@ services:
     volumes:
       - ./src:/app/src
       - /app/node_modules
+      - ./data:/app/data
+    command: sh -c "npm run build && node dist/index.js"
     depends_on:
       - mailhog
 

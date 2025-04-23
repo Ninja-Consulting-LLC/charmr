@@ -1,8 +1,12 @@
-import React, {useState} from 'react';
-import {Animated, Dimensions, Linking, StyleSheet, View} from 'react-native';
-import {Button, IconButton, Text, useTheme} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import React, {useEffect, useState} from 'react';
+import {Animated, Linking, StyleSheet, View} from 'react-native';
+import {Button, Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
+import {MessagePackModal} from './MessagePackModal';
+import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
   visible: boolean;
@@ -10,215 +14,199 @@ interface UserMenuSlideoutProps {
   onOpenSupport: () => void;
 }
 
-const {width} = Dimensions.get('window');
-
 const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   visible,
   onDismiss,
   onOpenSupport,
 }) => {
   const theme = useTheme();
-  const {user} = useStore();
-  const [slideAnim] = useState(new Animated.Value(0));
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
+  const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const slideAnim = React.useRef(new Animated.Value(400)).current;
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: visible ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [visible, slideAnim]);
-
-  const handleSignOut = () => {
-    // TODO: Implement sign out
-    console.log('Sign out pressed');
-  };
-
-  const handleLogin = () => {
-    // TODO: Implement login
-    console.log('Login pressed');
-  };
-
-  const handleUpgrade = () => {
-    // TODO: Navigate to UpgradeScreen
-    console.log('Upgrade pressed');
-  };
-
-  const handleBuyMessages = () => {
-    // TODO: Open MessagePackModal
-    console.log('Buy messages pressed');
-  };
-
-  const openTerms = () => {
-    Linking.openURL('https://charmr.app/terms');
-  };
-
-  const openPrivacy = () => {
-    Linking.openURL('https://charmr.app/privacy');
-  };
-
-  const renderSection = (title: string, children: React.ReactNode) => (
-    <View style={styles.section}>
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-
-  const getPlanName = () => {
-    switch (user.plan) {
-      case 'free':
-        return 'Free';
-      case 'plus':
-        return 'Charmr Plus';
-      case 'premium':
-        return 'Charmr Premium';
-      default:
-        return 'Free';
-    }
-  };
-
-  const slideoutStyle = {
-    transform: [
-      {
-        translateX: slideAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [width, 0],
+  useEffect(() => {
+    if (visible) {
+      setIsVisible(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
         }),
-      },
-    ],
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 400,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsVisible(false);
+      });
+    }
+  }, [visible, slideAnim, fadeAnim]);
+
+  const handleSignOut = async () => {
+    // Clear user data
+    setUser({
+      id: '',
+      plan: 'free',
+      dailyMessagesUsed: 0,
+      dailyMessageLimit: 5,
+      extraMessages: 0,
+      lastResetDate: new Date().toISOString().split('T')[0],
+    });
+    setIsAuthenticated(false);
+    onDismiss();
+    navigation.navigate('Login');
   };
+
+  const handleOpenLink = (url: string) => {
+    Linking.openURL(url);
+  };
+
+  const handleUpgrade = (tierId: string) => {
+    // Handle upgrade logic here
+    setShowUpgradeModal(false);
+  };
+
+  if (!isVisible && !visible) return null;
 
   return (
     <>
-      {/* Backdrop */}
-      {visible && (
-        <Animated.View
-          style={[
-            styles.backdrop,
-            {
-              opacity: slideAnim,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            },
-          ]}
-          onTouchEnd={onDismiss}
-        />
-      )}
-
-      {/* Slideout Panel */}
       <Animated.View
         style={[
-          styles.slideout,
-          slideoutStyle,
-          {backgroundColor: theme.colors.background},
+          styles.overlay,
+          {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            opacity: fadeAnim,
+          },
+        ]}
+        onTouchEnd={onDismiss}
+      />
+      <Animated.View
+        style={[
+          styles.drawer,
+          {
+            backgroundColor: theme.colors.surface,
+            transform: [{translateX: slideAnim}],
+          },
         ]}>
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.header}>
-            <Text variant="headlineSmall">Account</Text>
-            <IconButton icon="close" onPress={onDismiss} />
+        <View style={styles.header}>
+          <IconButton
+            icon="close"
+            size={24}
+            onPress={onDismiss}
+            style={styles.closeButton}
+          />
+        </View>
+        <List.Section>
+          <List.Subheader>Account</List.Subheader>
+          <List.Item
+            title={user.email || 'Guest'}
+            description={`Plan: ${user.plan}`}
+            left={props => <List.Icon {...props} icon="account" />}
+          />
+          <Divider />
+          <List.Subheader>Message Limits</List.Subheader>
+          <List.Item
+            title="Daily Messages"
+            description={`${user.dailyMessagesUsed} / ${user.dailyMessageLimit} used`}
+            left={props => <List.Icon {...props} icon="message" />}
+          />
+          {user.extraMessages > 0 && (
+            <List.Item
+              title="Extra Messages"
+              description={`${user.extraMessages} available`}
+              left={props => <List.Icon {...props} icon="plus-circle" />}
+            />
+          )}
+          <View style={styles.buttonContainer}>
+            <Button
+              mode="contained"
+              onPress={() => setShowMessagePackModal(true)}
+              style={styles.button}>
+              Purchase Messages
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => setShowUpgradeModal(true)}
+              style={styles.button}>
+              Upgrade Plan
+            </Button>
           </View>
-
-          <View style={styles.content}>
-            {renderSection(
-              'Account',
-              <View>
-                <Text variant="bodyLarge">{user.email || 'Not signed in'}</Text>
-                {__DEV__ ? (
-                  <Button
-                    mode="outlined"
-                    onPress={handleSignOut}
-                    style={styles.button}>
-                    Sign Out
-                  </Button>
-                ) : user.email ? (
-                  <Button
-                    mode="outlined"
-                    onPress={handleSignOut}
-                    style={styles.button}>
-                    Sign Out
-                  </Button>
-                ) : (
-                  <Button
-                    mode="contained"
-                    onPress={handleLogin}
-                    style={styles.button}>
-                    Sign In
-                  </Button>
-                )}
-              </View>,
-            )}
-
-            {renderSection(
-              'Current Plan',
-              <View>
-                <Text variant="bodyLarge">{getPlanName()}</Text>
-                <Text variant="bodyMedium">
-                  {user.dailyMessagesUsed} / {user.dailyMessageLimit} messages
-                  used today
-                </Text>
-                {user.extraMessages > 0 && (
-                  <Text variant="bodyMedium">
-                    You have {user.extraMessages} extra messages
-                  </Text>
-                )}
-              </View>,
-            )}
-
-            {renderSection(
-              'Upgrade Options',
-              <View>
-                <Button
-                  mode="contained"
-                  onPress={handleUpgrade}
-                  style={styles.button}>
-                  Upgrade to Premium
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={handleBuyMessages}
-                  style={styles.button}>
-                  Buy More Messages
-                </Button>
-              </View>,
-            )}
-
-            {renderSection(
-              'Support',
-              <View>
-                <Button
-                  mode="text"
-                  onPress={onOpenSupport}
-                  style={styles.button}>
-                  Contact Support
-                </Button>
-                <Button mode="text" onPress={openTerms} style={styles.button}>
-                  Terms of Service
-                </Button>
-                <Button mode="text" onPress={openPrivacy} style={styles.button}>
-                  Privacy Policy
-                </Button>
-              </View>,
-            )}
-          </View>
-        </SafeAreaView>
+          <Divider />
+          <List.Subheader>Support & Legal</List.Subheader>
+          <List.Item
+            title="Contact Support"
+            left={props => <List.Icon {...props} icon="help-circle" />}
+            onPress={() => onOpenSupport()}
+          />
+          <List.Item
+            title="Terms of Service"
+            left={props => <List.Icon {...props} icon="file-document" />}
+            onPress={() => handleOpenLink('https://charmr.ai/terms')}
+          />
+          <List.Item
+            title="Privacy Policy"
+            left={props => <List.Icon {...props} icon="shield-lock" />}
+            onPress={() => handleOpenLink('https://charmr.ai/privacy')}
+          />
+          <Divider />
+          <List.Item
+            title="Sign Out"
+            left={props => <List.Icon {...props} icon="logout" />}
+            onPress={handleSignOut}
+          />
+        </List.Section>
       </Animated.View>
+
+      <MessagePackModal
+        visible={showMessagePackModal}
+        onDismiss={() => setShowMessagePackModal(false)}
+      />
+
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onDismiss={() => setShowUpgradeModal(false)}
+        onUpgrade={handleUpgrade}
+      />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
-  slideout: {
+  drawer: {
+    flex: 1,
+    width: '100%',
     position: 'absolute',
     right: 0,
     top: 0,
     bottom: 0,
-    width: '100%',
-    elevation: 5,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: -2,
@@ -226,31 +214,20 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    zIndex: 2,
-  },
-  safeArea: {
-    flex: 1,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    justifyContent: 'flex-end',
+    padding: 8,
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  closeButton: {
+    margin: 0,
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    marginBottom: 8,
+  buttonContainer: {
+    padding: 16,
   },
   button: {
-    marginTop: 8,
+    marginVertical: 8,
   },
 });
 

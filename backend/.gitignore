@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+dist/
+
+# Environment
+.env
+
+# Database
+data/
+*.db
+charmr.db

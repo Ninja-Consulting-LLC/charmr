@@ -18,7 +18,9 @@
     "firebase:deploy": "firebase deploy",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
-    "firebase:deploy:functions": "firebase deploy --only functions"
+    "firebase:deploy:functions": "firebase deploy --only functions",
+    "docker:up": "cd backend &&COMPOSE_BAKE=true docker-compose up -d --build",
+    "delete-db": "rm -f backend/data/charmr.db"
   },
   "dependencies": {
     "@invertase/react-native-apple-authentication": "^2.4.1",
@@ -48,9 +50,9 @@
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.27.0",
-    "@react-native-community/cli": "18.0.0",
-    "@react-native-community/cli-platform-android": "18.0.0",
-    "@react-native-community/cli-platform-ios": "18.0.0",
+    "@react-native-community/cli": "^18.0.0",
+    "@react-native-community/cli-platform-android": "^18.0.0",
+    "@react-native-community/cli-platform-ios": "^18.0.0",
     "@react-native/babel-preset": "0.79.1",
     "@react-native/eslint-config": "0.79.1",
     "@react-native/metro-config": "0.79.1",
@@ -61,7 +63,7 @@
     "@types/jest": "^29.5.14",
     "@types/react": "^19.0.0",
     "@types/react-native-vector-icons": "^6.4.18",
-    "@types/react-test-renderer": "^19.1.0",
+    "@types/react-test-renderer": "^19.0.0",
     "cors": "^2.8.5",
     "eslint": "^8.19.0",
     "express": "^5.1.0",
