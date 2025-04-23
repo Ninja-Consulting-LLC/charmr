@@ -72,7 +72,7 @@ const messageStyles = [
 const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
 const HomeContent: React.FC = () => {
-  const {userId, skipRateLimiting} = useStore();
+  const {userId, skipRateLimiting, user, setUser} = useStore();
 
   // Keyboard modal state
   const [images, setImages] = useState<SelectedImage[]>([]);
@@ -280,6 +280,10 @@ const HomeContent: React.FC = () => {
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
         }
+        // Increment the daily messages used count
+        setUser({
+          dailyMessagesUsed: user.dailyMessagesUsed + 1,
+        });
       }
     } catch (error: any) {
       console.error('Error generating reply:', error);
