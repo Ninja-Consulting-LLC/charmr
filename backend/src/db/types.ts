@@ -21,4 +21,23 @@ export interface Database {
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;
   updateUserPlan: (userId: string, plan: string) => Promise<void>;
+  saveMessage: (
+    userId: string,
+    matchId: string,
+    message: {
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: string;
+    },
+  ) => Promise<void>;
+  getMessages: (
+    userId: string,
+    matchId: string,
+  ) => Promise<
+    Array<{
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: string;
+    }>
+  >;
 }

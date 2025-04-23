@@ -155,5 +155,54 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         throw error;
       }
     },
+
+    // Conversation storage methods
+    saveMessage: async (
+      userId: string,
+      matchId: string,
+      message: {
+        role: 'user' | 'assistant' | 'system';
+        content: string;
+        timestamp: string;
+      },
+    ): Promise<void> => {
+      try {
+        await db.run(
+          'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
+          [userId, matchId, message.role, message.content, message.timestamp],
+        );
+      } catch (error) {
+        logger.error('Failed to save message', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    getMessages: async (
+      userId: string,
+      matchId: string,
+    ): Promise<
+      Array<{
+        role: 'user' | 'assistant' | 'system';
+        content: string;
+        timestamp: string;
+      }>
+    > => {
+      try {
+        const messages = await db.all(
+          'SELECT role, content, timestamp FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+          [userId, matchId],
+        );
+        return messages;
+      } catch (error) {
+        logger.error('Failed to get messages', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
   };
 };
