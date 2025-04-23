@@ -1,5 +1,12 @@
-import {createApp} from './app';
+import app from './app';
+import {config} from './config/config';
+import logger from './utils/logger';
 
-// Create and start the application
-const app = createApp();
-app.start();
+const port = config.server.port;
+
+app.listen(port, () => {
+  logger.info('Server started', {
+    port,
+    environment: config.server.environment,
+  });
+});

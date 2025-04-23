@@ -2,6 +2,9 @@ import {NextFunction, Request, Response} from 'express';
 import rateLimit from 'express-rate-limit';
 import {config} from '../config/config';
 import {ErrorResponse} from '../types';
+import {authenticateUser} from './auth';
+
+export {authenticateUser};
 
 // Helper function to format retry time
 const formatRetryAfter = (seconds: number): string => {

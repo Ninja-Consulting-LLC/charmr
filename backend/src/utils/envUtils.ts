@@ -1,34 +1,18 @@
+import logger from './logger';
+
 export const logEnvironmentVariables = () => {
-  try {
-    console.log('\n=== Environment Variables ===');
+  const envVars = {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY ? '[REDACTED]' : undefined,
+    OPENAI_MODEL: process.env.OPENAI_MODEL,
+    OPENAI_SANDBOX_MODE: process.env.OPENAI_SANDBOX_MODE,
+    CORS_ORIGIN: process.env.CORS_ORIGIN,
+    RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS,
+    RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
+    MAX_TOKENS: process.env.MAX_TOKENS,
+    TEMPERATURE: process.env.TEMPERATURE,
+  };
 
-    // Define environment variables that are actually used in the application
-    const envVars = [
-      'NODE_ENV',
-      'PORT',
-      'OPENAI_API_KEY',
-      'OPENAI_MODEL',
-      'OPENAI_SANDBOX_MODE',
-      'CORS_ORIGIN',
-      'RATE_LIMIT_WINDOW_MS',
-      'RATE_LIMIT_MAX_REQUESTS',
-      'MAX_TOKENS',
-      'TEMPERATURE',
-    ];
-
-    envVars.forEach(key => {
-      if (process.env[key]) {
-        // Redact sensitive values
-        if (key.toLowerCase().includes('key')) {
-          console.log(`${key}: [REDACTED]`);
-        } else {
-          console.log(`${key}: ${process.env[key]}`);
-        }
-      }
-    });
-
-    console.log('==========================\n');
-  } catch (error) {
-    console.error('Error logging environment variables:', error);
-  }
+  logger.info('Environment variables', envVars);
 };

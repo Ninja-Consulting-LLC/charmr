@@ -9,25 +9,29 @@ export const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4-vision-preview',
+    model: process.env.OPENAI_MODEL || 'gpt-4',
     sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
-    maxTokens: process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS) : 1000,
-    temperature: process.env.TEMPERATURE
-      ? parseFloat(process.env.TEMPERATURE)
-      : 0.7,
+    maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000', 10),
+    temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
   },
   rateLimit: {
-    windowMs: process.env.RATE_LIMIT_WINDOW_MS
-      ? parseInt(process.env.RATE_LIMIT_WINDOW_MS)
-      : 15 * 60 * 1000, // 15 minutes default
-    max: process.env.RATE_LIMIT_MAX_REQUESTS
-      ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS)
-      : 100, // 100 requests default
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
   },
   security: {
     cors: {
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     },
+  },
+  email: {
+    host: process.env.EMAIL_HOST || '',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10),
+    secure: process.env.EMAIL_SECURE === 'true',
+    auth: {
+      user: process.env.EMAIL_USER || '',
+      pass: process.env.EMAIL_PASS || '',
+    },
+    defaultFrom: process.env.EMAIL_DEFAULT_FROM || 'support@example.invalid',
   },
 } as const;
 

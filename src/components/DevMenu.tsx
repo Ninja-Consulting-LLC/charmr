@@ -25,6 +25,8 @@ const DevMenu = () => {
     userId,
     skipRateLimiting,
     setSkipRateLimiting,
+    authBypass,
+    setAuthBypass,
   } = useStore();
 
   useEffect(() => {
@@ -189,6 +191,11 @@ const DevMenu = () => {
               value={skipRateLimiting}
               onValueChange={setSkipRateLimiting}
             />
+          </View>
+
+          <View style={styles.toggleContainer}>
+            <Text>Auth Bypass</Text>
+            <Switch value={authBypass} onValueChange={setAuthBypass} />
           </View>
 
           <View style={styles.toggleContainer}>

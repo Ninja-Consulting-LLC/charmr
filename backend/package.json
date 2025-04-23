@@ -13,18 +13,25 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/helmet": "^4.0.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-rate-limit": "^7.5.0",
-    "openai": "^4.28.0"
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.10.1",
+    "openai": "^4.28.0",
+    "winston": "^3.12.0"
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.2.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
     "@types/node": "^20.11.19",
+    "@types/nodemailer": "^6.4.17",
     "jest-fetch-mock": "^3.0.3",
     "msw": "^2.7.4",
     "react-native-dotenv": "^3.4.11",
