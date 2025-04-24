@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React from 'react';
+import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Surface, Text} from 'react-native-paper';
 import LoginModal from '../components/LoginModal';
 import {RootStackParamList} from '../navigation/types';
+import {theme} from '../theme/theme';
 import {DevUtils} from '../utils/devUtils';
 
 type OnboardingScreenNavigationProp = NativeStackNavigationProp<
@@ -15,7 +16,7 @@ type OnboardingScreenNavigationProp = NativeStackNavigationProp<
 
 const OnboardingScreen = () => {
   const navigation = useNavigation<OnboardingScreenNavigationProp>();
-  const [currentStep, setCurrentStep] = React.useState(1);
+  const [currentStep, setCurrentStep] = useState(1);
   const [showLoginModal, setShowLoginModal] = React.useState(false);
 
   const handleNext = () => {
@@ -146,13 +147,15 @@ const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     padding: 16,
   },
   content: {
     padding: 24,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surface,
+    elevation: 2,
   },
   stepContent: {
     alignItems: 'center',
@@ -160,11 +163,12 @@ const styles = StyleSheet.create({
   stepTitle: {
     marginBottom: 16,
     textAlign: 'center',
+    color: theme.colors.onSurface,
   },
   stepDescription: {
     marginBottom: 24,
     textAlign: 'center',
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
   },
   stepsList: {
     width: '100%',
@@ -173,6 +177,7 @@ const styles = StyleSheet.create({
   stepItem: {
     marginBottom: 8,
     fontSize: 16,
+    color: theme.colors.onSurface,
   },
   footer: {
     flexDirection: 'row',
