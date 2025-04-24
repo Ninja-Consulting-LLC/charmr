@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
+import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 
@@ -9,6 +10,7 @@ interface UpgradeModalProps {
   onDismiss: () => void;
   onUpgrade: (tier: SubscriptionTier) => void;
   showRateLimitMessage?: boolean;
+  showScreenshotMessage?: boolean;
 }
 
 const TIERS = [
@@ -49,6 +51,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onDismiss,
   onUpgrade,
   showRateLimitMessage,
+  showScreenshotMessage,
 }) => {
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(
     SubscriptionTier.PREMIUM,
@@ -76,8 +79,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
           {showRateLimitMessage && (
             <Text
               style={[styles.rateLimitMessage, {color: theme.colors.error}]}>
-              You've reached your daily message limit. Upgrade to continue using
-              Flirtonic.
+              {MESSAGES.RATE_LIMIT}
+            </Text>
+          )}
+
+          {showScreenshotMessage && (
+            <Text
+              style={[styles.rateLimitMessage, {color: theme.colors.error}]}>
+              {MESSAGES.SCREENSHOT_LIMIT}
             </Text>
           )}
 

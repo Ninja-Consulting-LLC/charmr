@@ -22,9 +22,11 @@ import {
   TextInput,
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
+import {UserPlan} from '../types/enums';
 import {
   Match,
   addMatch,
@@ -83,9 +85,7 @@ const HomeContent: React.FC = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
-  const [copyMessage, setCopyMessage] = useState(
-    'Message copied to clipboard! Return to your dating app to paste the message.',
-  );
+  const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
 
   // Match management state
   const [matches, setMatches] = useState<Match[]>([]);
@@ -96,6 +96,7 @@ const HomeContent: React.FC = () => {
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
 
   // Reply modal state
   const [showReplyModal, setShowReplyModal] = useState(false);
@@ -137,13 +138,27 @@ const HomeContent: React.FC = () => {
         images.filter(img => img.assetId).map(img => img.assetId),
       );
 
+      const isPlusOrPremium =
+        user?.plan === UserPlan.PLUS || user?.plan === UserPlan.PREMIUM;
+      const maxFiles = isPlusOrPremium ? 10 : 1;
+
+      // If user is on free plan and already has a screenshot, show upgrade modal
+      if (user?.plan === UserPlan.FREE && images.length > 0) {
+        setShowScreenshotUpgrade(true);
+        setShowUpgradeModal(true);
+        return;
+      }
+
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
-        multiple: true,
+        multiple: isPlusOrPremium,
         cropping: false,
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
+        smartAlbums: ['Screenshots'],
+        defaultAlbum: 'Screenshots',
+        maxFiles,
         selectedAssets: images.map(img => ({
           uri: img.path,
           type: img.mime || 'image/jpeg',
@@ -243,7 +258,7 @@ const HomeContent: React.FC = () => {
 
   const handleSubmit = async () => {
     if (images.length === 0) {
-      setError('Please select at least one image');
+      setError(MESSAGES.NO_IMAGES);
       setShowSnackbar(true);
       return;
     }
@@ -253,9 +268,7 @@ const HomeContent: React.FC = () => {
       user.dailyMessagesUsed >= user.dailyMessageLimit &&
       user.extraMessages <= 0
     ) {
-      setError(
-        'You have reached your daily message limit. Please purchase more messages to continue.',
-      );
+      setError(MESSAGES.MESSAGE_LIMIT);
       setShowSnackbar(true);
       return;
     }
@@ -282,9 +295,7 @@ const HomeContent: React.FC = () => {
 
       if (response.error) {
         if (response.type === 'MESSAGE_LIMIT') {
-          setError(
-            'You have reached your daily message limit. Please purchase more messages to continue.',
-          );
+          setError(MESSAGES.MESSAGE_LIMIT);
         } else {
           setError(response.error);
         }
@@ -313,14 +324,12 @@ const HomeContent: React.FC = () => {
           error.response?.status === 403 &&
           error.response?.data?.type === 'MESSAGE_LIMIT'
         ) {
-          setError(
-            'You have reached your daily message limit. Please purchase more messages to continue.',
-          );
+          setError(MESSAGES.MESSAGE_LIMIT);
         } else {
           setError(error.response?.data?.error || error.message);
         }
       } else {
-        setError('Failed to generate response. Please try again.');
+        setError(MESSAGES.GENERATION_ERROR);
       }
       setShowSnackbar(true);
     } finally {
@@ -443,7 +452,17 @@ const HomeContent: React.FC = () => {
               style={styles.addImageButton}
               onPress={pickImages}
               testID="image-picker-button">
-              <Text>Add Images</Text>
+              <Icon
+                source="image-plus"
+                size={24}
+                color={theme.colors.secondary}
+              />
+              <Text style={styles.addImageText}>Add Screenshot</Text>
+              {user?.plan === UserPlan.FREE && images.length > 0 && (
+                <View style={styles.premiumBadge}>
+                  <Icon source="star" size={12} color="gold" />
+                </View>
+              )}
             </Pressable>
           </View>
         </View>
@@ -500,9 +519,13 @@ const HomeContent: React.FC = () => {
 
       <UpgradeModal
         visible={showUpgradeModal}
-        onDismiss={() => setShowUpgradeModal(false)}
+        onDismiss={() => {
+          setShowUpgradeModal(false);
+          setShowScreenshotUpgrade(false);
+        }}
         onUpgrade={handleUpgrade}
         showRateLimitMessage={isRateLimited}
+        showScreenshotMessage={showScreenshotUpgrade}
       />
 
       <ReplyModal
@@ -670,6 +693,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(64, 224, 208, 0.1)',
+    gap: 8,
+    position: 'relative',
+  },
+  addImageText: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: theme.colors.secondary,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 8,
+    padding: 2,
   },
 });
 
