@@ -17,7 +17,6 @@ import {
   IconButton,
   List,
   Snackbar,
-  Surface,
   Switch,
   Text,
   TextInput,
@@ -25,6 +24,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
+import {theme} from '../theme/theme';
 import {
   Match,
   addMatch,
@@ -364,7 +364,7 @@ const HomeContent: React.FC = () => {
       testID="response-generator-container">
       <ScrollView style={styles.scrollView}>
         {/* Match Selection */}
-        <Surface style={styles.matchSection}>
+        <View style={styles.matchSection}>
           <View style={styles.matchHeader}>
             <Text variant="titleMedium">Select Match</Text>
             <IconButton
@@ -407,10 +407,10 @@ const HomeContent: React.FC = () => {
           ) : (
             <Text>No matches added yet</Text>
           )}
-        </Surface>
+        </View>
 
         {/* Image Selection */}
-        <Surface style={styles.imageSection}>
+        <View style={styles.imageSection}>
           <View style={styles.imageHeader}>
             <Text variant="titleMedium">Selected Images</Text>
             <View style={styles.imageActions}>
@@ -446,10 +446,10 @@ const HomeContent: React.FC = () => {
               <Text>Add Images</Text>
             </Pressable>
           </View>
-        </Surface>
+        </View>
 
         {/* Prompt Input */}
-        <Surface style={styles.promptSection}>
+        <View style={styles.promptSection}>
           <Text variant="titleMedium">
             Enter your prompt (e.g. 'make it flirty')
           </Text>
@@ -461,10 +461,10 @@ const HomeContent: React.FC = () => {
             style={styles.promptInput}
             testID="prompt-input"
           />
-        </Surface>
+        </View>
 
         {/* Style Selection */}
-        <Surface style={styles.styleSection}>
+        <View style={styles.styleSection}>
           <Text variant="titleMedium">Select Style</Text>
           <View style={styles.styleButtons}>
             {messageStyles.map(style => (
@@ -477,7 +477,7 @@ const HomeContent: React.FC = () => {
               </Button>
             ))}
           </View>
-        </Surface>
+        </View>
 
         {/* Generate Button */}
         <Button
@@ -531,64 +531,18 @@ const HomeContent: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-  },
-  surface: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  imageWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  addImageButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#ccc',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  styleButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
+    backgroundColor: 'transparent',
   },
   matchSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
   matchHeader: {
     flexDirection: 'row',
@@ -597,9 +551,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   imageSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
   imageHeader: {
     flexDirection: 'row',
@@ -616,33 +571,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 8,
   },
   promptSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
   promptInput: {
     marginTop: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+    borderRadius: 8,
+    padding: 12,
   },
   styleSection: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
+  },
+  styleButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
   },
   generateButton: {
     marginTop: 16,
+    marginBottom: 24,
+    backgroundColor: theme.colors.secondary,
+    borderRadius: 8,
+    paddingVertical: 8,
   },
   removeImage: {
     position: 'absolute',
     top: 2,
     right: 2,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
     width: 24,
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: theme.colors.secondary,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   removeImageContent: {
     padding: 0,
@@ -653,7 +634,42 @@ const styles = StyleSheet.create({
   messageLimitSection: {
     margin: 16,
     padding: 16,
-    borderRadius: 8,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: theme.colors.secondary,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  imageWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  addImageButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: theme.colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(64, 224, 208, 0.1)',
   },
 });
 
