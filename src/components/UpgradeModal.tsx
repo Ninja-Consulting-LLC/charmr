@@ -2,24 +2,25 @@ import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import {theme} from '../theme/theme';
+import {SubscriptionTier} from '../types/enums';
 
 interface UpgradeModalProps {
   visible: boolean;
   onDismiss: () => void;
-  onUpgrade: (tier: string) => void;
+  onUpgrade: (tier: SubscriptionTier) => void;
   showRateLimitMessage?: boolean;
 }
 
 const TIERS = [
   {
-    id: 'basic',
+    id: SubscriptionTier.BASIC,
     name: 'Basic',
     price: '$4.99/month',
     messages: '100 messages/month',
     features: ['Basic response generation', 'Standard support'],
   },
   {
-    id: 'premium',
+    id: SubscriptionTier.PREMIUM,
     name: 'Premium',
     price: '$9.99/month',
     messages: '300 messages/month',
@@ -30,7 +31,7 @@ const TIERS = [
     ],
   },
   {
-    id: 'pro',
+    id: SubscriptionTier.PRO,
     name: 'Pro',
     price: '$19.99/month',
     messages: 'Unlimited messages',
@@ -49,7 +50,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onUpgrade,
   showRateLimitMessage,
 }) => {
-  const [selectedTier, setSelectedTier] = useState('premium');
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(
+    SubscriptionTier.PREMIUM,
+  );
 
   return (
     <Portal>

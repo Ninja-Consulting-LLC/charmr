@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
+import {UserPlan} from '../types/enums';
 
 interface User {
   id: string;
   email?: string;
-  plan: 'free' | 'plus' | 'premium';
+  plan: UserPlan;
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
@@ -30,6 +31,7 @@ interface Store {
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
+  updateUserPlan: (plan: UserPlan) => Promise<void>;
 }
 
 // Create context with a default value
@@ -46,17 +48,18 @@ const StoreContext = createContext<Store>({
   setAuthBypass: () => {},
   user: {
     id: '',
-    plan: 'free',
+    plan: UserPlan.FREE,
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
-    lastResetDate: new Date().toISOString().split('T')[0],
+    lastResetDate: new Date().toISOString(),
   },
   setUser: () => {},
   isAuthenticated: false,
   setIsAuthenticated: () => {},
   isLoading: true,
   setIsLoading: () => {},
+  updateUserPlan: async () => {},
 });
 
 // Custom hook to use the store
@@ -75,11 +78,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUserState] = useState<User>({
     id: '',
-    plan: 'free',
+    plan: UserPlan.FREE,
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
-    lastResetDate: new Date().toISOString().split('T')[0],
+    lastResetDate: new Date().toISOString(),
   });
 
   // Set auth bypass in development mode
@@ -126,14 +129,15 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   };
 
   const setUser = (newUser: Partial<User>) => {
-    setUserState(prevUser => {
-      const updatedUser = {...prevUser, ...newUser};
-      // Only sync with backend if the user ID exists
-      if (updatedUser.id) {
-        syncUserWithBackend(updatedUser.id, updatedUser);
-      }
-      return updatedUser;
-    });
+    const updatedUser = {...user, ...newUser};
+    setUserState(updatedUser);
+    AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const updateUserPlan = async (plan: UserPlan) => {
+    const updatedUser = {...user, plan};
+    setUserState(updatedUser);
+    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   // Get or create user ID and load user data on component mount
@@ -172,11 +176,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           // Create new user data
           const newUser: User = {
             id: storedUserId,
-            plan: 'free' as const,
+            plan: UserPlan.FREE,
             dailyMessagesUsed: 0,
             dailyMessageLimit: 5,
             extraMessages: 0,
-            lastResetDate: new Date().toISOString().split('T')[0],
+            lastResetDate: new Date().toISOString(),
           };
           setUserState(newUser);
           syncUserWithBackend(storedUserId, newUser);
@@ -231,6 +235,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setIsAuthenticated,
     isLoading,
     setIsLoading,
+    updateUserPlan,
   };
 
   return (
