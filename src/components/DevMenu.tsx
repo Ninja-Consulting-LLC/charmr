@@ -8,6 +8,7 @@ import {Button, Modal, Portal, Switch, Text} from 'react-native-paper';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
+import {theme} from '../theme/theme';
 import {DevUtils} from '../utils/devUtils';
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -19,17 +20,16 @@ const DevMenu = () => {
   const [testResults, setTestResults] = useState<
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
+  const [authBypass, setAuthBypass] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const {
-    showDevMenu,
-    setShowDevMenu,
     userId,
     skipRateLimiting,
     setSkipRateLimiting,
-    authBypass,
-    setAuthBypass,
     user,
     setUser,
+    showDevMenu,
+    setShowDevMenu,
   } = useStore();
 
   useEffect(() => {
@@ -80,7 +80,7 @@ const DevMenu = () => {
     }
   };
 
-  const handleToggleSandboxMode = async () => {
+  const handleToggleSandboxMode = async (value: boolean) => {
     try {
       await DevUtils.toggleSandboxMode();
       const newMode = await DevUtils.isSandboxMode();
@@ -217,7 +217,10 @@ const DevMenu = () => {
       <Modal
         visible={showDevMenu}
         onDismiss={() => setShowDevMenu(false)}
-        contentContainerStyle={styles.modal}>
+        contentContainerStyle={[
+          styles.modal,
+          {backgroundColor: theme.colors.surface},
+        ]}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text variant="titleMedium" style={styles.title}>
@@ -355,10 +358,9 @@ const DevMenu = () => {
 
 const styles = StyleSheet.create({
   modal: {
-    backgroundColor: 'white',
     padding: 20,
     margin: 20,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   content: {
     padding: 16,
@@ -391,13 +393,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     marginTop: 8,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     textAlign: 'center',
   },
   resultsContainer: {
     marginTop: 8,
     padding: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: `${theme.colors.primary}10`,
     borderRadius: 4,
   },
   resultsTitle: {
@@ -411,11 +413,11 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   errorText: {
-    color: '#D32F2F',
+    color: theme.colors.error,
     textAlign: 'center',
   },
   buttonText: {
-    color: 'white',
+    color: theme.colors.surface,
     fontWeight: 'bold',
   },
 });
