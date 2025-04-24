@@ -1,91 +1,80 @@
-import React from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
-import {
-  Button,
-  IconButton,
-  Modal,
-  Portal,
-  Surface,
-  Text,
-} from 'react-native-paper';
-
-interface Tier {
-  id: string;
-  name: string;
-  price: string;
-  messages: string;
-  features: string[];
-}
-
-const TIERS: Tier[] = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    price: '$4.99',
-    messages: '50 messages',
-    features: ['50 messages per day', 'Basic support'],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '$9.99',
-    messages: '200 messages',
-    features: ['200 messages per day', 'Priority support', 'Advanced features'],
-  },
-  {
-    id: 'unlimited',
-    name: 'Unlimited',
-    price: '$19.99',
-    messages: 'Unlimited',
-    features: [
-      'Unlimited messages',
-      'Priority support',
-      'All features',
-      'Early access to new features',
-    ],
-  },
-];
+import React, {useState} from 'react';
+import {StyleSheet, View} from 'react-native';
+import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
+import {theme} from '../theme/theme';
 
 interface UpgradeModalProps {
   visible: boolean;
   onDismiss: () => void;
-  onUpgrade: (tierId: string) => void;
+  onUpgrade: (tier: string) => void;
   showRateLimitMessage?: boolean;
 }
+
+const TIERS = [
+  {
+    id: 'basic',
+    name: 'Basic',
+    price: '$4.99/month',
+    messages: '100 messages/month',
+    features: ['Basic response generation', 'Standard support'],
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: '$9.99/month',
+    messages: '300 messages/month',
+    features: [
+      'Advanced response generation',
+      'Priority support',
+      'Custom response styles',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: '$19.99/month',
+    messages: 'Unlimited messages',
+    features: [
+      'Premium response generation',
+      '24/7 priority support',
+      'Custom response styles',
+      'Advanced analytics',
+    ],
+  },
+];
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({
   visible,
   onDismiss,
   onUpgrade,
-  showRateLimitMessage = false,
+  showRateLimitMessage,
 }) => {
-  const [selectedTier, setSelectedTier] = React.useState<string>('pro');
+  const [selectedTier, setSelectedTier] = useState('premium');
 
   return (
     <Portal>
       <Modal
         visible={visible}
         onDismiss={onDismiss}
-        contentContainerStyle={styles.modal}>
+        contentContainerStyle={[
+          styles.modal,
+          {backgroundColor: theme.colors.surface},
+        ]}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.title}>
-              Choose Your Plan
+              Upgrade Your Plan
             </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              onPress={onDismiss}
-              style={styles.closeButton}
-              testID="close-button"
-              accessibilityLabel="Close modal"
-            />
+            <Button mode="text" onPress={onDismiss} style={styles.closeButton}>
+              Close
+            </Button>
           </View>
 
           {showRateLimitMessage && (
-            <Text variant="titleMedium" style={styles.rateLimitMessage}>
-              Upgrade to receive more messages - you're out of messages for
-              today!
+            <Text
+              style={[styles.rateLimitMessage, {color: theme.colors.error}]}>
+              You've reached your daily message limit. Upgrade to continue using
+              Flirtonic.
             </Text>
           )}
 
@@ -96,17 +85,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
                 style={[
                   styles.tierCard,
                   selectedTier === tier.id && styles.selectedTier,
-                ]}
-                testID={`${tier.id}-tier-card`}>
-                <Pressable
-                  style={styles.tierCardPressable}
-                  onPress={() => setSelectedTier(tier.id)}
-                  testID={`${tier.id}-tier`}
-                  accessibilityLabel={`Select ${tier.name} tier`}>
+                ]}>
+                <View style={styles.tierCardPressable}>
                   <Text variant="titleMedium" style={styles.tierName}>
                     {tier.name}
                   </Text>
-                  <Text variant="headlineMedium" style={styles.tierPrice}>
+                  <Text
+                    variant="headlineMedium"
+                    style={[styles.tierPrice, {color: theme.colors.primary}]}>
                     {tier.price}
                   </Text>
                   <Text variant="bodyMedium" style={styles.tierMessages}>
@@ -122,7 +108,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
                       </Text>
                     ))}
                   </View>
-                </Pressable>
+                </View>
               </Surface>
             ))}
           </View>
@@ -130,9 +116,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <Button
             mode="contained"
             onPress={() => onUpgrade(selectedTier)}
-            style={styles.upgradeButton}
-            testID="upgrade-button"
-            accessibilityLabel="Upgrade to selected plan">
+            style={styles.upgradeButton}>
             Upgrade Now
           </Button>
         </View>
@@ -143,10 +127,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
 
 const styles = StyleSheet.create({
   modal: {
-    backgroundColor: 'white',
     padding: 20,
     margin: 20,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   content: {
     gap: 16,
@@ -164,7 +147,6 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   rateLimitMessage: {
-    color: '#D32F2F',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -172,13 +154,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tierCard: {
-    borderRadius: 8,
+    borderRadius: theme.roundness,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.colors.outline,
   },
   selectedTier: {
-    borderColor: '#1976D2',
-    backgroundColor: '#E3F2FD',
+    borderColor: theme.colors.primary,
+    backgroundColor: `${theme.colors.primary}10`,
   },
   tierCardPressable: {
     padding: 12,
@@ -188,7 +170,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tierPrice: {
-    color: '#1976D2',
     marginBottom: 2,
   },
   tierMessages: {
