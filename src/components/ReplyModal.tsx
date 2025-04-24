@@ -1,14 +1,7 @@
-import Clipboard from '@react-native-clipboard/clipboard';
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
-import {
-  Button,
-  Divider,
-  IconButton,
-  Modal,
-  Surface,
-  Text,
-} from 'react-native-paper';
+import {Button, Divider, Modal, Portal, Text} from 'react-native-paper';
+import {theme} from '../theme/theme';
 
 interface ReplyModalProps {
   visible: boolean;
@@ -27,57 +20,54 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   onCopy,
   onModifyResponse,
 }) => {
-  const handleCopyToClipboard = () => {
-    Clipboard.setString(reply);
-    onCopy();
-  };
-
   return (
-    <Modal
-      visible={visible}
-      onDismiss={onDismiss}
-      testID="modal"
-      contentContainerStyle={styles.modalContainer}>
-      <Surface style={styles.modalContent}>
-        <View style={styles.header}>
-          <Text variant="titleMedium">Generated Reply</Text>
-          <IconButton
-            testID="copy-button"
-            icon="content-copy"
-            onPress={handleCopyToClipboard}
-          />
-        </View>
-        <Text style={styles.replyText}>{reply}</Text>
-        <View style={styles.messageSection}>
-          <Text style={styles.returnMessage}>
-            Return to your dating app to paste the message
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        contentContainerStyle={[
+          styles.modalContainer,
+          {backgroundColor: theme.colors.surface},
+        ]}>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <Text variant="titleMedium">Generated Response</Text>
+            <Button mode="text" onPress={onDismiss}>
+              Close
+            </Button>
+          </View>
+
+          <Text variant="bodyLarge" style={styles.replyText}>
+            {reply}
           </Text>
+
+          <View style={styles.messageSection}>
+            <Text style={styles.returnMessage}>
+              Return to your dating app to paste this response
+            </Text>
+            <Divider style={styles.divider} />
+            <Text style={styles.modifyMessage}>
+              Not quite what you're looking for? Try modifying the response.
+            </Text>
+          </View>
+
+          <View style={styles.footer}>
+            <Button
+              mode="outlined"
+              onPress={onModifyResponse}
+              style={styles.button}>
+              Modify
+            </Button>
+            <Button mode="contained" onPress={onCopy} style={styles.button}>
+              Copy
+            </Button>
+            <Button mode="contained" onPress={onFinish} style={styles.button}>
+              Done
+            </Button>
+          </View>
         </View>
-        <Divider style={styles.divider} />
-        <View style={styles.messageSection}>
-          <Text style={styles.modifyMessage}>
-            Not happy with this response?{'\n'}Modify your prompt to generate a
-            new one
-          </Text>
-        </View>
-        <View style={styles.footer}>
-          <Button
-            mode="outlined"
-            onPress={onModifyResponse}
-            testID="modify-button"
-            style={styles.button}>
-            Modify Response
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={onFinish}
-            testID="finish-button"
-            style={styles.button}>
-            Finish
-          </Button>
-        </View>
-      </Surface>
-    </Modal>
+      </Modal>
+    </Portal>
   );
 };
 
@@ -87,7 +77,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     padding: 16,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   header: {
     flexDirection: 'row',
@@ -104,15 +94,16 @@ const styles = StyleSheet.create({
   },
   returnMessage: {
     textAlign: 'center',
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     fontStyle: 'italic',
   },
   divider: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.outline,
+    marginVertical: 12,
   },
   modifyMessage: {
     textAlign: 'center',
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
     fontSize: 13,
     lineHeight: 20,
   },

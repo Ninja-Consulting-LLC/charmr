@@ -13,6 +13,7 @@ import {PaperProvider} from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
 import {RootStackParamList} from './src/navigation/types';
 import {StoreProvider} from './src/store';
+import {theme} from './src/theme/theme';
 
 function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
@@ -53,13 +54,16 @@ function App(): React.JSX.Element {
   }, []);
 
   if (!isReady) {
-    return <View style={{flex: 1, backgroundColor: '#fff'}} />;
+    return <View style={{flex: 1, backgroundColor: theme.colors.background}} />;
   }
 
   return (
-    <PaperProvider>
+    <PaperProvider theme={theme}>
       <StoreProvider>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={theme.colors.background}
+        />
         <AppNavigator initialRouteName={initialRoute} />
       </StoreProvider>
     </PaperProvider>

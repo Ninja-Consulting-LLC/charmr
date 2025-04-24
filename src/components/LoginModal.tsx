@@ -10,6 +10,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {signInWithApple, signInWithGoogle} from '../config/firebase';
+import {theme} from '../theme/theme';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const MODAL_WIDTH = Math.min(SCREEN_WIDTH - 48, 280);
@@ -28,20 +29,18 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-      onClose();
       onLoginSuccess?.();
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Google login error:', error);
     }
   };
 
   const handleAppleLogin = async () => {
     try {
       await signInWithApple();
-      onClose();
       onLoginSuccess?.();
     } catch (error) {
-      console.error('Apple login failed:', error);
+      console.error('Apple login error:', error);
     }
   };
 
@@ -59,7 +58,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalWrapper}>
           <LinearGradient
-            colors={['#7E22CE', '#3B0764']}
+            colors={[theme.colors.primary, theme.colors.primaryContainer]}
             style={styles.modalContent}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}>
@@ -69,7 +68,11 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 onPress={handleGoogleLogin}
                 testID="google-login-button">
                 <View style={styles.buttonContent}>
-                  <Icon name="google" size={20} color="#000" />
+                  <Icon
+                    name="google"
+                    size={20}
+                    color={theme.colors.onSurface}
+                  />
                   <Text style={styles.googleButtonText}>
                     Continue with Google
                   </Text>
@@ -80,7 +83,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 style={[styles.button, styles.appleButton]}
                 onPress={handleAppleLogin}>
                 <View style={styles.buttonContent}>
-                  <Icon name="apple" size={20} color="#fff" />
+                  <Icon name="apple" size={20} color={theme.colors.surface} />
                   <Text style={styles.appleButtonText}>
                     Continue with Apple
                   </Text>
@@ -91,7 +94,11 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 style={[styles.button, styles.facebookButton]}
                 onPress={() => {}}>
                 <View style={styles.buttonContent}>
-                  <Icon name="facebook" size={20} color="#fff" />
+                  <Icon
+                    name="facebook"
+                    size={20}
+                    color={theme.colors.surface}
+                  />
                   <Text style={styles.facebookButtonText}>
                     Continue with Facebook
                   </Text>
@@ -145,7 +152,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   googleButton: {
-    backgroundColor: '#96F2D7',
+    backgroundColor: theme.colors.secondary,
   },
   appleButton: {
     borderWidth: 1,
@@ -156,19 +163,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#1877F2',
   },
   googleButtonText: {
-    color: '#000',
+    color: theme.colors.onSurface,
     marginLeft: 8,
     fontSize: 15,
     fontWeight: '600',
   },
   appleButtonText: {
-    color: '#fff',
+    color: theme.colors.surface,
     marginLeft: 8,
     fontSize: 15,
     fontWeight: '500',
   },
   facebookButtonText: {
-    color: '#fff',
+    color: theme.colors.surface,
     marginLeft: 8,
     fontSize: 15,
     fontWeight: '500',
