@@ -9,6 +9,7 @@ import {
 } from 'react-native-paper';
 import {submitSupportRequest} from '../services/api';
 import {useStore} from '../store';
+import {theme} from '../theme/theme';
 import LoginModal from './LoginModal';
 
 interface SupportContactModalProps {
@@ -134,7 +135,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           <View
             style={[
               styles.modalContent,
-              {backgroundColor: theme.colors.background},
+              {backgroundColor: theme.colors.surface},
             ]}>
             <View style={styles.header}>
               <Text variant="headlineSmall">
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '90%',
     maxHeight: '80%',
-    borderRadius: 8,
+    borderRadius: theme.roundness,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: {
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    borderBottomColor: theme.colors.outline,
   },
   content: {
     padding: 20,
