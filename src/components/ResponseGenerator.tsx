@@ -300,6 +300,15 @@ const ResponseGenerator: React.FC = () => {
     setShowReplyModal(false);
   };
 
+  const handlePickImages = async () => {
+    if (user?.plan === UserPlan.FREE && images.length > 0) {
+      setShowScreenshotUpgrade(true);
+      setShowUpgradeModal(true);
+      return;
+    }
+    await pickImages();
+  };
+
   return (
     <SafeAreaView
       style={styles.container}
@@ -383,7 +392,7 @@ const ResponseGenerator: React.FC = () => {
             ))}
             <Pressable
               style={styles.addImageButton}
-              onPress={pickImages}
+              onPress={handlePickImages}
               testID="image-picker-button">
               <Icon
                 source="image-plus"
