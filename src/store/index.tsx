@@ -138,9 +138,26 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   };
 
   const updateUserPlan = async (plan: SubscriptionTier) => {
-    const updatedUser = {...user, plan};
-    setUserState(updatedUser);
-    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    try {
+      // Update backend
+      await axios.put(
+        `${config.apiBaseUrl}/api/admin/users/${userId}/plan`,
+        {plan},
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+          },
+        },
+      );
+
+      // Update local state
+      const updatedUser = {...user, plan};
+      setUserState(updatedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error updating user plan:', error);
+      throw error;
+    }
   };
 
   // Get or create user ID and load user data on component mount

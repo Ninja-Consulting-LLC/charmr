@@ -9,6 +9,7 @@ import {
   getUserMessages,
   getUsers,
   resetUserMessageLimit,
+  updateUserPlan,
 } from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
@@ -103,6 +104,7 @@ export const createApp = async () => {
     adminAuth,
     resetUserMessageLimit,
   );
+  app.put('/api/admin/users/:userId/plan', adminAuth, updateUserPlan);
 
   // Log all available routes on startup
   const routes = app._router.stack
