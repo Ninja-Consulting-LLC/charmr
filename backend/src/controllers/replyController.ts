@@ -45,7 +45,7 @@ export const createReplyController = async () => {
   const messageLimitService = await createMessageLimitService();
 
   const generateReplyHandler = async (req: Request, res: Response) => {
-    const {prompt, images, userId, matchId, skipRateLimiting, style} = req.body;
+    const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
     logger.debug('Generating reply - request payload', {
       userId,
@@ -53,7 +53,6 @@ export const createReplyController = async () => {
       hasImages: images?.length > 0,
       skipRateLimiting,
       prompt,
-      style,
       imageCount: images?.length,
       sandboxMode: process.env.NODE_ENV !== 'production',
       truncatedImages: images?.map(truncateImageData),
@@ -118,9 +117,7 @@ export const createReplyController = async () => {
         messages: [
           {
             role: 'system',
-            content: `${DATING_COACH_INSTRUCTIONS}\n\n${contextMessage}\n\nStyle: ${
-              style || 'natural'
-            }`,
+            content: `${DATING_COACH_INSTRUCTIONS}\n\n${contextMessage}`,
           },
           {
             role: 'user',

@@ -80,7 +80,6 @@ const ResponseGenerator: React.FC = () => {
 
   // Keyboard modal state
   const [prompt, setPrompt] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -275,7 +274,6 @@ const ResponseGenerator: React.FC = () => {
     setImages([]);
     setPrompt('');
     setResponse(null);
-    setSelectedStyle('');
     setShowReplyModal(false);
   };
 
@@ -425,22 +423,6 @@ const ResponseGenerator: React.FC = () => {
           />
         </View>
 
-        {/* Style Selection */}
-        <View style={styles.styleSection}>
-          <Text variant="titleMedium">Select Style</Text>
-          <View style={styles.styleButtons}>
-            {messageStyles.map(style => (
-              <Button
-                key={style.value}
-                mode={selectedStyle === style.value ? 'contained' : 'outlined'}
-                onPress={() => setSelectedStyle(style.value)}
-                testID={`style-${style.value}-button`}>
-                {style.label}
-              </Button>
-            ))}
-          </View>
-        </View>
-
         {/* Generate Button */}
         <Button
           mode="contained"
@@ -553,18 +535,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 4,
     minHeight: 80,
-  },
-  styleSection: {
-    paddingVertical: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
-  },
-  styleButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
   },
   generateButton: {
     marginTop: 16,
