@@ -9,7 +9,7 @@ import {RootStackParamList} from '../navigation/types';
 import {generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {UserPlan} from '../types/enums';
+import {SubscriptionTier} from '../types/enums';
 import {DevUtils} from '../utils/devUtils';
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -212,7 +212,7 @@ const DevMenu = () => {
     });
   };
 
-  const handleChangePlan = async (plan: UserPlan) => {
+  const handleChangePlan = async (plan: SubscriptionTier) => {
     try {
       await updateUserPlan(plan);
       Alert.alert('Success', `Plan changed to ${plan}`);
@@ -336,21 +336,21 @@ const DevMenu = () => {
               <View style={styles.planButtons}>
                 <Button
                   mode="contained"
-                  onPress={() => handleChangePlan(UserPlan.FREE)}
+                  onPress={() => handleChangePlan(SubscriptionTier.FREE)}
                   style={styles.planButton}>
                   Free
                 </Button>
                 <Button
                   mode="contained"
-                  onPress={() => handleChangePlan(UserPlan.PLUS)}
+                  onPress={() => handleChangePlan(SubscriptionTier.PREMIUM)}
                   style={styles.planButton}>
-                  Plus
+                  Premium
                 </Button>
                 <Button
                   mode="contained"
-                  onPress={() => handleChangePlan(UserPlan.PREMIUM)}
+                  onPress={() => handleChangePlan(SubscriptionTier.PRO)}
                   style={styles.planButton}>
-                  Premium
+                  Pro
                 </Button>
               </View>
             </View>

@@ -1,20 +1,20 @@
 import {getDatabase} from '../db';
 import {MessageLimit} from '../db/types';
-import {UserPlan} from '../types/enums';
+import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 
 export interface PlanLimits {
   dailyMessageLimit: number;
 }
 
-const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
-  [UserPlan.FREE]: {
+const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
+  [SubscriptionTier.FREE]: {
     dailyMessageLimit: 5,
   },
-  [UserPlan.PLUS]: {
+  [SubscriptionTier.PREMIUM]: {
     dailyMessageLimit: 50,
   },
-  [UserPlan.PREMIUM]: {
+  [SubscriptionTier.PRO]: {
     dailyMessageLimit: 200,
   },
 };
@@ -135,7 +135,7 @@ export const createMessageLimitService = async () => {
 
   const updateUserPlan = async (
     userId: string,
-    plan: UserPlan,
+    plan: SubscriptionTier,
   ): Promise<void> => {
     try {
       const planLimits = PLAN_LIMITS[plan];

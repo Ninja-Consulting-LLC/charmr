@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {config} from '../config/config';
-import {UserPlan} from '../types/enums';
+import {SubscriptionTier} from '../types/enums';
 
 interface User {
   id: string;
   email?: string;
-  plan: UserPlan;
+  plan: SubscriptionTier;
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
@@ -32,7 +32,7 @@ interface Store {
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
-  updateUserPlan: (plan: UserPlan) => Promise<void>;
+  updateUserPlan: (plan: SubscriptionTier) => Promise<void>;
   showUpgradeModal: boolean;
   setShowUpgradeModal: (show: boolean) => void;
 }
@@ -51,7 +51,7 @@ const StoreContext = createContext<Store>({
   setAuthBypass: () => {},
   user: {
     id: '',
-    plan: UserPlan.FREE,
+    plan: SubscriptionTier.BASIC,
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
@@ -84,7 +84,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [user, setUserState] = useState<User>({
     id: '',
-    plan: UserPlan.FREE,
+    plan: SubscriptionTier.FREE,
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
@@ -137,7 +137,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     AsyncStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  const updateUserPlan = async (plan: UserPlan) => {
+  const updateUserPlan = async (plan: SubscriptionTier) => {
     const updatedUser = {...user, plan};
     setUserState(updatedUser);
     await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
@@ -179,7 +179,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           // Create new user data
           const newUser: User = {
             id: storedUserId,
-            plan: UserPlan.FREE,
+            plan: SubscriptionTier.FREE,
             dailyMessagesUsed: 0,
             dailyMessageLimit: 5,
             extraMessages: 0,

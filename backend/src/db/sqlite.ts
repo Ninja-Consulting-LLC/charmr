@@ -1,6 +1,7 @@
 import path from 'path';
 import {open} from 'sqlite';
 import sqlite3 from 'sqlite3';
+import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {Database, User} from './types';
 
@@ -51,14 +52,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     createUser: async (
       userId: string,
-      plan: string = 'free',
+      plan: string = SubscriptionTier.FREE,
     ): Promise<User> => {
       try {
         const user: User = {
           id: userId,
           plan,
           dailyMessagesUsed: 0,
-          dailyMessageLimit: plan === 'free' ? 5 : plan === 'plus' ? 50 : 200,
+          dailyMessageLimit:
+            plan === SubscriptionTier.FREE
+              ? 5
+              : plan === SubscriptionTier.PREMIUM
+              ? 50
+              : 200,
           extraMessages: 0,
           lastResetDate: new Date().toISOString().split('T')[0],
         };
@@ -169,7 +175,15 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       try {
         await db.run(
           'UPDATE users SET plan = ?, dailyMessageLimit = ? WHERE id = ?',
-          [plan, plan === 'free' ? 5 : plan === 'plus' ? 50 : 200, userId],
+          [
+            plan,
+            plan === SubscriptionTier.FREE
+              ? 5
+              : plan === SubscriptionTier.PREMIUM
+              ? 50
+              : 200,
+            userId,
+          ],
         );
       } catch (error) {
         logger.error('Failed to update user plan', {
