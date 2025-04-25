@@ -110,6 +110,7 @@ class KeyboardViewController: KeyboardInputViewController {
 }
 
 struct StylePickerView: View {
+    let controller: KeyboardInputViewController
     @Binding var selectedStyle: MessageStyle
     @Binding var showingStylePicker: Bool
 
@@ -190,8 +191,30 @@ struct StylePickerView: View {
                     Color.primaryGradient
                         .ignoresSafeArea()
                 )
-                .presentationDetents([.height(300)])
+                .presentationDetents([.height(320)])
             }
+
+            VStack(spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.turquoise)
+                    Text("Want personalized messages?")
+                        .foregroundColor(.white)
+                }
+                Button(action: {
+                    if let url = URL(string: "aidatingkeyboard://open/screenshot") {
+                        controller.openUrl(url)
+                    }
+                }) {
+                    Text("Take a screenshot & tap 'Open Charmr'")
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            .font(.system(size: 13))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(6)
 
             Spacer()
         }
@@ -209,7 +232,7 @@ struct CustomToolbar: View {
     var body: some View {
         HStack(spacing: 8) {
             Button("Open Charmr") {
-                if let url = URL(string: "aidatingkeyboard://open/homescreen") {
+                if let url = URL(string: "aidatingkeyboard://open/screenshot") {
                     print("Opening app with URL:", url.absoluteString)
                     controller.openUrl(url)
                 }
@@ -227,16 +250,10 @@ struct CustomToolbar: View {
                     }
                 }
 
-                // Insert new opener
+                // Insert the new opener
                 let opener = getRandomOpener(style: selectedStyle)
-                print("Generated opener:", opener)
                 controller.textDocumentProxy.insertText(opener)
-
-                if !hasGeneratedOpener {
-                    // First time generating - just switch to custom keyboard
-                    isCustomKeyboard = true
-                    hasGeneratedOpener = true
-                }
+                hasGeneratedOpener = true
             }
             .buttonStyle(OutlineButtonStyle())
 
@@ -246,13 +263,12 @@ struct CustomToolbar: View {
                 isCustomKeyboard.toggle()
             }) {
                 Image(systemName: "keyboard")
-                    .foregroundColor(.white)
                     .font(.system(size: 20))
+                    .foregroundColor(.turquoise)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -291,7 +307,7 @@ struct CustomKeyboardView: View {
 
             if isCustomKeyboard {
                 // Custom keyboard with style selector
-                StylePickerView(selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
+                StylePickerView(controller: controller, selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
                     .frame(height: 210)
                     .background(Color.primaryGradient)
             } else {
