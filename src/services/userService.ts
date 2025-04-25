@@ -1,3 +1,4 @@
+import installations from '@react-native-firebase/installations';
 import axios from 'axios';
 import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
@@ -42,35 +43,70 @@ export const createUser = async (userData: {
   email: string;
   name: string;
 }): Promise<User> => {
-  const {data} = await axios.post(`${config.apiBaseUrl}/api/users`, userData, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Auth-Bypass': 'true', // For development only
-    },
-  });
-  return {
-    ...data,
-    getDailyMessageLimit: () => getPlanLimits(data.plan),
-  };
+  try {
+    // Get the installation ID with retry logic
+    let installationId;
+    try {
+      installationId = await installations().getId();
+    } catch (error) {
+      console.error('Failed to get installation ID:', error);
+      // Continue without installation ID if retrieval fails
+      installationId = undefined;
+    }
+
+    const {data} = await axios.post(
+      `${config.apiBaseUrl}/api/users`,
+      {...userData, installationId},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+    return {
+      ...data,
+      getDailyMessageLimit: () => getPlanLimits(data.plan),
+    };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
 };
 
 export const linkUsers = async (
   anonymousUserId: string,
   registeredUserId: string,
 ): Promise<void> => {
-  await axios.post(
-    `${config.apiBaseUrl}/api/users/link`,
-    {
-      anonymousUserId,
-      registeredUserId,
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-Bypass': 'true', // For development only
+  try {
+    // Get the installation ID with retry logic
+    let installationId;
+    try {
+      installationId = await installations().getId();
+    } catch (error) {
+      console.error('Failed to get installation ID:', error);
+      // Continue without installation ID if retrieval fails
+      installationId = undefined;
+    }
+
+    await axios.post(
+      `${config.apiBaseUrl}/api/users/link`,
+      {
+        anonymousUserId,
+        registeredUserId,
+        installationId,
       },
-    },
-  );
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+  } catch (error) {
+    console.error('Error linking users:', error);
+    throw error;
+  }
 };
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
@@ -89,6 +125,28 @@ export const findUserByEmail = async (email: string): Promise<User | null> => {
     };
   } catch (error) {
     console.error('Error finding user by email:', error);
+    return null;
+  }
+};
+
+export const findUserByInstallationId = async (
+  installationId: string,
+): Promise<User | null> => {
+  try {
+    const {data} = await axios.get(
+      `${config.apiBaseUrl}/api/users/installation/${installationId}`,
+      {
+        headers: {
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+    return {
+      ...data,
+      getDailyMessageLimit: () => getPlanLimits(data.plan),
+    };
+  } catch (error) {
+    console.error('Error finding user by installation ID:', error);
     return null;
   }
 };

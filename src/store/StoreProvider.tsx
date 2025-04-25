@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import installations from '@react-native-firebase/installations';
 import {AxiosError} from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {useStoreState} from '../hooks/useStoreState';
@@ -117,6 +118,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const createNewUser = async () => {
     try {
+      setIsLoading(true);
       // First check if we have a stored user ID
       const storedUserId = await AsyncStorage.getItem('userId');
       if (storedUserId) {
@@ -126,11 +128,31 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           if (existingUser) {
             setUserId(storedUserId);
             setUser(existingUser);
+            setIsLoading(false);
             return;
           }
         } catch (error) {
           console.log('Error fetching stored user, creating new one:', error);
         }
+      }
+
+      // Check if we have an existing user with this installation ID
+      let installationId;
+      try {
+        installationId = await installations().getId();
+        const existingUser = await userService.findUserByInstallationId(
+          installationId,
+        );
+        if (existingUser) {
+          setUserId(existingUser.id);
+          await AsyncStorage.setItem('userId', existingUser.id);
+          setUser(existingUser);
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error getting installation ID:', error);
+        // Continue without installation ID
       }
 
       // Create new user
@@ -148,8 +170,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       });
 
       setUser(newUser);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error creating user:', error);
+      setIsLoading(false);
       throw error;
     }
   };
@@ -160,6 +184,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         throw new Error('No anonymous user ID available');
       }
 
+      // Get the installation ID
+      const installationId = await installations().getId();
+
+      // Link the users
       await userService.linkUsers(userId, registeredUserId);
 
       // Update the frontend to use the new user ID

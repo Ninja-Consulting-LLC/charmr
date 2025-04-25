@@ -173,19 +173,24 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    await generateResponse(prompt);
-    if (response) {
-      setShowReplyModal(true);
-      handleCopyToClipboard();
-      if (selectedMatch) {
-        await updateMatchLastUsed(selectedMatch);
+    try {
+      await generateResponse(prompt);
+      if (response) {
+        setShowReplyModal(true);
+        handleCopyToClipboard();
+        if (selectedMatch) {
+          await updateMatchLastUsed(selectedMatch);
+        }
       }
-    }
-    if (error) {
+      if (error) {
+        setShowSnackbar(true);
+        if (error === MESSAGES.MESSAGE_LIMIT) {
+          setShowUpgradeModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
       setShowSnackbar(true);
-      if (error === MESSAGES.MESSAGE_LIMIT) {
-        setShowUpgradeModal(true);
-      }
     }
   };
 

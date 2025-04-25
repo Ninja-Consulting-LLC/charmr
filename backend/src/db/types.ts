@@ -13,6 +13,7 @@ export interface User {
   dailyMessagesUsed: number;
   extraMessages: number;
   lastResetDate: string;
+  installationId?: string;
 }
 
 export interface Message {
@@ -26,13 +27,15 @@ export interface Message {
 
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
+  getUserByInstallationId: (installationId: string) => Promise<User | null>;
   createUser: (
     userId: string,
     email?: string,
     name?: string,
     plan?: SubscriptionTier,
+    installationId?: string,
   ) => Promise<User>;
-  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;
@@ -55,6 +58,6 @@ export interface Database {
   }>;
   getMessages: (userId: string, matchId: string) => Promise<Message[]>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
-  run: (sql: string, params?: any[]) => Promise<any>;
+  run: (sql: string, params?: any[]) => Promise<void>;
   clearDatabase: () => Promise<void>;
 }
