@@ -1,9 +1,9 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useState} from 'react';
 import {View} from 'react-native';
-import {IconButton, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DevMenu from '../components/DevMenu';
+import Header from '../components/Header';
 import ResponseGenerator from '../components/ResponseGenerator';
 import SupportContactModal from '../components/SupportContactModal';
 import UserMenuSlideout from '../components/UserMenuSlideout';
@@ -23,40 +23,11 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
       <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
         <View style={{flex: 1}}>
           <View style={{flex: 1}}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: theme.colors.background,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.outline,
-              }}>
-              <Text
-                variant="headlineSmall"
-                style={{color: theme.colors.onBackground}}>
-                Charmr
-              </Text>
-              <View style={{flexDirection: 'row'}}>
-                <IconButton
-                  icon="account-circle"
-                  size={24}
-                  onPress={() => setShowUserMenu(true)}
-                  iconColor={theme.colors.secondary}
-                />
-                {__DEV__ && (
-                  <IconButton
-                    testID="dev-menu-button"
-                    icon="cog"
-                    size={24}
-                    onPress={() => setShowDevMenu(true)}
-                    iconColor={theme.colors.secondary}
-                  />
-                )}
-              </View>
-            </View>
+            <Header
+              onUserMenuPress={() => setShowUserMenu(true)}
+              onDevMenuPress={() => setShowDevMenu(true)}
+              showDevMenu={__DEV__}
+            />
             <ResponseGenerator />
           </View>
           {__DEV__ && showDevMenu && <DevMenu />}

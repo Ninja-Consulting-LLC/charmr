@@ -2,16 +2,9 @@ import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, Icon, Snackbar, Text, TextInput} from 'react-native-paper';
+import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -28,6 +21,7 @@ import {
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
+import ImageSelector from './ImageSelector';
 import MatchSelector from './MatchSelector';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
@@ -318,90 +312,62 @@ const ResponseGenerator: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      testID="response-generator-container">
-      <ScrollView style={styles.scrollView}>
-        {/* Match Selection */}
-        {showMatchSelector && (
-          <View style={styles.matchSection}>
-            <MatchSelector
-              matches={matches}
-              selectedMatch={selectedMatch}
-              onSelectMatch={setSelectedMatch}
-              onAddMatch={() => setShowAddMatchModal(true)}
-              onDeleteMatch={handleDeleteMatch}
-              userPlan={user.plan}
+      testID="response-generator-container"
+      edges={['top']}>
+      <View style={styles.contentContainer}>
+        <ScrollView style={styles.scrollView}>
+          {/* Match Selection */}
+          {showMatchSelector && (
+            <View style={styles.matchSection}>
+              <MatchSelector
+                matches={matches}
+                selectedMatch={selectedMatch}
+                onSelectMatch={setSelectedMatch}
+                onAddMatch={() => setShowAddMatchModal(true)}
+                onDeleteMatch={handleDeleteMatch}
+                userPlan={user.plan}
+              />
+            </View>
+          )}
+
+          {/* Image Selection */}
+          <ImageSelector
+            images={images}
+            onRemoveImage={removeImage}
+            onPickImages={handlePickImages}
+            userPlan={user?.plan}
+          />
+
+          {/* Prompt Input */}
+          <View style={styles.promptSection}>
+            <Text variant="titleMedium">Enter your prompt (optional)</Text>
+            <TextInput
+              value={prompt}
+              onChangeText={setPrompt}
+              multiline
+              numberOfLines={4}
+              style={[styles.promptInput]}
+              testID="prompt-input"
+              placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
+              placeholderTextColor={theme.colors.onSurfaceDisabled}
+              textAlignVertical="top"
             />
           </View>
-        )}
-
-        {/* Image Selection */}
-        <View style={styles.imageSection}>
-          <View style={styles.imageHeader}>
-            <Text variant="titleMedium">Selected Images</Text>
-          </View>
-          <View style={styles.imageGrid}>
-            {images.map((image, index) => (
-              <View key={index} style={styles.imageContainer}>
-                <Image
-                  source={{uri: image.path}}
-                  style={styles.image}
-                  resizeMode="cover"
-                  testID={`selected-image-${index}`}
-                />
-                <Pressable
-                  style={styles.removeImage}
-                  onPress={() => removeImage(index)}
-                  testID={`remove-image-${index}`}>
-                  <Icon source="close" size={16} color="black" />
-                </Pressable>
-              </View>
-            ))}
-            <Pressable
-              style={styles.addImageButton}
-              onPress={handlePickImages}
-              testID="image-picker-button">
-              <Icon
-                source="image-plus"
-                size={24}
-                color={theme.colors.secondary}
-              />
-              <Text style={styles.addImageText}>Add Screenshot</Text>
-              {user?.plan === SubscriptionTier.FREE && images.length > 0 && (
-                <View style={styles.premiumBadge}>
-                  <Icon source="star" size={12} color="gold" />
-                </View>
-              )}
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Prompt Input */}
-        <View style={styles.promptSection}>
-          <Text variant="titleMedium">Enter your prompt (optional)</Text>
-          <TextInput
-            value={prompt}
-            onChangeText={setPrompt}
-            multiline
-            numberOfLines={4}
-            style={[styles.promptInput]}
-            testID="prompt-input"
-            placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-            placeholderTextColor={theme.colors.onSurfaceDisabled}
-            textAlignVertical="top"
-          />
-        </View>
+        </ScrollView>
 
         {/* Generate Button */}
-        <Button
-          mode="contained"
-          onPress={handleSubmit}
-          loading={loading}
-          disabled={loading || images.length === 0}
-          style={styles.generateButton}
-          testID="submit-button">
-          Generate Response
-        </Button>
-      </ScrollView>
+        <View style={styles.buttonContainer}>
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={loading || images.length === 0}
+            style={styles.generateButton}
+            testID="submit-button">
+            Generate Response
+          </Button>
+        </View>
+      </View>
 
       {/* Modals */}
       <AddMatchModal
@@ -451,45 +417,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  contentContainer: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
   },
   matchSection: {
-    paddingVertical: 16,
+    paddingBottom: 16,
     marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
-  },
-  matchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageSection: {
-    paddingVertical: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
-  },
-  imageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
   },
   promptSection: {
     paddingVertical: 8,
     marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
   },
   promptInput: {
     marginTop: 8,
@@ -500,92 +441,15 @@ const styles = StyleSheet.create({
     padding: 4,
     minHeight: 80,
   },
+  buttonContainer: {
+    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.background,
+  },
   generateButton: {
-    marginTop: 16,
-    marginBottom: 24,
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
-  },
-  removeImage: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.colors.secondary,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  removeImageContent: {
-    padding: 0,
-    margin: 0,
-    width: 16,
-    height: 16,
-  },
-  messageLimitSection: {
-    margin: 16,
-    padding: 16,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: theme.colors.secondary,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  imageWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  addImageButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: theme.colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(64, 224, 208, 0.1)',
-    gap: 8,
-    position: 'relative',
-  },
-  addImageText: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: theme.colors.secondary,
-  },
-  premiumBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
-    padding: 2,
   },
 });
 
