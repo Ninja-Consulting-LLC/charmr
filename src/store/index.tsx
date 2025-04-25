@@ -2,17 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {config} from '../config/config';
+import {fetchUserData} from '../services/api';
 import {SubscriptionTier} from '../types/enums';
-
-interface User {
-  id: string;
-  email?: string;
-  plan: SubscriptionTier;
-  dailyMessagesUsed: number;
-  dailyMessageLimit: number;
-  extraMessages: number;
-  lastResetDate: string;
-}
+import {User} from '../types/user';
+import {getPlanLimits} from '../utils/planLimits';
 
 // Define the store state and methods
 interface Store {
@@ -35,6 +28,9 @@ interface Store {
   updateUserPlan: (plan: SubscriptionTier) => Promise<void>;
   showUpgradeModal: boolean;
   setShowUpgradeModal: (show: boolean) => void;
+  createNewUser: () => Promise<void>;
+  linkAnonymousUser: (registeredUserId: string) => Promise<void>;
+  handleGoogleLogin: (firebaseUser: any) => Promise<void>;
 }
 
 // Create context with a default value
@@ -53,9 +49,9 @@ const StoreContext = createContext<Store>({
     id: '',
     plan: SubscriptionTier.FREE,
     dailyMessagesUsed: 0,
-    dailyMessageLimit: 5,
     extraMessages: 0,
     lastResetDate: new Date().toISOString(),
+    getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
   },
   setUser: () => {},
   isAuthenticated: false,
@@ -65,6 +61,9 @@ const StoreContext = createContext<Store>({
   updateUserPlan: async () => {},
   showUpgradeModal: false,
   setShowUpgradeModal: () => {},
+  createNewUser: async () => {},
+  linkAnonymousUser: async () => {},
+  handleGoogleLogin: async () => {},
 });
 
 // Custom hook to use the store
@@ -86,9 +85,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     id: '',
     plan: SubscriptionTier.FREE,
     dailyMessagesUsed: 0,
-    dailyMessageLimit: 5,
     extraMessages: 0,
     lastResetDate: new Date().toISOString(),
+    getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
   });
 
   // Set auth bypass in development mode
@@ -98,62 +97,55 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, []);
 
-  const syncUserWithBackend = async (userId: string, userData: User) => {
+  const syncUserWithBackend = async (userId: string) => {
     try {
-      // First check if user exists
-      const response = await axios.get(`${config.apiBaseUrl}/api/admin/users`, {
-        headers: {
-          Authorization: 'Bearer dev-admin-token',
-        },
-      });
-
-      const existingUser = response.data.find((u: User) => u.id === userId);
-
-      if (!existingUser) {
-        // Create the user if they don't exist
-        await axios.post(
-          `${config.apiBaseUrl}/api/admin/users`,
-          {
-            id: userId,
-            email: `${userId}@example.com`, // Default email for dev users
-            name: `Dev User ${userId.slice(0, 6)}`, // Default name using part of the ID
-          },
-          {
-            headers: {
-              Authorization: 'Bearer dev-admin-token',
-            },
-          },
-        );
-        console.log('Created dev user in database:', userId);
+      const userData = await fetchUserData(userId);
+      if (userData) {
+        setUserState({
+          ...userData,
+          getDailyMessageLimit: () => getPlanLimits(userData.plan),
+        });
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        console.log('Synced user data with backend:', userData);
       }
     } catch (error) {
-      console.error('Error syncing dev user:', error);
+      console.error('Error syncing user data:', error);
     }
   };
 
   const setUser = (newUser: Partial<User>) => {
-    const updatedUser = {...user, ...newUser};
+    const updatedUser = {
+      ...user,
+      ...newUser,
+      getDailyMessageLimit: () => getPlanLimits(newUser.plan || user.plan),
+    };
     setUserState(updatedUser);
     AsyncStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const updateUserPlan = async (plan: SubscriptionTier) => {
     try {
+      if (!userId) {
+        throw new Error('No user ID available');
+      }
+
       // Update backend
       await axios.put(
-        `${config.apiBaseUrl}/api/admin/users/${userId}/plan`,
+        `${config.apiBaseUrl}/api/users/${userId}/plan`,
         {plan},
         {
           headers: {
-            Authorization: 'Bearer dev-admin-token',
+            'Content-Type': 'application/json',
+            'X-Auth-Bypass': 'true', // For development only
           },
         },
       );
 
       // Update local state
-      const updatedUser = {...user, plan};
-      setUserState(updatedUser);
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser({
+        plan,
+        getDailyMessageLimit: () => getPlanLimits(plan),
+      });
     } catch (error) {
       console.error('Error updating user plan:', error);
       throw error;
@@ -162,62 +154,176 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   // Get or create user ID and load user data on component mount
   useEffect(() => {
-    const initializeUserData = async () => {
+    const initUser = async () => {
       try {
-        // Get or create user ID
-        let storedUserId = await AsyncStorage.getItem('userId');
-        if (!storedUserId) {
-          storedUserId = `user-${Date.now()}-${Math.random()
-            .toString(36)
-            .substr(2, 9)}`;
-          await AsyncStorage.setItem('userId', storedUserId);
-        }
-        setUserId(storedUserId);
-
-        // Load user data
-        const storedUserData = await AsyncStorage.getItem('userData');
-        if (storedUserData) {
-          const parsedUserData = JSON.parse(storedUserData);
-          // Check if we need to reset the message count
-          const today = new Date().toISOString().split('T')[0];
-          if (parsedUserData.lastResetDate !== today) {
-            const updatedUser = {
-              ...parsedUserData,
-              dailyMessagesUsed: 0,
-              lastResetDate: today,
-            };
-            setUserState(updatedUser);
-            syncUserWithBackend(storedUserId, updatedUser);
-          } else {
-            setUserState(parsedUserData);
-            syncUserWithBackend(storedUserId, parsedUserData);
+        // Get stored user ID if it exists
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setUserId(storedUserId);
+          // Try to sync with backend
+          const userData = await fetchUserData(storedUserId);
+          if (userData) {
+            setUser({
+              ...userData,
+              getDailyMessageLimit: () => getPlanLimits(userData.plan),
+            });
           }
-        } else {
-          // Create new user data
-          const newUser: User = {
-            id: storedUserId,
-            plan: SubscriptionTier.FREE,
-            dailyMessagesUsed: 0,
-            dailyMessageLimit: 5,
-            extraMessages: 0,
-            lastResetDate: new Date().toISOString(),
-          };
-          setUserState(newUser);
-          syncUserWithBackend(storedUserId, newUser);
         }
-
-        // Check authentication status
-        const authStatus = await AsyncStorage.getItem('isAuthenticated');
-        setIsAuthenticated(authStatus === 'true');
       } catch (error) {
-        console.error('Error initializing user data:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error initializing user:', error);
       }
     };
 
-    initializeUserData();
-  }, []);
+    initUser();
+  }, [userId]);
+
+  const createNewUser = async () => {
+    try {
+      // First check if we have a stored user ID
+      const storedUserId = await AsyncStorage.getItem('userId');
+      if (storedUserId) {
+        // Try to fetch the stored user
+        try {
+          const checkResponse = await fetch(
+            `${config.apiBaseUrl}/api/users/${storedUserId}`,
+            {
+              headers: {
+                'X-Auth-Bypass': 'true', // For development only
+              },
+            },
+          );
+
+          if (checkResponse.ok) {
+            // User exists, use their data
+            const existingUserData = await checkResponse.json();
+            setUserId(storedUserId);
+            setUser({
+              ...existingUserData,
+              getDailyMessageLimit: () => getPlanLimits(existingUserData.plan),
+            });
+            await AsyncStorage.setItem(
+              'user',
+              JSON.stringify(existingUserData),
+            );
+            return;
+          }
+        } catch (error) {
+          // If there's an error fetching the stored user, we'll create a new one
+          console.log('Error fetching stored user, creating new one:', error);
+        }
+      }
+
+      // Create new user
+      const newUserId = `user-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+      setUserId(newUserId);
+      await AsyncStorage.setItem('userId', newUserId);
+
+      // Create user in backend
+      const response = await fetch(`${config.apiBaseUrl}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bypass': 'true', // For development only
+        },
+        body: JSON.stringify({
+          id: newUserId,
+          email: `${newUserId}@example.com`,
+          name: `User ${newUserId}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create user');
+      }
+
+      const userData = await response.json();
+
+      // Wait for the user to be created in the backend
+      let retries = 0;
+      let userCreated = false;
+
+      while (retries < 5 && !userCreated) {
+        try {
+          const fetchResponse = await fetch(
+            `${config.apiBaseUrl}/api/users/${newUserId}`,
+            {
+              headers: {
+                'X-Auth-Bypass': 'true', // For development only
+              },
+            },
+          );
+
+          if (fetchResponse.ok) {
+            userCreated = true;
+            const fetchedUserData = await fetchResponse.json();
+            setUser({
+              ...fetchedUserData,
+              getDailyMessageLimit: () => getPlanLimits(fetchedUserData.plan),
+            });
+            // Store the complete user data in AsyncStorage
+            await AsyncStorage.setItem('user', JSON.stringify(fetchedUserData));
+          } else {
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (error) {
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      if (!userCreated) {
+        throw new Error('Failed to verify user creation');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  };
+
+  const linkAnonymousUser = async (registeredUserId: string) => {
+    try {
+      if (!userId) {
+        throw new Error('No anonymous user ID available');
+      }
+
+      // Link the users in the backend
+      const response = await fetch(`${config.apiBaseUrl}/api/users/link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bypass': 'true', // For development only
+        },
+        body: JSON.stringify({
+          anonymousUserId: userId,
+          registeredUserId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to link users');
+      }
+
+      // Update the frontend to use the new user ID
+      setUserId(registeredUserId);
+      await AsyncStorage.setItem('userId', registeredUserId);
+
+      // Fetch the updated user data
+      const userData = await fetchUserData(registeredUserId);
+      if (userData) {
+        setUser({
+          ...userData,
+          getDailyMessageLimit: () => getPlanLimits(userData.plan),
+        });
+      }
+    } catch (error) {
+      console.error('Error linking users:', error);
+      throw error;
+    }
+  };
 
   // Check and reset daily message count
   useEffect(() => {
@@ -237,6 +343,67 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
     return () => clearInterval(interval);
   }, [user.lastResetDate]);
+
+  const handleGoogleLogin = async (firebaseUser: any) => {
+    try {
+      // Create a new user in our backend with Firebase user info
+      const response = await fetch(`${config.apiBaseUrl}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Bypass': 'true', // For development only
+        },
+        body: JSON.stringify({
+          id: firebaseUser.uid,
+          email: firebaseUser.email || `${firebaseUser.uid}@example.com`,
+          name: firebaseUser.displayName || `User ${firebaseUser.uid}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create user in backend');
+      }
+
+      const userData = await response.json();
+
+      // If we have an anonymous user ID, link it with the new registered user
+      if (userId && userId !== firebaseUser.uid) {
+        const linkResponse = await fetch(
+          `${config.apiBaseUrl}/api/users/link`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Auth-Bypass': 'true', // For development only
+            },
+            body: JSON.stringify({
+              anonymousUserId: userId,
+              registeredUserId: firebaseUser.uid,
+            }),
+          },
+        );
+
+        if (!linkResponse.ok) {
+          const errorData = await linkResponse.json();
+          throw new Error(errorData.error || 'Failed to link users');
+        }
+      }
+
+      // Update local state with the new user
+      setUserId(firebaseUser.uid);
+      await AsyncStorage.setItem('userId', firebaseUser.uid);
+      setUser({
+        ...userData,
+        getDailyMessageLimit: () => getPlanLimits(userData.plan),
+      });
+      setIsAuthenticated(true);
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+    } catch (error) {
+      console.error('Error in Google login:', error);
+      throw error;
+    }
+  };
 
   const value = {
     showKeyboardModal,
@@ -258,6 +425,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     updateUserPlan,
     showUpgradeModal,
     setShowUpgradeModal,
+    createNewUser,
+    linkAnonymousUser,
+    handleGoogleLogin,
   };
 
   return (
