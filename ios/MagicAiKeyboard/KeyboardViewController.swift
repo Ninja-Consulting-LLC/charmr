@@ -2,11 +2,47 @@ import KeyboardKit
 import SwiftUI
 import UIKit
 
+struct Openers: Codable {
+    let flirty: [String]
+    let casual: [String]
+    let cute: [String]
+    let sincere: [String]
+}
+
+private var loadedOpeners: Openers?
+
+func loadOpeners() {
+    if loadedOpeners == nil {
+        if let url = Bundle.main.url(forResource: "openers", withExtension: "json") {
+            do {
+                let data = try Data(contentsOf: url)
+                loadedOpeners = try JSONDecoder().decode(Openers.self, from: data)
+                print("✅ Loaded openers successfully")
+            } catch {
+                print("❌ Failed to load openers:", error)
+            }
+        }
+    }
+}
+
+func getRandomOpener() -> String {
+    guard let openers = loadedOpeners else {
+        return "Hey there! 👋" // Fallback if openers not loaded
+    }
+
+    // Combine all categories and pick a random one
+    let allOpeners = openers.flirty + openers.casual + openers.cute + openers.sincere
+    return allOpeners.randomElement() ?? "Hey there! 👋"
+}
+
 class KeyboardViewController: KeyboardInputViewController {
     @Environment(\.openURL) private var openURL
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        // Load openers from JSON file
+        loadOpeners()
 
         setup(for: .magicKeyboard) { result in
             switch result {
@@ -84,16 +120,10 @@ struct CustomToolbar: View {
             .foregroundColor(.white)
             .cornerRadius(8)
 
-            Button("Paste AI Message ❤️") {
-                print("Attempting to paste from clipboard...")
-                if let clipboardText = UIPasteboard.general.string {
-                    print("Found clipboard text:", clipboardText)
-                    controller.textDocumentProxy.insertText(clipboardText)
-                    print("Successfully inserted text")
-                } else {
-                    print("Clipboard is empty")
-                    controller.textDocumentProxy.insertText("No message in clipboard. Try copying a message first!")
-                }
+            Button("Generate Opener") {
+                let opener = getRandomOpener()
+                print("Generated opener:", opener)
+                controller.textDocumentProxy.insertText(opener)
             }
             .padding(8)
             .background(Color.blue)
