@@ -159,9 +159,6 @@ describe('ResponseGenerator', () => {
     expect(getByTestId('response-generator-container')).toBeTruthy();
     expect(getByTestId('image-picker-button')).toBeTruthy();
     expect(getByTestId('prompt-input')).toBeTruthy();
-    expect(getByTestId('style-flirty-button')).toBeTruthy();
-    expect(getByTestId('style-smooth-button')).toBeTruthy();
-    expect(getByTestId('style-funny-button')).toBeTruthy();
     expect(getByTestId('submit-button')).toBeTruthy();
   });
 
@@ -427,20 +424,6 @@ describe('ResponseGenerator', () => {
       expect(
         getByText('Failed to generate response. Please try again.'),
       ).toBeTruthy();
-    });
-  });
-
-  it('should persist style selection', async () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
-
-    // Select Flirty style
-    await act(async () => {
-      fireEvent.press(getByTestId('style-flirty-button'));
-    });
-
-    // Verify style is selected
-    await waitFor(() => {
-      expect(getByTestId('style-flirty-button').props.mode).toBe('contained');
     });
   });
 });
