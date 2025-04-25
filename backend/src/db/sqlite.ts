@@ -52,27 +52,35 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     createUser: async (
       userId: string,
-      plan: string = SubscriptionTier.FREE,
+      email?: string,
+      name?: string,
+      plan: SubscriptionTier = SubscriptionTier.FREE,
     ): Promise<User> => {
       try {
+        const dailyMessageLimit =
+          plan === SubscriptionTier.FREE
+            ? 5
+            : plan === SubscriptionTier.PREMIUM
+            ? 50
+            : 100;
+
         const user: User = {
           id: userId,
+          email,
+          name,
           plan,
           dailyMessagesUsed: 0,
-          dailyMessageLimit:
-            plan === SubscriptionTier.FREE
-              ? 5
-              : plan === SubscriptionTier.PREMIUM
-              ? 50
-              : 200,
+          dailyMessageLimit,
           extraMessages: 0,
           lastResetDate: new Date().toISOString().split('T')[0],
         };
 
         await db.run(
-          'INSERT INTO users (id, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [
             user.id,
+            user.email,
+            user.name,
             user.plan,
             user.dailyMessagesUsed,
             user.dailyMessageLimit,
@@ -171,19 +179,21 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    updateUserPlan: async (userId: string, plan: string): Promise<void> => {
+    updateUserPlan: async (
+      userId: string,
+      plan: SubscriptionTier,
+    ): Promise<void> => {
       try {
+        const dailyMessageLimit =
+          plan === SubscriptionTier.FREE
+            ? 5
+            : plan === SubscriptionTier.PREMIUM
+            ? 50
+            : 100;
+
         await db.run(
           'UPDATE users SET plan = ?, dailyMessageLimit = ? WHERE id = ?',
-          [
-            plan,
-            plan === SubscriptionTier.FREE
-              ? 5
-              : plan === SubscriptionTier.PREMIUM
-              ? 50
-              : 200,
-            userId,
-          ],
+          [plan, dailyMessageLimit, userId],
         );
       } catch (error) {
         logger.error('Failed to update user plan', {

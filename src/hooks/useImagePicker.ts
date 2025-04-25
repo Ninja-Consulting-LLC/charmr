@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import ImagePicker from 'react-native-image-crop-picker';
 import {useStore} from '../store';
-import {UserPlan} from '../types/enums';
+import {SubscriptionTier} from '../types/enums';
 
 interface SelectedImage {
   path: string;
@@ -17,7 +17,8 @@ export const useImagePicker = () => {
   const openScreenshotPicker = async () => {
     try {
       const isPlusOrPremium =
-        user?.plan === UserPlan.PLUS || user?.plan === UserPlan.PREMIUM;
+        user?.plan === SubscriptionTier.PREMIUM ||
+        user?.plan === SubscriptionTier.PRO;
       const maxFiles = isPlusOrPremium ? 10 : 1;
 
       const result = await ImagePicker.openPicker({
@@ -49,7 +50,7 @@ export const useImagePicker = () => {
   const pickImages = async () => {
     try {
       // If user is on free plan and already has a screenshot, show upgrade modal
-      if (user?.plan === UserPlan.FREE && images.length > 0) {
+      if (user?.plan === SubscriptionTier.FREE && images.length > 0) {
         setShowUpgradeModal(true);
         return;
       }
