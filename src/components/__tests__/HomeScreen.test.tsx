@@ -98,7 +98,7 @@ describe('HomeScreen', () => {
 
   it('renders title correctly', () => {
     const {getByText} = render(<HomeScreen {...mockProps} />);
-    expect(getByText('Dating Buddy')).toBeTruthy();
+    expect(getByText('Charmr')).toBeTruthy();
   });
 
   it('shows dev menu button in dev mode', () => {

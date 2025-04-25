@@ -58,7 +58,7 @@ const OnboardingScreen = () => {
               Enable Dating Keyboard
             </Text>
             <Text variant="bodyLarge" style={styles.stepDescription}>
-              Follow these steps to enable Dating Buddy keyboard:
+              Follow these steps to enable Charmr keyboard:
             </Text>
             {/* TODO: Add GIF here */}
             <View style={styles.stepsList}>
@@ -67,7 +67,7 @@ const OnboardingScreen = () => {
               <Text style={styles.stepItem}>3. Tap Keyboard</Text>
               <Text style={styles.stepItem}>4. Tap Keyboards</Text>
               <Text style={styles.stepItem}>5. Tap Add New Keyboard</Text>
-              <Text style={styles.stepItem}>6. Select Dating Buddy</Text>
+              <Text style={styles.stepItem}>6. Select Charmr</Text>
             </View>
           </View>
         );
@@ -78,8 +78,7 @@ const OnboardingScreen = () => {
               Set as Default Keyboard
             </Text>
             <Text variant="bodyLarge" style={styles.stepDescription}>
-              For the best experience, set Dating Buddy as your default
-              keyboard:
+              For the best experience, set Charmr as your default keyboard:
             </Text>
             <View style={styles.stepsList}>
               <Text style={styles.stepItem}>1. Go to Settings</Text>
@@ -87,9 +86,7 @@ const OnboardingScreen = () => {
               <Text style={styles.stepItem}>3. Tap Keyboard</Text>
               <Text style={styles.stepItem}>4. Tap Keyboards</Text>
               <Text style={styles.stepItem}>5. Tap Edit</Text>
-              <Text style={styles.stepItem}>
-                6. Drag Dating Buddy to the top
-              </Text>
+              <Text style={styles.stepItem}>6. Drag Charmr to the top</Text>
             </View>
           </View>
         );
