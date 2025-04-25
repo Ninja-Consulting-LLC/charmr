@@ -44,10 +44,10 @@ describe('OnboardingScreen', () => {
 
     expect(getByText('Enable Dating Keyboard')).toBeTruthy();
     expect(
-      getByText('Follow these steps to enable Dating Buddy keyboard:'),
+      getByText('Follow these steps to enable Charmr keyboard:'),
     ).toBeTruthy();
     expect(getByText('1. Go to Settings')).toBeTruthy();
-    expect(getByText('6. Select Dating Buddy')).toBeTruthy();
+    expect(getByText('6. Select Charmr')).toBeTruthy();
   });
 
   it('navigates through steps when clicking next', () => {

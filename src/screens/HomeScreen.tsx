@@ -37,7 +37,7 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
               <Text
                 variant="headlineSmall"
                 style={{color: theme.colors.onBackground}}>
-                Dating Buddy
+                Charmr
               </Text>
               <View style={{flexDirection: 'row'}}>
                 <IconButton

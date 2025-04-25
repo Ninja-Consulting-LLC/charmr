@@ -75,7 +75,7 @@ exports[`LoginScreen matches snapshot in dev mode 1`] = `
         testID="app-title"
         variant="headlineMedium"
       >
-        Dating Buddy
+        Charmr
       </Text>
       <Text
         style={
@@ -234,7 +234,7 @@ exports[`LoginScreen matches snapshot in normal mode 1`] = `
         testID="app-title"
         variant="headlineMedium"
       >
-        Dating Buddy
+        Charmr
       </Text>
       <Text
         style={
