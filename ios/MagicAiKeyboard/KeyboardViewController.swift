@@ -2,6 +2,45 @@ import KeyboardKit
 import SwiftUI
 import UIKit
 
+// Define the gradient colors from the theme
+extension Color {
+    static let primaryGradient = LinearGradient(
+        gradient: Gradient(colors: [
+            Color(red: 0.494, green: 0.133, blue: 0.808), // #7E22CE
+            Color(red: 0.231, green: 0.027, blue: 0.392)  // #3B0764
+        ]),
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+
+    static let turquoise = Color(red: 0.251, green: 0.878, blue: 0.816) // #40E0D0
+}
+
+enum MessageStyle: String, CaseIterable {
+    case spicy = "Spicy"
+    case flirty = "Flirty"
+    case casual = "Casual"
+    case sincere = "Sincere"
+
+    var emoji: String {
+        switch self {
+        case .spicy: return "🔥"
+        case .flirty: return "😏"
+        case .casual: return "😊"
+        case .sincere: return "💝"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .spicy: return "Frisky texts to turn up the heat"
+        case .flirty: return "Rizz lines to spark interest"
+        case .casual: return "Relaxed, simple conversation starters"
+        case .sincere: return "Heartfelt messages from the soul"
+        }
+    }
+}
+
 struct Openers: Codable {
     let flirty: [String]
     let casual: [String]
@@ -25,14 +64,23 @@ func loadOpeners() {
     }
 }
 
-func getRandomOpener() -> String {
+func getRandomOpener(style: MessageStyle) -> String {
     guard let openers = loadedOpeners else {
         return "Hey there! 👋" // Fallback if openers not loaded
     }
 
-    // Combine all categories and pick a random one
-    let allOpeners = openers.flirty + openers.casual + openers.cute + openers.sincere
-    return allOpeners.randomElement() ?? "Hey there! 👋"
+    // Select openers based on style
+    let selectedOpeners: [String]
+    switch style {
+    case .spicy, .flirty:
+        selectedOpeners = openers.flirty
+    case .casual:
+        selectedOpeners = openers.casual
+    case .sincere:
+        selectedOpeners = openers.sincere
+    }
+
+    return selectedOpeners.randomElement() ?? "Hey there! 👋"
 }
 
 class KeyboardViewController: KeyboardInputViewController {
@@ -61,32 +109,191 @@ class KeyboardViewController: KeyboardInputViewController {
     }
 }
 
+struct StylePickerView: View {
+    @Binding var selectedStyle: MessageStyle
+    @Binding var showingStylePicker: Bool
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Button(action: {
+                showingStylePicker.toggle()
+            }) {
+                HStack {
+                    Text(selectedStyle.emoji)
+                    Text(selectedStyle.rawValue)
+                        .foregroundColor(.white)
+                    Text(selectedStyle.description)
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(.system(size: 14))
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.primaryGradient)
+                .cornerRadius(8)
+            }
+            .sheet(isPresented: $showingStylePicker) {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("Choose Style")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Button(action: {
+                            showingStylePicker = false
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                    .padding()
+
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(MessageStyle.allCases, id: \.self) { style in
+                                Button(action: {
+                                    selectedStyle = style
+                                    showingStylePicker = false
+                                }) {
+                                    HStack {
+                                        Text(style.emoji)
+                                        VStack(alignment: .leading) {
+                                            Text(style.rawValue)
+                                                .foregroundColor(.white)
+                                            Text(style.description)
+                                                .foregroundColor(.white.opacity(0.7))
+                                                .font(.system(size: 14))
+                                        }
+                                        Spacer()
+                                        if style == selectedStyle {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.turquoise)
+                                        }
+                                    }
+                                    .padding()
+                                    .background(style == selectedStyle ? Color.white.opacity(0.1) : Color.clear)
+                                    .cornerRadius(8)
+                                }
+
+                                if style != MessageStyle.allCases.last {
+                                    Divider()
+                                        .background(Color.white.opacity(0.2))
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+                .background(
+                    Color.primaryGradient
+                        .ignoresSafeArea()
+                )
+                .presentationDetents([.height(300)])
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+struct CustomToolbar: View {
+    let controller: KeyboardInputViewController
+    @Binding var isCustomKeyboard: Bool
+    @Binding var selectedStyle: MessageStyle
+    @Binding var showingStylePicker: Bool
+    @Binding var hasGeneratedOpener: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button("Open Charmr") {
+                if let url = URL(string: "aidatingkeyboard://open/homescreen") {
+                    print("Opening app with URL:", url.absoluteString)
+                    controller.openUrl(url)
+                }
+            }
+            .buttonStyle(OutlineButtonStyle())
+
+            Button(hasGeneratedOpener ? "Regenerate" : "Generate Opener") {
+                if hasGeneratedOpener {
+                    // Regenerate: Clear existing text first
+                    controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: -Int.max)
+                    controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: Int.max)
+                    let length = controller.textDocumentProxy.documentContextBeforeInput?.count ?? 0
+                    for _ in 0..<length {
+                        controller.textDocumentProxy.deleteBackward()
+                    }
+                }
+
+                // Insert new opener
+                let opener = getRandomOpener(style: selectedStyle)
+                print("Generated opener:", opener)
+                controller.textDocumentProxy.insertText(opener)
+
+                if !hasGeneratedOpener {
+                    // First time generating - just switch to custom keyboard
+                    isCustomKeyboard = true
+                    hasGeneratedOpener = true
+                }
+            }
+            .buttonStyle(OutlineButtonStyle())
+
+            Spacer()
+
+            Button(action: {
+                isCustomKeyboard.toggle()
+            }) {
+                Image(systemName: "keyboard")
+                    .foregroundColor(.white)
+                    .font(.system(size: 20))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct OutlineButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .foregroundColor(.turquoise)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.turquoise, lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+    }
+}
+
 struct CustomKeyboardView: View {
     let controller: KeyboardInputViewController
     @State private var isCustomKeyboard = false
+    @State private var selectedStyle: MessageStyle = .flirty
+    @State private var showingStylePicker = false
+    @State private var hasGeneratedOpener = false
 
     var body: some View {
         VStack(spacing: 0) {
             // Common toolbar that appears in both modes
-            CustomToolbar(controller: controller, isCustomKeyboard: $isCustomKeyboard)
+            CustomToolbar(
+                controller: controller,
+                isCustomKeyboard: $isCustomKeyboard,
+                selectedStyle: $selectedStyle,
+                showingStylePicker: $showingStylePicker,
+                hasGeneratedOpener: $hasGeneratedOpener
+            )
+            .background(Color.primaryGradient)
 
             if isCustomKeyboard {
-                // Custom keyboard with smiley button
-                VStack {
-                    HStack {
-                        Button("😊") {
-                            controller.textDocumentProxy.insertText("😊")
-                        }
-                        .font(.system(size: 24))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                    .frame(height: 50)
-                    .padding()
-
-                    Spacer()
-                }
+                // Custom keyboard with style selector
+                StylePickerView(selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
+                    .frame(height: 210)
+                    .background(Color.primaryGradient)
             } else {
                 // Default KeyboardKit keyboard
                 KeyboardView(
@@ -98,49 +305,9 @@ struct CustomKeyboardView: View {
                     emojiKeyboard: { $0.view },
                     toolbar: { _ in EmptyView() }
                 )
+                .frame(height: 210)
+                .background(Color.primaryGradient)
             }
         }
-    }
-}
-
-struct CustomToolbar: View {
-    let controller: KeyboardInputViewController
-    @Binding var isCustomKeyboard: Bool
-
-    var body: some View {
-        HStack {
-            Button("Open Charmr") {
-                if let url = URL(string: "aidatingkeyboard://open/homescreen") {
-                    print("Opening app with URL:", url.absoluteString)
-                    controller.openUrl(url)
-                }
-            }
-            .padding(8)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-
-            Button("Generate Opener") {
-                let opener = getRandomOpener()
-                print("Generated opener:", opener)
-                controller.textDocumentProxy.insertText(opener)
-            }
-            .padding(8)
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(8)
-
-            Button(action: {
-                isCustomKeyboard.toggle()
-            }) {
-                Image(systemName: "keyboard")
-                    .foregroundColor(.white)
-            }
-            .padding(8)
-            .background(Color.blue)
-            .cornerRadius(8)
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 8)
     }
 }
