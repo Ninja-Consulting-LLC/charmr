@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
+import {UserData} from '../types/user';
 
 interface GenerateReplyRequest {
   prompt: string;
@@ -116,9 +118,36 @@ export const clearDatabase = async () => {
         },
       },
     );
+
+    // Also clear AsyncStorage
+    await AsyncStorage.clear();
+
     return response.data;
   } catch (error) {
     console.error('Error clearing database:', error);
     throw error;
+  }
+};
+
+export const fetchUserData = async (
+  userId: string,
+): Promise<UserData | null> => {
+  try {
+    const response = await fetch(`${config.apiBaseUrl}/api/users/${userId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-Bypass': 'true', // For development only
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    return null;
   }
 };
