@@ -47,10 +47,28 @@ async function testHealthEndpoint() {
 async function testGenerateReplyEndpoint() {
   console.log('\n🔍 Testing generate-reply endpoint...');
 
+  // First get a valid user ID from the database
+  const usersResponse = await fetch(`${apiBaseUrl}/api/admin/users`, {
+    headers: {
+      Authorization: 'Bearer dev-admin-token',
+    },
+  });
+
+  if (!usersResponse.ok) {
+    console.error('❌ Failed to fetch users:', usersResponse.status);
+    return false;
+  }
+
+  const users = (await usersResponse.json()) as User[];
+  if (users.length === 0) {
+    console.error('❌ No users found in database');
+    return false;
+  }
+
   const testPayload = {
     prompt: 'make it funny',
     images: ['data:image/jpeg;base64,test123'],
-    userId: 'test-user-1',
+    userId: users[0].id,
     matchId: 'test-match-1',
     deleteAfterResponse: true,
     skipRateLimiting: true,
