@@ -17,7 +17,6 @@ import {
   IconButton,
   List,
   Snackbar,
-  Switch,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -195,16 +194,6 @@ const ResponseGenerator: React.FC = () => {
       return;
     }
 
-    // Check message limits before submitting
-    if (
-      user.dailyMessagesUsed >= user.dailyMessageLimit &&
-      user.extraMessages <= 0
-    ) {
-      setError(MESSAGES.MESSAGE_LIMIT);
-      setShowSnackbar(true);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -218,38 +207,38 @@ const ResponseGenerator: React.FC = () => {
         }),
       );
 
-      const response = await generateReply({
+      const reply = await generateReply({
         prompt: prompt.trim() || 'make it flirty',
         images: base64Images,
         userId,
         matchId: selectedMatch ? generateMatchId(selectedMatch) : '',
       });
 
-      if (response.error) {
-        if (response.type === 'MESSAGE_LIMIT') {
+      if (reply.error) {
+        if (reply.type === 'MESSAGE_LIMIT') {
           setError(MESSAGES.MESSAGE_LIMIT);
         } else {
-          setError(response.error);
+          setError(reply.error);
         }
         setShowSnackbar(true);
       } else {
-        setResponse(response.reply);
-        // Copy to clipboard immediately upon generation
-        Clipboard.setString(response.reply);
+        setResponse(reply.reply);
         setShowReplyModal(true);
+        // Auto-copy when modal appears
+        handleCopyToClipboard();
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
         }
         // Update the user's message counts from the backend response
-        if (response.limits) {
+        if (reply.limits) {
           setUser({
-            dailyMessagesUsed: response.limits.dailyMessagesUsed,
-            dailyMessageLimit: response.limits.dailyMessageLimit,
-            extraMessages: response.limits.extraMessages,
+            dailyMessagesUsed: reply.limits.dailyMessagesUsed,
+            dailyMessageLimit: reply.limits.dailyMessageLimit,
+            extraMessages: reply.limits.extraMessages,
           });
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating reply:', error);
       if (axios.isAxiosError(error)) {
         if (
@@ -269,7 +258,7 @@ const ResponseGenerator: React.FC = () => {
     }
   };
 
-  const handleFinish = async () => {
+  const handleDone = async () => {
     await deleteScreenshotsFromLibrary();
     setImages([]);
     setPrompt('');
@@ -305,6 +294,10 @@ const ResponseGenerator: React.FC = () => {
       return;
     }
     await pickImages();
+  };
+
+  const handleDeleteScreenshotsToggle = (value: boolean) => {
+    setDeleteScreenshots(value);
   };
 
   return (
@@ -362,14 +355,6 @@ const ResponseGenerator: React.FC = () => {
         <View style={styles.imageSection}>
           <View style={styles.imageHeader}>
             <Text variant="titleMedium">Selected Images</Text>
-            <View style={styles.imageActions}>
-              <Text>Delete after use</Text>
-              <Switch
-                value={deleteScreenshots}
-                onValueChange={setDeleteScreenshots}
-                testID="delete-screenshots-switch"
-              />
-            </View>
           </View>
           <View style={styles.imageGrid}>
             {images.map((image, index) => (
@@ -457,9 +442,11 @@ const ResponseGenerator: React.FC = () => {
         visible={showReplyModal}
         onDismiss={() => setShowReplyModal(false)}
         reply={response || ''}
-        onFinish={handleFinish}
+        onDone={handleDone}
         onCopy={handleCopyToClipboard}
         onModifyResponse={handleModifyResponse}
+        onDeleteScreenshots={handleDeleteScreenshotsToggle}
+        deleteScreenshots={deleteScreenshots}
       />
 
       <Snackbar
@@ -509,11 +496,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   imageGrid: {
     flexDirection: 'row',

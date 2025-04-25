@@ -9,4 +9,11 @@ export const MESSAGES = {
   MESSAGE_COPIED:
     'Message copied to clipboard! Return to your dating app to paste the message.',
   GENERATION_ERROR: 'Failed to generate response. Please try again.',
+
+  // Reply Modal Messages
+  REPLY_MODAL_TITLE: 'Generated Response',
+  REPLY_MODAL_MODIFY_HINT: "Not quite what you're looking for...modify prompt",
+  REPLY_MODAL_DELETE_HINT: 'Delete screenshot(s) when done',
+  REPLY_MODAL_MODIFY: 'Modify',
+  REPLY_MODAL_DONE: 'Done',
 } as const;
