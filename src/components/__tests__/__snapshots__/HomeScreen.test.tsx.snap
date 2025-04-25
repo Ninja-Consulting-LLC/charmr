@@ -36,7 +36,7 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
       <Text
         variant="headlineSmall"
       >
-        Dating Buddy
+        Charmr
       </Text>
       <IconButton
         icon="cog"
@@ -90,7 +90,7 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
       <Text
         variant="headlineSmall"
       >
-        Dating Buddy
+        Charmr
       </Text>
     </View>
     <View

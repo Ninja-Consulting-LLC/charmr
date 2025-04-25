@@ -16,36 +16,21 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const {id, email, name} = req.body;
-    if (!id || !email || !name) {
+    const {id, email, name, installationId} = req.body;
+    if (!id) {
       return res.status(400).json({error: 'Missing required fields'});
     }
 
     const db = await getDatabase();
-    await db.run(
-      'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        id,
-        email,
-        name,
-        'free', // default plan
-        0, // dailyMessagesUsed
-        5, // dailyMessageLimit for free plan
-        0, // extraMessages
-        new Date().toISOString().split('T')[0], // lastResetDate
-      ],
-    );
-    logger.info('Created new user:', {id, email, name});
-    res.status(201).json({
+    const user = await db.createUser(
       id,
       email,
       name,
-      plan: 'free',
-      dailyMessagesUsed: 0,
-      dailyMessageLimit: 5,
-      extraMessages: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
-    });
+      undefined,
+      installationId,
+    );
+    logger.info('Created new user:', {id, email, name, installationId});
+    res.status(201).json(user);
   } catch (error) {
     logger.error('Error creating user:', {error});
     res.status(500).json({error: 'Failed to create user'});
@@ -120,5 +105,145 @@ export const resetUserMessageLimit = async (req: Request, res: Response) => {
       userId: req.params.userId,
     });
     res.status(500).json({error: 'Failed to reset message limit'});
+  }
+};
+
+export const updateUserPlan = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {plan} = req.body;
+
+    if (!plan) {
+      return res.status(400).json({error: 'Plan is required'});
+    }
+
+    const db = await getDatabase();
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Update the user's plan
+    await db.updateUser(userId, {
+      plan,
+    });
+
+    logger.info('Updated user plan:', {userId, plan});
+    res.json({message: 'Plan updated successfully'});
+  } catch (error) {
+    logger.error('Error updating user plan:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to update user plan'});
+  }
+};
+
+export const clearDatabase = async (req: Request, res: Response) => {
+  try {
+    const db = await getDatabase();
+    await db.clearDatabase();
+    logger.info('Database cleared by admin');
+    res.json({message: 'Database cleared successfully'});
+  } catch (error) {
+    logger.error('Error clearing database:', {error});
+    res.status(500).json({error: 'Failed to clear database'});
+  }
+};
+
+export const getUser = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const db = await getDatabase();
+
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    res.json(user);
+  } catch (error) {
+    logger.error('Error getting user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to get user'});
+  }
+};
+
+export const getUserByInstallationId = async (req: Request, res: Response) => {
+  try {
+    const {installationId} = req.params;
+    const db = await getDatabase();
+
+    const user = await db.getUserByInstallationId(installationId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    res.json(user);
+  } catch (error) {
+    logger.error('Error getting user by installation ID:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      installationId: req.params.installationId,
+    });
+    res.status(500).json({error: 'Failed to get user'});
+  }
+};
+
+export const linkAnonymousUser = async (req: Request, res: Response) => {
+  try {
+    const {anonymousUserId, registeredUserId, installationId} = req.body;
+    if (!anonymousUserId || !registeredUserId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
+
+    const db = await getDatabase();
+
+    // Get the anonymous user's data
+    const anonymousUser = await db.getUser(anonymousUserId);
+    if (!anonymousUser) {
+      return res.status(404).json({error: 'Anonymous user not found'});
+    }
+
+    // Get the registered user
+    const registeredUser = await db.getUser(registeredUserId);
+    if (!registeredUser) {
+      return res.status(404).json({error: 'Registered user not found'});
+    }
+
+    // Transfer all messages from anonymous to registered user
+    await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
+      registeredUserId,
+      anonymousUserId,
+    ]);
+
+    // Transfer any remaining extra messages
+    await db.updateUser(registeredUserId, {
+      extraMessages: registeredUser.extraMessages + anonymousUser.extraMessages,
+      installationId: installationId || registeredUser.installationId,
+    });
+
+    // Delete the anonymous user
+    await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
+
+    logger.info('Linked anonymous user to registered user:', {
+      anonymousUserId,
+      registeredUserId,
+      installationId,
+    });
+
+    res.json({message: 'User linked successfully'});
+  } catch (error) {
+    logger.error('Error linking users:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to link users'});
   }
 };

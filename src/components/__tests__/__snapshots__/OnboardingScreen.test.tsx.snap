@@ -47,7 +47,7 @@ exports[`OnboardingScreen matches snapshot for step 1 1`] = `
         }
         variant="bodyLarge"
       >
-        Follow these steps to enable Dating Buddy keyboard:
+        Follow these steps to enable Charmr keyboard:
       </Text>
       <View
         style={
@@ -115,7 +115,7 @@ exports[`OnboardingScreen matches snapshot for step 1 1`] = `
             }
           }
         >
-          6. Select Dating Buddy
+          6. Select Charmr
         </Text>
       </View>
     </View>

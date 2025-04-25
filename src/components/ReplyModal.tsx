@@ -1,69 +1,123 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, Divider, Modal, Portal, Text} from 'react-native-paper';
+import {Pressable, StyleSheet, View} from 'react-native';
+import {
+  IconButton,
+  Modal,
+  Portal,
+  Switch,
+  Text,
+  Tooltip,
+} from 'react-native-paper';
+import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
 
 interface ReplyModalProps {
   visible: boolean;
   onDismiss: () => void;
   reply: string;
-  onFinish: () => void;
+  onDone: () => void;
   onCopy: () => void;
   onModifyResponse: () => void;
+  onDeleteScreenshots: (value: boolean) => void;
+  deleteScreenshots: boolean;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
   visible,
   onDismiss,
   reply,
-  onFinish,
+  onDone,
   onCopy,
   onModifyResponse,
+  onDeleteScreenshots,
+  deleteScreenshots,
 }) => {
   return (
     <Portal>
       <Modal
         visible={visible}
         onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modalContainer,
-          {backgroundColor: theme.colors.surface},
-        ]}>
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text variant="titleMedium">Generated Response</Text>
-            <Button mode="text" onPress={onDismiss}>
-              Close
-            </Button>
-          </View>
+        contentContainerStyle={styles.modalContainer}>
+        <View style={styles.overflowContainer}>
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text variant="titleMedium" style={styles.title}>
+                {MESSAGES.REPLY_MODAL_TITLE}
+              </Text>
+              <IconButton
+                icon="close"
+                onPress={onDismiss}
+                size={24}
+                testID="close-button"
+              />
+            </View>
 
-          <Text variant="bodyLarge" style={styles.replyText}>
-            {reply}
-          </Text>
+            {/* Reply Text */}
+            <Pressable onPress={onCopy} style={styles.replyContainer}>
+              <Text variant="bodyLarge" style={styles.replyText}>
+                {reply}
+              </Text>
+              <IconButton
+                icon="content-copy"
+                size={20}
+                style={styles.copyIcon}
+                onPress={onCopy}
+              />
+            </Pressable>
 
-          <View style={styles.messageSection}>
-            <Text style={styles.returnMessage}>
-              Return to your dating app to paste this response
-            </Text>
-            <Divider style={styles.divider} />
-            <Text style={styles.modifyMessage}>
-              Not quite what you're looking for? Try modifying the response.
-            </Text>
-          </View>
+            {/* Delete Switch */}
+            <View style={styles.deleteSection}>
+              <Text variant="bodyMedium">
+                {MESSAGES.REPLY_MODAL_DELETE_HINT}
+              </Text>
+              <Switch
+                value={deleteScreenshots}
+                onValueChange={onDeleteScreenshots}
+              />
+            </View>
 
-          <View style={styles.footer}>
-            <Button
-              mode="outlined"
-              onPress={onModifyResponse}
-              style={styles.button}>
-              Modify
-            </Button>
-            <Button mode="contained" onPress={onCopy} style={styles.button}>
-              Copy
-            </Button>
-            <Button mode="contained" onPress={onFinish} style={styles.button}>
-              Done
-            </Button>
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <View style={styles.modifySection}>
+                <Tooltip
+                  title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
+                  enterTouchDelay={50}
+                  leaveTouchDelay={1000}
+                  theme={{
+                    colors: {
+                      onSurface: theme.colors.inverseOnSurface,
+                      surface: theme.colors.inverseSurface,
+                    },
+                    fonts: {
+                      bodyMedium: {
+                        ...theme.fonts.bodyMedium,
+                        lineHeight: 24,
+                      },
+                    },
+                    roundness: 8,
+                  }}>
+                  <IconButton
+                    icon="information"
+                    size={20}
+                    style={styles.infoIcon}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                </Tooltip>
+                <Pressable
+                  onPress={onModifyResponse}
+                  style={styles.modifyButton}>
+                  <Text variant="bodyMedium" style={styles.modifyText}>
+                    {MESSAGES.REPLY_MODAL_MODIFY}
+                  </Text>
+                </Pressable>
+              </View>
+              <Pressable onPress={onDone} style={styles.doneButton}>
+                <Text variant="bodyMedium" style={styles.doneText}>
+                  {MESSAGES.REPLY_MODAL_DONE}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -73,11 +127,15 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
 const styles = StyleSheet.create({
   modalContainer: {
-    padding: 16,
+    margin: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+  },
+  overflowContainer: {
+    overflow: 'hidden',
   },
   modalContent: {
-    padding: 16,
-    borderRadius: theme.roundness,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
@@ -85,36 +143,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  replyText: {
+  title: {
+    color: theme.colors.onSurface,
+  },
+  replyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 24,
-    lineHeight: 24,
   },
-  messageSection: {
-    paddingVertical: 12,
+  replyText: {
+    flex: 1,
+    marginRight: 8,
   },
-  returnMessage: {
+  copyIcon: {
+    margin: 0,
+    opacity: 0.6,
+  },
+  helperText: {
     textAlign: 'center',
     color: theme.colors.onSurfaceVariant,
-    fontStyle: 'italic',
+    marginBottom: 24,
   },
-  divider: {
-    backgroundColor: theme.colors.outline,
-    marginVertical: 12,
-  },
-  modifyMessage: {
-    textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  footer: {
+  deleteSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 16,
   },
-  button: {
-    flex: 1,
-    marginHorizontal: 4,
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modifySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modifyButton: {
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  modifyText: {
+    color: theme.colors.onSurfaceVariant,
+  },
+  infoIcon: {
+    margin: 0,
+    marginRight: 4,
+  },
+  doneButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  doneText: {
+    color: theme.colors.onPrimary,
+  },
+  tooltipText: {
+    color: theme.colors.inverseOnSurface,
+    fontSize: 14,
   },
 });
 
