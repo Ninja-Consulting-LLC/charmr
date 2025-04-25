@@ -20,7 +20,6 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       name TEXT,
       plan TEXT NOT NULL,
       dailyMessagesUsed INTEGER NOT NULL,
-      dailyMessageLimit INTEGER NOT NULL,
       extraMessages INTEGER NOT NULL,
       lastResetDate TEXT NOT NULL
     );
@@ -57,33 +56,24 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       plan: SubscriptionTier = SubscriptionTier.FREE,
     ): Promise<User> => {
       try {
-        const dailyMessageLimit =
-          plan === SubscriptionTier.FREE
-            ? 5
-            : plan === SubscriptionTier.PREMIUM
-            ? 50
-            : 100;
-
         const user: User = {
           id: userId,
           email,
           name,
           plan,
           dailyMessagesUsed: 0,
-          dailyMessageLimit,
           extraMessages: 0,
           lastResetDate: new Date().toISOString().split('T')[0],
         };
 
         await db.run(
-          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
             user.id,
             user.email,
             user.name,
             user.plan,
             user.dailyMessagesUsed,
-            user.dailyMessageLimit,
             user.extraMessages,
             user.lastResetDate,
           ],
@@ -126,13 +116,23 @@ export const createSqliteDatabase = async (): Promise<Database> => {
              ELSE 1
            END,
            extraMessages = CASE
-             WHEN dailyMessagesUsed >= dailyMessageLimit AND extraMessages > 0
+             WHEN dailyMessagesUsed >= (SELECT CASE
+               WHEN plan = 'free' THEN 5
+               WHEN plan = 'premium' THEN 50
+               WHEN plan = 'pro' THEN 200
+               ELSE 5
+             END) AND extraMessages > 0
              THEN extraMessages - 1
              ELSE extraMessages
            END,
            lastResetDate = ?
            WHERE id = ? AND (
-             dailyMessagesUsed < dailyMessageLimit
+             dailyMessagesUsed < (SELECT CASE
+               WHEN plan = 'free' THEN 5
+               WHEN plan = 'premium' THEN 50
+               WHEN plan = 'pro' THEN 200
+               ELSE 5
+             END)
              OR lastResetDate != ?
              OR extraMessages > 0
            )`,
@@ -184,17 +184,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       plan: SubscriptionTier,
     ): Promise<void> => {
       try {
-        const dailyMessageLimit =
-          plan === SubscriptionTier.FREE
-            ? 5
-            : plan === SubscriptionTier.PREMIUM
-            ? 50
-            : 100;
-
-        await db.run(
-          'UPDATE users SET plan = ?, dailyMessageLimit = ? WHERE id = ?',
-          [plan, dailyMessageLimit, userId],
-        );
+        await db.run('UPDATE users SET plan = ? WHERE id = ?', [plan, userId]);
       } catch (error) {
         logger.error('Failed to update user plan', {
           error: error instanceof Error ? error.message : 'Unknown error',

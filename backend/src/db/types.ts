@@ -2,7 +2,6 @@ import {SubscriptionTier} from '../types/enums';
 
 export interface MessageLimit {
   dailyMessagesUsed: number;
-  dailyMessageLimit: number;
   extraMessages: number;
 }
 
@@ -12,7 +11,6 @@ export interface User {
   name?: string;
   plan: SubscriptionTier;
   dailyMessagesUsed: number;
-  dailyMessageLimit: number;
   extraMessages: number;
   lastResetDate: string;
 }
@@ -28,7 +26,12 @@ export interface Message {
 
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
-  createUser: (userId: string, plan?: string) => Promise<User>;
+  createUser: (
+    userId: string,
+    email?: string,
+    name?: string,
+    plan?: SubscriptionTier,
+  ) => Promise<User>;
   updateUser: (userId: string, data: Partial<User>) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
