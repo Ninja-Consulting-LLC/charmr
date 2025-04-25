@@ -10,10 +10,9 @@ export const DeepLinkHandler: React.FC = () => {
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       console.log('Handling deep link:', url);
-      if (url.includes('aidatingkeyboard://open/gptmodal')) {
-        console.log('Setting keyboard modal visible');
-        setShowKeyboardModal(true);
-        // Navigate to Home if not already there
+
+      if (url.includes('aidatingkeyboard://open/homescreen')) {
+        console.log('Navigating to Home screen');
         navigation.navigate('Home' as never);
       }
     };
