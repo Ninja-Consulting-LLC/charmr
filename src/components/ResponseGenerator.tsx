@@ -97,9 +97,7 @@ const ResponseGenerator: React.FC = () => {
   useEffect(() => {
     loadMatches();
     // Show match selector for premium users
-    if (user?.plan !== SubscriptionTier.FREE) {
-      setShowMatchSelector(true);
-    }
+    setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
   }, [user?.plan]);
 
   const loadMatches = async () => {

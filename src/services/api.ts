@@ -104,3 +104,21 @@ export const submitSupportRequest = async (
 
   return response.json();
 };
+
+export const clearDatabase = async () => {
+  try {
+    const response = await axios.post(
+      `${config.apiBaseUrl}/api/admin/clear-database`,
+      {},
+      {
+        headers: {
+          Authorization: 'Bearer dev-admin-token',
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing database:', error);
+    throw error;
+  }
+};

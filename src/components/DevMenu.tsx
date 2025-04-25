@@ -3,10 +3,10 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
-import {Alert, StyleSheet, View} from 'react-native';
-import {Button, Modal, Portal, Switch, Text} from 'react-native-paper';
+import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
+import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {RootStackParamList} from '../navigation/types';
-import {generateReply, testContext} from '../services/api';
+import {clearDatabase, generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
@@ -34,6 +34,10 @@ const DevMenu = () => {
     updateUserPlan,
   } = useStore();
 
+  const [isVisible, setIsVisible] = useState(false);
+  const slideAnim = React.useRef(new Animated.Value(400)).current;
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     const checkSandboxMode = async () => {
       const mode = await DevUtils.isSandboxMode();
@@ -41,6 +45,39 @@ const DevMenu = () => {
     };
     checkSandboxMode();
   }, []);
+
+  useEffect(() => {
+    if (showDevMenu) {
+      setIsVisible(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 400,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsVisible(false);
+      });
+    }
+  }, [showDevMenu, slideAnim, fadeAnim]);
 
   if (!__DEV__) {
     return null;
@@ -221,199 +258,267 @@ const DevMenu = () => {
     }
   };
 
-  if (!showDevMenu) return null;
+  const handleClearDatabase = async () => {
+    try {
+      await clearDatabase();
+      Alert.alert('Development', 'Database cleared successfully');
+    } catch (error) {
+      Alert.alert('Development Error', 'Failed to clear database');
+    }
+  };
+
+  if (!isVisible && !showDevMenu) return null;
 
   return (
-    <Portal>
-      <Modal
-        visible={showDevMenu}
-        onDismiss={() => setShowDevMenu(false)}
-        contentContainerStyle={[
-          styles.modal,
-          {backgroundColor: theme.colors.surface},
+    <>
+      <Animated.View
+        style={[
+          styles.overlay,
+          {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            opacity: fadeAnim,
+          },
+        ]}
+        onTouchEnd={() => setShowDevMenu(false)}
+      />
+      <Animated.View
+        style={[
+          styles.drawer,
+          {
+            backgroundColor: theme.colors.surface,
+            transform: [{translateX: slideAnim}],
+          },
         ]}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text variant="titleMedium" style={styles.title}>
-              Development Menu
-            </Text>
-            <Button
-              mode="text"
-              onPress={() => setShowDevMenu(false)}
-              style={styles.closeButton}>
-              Close
-            </Button>
-          </View>
-
-          <View style={styles.toggleContainer}>
-            <Text>Auth Bypass</Text>
-            <Switch value={authBypass} onValueChange={setAuthBypass} />
-          </View>
-
-          <View style={styles.toggleContainer}>
-            <Text>Sandbox Mode (No ChatGPT)</Text>
-            <Switch
-              value={isSandboxMode}
-              onValueChange={handleToggleSandboxMode}
-            />
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={handleLogout}
-              style={styles.button}>
-              Logout
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleResetOnboarding}
-              style={styles.button}>
-              Reset Onboarding
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleClearStorage}
-              style={styles.button}>
-              Clear Storage
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleClearMatchStorage}
-              style={styles.button}>
-              Clear Match Storage
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleInspectStorage}
-              style={styles.button}>
-              Inspect Storage
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleTestContext}
-              style={styles.button}>
-              Test Context
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleTestRateLimiting}
-              style={styles.button}>
-              Test Rate Limiting
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleResetMessageLimit}
-              style={styles.button}>
-              Reset Message Limit (Current User)
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleAddTestMessages}
-              style={styles.button}>
-              Add Test Messages (+10)
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleRemoveTestMessages}
-              style={styles.button}>
-              Remove Test Messages (-10)
-            </Button>
-
-            <View style={styles.planButtonsContainer}>
-              <Text variant="titleSmall" style={styles.planTitle}>
-                Change Plan
+        <View style={styles.header}>
+          <IconButton
+            icon="close"
+            size={24}
+            onPress={() => setShowDevMenu(false)}
+            style={styles.closeButton}
+          />
+        </View>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text variant="titleMedium" style={styles.title}>
+                Development Menu
               </Text>
-              <View style={styles.planButtons}>
+            </View>
+
+            <View style={styles.toggleContainer}>
+              <Text>Auth Bypass</Text>
+              <Switch value={authBypass} onValueChange={setAuthBypass} />
+            </View>
+
+            <View style={styles.toggleContainer}>
+              <Text>Sandbox Mode (No ChatGPT)</Text>
+              <Switch
+                value={isSandboxMode}
+                onValueChange={handleToggleSandboxMode}
+              />
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <Button
+                mode="contained"
+                onPress={handleLogout}
+                style={styles.button}>
+                Logout
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleResetOnboarding}
+                style={styles.button}>
+                Reset Onboarding
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleClearStorage}
+                style={styles.button}>
+                Clear Storage
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleClearMatchStorage}
+                style={styles.button}>
+                Clear Match Storage
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleInspectStorage}
+                style={styles.button}>
+                Inspect Storage
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleTestContext}
+                style={styles.button}>
+                Test Context
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleTestRateLimiting}
+                style={styles.button}>
+                Test Rate Limiting
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleResetMessageLimit}
+                style={styles.button}>
+                Reset Message Limit (Current User)
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleAddTestMessages}
+                style={styles.button}>
+                Add Test Messages (+10)
+              </Button>
+
+              <Button
+                mode="contained"
+                onPress={handleRemoveTestMessages}
+                style={styles.button}>
+                Remove Test Messages (-10)
+              </Button>
+
+              <View style={styles.planButtonsContainer}>
+                <Text variant="titleSmall" style={styles.planTitle}>
+                  Change Plan
+                </Text>
+                <View style={styles.planButtons}>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleChangePlan(SubscriptionTier.FREE)}
+                    style={styles.planButton}>
+                    Free
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleChangePlan(SubscriptionTier.PREMIUM)}
+                    style={styles.planButton}>
+                    Premium
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleChangePlan(SubscriptionTier.PRO)}
+                    style={styles.planButton}>
+                    Pro
+                  </Button>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text variant="titleSmall" style={styles.sectionTitle}>
+                  Database
+                </Text>
                 <Button
                   mode="contained"
-                  onPress={() => handleChangePlan(SubscriptionTier.FREE)}
-                  style={styles.planButton}>
-                  Free
+                  onPress={handleClearDatabase}
+                  style={styles.button}>
+                  Clear Database
                 </Button>
+              </View>
+
+              <View style={styles.section}>
+                <Text variant="titleSmall" style={styles.sectionTitle}>
+                  Storage
+                </Text>
                 <Button
                   mode="contained"
-                  onPress={() => handleChangePlan(SubscriptionTier.PREMIUM)}
-                  style={styles.planButton}>
-                  Premium
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={() => handleChangePlan(SubscriptionTier.PRO)}
-                  style={styles.planButton}>
-                  Pro
+                  onPress={handleClearStorage}
+                  style={styles.button}>
+                  Clear Storage
                 </Button>
               </View>
             </View>
-          </View>
 
-          {testStatus && (
-            <Text style={styles.statusText} variant="bodySmall">
-              {testStatus}
-            </Text>
-          )}
-
-          {testResults.length > 0 && (
-            <View style={styles.resultsContainer}>
-              <Text variant="bodySmall" style={styles.resultsTitle}>
-                Test Results:
+            {testStatus && (
+              <Text style={styles.statusText} variant="bodySmall">
+                {testStatus}
               </Text>
-              {testResults.map((result, index) => (
-                <Text
-                  key={index}
-                  style={[
-                    styles.resultText,
-                    result.success ? styles.successText : styles.errorText,
-                  ]}
-                  variant="bodySmall">
-                  {index + 1}. "{result.prompt}" -{' '}
-                  {result.success ? 'Success' : `Failed: ${result.error}`}
-                </Text>
-              ))}
-            </View>
-          )}
+            )}
 
-          {error && (
-            <Text style={styles.errorText} variant="bodySmall">
-              {error}
-            </Text>
-          )}
-        </View>
-      </Modal>
-    </Portal>
+            {testResults.length > 0 && (
+              <View style={styles.resultsContainer}>
+                <Text variant="bodySmall" style={styles.resultsTitle}>
+                  Test Results:
+                </Text>
+                {testResults.map((result, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      styles.resultText,
+                      result.success ? styles.successText : styles.errorText,
+                    ]}
+                    variant="bodySmall">
+                    {index + 1}. "{result.prompt}" -{' '}
+                    {result.success ? 'Success' : `Failed: ${result.error}`}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            {error && (
+              <Text style={styles.errorText} variant="bodySmall">
+                {error}
+              </Text>
+            )}
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    padding: 20,
-    margin: 20,
-    borderRadius: theme.roundness,
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  drawer: {
+    flex: 1,
+    width: '100%',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: -2,
+      height: 0,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 8,
+  },
+  closeButton: {
+    margin: 0,
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     padding: 16,
     gap: 16,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   title: {
     flex: 1,
-  },
-  closeButton: {
-    marginLeft: 8,
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -474,6 +579,16 @@ const styles = StyleSheet.create({
   },
   planButton: {
     flex: 1,
+  },
+  section: {
+    marginTop: 16,
+    padding: 8,
+    backgroundColor: `${theme.colors.primary}10`,
+    borderRadius: 4,
+  },
+  sectionTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
   },
 });
 

@@ -156,3 +156,15 @@ export const updateUserPlan = async (req: Request, res: Response) => {
     res.status(500).json({error: 'Failed to update user plan'});
   }
 };
+
+export const clearDatabase = async (req: Request, res: Response) => {
+  try {
+    const db = await getDatabase();
+    await db.clearDatabase();
+    logger.info('Database cleared by admin');
+    res.json({message: 'Database cleared successfully'});
+  } catch (error) {
+    logger.error('Error clearing database:', {error});
+    res.status(500).json({error: 'Failed to clear database'});
+  }
+};

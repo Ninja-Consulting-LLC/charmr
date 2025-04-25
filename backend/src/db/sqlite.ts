@@ -302,5 +302,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         throw error;
       }
     },
+
+    clearDatabase: async (): Promise<void> => {
+      try {
+        await db.run('DELETE FROM messages');
+        await db.run('DELETE FROM users');
+        logger.info('Database cleared successfully');
+      } catch (error) {
+        logger.error('Failed to clear database', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
   };
 };
