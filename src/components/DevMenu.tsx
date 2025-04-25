@@ -9,6 +9,7 @@ import {RootStackParamList} from '../navigation/types';
 import {generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
+import {UserPlan} from '../types/enums';
 import {DevUtils} from '../utils/devUtils';
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -30,6 +31,7 @@ const DevMenu = () => {
     setUser,
     showDevMenu,
     setShowDevMenu,
+    updateUserPlan,
   } = useStore();
 
   useEffect(() => {
@@ -210,6 +212,15 @@ const DevMenu = () => {
     });
   };
 
+  const handleChangePlan = async (plan: UserPlan) => {
+    try {
+      await updateUserPlan(plan);
+      Alert.alert('Success', `Plan changed to ${plan}`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to change plan');
+    }
+  };
+
   if (!showDevMenu) return null;
 
   return (
@@ -317,6 +328,32 @@ const DevMenu = () => {
               style={styles.button}>
               Remove Test Messages (-10)
             </Button>
+
+            <View style={styles.planButtonsContainer}>
+              <Text variant="titleSmall" style={styles.planTitle}>
+                Change Plan
+              </Text>
+              <View style={styles.planButtons}>
+                <Button
+                  mode="contained"
+                  onPress={() => handleChangePlan(UserPlan.FREE)}
+                  style={styles.planButton}>
+                  Free
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => handleChangePlan(UserPlan.PLUS)}
+                  style={styles.planButton}>
+                  Plus
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={() => handleChangePlan(UserPlan.PREMIUM)}
+                  style={styles.planButton}>
+                  Premium
+                </Button>
+              </View>
+            </View>
           </View>
 
           {testStatus && (
@@ -419,6 +456,24 @@ const styles = StyleSheet.create({
   buttonText: {
     color: theme.colors.surface,
     fontWeight: 'bold',
+  },
+  planButtonsContainer: {
+    marginTop: 16,
+    padding: 8,
+    backgroundColor: `${theme.colors.primary}10`,
+    borderRadius: 4,
+  },
+  planTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  planButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  planButton: {
+    flex: 1,
   },
 });
 
