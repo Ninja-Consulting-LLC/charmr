@@ -1,7 +1,7 @@
-export enum UserPlan {
+export enum SubscriptionTier {
   FREE = 'free',
-  PLUS = 'plus',
   PREMIUM = 'premium',
+  PRO = 'pro',
 }
 
 export enum MessageRole {
@@ -23,12 +23,6 @@ export enum ErrorType {
   NOT_FOUND = 'NotFoundError',
   INTERNAL = 'InternalServerError',
   RATE_LIMIT = 'RateLimitError',
-}
-
-export enum SubscriptionTier {
-  BASIC = 'basic',
-  PREMIUM = 'premium',
-  PRO = 'pro',
 }
 
 export enum Platform {
