@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AxiosError} from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
@@ -82,7 +83,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
               return;
             }
           } catch (error) {
-            console.log('Error fetching stored user, cleaning up:', error);
+            // Only log if it's not a 404 error (which is expected when user doesn't exist)
+            const axiosError = error as AxiosError;
+            if (axiosError.response?.status !== 404) {
+              console.warn(
+                'Error fetching stored user:',
+                axiosError.message || 'Unknown error',
+              );
+            }
             await cleanupStaleData();
           }
         }
@@ -90,7 +98,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         // If we get here, either no stored user or user doesn't exist in backend
         await createNewUser();
       } catch (error) {
-        console.error('Error initializing user:', error);
+        // Only log unexpected errors
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status !== 404) {
+          console.error(
+            'Unexpected error during user initialization:',
+            axiosError.message || 'Unknown error',
+          );
+        }
         // If initialization fails, clean up and try again
         await cleanupStaleData();
         await createNewUser();
