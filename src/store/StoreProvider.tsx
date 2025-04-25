@@ -1,0 +1,193 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {useStoreState} from '../hooks/useStoreState';
+import * as userService from '../services/userService';
+import {SubscriptionTier} from '../types/enums';
+import {getPlanLimits} from '../utils/planLimits';
+import {
+  Store,
+  checkBackendVersion,
+  cleanupStaleData,
+  defaultStore,
+} from './store';
+
+// Create context with default value
+const StoreContext = createContext<Store>(defaultStore);
+
+// Custom hook to use the store
+export const useStore = () => useContext(StoreContext);
+
+// Provider component
+export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
+  children,
+}) => {
+  const [showKeyboardModal, setShowKeyboardModal] = useState(false);
+  const [showDevMenu, setShowDevMenu] = useState(false);
+  const [skipRateLimiting, setSkipRateLimiting] = useState(false);
+  const [authBypass, setAuthBypass] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const {
+    userId,
+    setUserId,
+    user,
+    setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    isLoading,
+    setIsLoading,
+    handleGoogleLogin,
+  } = useStoreState();
+
+  // Set auth bypass in development mode
+  useEffect(() => {
+    if (__DEV__ || process.env.NODE_ENV === 'development') {
+      setAuthBypass(true);
+    }
+  }, []);
+
+  const updateUserPlan = async (plan: SubscriptionTier) => {
+    try {
+      if (!userId) {
+        throw new Error('No user ID available');
+      }
+
+      await userService.updateUserPlan(userId, plan);
+      setUser({
+        plan,
+        getDailyMessageLimit: () => getPlanLimits(plan),
+      });
+    } catch (error) {
+      console.error('Error updating user plan:', error);
+      throw error;
+    }
+  };
+
+  // Get or create user ID and load user data on component mount
+  useEffect(() => {
+    const initUser = async () => {
+      try {
+        // First check backend version
+        await checkBackendVersion();
+
+        // Get stored user ID if it exists
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          try {
+            // Verify user exists in backend
+            const userData = await userService.fetchUserData(storedUserId);
+            if (userData) {
+              setUserId(storedUserId);
+              setUser(userData);
+              return;
+            }
+          } catch (error) {
+            console.log('Error fetching stored user, cleaning up:', error);
+            await cleanupStaleData();
+          }
+        }
+
+        // If we get here, either no stored user or user doesn't exist in backend
+        await createNewUser();
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        // If initialization fails, clean up and try again
+        await cleanupStaleData();
+        await createNewUser();
+      }
+    };
+
+    initUser();
+  }, []);
+
+  const createNewUser = async () => {
+    try {
+      // First check if we have a stored user ID
+      const storedUserId = await AsyncStorage.getItem('userId');
+      if (storedUserId) {
+        // Try to fetch the stored user
+        try {
+          const existingUser = await userService.fetchUserData(storedUserId);
+          if (existingUser) {
+            setUserId(storedUserId);
+            setUser(existingUser);
+            return;
+          }
+        } catch (error) {
+          console.log('Error fetching stored user, creating new one:', error);
+        }
+      }
+
+      // Create new user
+      const newUserId = `user-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+      setUserId(newUserId);
+      await AsyncStorage.setItem('userId', newUserId);
+
+      // Create user in backend
+      const newUser = await userService.createUser({
+        id: newUserId,
+        email: `${newUserId}@example.com`,
+        name: `User ${newUserId}`,
+      });
+
+      setUser(newUser);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  };
+
+  const linkAnonymousUser = async (registeredUserId: string) => {
+    try {
+      if (!userId) {
+        throw new Error('No anonymous user ID available');
+      }
+
+      await userService.linkUsers(userId, registeredUserId);
+
+      // Update the frontend to use the new user ID
+      setUserId(registeredUserId);
+      await AsyncStorage.setItem('userId', registeredUserId);
+
+      // Fetch the updated user data
+      const userData = await userService.fetchUserData(registeredUserId);
+      if (userData) {
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error linking users:', error);
+      throw error;
+    }
+  };
+
+  const value = {
+    showKeyboardModal,
+    setShowKeyboardModal,
+    userId,
+    setUserId,
+    showDevMenu,
+    setShowDevMenu,
+    skipRateLimiting,
+    setSkipRateLimiting,
+    authBypass,
+    setAuthBypass,
+    user,
+    setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    isLoading,
+    setIsLoading,
+    updateUserPlan,
+    showUpgradeModal,
+    setShowUpgradeModal,
+    createNewUser,
+    linkAnonymousUser,
+    handleGoogleLogin,
+  };
+
+  return (
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+  );
+};
