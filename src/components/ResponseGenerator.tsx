@@ -1,6 +1,5 @@
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
-import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -8,16 +7,15 @@ import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
-import {generateReply} from '../services/api';
+import {useResponseGenerator} from '../hooks/useResponseGenerator';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
+import {SubscriptionTier} from '../types/subscription';
 import {
-  Match,
   addMatch,
   deleteMatch,
-  generateMatchId,
   getMatches,
+  Match,
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
@@ -64,33 +62,31 @@ const ResponseGenerator: React.FC = () => {
   const {userId, skipRateLimiting, user, setUser} = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
-  // Keyboard modal state
+  // State
   const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<string | null>(null);
   const [showSnackbar, setShowSnackbar] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
-
-  // Match management state
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
-
-  // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
-
-  // Reply modal state
   const [showReplyModal, setShowReplyModal] = useState(false);
+
+  // Custom hooks
+  const {response, loading, error, generateResponse, resetResponse} =
+    useResponseGenerator({
+      images,
+      selectedMatch,
+      userPlan: user?.plan || SubscriptionTier.FREE,
+    });
 
   // Load matches on mount
   useEffect(() => {
     loadMatches();
-    // Show match selector for premium users
     setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
   }, [user?.plan]);
 
@@ -177,89 +173,19 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (images.length === 0) {
-      setError(MESSAGES.NO_IMAGES);
-      setShowSnackbar(true);
-      return;
-    }
-
-    // For premium/pro users, require match selection
-    if (user.plan !== SubscriptionTier.FREE && !selectedMatch) {
-      setError(MESSAGES.SELECT_MATCH_REQUIRED);
-      setShowSnackbar(true);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Convert images to base64
-      const base64Images = await Promise.all(
-        images.map(async img => {
-          if (img.base64) return img.base64;
-          const base64 = await convertToBase64(img.path);
-          return base64;
-        }),
-      );
-
-      const reply = await generateReply({
-        prompt: prompt.trim() || 'make it flirty',
-        images: base64Images,
-        userId,
-        matchId: selectedMatch ? generateMatchId(selectedMatch) : '',
-      });
-
-      if (reply.error) {
-        if (reply.type === 'MESSAGE_LIMIT') {
-          setError(MESSAGES.MESSAGE_LIMIT);
-          setShowUpgradeModal(true);
-        } else if (reply.type === 'MATCH_SELECTION_REQUIRED') {
-          setError(MESSAGES.SELECT_MATCH_REQUIRED);
-        } else {
-          setError(reply.error);
-        }
-        setShowSnackbar(true);
-      } else {
-        setResponse(reply.reply);
-        setShowReplyModal(true);
-        // Auto-copy when modal appears
-        handleCopyToClipboard();
-        if (selectedMatch) {
-          await updateMatchLastUsed(selectedMatch);
-        }
-        // Update the user's message counts from the backend response
-        if (reply.limits) {
-          setUser({
-            dailyMessagesUsed: reply.limits.dailyMessagesUsed,
-            dailyMessageLimit: reply.limits.dailyMessageLimit,
-            extraMessages: reply.limits.extraMessages,
-          });
-        }
+    await generateResponse(prompt);
+    if (response) {
+      setShowReplyModal(true);
+      handleCopyToClipboard();
+      if (selectedMatch) {
+        await updateMatchLastUsed(selectedMatch);
       }
-    } catch (error) {
-      console.error('Error generating reply:', error);
-      if (axios.isAxiosError(error)) {
-        if (
-          error.response?.status === 403 &&
-          error.response?.data?.type === 'MESSAGE_LIMIT'
-        ) {
-          setError(MESSAGES.MESSAGE_LIMIT);
-          setShowUpgradeModal(true);
-        } else if (
-          error.response?.status === 400 &&
-          error.response?.data?.type === 'MATCH_SELECTION_REQUIRED'
-        ) {
-          setError(MESSAGES.SELECT_MATCH_REQUIRED);
-        } else {
-          setError(error.response?.data?.error || error.message);
-        }
-      } else {
-        setError(MESSAGES.GENERATION_ERROR);
-      }
+    }
+    if (error) {
       setShowSnackbar(true);
-    } finally {
-      setLoading(false);
+      if (error === MESSAGES.MESSAGE_LIMIT) {
+        setShowUpgradeModal(true);
+      }
     }
   };
 
@@ -267,7 +193,7 @@ const ResponseGenerator: React.FC = () => {
     await deleteScreenshotsFromLibrary();
     setImages([]);
     setPrompt('');
-    setResponse(null);
+    resetResponse();
     setShowReplyModal(false);
   };
 
@@ -279,12 +205,11 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handleUpgrade = (tierId: string) => {
-    // Handle upgrade logic here
     setShowUpgradeModal(false);
   };
 
   const handleGenerateNew = () => {
-    setResponse(null);
+    resetResponse();
     handleSubmit();
   };
 
@@ -305,15 +230,10 @@ const ResponseGenerator: React.FC = () => {
     setDeleteScreenshots(value);
   };
 
-  const handleMatchSelect = (match: Match) => {
-    setSelectedMatch(match);
-  };
-
   return (
     <SafeAreaView
       style={styles.container}
-      testID="response-generator-container"
-      edges={['top']}>
+      testID="response-generator-container">
       <View style={styles.contentContainer}>
         <ScrollView style={styles.scrollView}>
           {/* Match Selection */}
@@ -325,7 +245,7 @@ const ResponseGenerator: React.FC = () => {
                 onSelectMatch={setSelectedMatch}
                 onAddMatch={() => setShowAddMatchModal(true)}
                 onDeleteMatch={handleDeleteMatch}
-                userPlan={user.plan}
+                userPlan={user?.plan}
               />
             </View>
           )}
