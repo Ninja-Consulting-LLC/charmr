@@ -411,16 +411,17 @@ const ResponseGenerator: React.FC = () => {
 
         {/* Prompt Input */}
         <View style={styles.promptSection}>
-          <Text variant="titleMedium">
-            Enter your prompt (e.g. 'make it flirty')
-          </Text>
+          <Text variant="titleMedium">Enter your prompt (optional)</Text>
           <TextInput
             value={prompt}
             onChangeText={setPrompt}
             multiline
             numberOfLines={4}
-            style={styles.promptInput}
+            style={[styles.promptInput]}
             testID="prompt-input"
+            placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
+            placeholderTextColor={theme.colors.onSurfaceDisabled}
+            textAlignVertical="top"
           />
         </View>
 
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   promptSection: {
-    paddingVertical: 16,
+    paddingVertical: 8,
     marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.outline,
@@ -550,7 +551,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.outline,
     borderRadius: 8,
-    padding: 12,
+    padding: 4,
+    minHeight: 80,
   },
   styleSection: {
     paddingVertical: 16,
