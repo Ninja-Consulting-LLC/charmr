@@ -59,6 +59,7 @@ export const useResponseGenerator = ({
 
     setLoading(true);
     setError(null);
+    setResponse(null);
 
     try {
       const base64Images = await Promise.all(

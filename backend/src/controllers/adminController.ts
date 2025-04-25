@@ -16,14 +16,20 @@ export const getUsers = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const {id, email, name} = req.body;
-    if (!id || !email || !name) {
+    const {id, email, name, installationId} = req.body;
+    if (!id) {
       return res.status(400).json({error: 'Missing required fields'});
     }
 
     const db = await getDatabase();
-    const user = await db.createUser(id, email, name);
-    logger.info('Created new user:', {id, email, name});
+    const user = await db.createUser(
+      id,
+      email,
+      name,
+      undefined,
+      installationId,
+    );
+    logger.info('Created new user:', {id, email, name, installationId});
     res.status(201).json(user);
   } catch (error) {
     logger.error('Error creating user:', {error});
@@ -169,9 +175,30 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserByInstallationId = async (req: Request, res: Response) => {
+  try {
+    const {installationId} = req.params;
+    const db = await getDatabase();
+
+    const user = await db.getUserByInstallationId(installationId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    res.json(user);
+  } catch (error) {
+    logger.error('Error getting user by installation ID:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      installationId: req.params.installationId,
+    });
+    res.status(500).json({error: 'Failed to get user'});
+  }
+};
+
 export const linkAnonymousUser = async (req: Request, res: Response) => {
   try {
-    const {anonymousUserId, registeredUserId} = req.body;
+    const {anonymousUserId, registeredUserId, installationId} = req.body;
     if (!anonymousUserId || !registeredUserId) {
       return res.status(400).json({error: 'Missing required fields'});
     }
@@ -199,6 +226,7 @@ export const linkAnonymousUser = async (req: Request, res: Response) => {
     // Transfer any remaining extra messages
     await db.updateUser(registeredUserId, {
       extraMessages: registeredUser.extraMessages + anonymousUser.extraMessages,
+      installationId: installationId || registeredUser.installationId,
     });
 
     // Delete the anonymous user
@@ -207,6 +235,7 @@ export const linkAnonymousUser = async (req: Request, res: Response) => {
     logger.info('Linked anonymous user to registered user:', {
       anonymousUserId,
       registeredUserId,
+      installationId,
     });
 
     res.json({message: 'User linked successfully'});

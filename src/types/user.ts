@@ -7,6 +7,7 @@ export interface UserData {
   dailyMessagesUsed: number;
   extraMessages: number;
   lastResetDate: string;
+  installationId?: string;
 }
 
 export interface User extends UserData {
