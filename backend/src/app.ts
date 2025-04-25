@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
 import {
+  clearDatabase,
   createUser,
   getUserMessages,
   getUsers,
@@ -98,6 +99,7 @@ export const createApp = async () => {
   // Admin routes
   app.get('/api/admin/users', adminAuth, getUsers);
   app.post('/api/admin/users', adminAuth, createUser);
+  app.post('/api/admin/clear-database', adminAuth, clearDatabase);
   app.get('/api/admin/users/:userId/messages', adminAuth, getUserMessages);
   app.post(
     '/api/admin/users/:userId/reset-limit',
