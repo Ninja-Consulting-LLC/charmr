@@ -22,30 +22,9 @@ export const createUser = async (req: Request, res: Response) => {
     }
 
     const db = await getDatabase();
-    await db.run(
-      'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        id,
-        email,
-        name,
-        'free', // default plan
-        0, // dailyMessagesUsed
-        5, // dailyMessageLimit for free plan
-        0, // extraMessages
-        new Date().toISOString().split('T')[0], // lastResetDate
-      ],
-    );
+    const user = await db.createUser(id, email, name);
     logger.info('Created new user:', {id, email, name});
-    res.status(201).json({
-      id,
-      email,
-      name,
-      plan: 'free',
-      dailyMessagesUsed: 0,
-      dailyMessageLimit: 5,
-      extraMessages: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
-    });
+    res.status(201).json(user);
   } catch (error) {
     logger.error('Error creating user:', {error});
     res.status(500).json({error: 'Failed to create user'});
@@ -166,5 +145,76 @@ export const clearDatabase = async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Error clearing database:', {error});
     res.status(500).json({error: 'Failed to clear database'});
+  }
+};
+
+export const getUser = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const db = await getDatabase();
+
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    res.json(user);
+  } catch (error) {
+    logger.error('Error getting user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to get user'});
+  }
+};
+
+export const linkAnonymousUser = async (req: Request, res: Response) => {
+  try {
+    const {anonymousUserId, registeredUserId} = req.body;
+    if (!anonymousUserId || !registeredUserId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
+
+    const db = await getDatabase();
+
+    // Get the anonymous user's data
+    const anonymousUser = await db.getUser(anonymousUserId);
+    if (!anonymousUser) {
+      return res.status(404).json({error: 'Anonymous user not found'});
+    }
+
+    // Get the registered user
+    const registeredUser = await db.getUser(registeredUserId);
+    if (!registeredUser) {
+      return res.status(404).json({error: 'Registered user not found'});
+    }
+
+    // Transfer all messages from anonymous to registered user
+    await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
+      registeredUserId,
+      anonymousUserId,
+    ]);
+
+    // Transfer any remaining extra messages
+    await db.updateUser(registeredUserId, {
+      extraMessages: registeredUser.extraMessages + anonymousUser.extraMessages,
+    });
+
+    // Delete the anonymous user
+    await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
+
+    logger.info('Linked anonymous user to registered user:', {
+      anonymousUserId,
+      registeredUserId,
+    });
+
+    res.json({message: 'User linked successfully'});
+  } catch (error) {
+    logger.error('Error linking users:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to link users'});
   }
 };

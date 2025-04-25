@@ -1,9 +1,9 @@
 import {getDatabase} from '../db';
-import {MessageLimit} from '../db/types';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
+import {getPlanLimits} from '../utils/planLimits';
 
-export interface PlanLimits {
+interface PlanLimits {
   dailyMessageLimit: number;
 }
 
@@ -22,7 +22,7 @@ const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
 export const createMessageLimitService = async () => {
   const db = await getDatabase();
 
-  const getMessageLimits = async (userId: string): Promise<MessageLimit> => {
+  const getMessageLimits = async (userId: string) => {
     try {
       let user = await db.getUser(userId);
       if (!user) {
@@ -32,7 +32,7 @@ export const createMessageLimitService = async () => {
 
       return {
         dailyMessagesUsed: user.dailyMessagesUsed,
-        dailyMessageLimit: user.dailyMessageLimit,
+        dailyMessageLimit: getPlanLimits(user.plan),
         extraMessages: user.extraMessages,
       };
     } catch (error) {
@@ -52,6 +52,7 @@ export const createMessageLimitService = async () => {
       }
 
       const today = new Date().toISOString().split('T')[0];
+      const dailyMessageLimit = getPlanLimits(user.plan);
 
       // Reset daily count if it's a new day
       if (user.lastResetDate !== today) {
@@ -64,8 +65,7 @@ export const createMessageLimitService = async () => {
 
       // Check if we can increment based on limits
       const canIncrement =
-        user.dailyMessagesUsed < user.dailyMessageLimit ||
-        user.extraMessages > 0;
+        user.dailyMessagesUsed < dailyMessageLimit || user.extraMessages > 0;
 
       if (!canIncrement) {
         return false;
@@ -73,7 +73,7 @@ export const createMessageLimitService = async () => {
 
       // If we have extra messages, use those first
       if (
-        user.dailyMessagesUsed >= user.dailyMessageLimit &&
+        user.dailyMessagesUsed >= dailyMessageLimit &&
         user.extraMessages > 0
       ) {
         await db.updateUser(userId, {
@@ -138,10 +138,8 @@ export const createMessageLimitService = async () => {
     plan: SubscriptionTier,
   ): Promise<void> => {
     try {
-      const dailyMessageLimit = PLAN_LIMITS[plan].dailyMessageLimit;
       await db.updateUser(userId, {
         plan,
-        dailyMessageLimit,
       });
       logger.info('User plan updated successfully', {userId, plan});
     } catch (error) {
