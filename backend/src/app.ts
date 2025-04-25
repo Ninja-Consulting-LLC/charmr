@@ -5,14 +5,19 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
 import {
+  clearDatabase,
   createUser,
+  getUser,
   getUserMessages,
   getUsers,
+  linkAnonymousUser,
   resetUserMessageLimit,
+  updateUserPlan,
 } from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
 import {adminAuth} from './middleware/adminAuth';
+import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import {createEmailService, createSupportEmailService} from './services/email';
@@ -76,13 +81,17 @@ export const createApp = async () => {
   // Initialize controllers
   const replyController = await createReplyController();
 
-  // Routes
-  app.post('/api/generate-reply', (req, res) => {
+  // Main application routes
+  app.get('/api/users/:userId', authenticateUser, getUser);
+  app.put('/api/users/:userId/plan', authenticateUser, updateUserPlan);
+  app.post('/api/users/link', authenticateUser, linkAnonymousUser);
+  app.post('/api/users', authenticateUser, createUser);
+  app.post('/api/generate-reply', authenticateUser, (req, res) => {
     logger.info('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
   });
 
-  app.post('/api/support', async (req, res) => {
+  app.post('/api/support', authenticateUser, async (req, res) => {
     logger.info('Route instantiated: POST /api/support');
     try {
       const supportRequest: SupportRequest = req.body;
@@ -94,15 +103,34 @@ export const createApp = async () => {
     }
   });
 
+  // Create admin router
+  const adminRouter = express.Router();
+
   // Admin routes
-  app.get('/api/admin/users', adminAuth, getUsers);
-  app.post('/api/admin/users', adminAuth, createUser);
-  app.get('/api/admin/users/:userId/messages', adminAuth, getUserMessages);
-  app.post(
-    '/api/admin/users/:userId/reset-limit',
+  adminRouter.get('/users', adminAuth, getUsers);
+  adminRouter.post('/clear-database', adminAuth, clearDatabase);
+  adminRouter.get('/users/:userId/messages', adminAuth, getUserMessages);
+  adminRouter.post(
+    '/users/:userId/reset-limit',
     adminAuth,
     resetUserMessageLimit,
   );
+
+  // Mount admin router
+  app.use('/api/admin', adminRouter);
+
+  // Create utility router for testing/development endpoints
+  const utilityRouter = express.Router();
+
+  // Utility routes (only available in development)
+  if (process.env.NODE_ENV !== 'production') {
+    utilityRouter.get('/health', (req, res) => {
+      res.json({status: 'ok', timestamp: new Date().toISOString()});
+    });
+  }
+
+  // Mount utility router
+  app.use('/api/utility', utilityRouter);
 
   // Log all available routes on startup
   const routes = app._router.stack

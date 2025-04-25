@@ -1,10 +1,12 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, Linking, StyleSheet, View} from 'react-native';
+import {Animated, Linking, StyleSheet, Text, View} from 'react-native';
 import {Button, Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
+import {SubscriptionTier} from '../types/enums';
+import {getPlanLimits} from '../utils/planLimits';
 import {MessagePackModal} from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -63,14 +65,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   }, [visible, slideAnim, fadeAnim]);
 
   const handleSignOut = async () => {
-    // Clear user data
+    // Clear user data with correct plan limits
     setUser({
       id: '',
-      plan: 'free',
+      plan: SubscriptionTier.FREE,
       dailyMessagesUsed: 0,
-      dailyMessageLimit: 5,
       extraMessages: 0,
       lastResetDate: new Date().toISOString().split('T')[0],
+      getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
     });
     setIsAuthenticated(false);
     onDismiss();
@@ -81,9 +83,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     Linking.openURL(url);
   };
 
-  const handleUpgrade = (tierId: string) => {
-    // Handle upgrade logic here
-    setShowUpgradeModal(false);
+  const handleUpgrade = (plan: SubscriptionTier) => {
+    setUser({
+      plan,
+      getDailyMessageLimit: () => getPlanLimits(plan),
+    });
   };
 
   if (!isVisible && !visible) return null;
@@ -127,7 +131,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           <List.Subheader>Message Limits</List.Subheader>
           <List.Item
             title="Daily Messages"
-            description={`${user.dailyMessagesUsed} / ${user.dailyMessageLimit} used`}
+            description={`${
+              user.dailyMessagesUsed
+            } / ${user.getDailyMessageLimit()} used`}
             left={props => <List.Icon {...props} icon="message" />}
           />
           {user.extraMessages > 0 && (
@@ -175,6 +181,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             onPress={handleSignOut}
           />
         </List.Section>
+        <Text style={styles.planInfo}>
+          {user.getDailyMessageLimit()} messages per day
+        </Text>
       </Animated.View>
 
       <MessagePackModal
@@ -228,6 +237,10 @@ const styles = StyleSheet.create({
   },
   button: {
     marginVertical: 8,
+  },
+  planInfo: {
+    padding: 16,
+    textAlign: 'center',
   },
 });
 

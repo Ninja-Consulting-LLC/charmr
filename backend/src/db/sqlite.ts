@@ -1,6 +1,7 @@
 import path from 'path';
 import {open} from 'sqlite';
 import sqlite3 from 'sqlite3';
+import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {Database, User} from './types';
 
@@ -19,10 +20,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       name TEXT,
       plan TEXT NOT NULL,
       dailyMessagesUsed INTEGER NOT NULL,
-      dailyMessageLimit INTEGER NOT NULL,
       extraMessages INTEGER NOT NULL,
-      lastResetDate TEXT NOT NULL
+      lastResetDate TEXT NOT NULL,
+      installationId TEXT UNIQUE
     );
+
+    CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,29 +52,54 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
+    getUserByInstallationId: async (
+      installationId: string,
+    ): Promise<User | null> => {
+      try {
+        const user = await db.get(
+          'SELECT * FROM users WHERE installationId = ?',
+          installationId,
+        );
+        return user || null;
+      } catch (error) {
+        logger.error('Failed to get user by installation ID', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
     createUser: async (
       userId: string,
-      plan: string = 'free',
+      email?: string,
+      name?: string,
+      plan: SubscriptionTier = SubscriptionTier.FREE,
+      installationId?: string,
     ): Promise<User> => {
       try {
         const user: User = {
           id: userId,
+          email,
+          name,
           plan,
           dailyMessagesUsed: 0,
-          dailyMessageLimit: plan === 'free' ? 5 : plan === 'plus' ? 50 : 200,
           extraMessages: 0,
           lastResetDate: new Date().toISOString().split('T')[0],
+          installationId,
         };
 
         await db.run(
-          'INSERT INTO users (id, plan, dailyMessagesUsed, dailyMessageLimit, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [
             user.id,
+            user.email,
+            user.name,
             user.plan,
             user.dailyMessagesUsed,
-            user.dailyMessageLimit,
             user.extraMessages,
             user.lastResetDate,
+            user.installationId,
           ],
         );
 
@@ -85,14 +113,18 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    updateUser: async (userId: string, data: Partial<User>): Promise<void> => {
+    updateUser: async (
+      userId: string,
+      updates: Partial<User>,
+    ): Promise<void> => {
       try {
-        const updates = Object.entries(data)
-          .map(([key]) => `${key} = ?`)
+        const setClause = Object.keys(updates)
+          .map(key => `${key} = ?`)
           .join(', ');
-        const values = [...Object.values(data), userId];
+        const values = Object.values(updates);
+        values.push(userId);
 
-        await db.run(`UPDATE users SET ${updates} WHERE id = ?`, values);
+        await db.run(`UPDATE users SET ${setClause} WHERE id = ?`, values);
       } catch (error) {
         logger.error('Failed to update user', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -112,13 +144,23 @@ export const createSqliteDatabase = async (): Promise<Database> => {
              ELSE 1
            END,
            extraMessages = CASE
-             WHEN dailyMessagesUsed >= dailyMessageLimit AND extraMessages > 0
+             WHEN dailyMessagesUsed >= (SELECT CASE
+               WHEN plan = 'free' THEN 5
+               WHEN plan = 'premium' THEN 50
+               WHEN plan = 'pro' THEN 200
+               ELSE 5
+             END) AND extraMessages > 0
              THEN extraMessages - 1
              ELSE extraMessages
            END,
            lastResetDate = ?
            WHERE id = ? AND (
-             dailyMessagesUsed < dailyMessageLimit
+             dailyMessagesUsed < (SELECT CASE
+               WHEN plan = 'free' THEN 5
+               WHEN plan = 'premium' THEN 50
+               WHEN plan = 'pro' THEN 200
+               ELSE 5
+             END)
              OR lastResetDate != ?
              OR extraMessages > 0
            )`,
@@ -165,12 +207,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    updateUserPlan: async (userId: string, plan: string): Promise<void> => {
+    updateUserPlan: async (
+      userId: string,
+      plan: SubscriptionTier,
+    ): Promise<void> => {
       try {
-        await db.run(
-          'UPDATE users SET plan = ?, dailyMessageLimit = ? WHERE id = ?',
-          [plan, plan === 'free' ? 5 : plan === 'plus' ? 50 : 200, userId],
-        );
+        await db.run('UPDATE users SET plan = ? WHERE id = ?', [plan, userId]);
       } catch (error) {
         logger.error('Failed to update user plan', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -221,7 +263,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     getMessages: async (
       userId: string,
-      matchId: string,
+      matchId?: string,
     ): Promise<
       Array<{
         id: number;
@@ -233,11 +275,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }>
     > => {
       try {
-        const messages = await db.all(
-          'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
-          [userId, matchId],
-        );
-        return messages;
+        if (matchId) {
+          const messages = await db.all(
+            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+            [userId, matchId],
+          );
+          return messages;
+        } else {
+          const messages = await db.all(
+            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp ASC',
+            [userId],
+          );
+          return messages;
+        }
       } catch (error) {
         logger.error('Failed to get messages', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -264,6 +314,20 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         return await db.run(sql, params);
       } catch (error) {
         logger.error('Failed to execute query', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    clearDatabase: async (): Promise<void> => {
+      try {
+        await db.run('DELETE FROM messages');
+        await db.run('DELETE FROM users');
+        logger.info('Database cleared successfully');
+      } catch (error) {
+        logger.error('Failed to clear database', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         });

@@ -15,17 +15,10 @@ interface UpgradeModalProps {
 
 const TIERS = [
   {
-    id: SubscriptionTier.BASIC,
-    name: 'Basic',
-    price: '$4.99/month',
-    messages: '100 messages/month',
-    features: ['Basic response generation', 'Standard support'],
-  },
-  {
     id: SubscriptionTier.PREMIUM,
     name: 'Premium',
     price: '$9.99/month',
-    messages: '300 messages/month',
+    messages: '25 messages/day',
     features: [
       'Advanced response generation',
       'Priority support',
@@ -36,7 +29,7 @@ const TIERS = [
     id: SubscriptionTier.PRO,
     name: 'Pro',
     price: '$19.99/month',
-    messages: 'Unlimited messages',
+    messages: '200 messages/day',
     features: [
       'Premium response generation',
       '24/7 priority support',

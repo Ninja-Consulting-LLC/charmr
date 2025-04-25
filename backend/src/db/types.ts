@@ -1,6 +1,7 @@
+import {SubscriptionTier} from '../types/enums';
+
 export interface MessageLimit {
   dailyMessagesUsed: number;
-  dailyMessageLimit: number;
   extraMessages: number;
 }
 
@@ -8,11 +9,11 @@ export interface User {
   id: string;
   email?: string;
   name?: string;
-  plan: string;
+  plan: SubscriptionTier;
   dailyMessagesUsed: number;
-  dailyMessageLimit: number;
   extraMessages: number;
   lastResetDate: string;
+  installationId?: string;
 }
 
 export interface Message {
@@ -26,12 +27,19 @@ export interface Message {
 
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
-  createUser: (userId: string, plan?: string) => Promise<User>;
-  updateUser: (userId: string, data: Partial<User>) => Promise<void>;
+  getUserByInstallationId: (installationId: string) => Promise<User | null>;
+  createUser: (
+    userId: string,
+    email?: string,
+    name?: string,
+    plan?: SubscriptionTier,
+    installationId?: string,
+  ) => Promise<User>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;
-  updateUserPlan: (userId: string, plan: string) => Promise<void>;
+  updateUserPlan: (userId: string, plan: SubscriptionTier) => Promise<void>;
   saveMessage: (
     userId: string,
     matchId: string,
@@ -50,5 +58,6 @@ export interface Database {
   }>;
   getMessages: (userId: string, matchId: string) => Promise<Message[]>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
-  run: (sql: string, params?: any[]) => Promise<any>;
+  run: (sql: string, params?: any[]) => Promise<void>;
+  clearDatabase: () => Promise<void>;
 }

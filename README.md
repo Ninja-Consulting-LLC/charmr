@@ -98,7 +98,101 @@ npm run android
 - **Message Copying**: One-tap copy to clipboard
 - **Match Organization**: Sort and manage multiple matches
 
-### Conversation Context
+## Business Logic
+
+### User Management
+
+#### Anonymous User Flow
+
+1. On first app launch:
+
+   - Generate a unique anonymous user ID (format: `user-{timestamp}-{randomString}`)
+   - Store ID in AsyncStorage
+   - Create user in backend with default FREE plan
+   - Set daily message limits based on plan
+
+2. User Authentication:
+   - If user logs in with Google:
+     - Check if email exists in backend
+     - If exists: Use existing user
+     - If not: Create new user with Firebase UID
+   - If anonymous user exists: Link anonymous user to registered user
+   - Preserve message history and limits
+
+#### User State Management
+
+- User data stored in React Context (StoreProvider)
+- Key user properties:
+  - `id`: Unique identifier
+  - `plan`: Subscription tier (FREE/PREMIUM/PRO)
+  - `dailyMessagesUsed`: Messages sent today
+  - `extraMessages`: Additional messages available
+  - `lastResetDate`: Date of last message count reset
+
+#### Daily Message Limits
+
+- FREE plan: 5 messages/day
+- PREMIUM plan: 50 messages/day
+- PRO plan: 200 messages/day
+- Reset occurs at midnight UTC
+- Extra messages can be purchased
+
+### Message Generation
+
+#### Context Management
+
+- Store conversation history per match
+- Maintain context window for AI
+- Generate conversation summaries for better context
+- Track message timestamps and roles (user/AI)
+
+#### Rate Limiting
+
+- Track daily message usage
+- Enforce plan limits
+- Support skipRateLimiting flag for development
+- Handle rate limit errors gracefully
+
+#### Error Handling
+
+- 404 errors on user fetch trigger new user creation
+- Network errors retry with exponential backoff
+- API errors logged with appropriate severity
+- Development mode bypasses authentication
+
+### Data Persistence
+
+#### Local Storage
+
+- AsyncStorage for user ID and settings
+- SQLite for message history and matches
+- Cache conversation context
+- Store user preferences
+
+#### Backend Storage
+
+- SQLite database for user data
+- Message history per user
+- Match information
+- Plan and limit tracking
+
+### Development Features
+
+#### Sandbox Mode
+
+- Mock API responses
+- Simulated rate limits
+- Development data generation
+- Test user creation
+
+#### Dev Menu
+
+- Toggle development features
+- Clear local storage
+- Reset message counts
+- View debug information
+
+## Conversation Context
 
 The app maintains conversation context by:
 

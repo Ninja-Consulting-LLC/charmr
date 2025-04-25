@@ -10,6 +10,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {signInWithApple, signInWithGoogle} from '../config/firebase';
+import {useStore} from '../store';
 import {theme} from '../theme/theme';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -26,9 +27,12 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
-  const handleGoogleLogin = async () => {
+  const {handleGoogleLogin} = useStore();
+
+  const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
+      const userCredential = await signInWithGoogle();
+      await handleGoogleLogin(userCredential.user);
       onLoginSuccess?.();
     } catch (error) {
       console.error('Google login error:', error);
@@ -65,7 +69,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.googleButton]}
-                onPress={handleGoogleLogin}
+                onPress={handleGoogleSignIn}
                 testID="google-login-button">
                 <View style={styles.buttonContent}>
                   <Icon
