@@ -27,7 +27,7 @@ import {useImagePicker} from '../hooks/useImagePicker';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {UserPlan} from '../types/enums';
+import {SubscriptionTier} from '../types/enums';
 import {
   Match,
   addMatch,
@@ -301,7 +301,7 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handlePickImages = async () => {
-    if (user?.plan === UserPlan.FREE && images.length > 0) {
+    if (user?.plan === SubscriptionTier.FREE && images.length > 0) {
       setShowScreenshotUpgrade(true);
       setShowUpgradeModal(true);
       return;
@@ -400,7 +400,7 @@ const ResponseGenerator: React.FC = () => {
                 color={theme.colors.secondary}
               />
               <Text style={styles.addImageText}>Add Screenshot</Text>
-              {user?.plan === UserPlan.FREE && images.length > 0 && (
+              {user?.plan === SubscriptionTier.FREE && images.length > 0 && (
                 <View style={styles.premiumBadge}>
                   <Icon source="star" size={12} color="gold" />
                 </View>

@@ -138,14 +138,10 @@ export const createMessageLimitService = async () => {
     plan: SubscriptionTier,
   ): Promise<void> => {
     try {
-      const planLimits = PLAN_LIMITS[plan];
-      if (!planLimits) {
-        throw new Error(`Invalid plan: ${plan}`);
-      }
-
+      const dailyMessageLimit = PLAN_LIMITS[plan].dailyMessageLimit;
       await db.updateUser(userId, {
         plan,
-        dailyMessageLimit: planLimits.dailyMessageLimit,
+        dailyMessageLimit,
       });
       logger.info('User plan updated successfully', {userId, plan});
     } catch (error) {

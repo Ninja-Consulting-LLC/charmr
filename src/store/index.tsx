@@ -51,7 +51,7 @@ const StoreContext = createContext<Store>({
   setAuthBypass: () => {},
   user: {
     id: '',
-    plan: SubscriptionTier.BASIC,
+    plan: SubscriptionTier.FREE,
     dailyMessagesUsed: 0,
     dailyMessageLimit: 5,
     extraMessages: 0,
