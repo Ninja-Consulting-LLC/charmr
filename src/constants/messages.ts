@@ -11,6 +11,9 @@ export const MESSAGES = {
   GENERATION_ERROR: 'Failed to generate reply. Please try again.',
   SELECT_MATCH_REQUIRED:
     'Match selection is required for Premium and Pro users to maintain conversation context.',
+  TOO_MANY_REQUESTS: 'Too many requests. Please try again later.',
+  IMAGE_SIZE_TOO_LARGE: 'Image size too large. Please try with smaller images.',
+  UNEXPECTED_ERROR: 'An unexpected error occurred. Please try again.',
 
   // Reply Modal Messages
   REPLY_MODAL_TITLE: 'Generated Response',
