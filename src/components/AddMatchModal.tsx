@@ -47,60 +47,65 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
         visible={visible}
         onDismiss={onDismiss}
         contentContainerStyle={styles.modal}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text variant="headlineSmall" style={styles.title}>
-              Add New Match
-            </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              onPress={onDismiss}
-              style={styles.closeButton}
-              testID="close-button"
-            />
-          </View>
-
-          <TextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
-
-          <View style={styles.platformContainer}>
-            <Text variant="bodyMedium" style={styles.platformLabel}>
-              Platform:
-            </Text>
-            <View style={styles.platformButtons}>
-              {PLATFORMS.map(p => (
-                <Button
-                  key={p}
-                  mode={platform === p ? 'contained' : 'outlined'}
-                  onPress={() => {
-                    setPlatform(p);
-                    setPlatformError('');
-                  }}
-                  style={styles.platformButton}
-                  testID={`platform-${p}-button`}>
-                  {p}
-                </Button>
-              ))}
-            </View>
-            {platformError && (
-              <Text style={styles.errorText} testID="platform-error">
-                {platformError}
+        <View style={styles.overflowContainer}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text variant="headlineSmall" style={styles.title}>
+                Add New Match
               </Text>
-            )}
-          </View>
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={onDismiss}
+                style={styles.closeButton}
+                testID="close-button"
+              />
+            </View>
 
-          <View style={styles.actions}>
-            <Button mode="outlined" onPress={onDismiss} testID="cancel-button">
-              Cancel
-            </Button>
-            <Button mode="contained" onPress={handleAdd} testID="add-button">
-              Add
-            </Button>
+            <TextInput
+              label="Name"
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
+
+            <View style={styles.platformContainer}>
+              <Text variant="bodyMedium" style={styles.platformLabel}>
+                Platform:
+              </Text>
+              <View style={styles.platformButtons}>
+                {PLATFORMS.map(p => (
+                  <Button
+                    key={p}
+                    mode={platform === p ? 'contained' : 'outlined'}
+                    onPress={() => {
+                      setPlatform(p);
+                      setPlatformError('');
+                    }}
+                    style={styles.platformButton}
+                    testID={`platform-${p}-button`}>
+                    {p}
+                  </Button>
+                ))}
+              </View>
+              {platformError && (
+                <Text style={styles.errorText} testID="platform-error">
+                  {platformError}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.actions}>
+              <Button
+                mode="outlined"
+                onPress={onDismiss}
+                testID="cancel-button">
+                Cancel
+              </Button>
+              <Button mode="contained" onPress={handleAdd} testID="add-button">
+                Add
+              </Button>
+            </View>
           </View>
         </View>
       </Modal>
@@ -115,6 +120,7 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 8,
   },
+  overflowContainer: {},
   content: {
     gap: 16,
   },

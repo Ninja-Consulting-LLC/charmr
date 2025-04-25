@@ -1,5 +1,7 @@
 import {Request, Response} from 'express';
+import {getDatabase} from '../db';
 import {createMessageLimitService} from '../services/messageLimitService';
+import {SubscriptionTier} from '../types/enums';
 import {loadConversation, saveMessage} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 
@@ -93,8 +95,27 @@ export const createReplyController = async () => {
         messageLimits = await messageLimitService.getMessageLimits(userId);
       }
 
-      // Load all conversation history for this match
-      const conversationHistory = await loadConversation(userId, matchId);
+      // Get user's plan
+      const db = await getDatabase();
+      const user = await db.getUser(userId);
+      if (!user) {
+        return res.status(404).json({error: 'User not found'});
+      }
+
+      // For premium/pro users, matchId is required
+      if (user.plan !== SubscriptionTier.FREE && !matchId) {
+        return res.status(400).json({
+          error: 'Match selection is required for Premium and Pro users',
+          type: 'MATCH_SELECTION_REQUIRED',
+        });
+      }
+
+      // Load conversation history for the specified match
+      const conversationHistory = await loadConversation(
+        userId,
+        matchId,
+        user.plan,
+      );
 
       // Extract all assistant messages and summaries
       const previousAssistantMessages = conversationHistory
@@ -168,7 +189,10 @@ export const createReplyController = async () => {
       });
 
       // TODO: Implement OpenAI integration
-      const reply = 'This is a placeholder reply';
+      const reply =
+        user.plan === SubscriptionTier.FREE
+          ? "Hey! I'd love to get to know you better. What's your favorite way to spend a weekend? I'm always looking for new adventures and would love to hear about yours! 😊"
+          : "That's such a cool photo! I love how adventurous you are. I'm actually planning a similar trip next month - maybe we could swap some tips? You seem like someone who knows how to make the most of every moment. What's the most memorable place you've visited? 🌍✨";
       const summary = 'This is a placeholder summary';
 
       // Log ChatGPT response

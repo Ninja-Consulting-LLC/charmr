@@ -245,7 +245,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     getMessages: async (
       userId: string,
-      matchId: string,
+      matchId?: string,
     ): Promise<
       Array<{
         id: number;
@@ -257,11 +257,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }>
     > => {
       try {
-        const messages = await db.all(
-          'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
-          [userId, matchId],
-        );
-        return messages;
+        if (matchId) {
+          const messages = await db.all(
+            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+            [userId, matchId],
+          );
+          return messages;
+        } else {
+          const messages = await db.all(
+            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp ASC',
+            [userId],
+          );
+          return messages;
+        }
       } catch (error) {
         logger.error('Failed to get messages', {
           error: error instanceof Error ? error.message : 'Unknown error',

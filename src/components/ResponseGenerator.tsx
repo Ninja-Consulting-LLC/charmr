@@ -11,15 +11,7 @@ import {
   View,
 } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {
-  Button,
-  Icon,
-  IconButton,
-  List,
-  Snackbar,
-  Text,
-  TextInput,
-} from 'react-native-paper';
+import {Button, Icon, Snackbar, Text, TextInput} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -36,6 +28,7 @@ import {
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
+import MatchSelector from './MatchSelector';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -90,7 +83,7 @@ const ResponseGenerator: React.FC = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
-  const [showMatchDropdown, setShowMatchDropdown] = useState(false);
+  const [showMatchSelector, setShowMatchSelector] = useState(false);
 
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -103,7 +96,11 @@ const ResponseGenerator: React.FC = () => {
   // Load matches on mount
   useEffect(() => {
     loadMatches();
-  }, []);
+    // Show match selector for premium users
+    if (user?.plan !== SubscriptionTier.FREE) {
+      setShowMatchSelector(true);
+    }
+  }, [user?.plan]);
 
   const loadMatches = async () => {
     const loadedMatches = await getMatches();
@@ -194,6 +191,13 @@ const ResponseGenerator: React.FC = () => {
       return;
     }
 
+    // For premium/pro users, require match selection
+    if (user.plan !== SubscriptionTier.FREE && !selectedMatch) {
+      setError(MESSAGES.SELECT_MATCH_REQUIRED);
+      setShowSnackbar(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -217,6 +221,9 @@ const ResponseGenerator: React.FC = () => {
       if (reply.error) {
         if (reply.type === 'MESSAGE_LIMIT') {
           setError(MESSAGES.MESSAGE_LIMIT);
+          setShowUpgradeModal(true);
+        } else if (reply.type === 'MATCH_SELECTION_REQUIRED') {
+          setError(MESSAGES.SELECT_MATCH_REQUIRED);
         } else {
           setError(reply.error);
         }
@@ -246,6 +253,12 @@ const ResponseGenerator: React.FC = () => {
           error.response?.data?.type === 'MESSAGE_LIMIT'
         ) {
           setError(MESSAGES.MESSAGE_LIMIT);
+          setShowUpgradeModal(true);
+        } else if (
+          error.response?.status === 400 &&
+          error.response?.data?.type === 'MATCH_SELECTION_REQUIRED'
+        ) {
+          setError(MESSAGES.SELECT_MATCH_REQUIRED);
         } else {
           setError(error.response?.data?.error || error.message);
         }
@@ -300,56 +313,28 @@ const ResponseGenerator: React.FC = () => {
     setDeleteScreenshots(value);
   };
 
+  const handleMatchSelect = (match: Match) => {
+    setSelectedMatch(match);
+  };
+
   return (
     <SafeAreaView
       style={styles.container}
       testID="response-generator-container">
       <ScrollView style={styles.scrollView}>
         {/* Match Selection */}
-        <View style={styles.matchSection}>
-          <View style={styles.matchHeader}>
-            <Text variant="titleMedium">Select Match</Text>
-            <IconButton
-              icon="plus"
-              onPress={() => setShowAddMatchModal(true)}
-              testID="add-match-button"
+        {showMatchSelector && (
+          <View style={styles.matchSection}>
+            <MatchSelector
+              matches={matches}
+              selectedMatch={selectedMatch}
+              onSelectMatch={setSelectedMatch}
+              onAddMatch={() => setShowAddMatchModal(true)}
+              onDeleteMatch={handleDeleteMatch}
+              userPlan={user.plan}
             />
           </View>
-          {matches.length > 0 ? (
-            <List.Accordion
-              title={
-                selectedMatch
-                  ? `${selectedMatch.name} (${selectedMatch.platform})`
-                  : 'Select a match'
-              }
-              expanded={showMatchDropdown}
-              onPress={() => setShowMatchDropdown(!showMatchDropdown)}
-              testID="match-dropdown">
-              {matches.map(match => (
-                <List.Item
-                  key={`${match.platform}::${match.name}`}
-                  title={match.name}
-                  description={match.platform}
-                  right={props => (
-                    <IconButton
-                      {...props}
-                      icon="delete"
-                      onPress={() => handleDeleteMatch(match)}
-                      testID={`delete-match-${match.name}`}
-                    />
-                  )}
-                  onPress={() => {
-                    setSelectedMatch(match);
-                    setShowMatchDropdown(false);
-                  }}
-                  testID={`match-${match.name}`}
-                />
-              ))}
-            </List.Accordion>
-          ) : (
-            <Text>No matches added yet</Text>
-          )}
-        </View>
+        )}
 
         {/* Image Selection */}
         <View style={styles.imageSection}>
@@ -466,12 +451,11 @@ const ResponseGenerator: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-    backgroundColor: 'transparent',
   },
   matchSection: {
     paddingVertical: 16,
