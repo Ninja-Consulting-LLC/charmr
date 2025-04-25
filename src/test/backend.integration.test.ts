@@ -25,7 +25,7 @@ async function testHealthEndpoint() {
   console.log(`Using API base URL: ${apiBaseUrl}`);
 
   try {
-    const response = await fetch(`${apiBaseUrl}/health`);
+    const response = await fetch(`${apiBaseUrl}/api/utility/health`);
 
     if (response.ok) {
       console.log('✅ Health check passed');

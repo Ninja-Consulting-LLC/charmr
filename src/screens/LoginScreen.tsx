@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useState} from 'react';
 import {
   Dimensions,
@@ -11,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
 import {RootStackScreenProps} from '../navigation/types';
+import {useStore} from '../store';
 import {theme} from '../theme/theme';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
@@ -19,6 +21,7 @@ type Props = RootStackScreenProps<'Login'>;
 
 const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const {createNewUser} = useStore();
 
   const handleLogin = () => {
     setShowLoginModal(true);
@@ -29,8 +32,24 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
     navigation.navigate('Home');
   };
 
-  const handleGetStarted = () => {
-    navigation.navigate('Onboarding');
+  const handleGetStarted = async () => {
+    try {
+      await createNewUser();
+      navigation.navigate('Onboarding');
+    } catch (error) {
+      console.error('Error creating user:', error);
+      // Handle error appropriately
+    }
+  };
+
+  const handleDevBypass = async () => {
+    try {
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      await AsyncStorage.setItem('hasOnboarded', 'true');
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error('Error in dev bypass:', error);
+    }
   };
 
   return (
@@ -66,6 +85,15 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
               testID="login-button">
               <Text style={styles.loginButtonText}>Log In</Text>
             </TouchableOpacity>
+
+            {__DEV__ && (
+              <TouchableOpacity
+                style={styles.devBypassButton}
+                onPress={handleDevBypass}
+                testID="dev-bypass-button">
+                <Text style={styles.devBypassButtonText}>Dev Mode Bypass</Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={styles.termsText}>
               By clicking above, you agree to our{' '}
@@ -162,6 +190,18 @@ const styles = StyleSheet.create({
   linkText: {
     color: theme.colors.surface,
     textDecorationLine: 'underline',
+  },
+  devBypassButton: {
+    backgroundColor: theme.colors.error,
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  devBypassButtonText: {
+    color: theme.colors.onError,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

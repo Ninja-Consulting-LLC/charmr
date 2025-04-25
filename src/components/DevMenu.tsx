@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
 import {Button, IconButton, Switch, Text} from 'react-native-paper';
+import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
 import {clearDatabase, generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
@@ -208,30 +208,31 @@ const DevMenu = () => {
 
   const handleResetMessageLimit = async () => {
     try {
-      const response = await axios.post(
-        `http://localhost:3001/api/admin/users/${userId}/reset-limit`,
-        {},
+      const response = await fetch(
+        `${config.apiBaseUrl}/api/admin/users/${userId}/reset-limit`,
         {
+          method: 'POST',
           headers: {
             Authorization: 'Bearer dev-admin-token',
+            'X-Auth-Bypass': 'true',
           },
         },
       );
 
-      if (response.data.message === 'Message limit reset successfully') {
-        // Update the user state with the reset values
-        setUser({
-          ...user,
-          dailyMessagesUsed: 0,
-          lastResetDate: new Date().toISOString().split('T')[0],
-        });
-        Alert.alert('Success', 'Message limit reset successfully');
-      } else {
-        throw new Error('Unexpected response from server');
+      if (!response.ok) {
+        throw new Error('Failed to reset message limit');
       }
+
+      const data = await response.json();
+      console.log('Reset message limit response:', data);
+
+      // Update local state
+      setUser({
+        dailyMessagesUsed: 0,
+        lastResetDate: new Date().toISOString().split('T')[0],
+      });
     } catch (error) {
-      console.error('Reset message limit error:', error);
-      Alert.alert('Error', 'Failed to reset message limit');
+      console.error('Error resetting message limit:', error);
     }
   };
 
