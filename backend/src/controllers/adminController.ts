@@ -122,3 +122,37 @@ export const resetUserMessageLimit = async (req: Request, res: Response) => {
     res.status(500).json({error: 'Failed to reset message limit'});
   }
 };
+
+export const updateUserPlan = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {plan} = req.body;
+
+    if (!plan) {
+      return res.status(400).json({error: 'Plan is required'});
+    }
+
+    const db = await getDatabase();
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Update the user's plan
+    await db.updateUser(userId, {
+      plan,
+    });
+
+    logger.info('Updated user plan:', {userId, plan});
+    res.json({message: 'Plan updated successfully'});
+  } catch (error) {
+    logger.error('Error updating user plan:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to update user plan'});
+  }
+};

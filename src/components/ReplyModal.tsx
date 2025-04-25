@@ -38,80 +38,86 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         visible={visible}
         onDismiss={onDismiss}
         contentContainerStyle={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text variant="titleMedium" style={styles.title}>
-              {MESSAGES.REPLY_MODAL_TITLE}
-            </Text>
-            <IconButton
-              icon="close"
-              onPress={onDismiss}
-              size={24}
-              testID="close-button"
-            />
-          </View>
+        <View style={styles.overflowContainer}>
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text variant="titleMedium" style={styles.title}>
+                {MESSAGES.REPLY_MODAL_TITLE}
+              </Text>
+              <IconButton
+                icon="close"
+                onPress={onDismiss}
+                size={24}
+                testID="close-button"
+              />
+            </View>
 
-          {/* Reply Text */}
-          <Pressable onPress={onCopy} style={styles.replyContainer}>
-            <Text variant="bodyLarge" style={styles.replyText}>
-              {reply}
-            </Text>
-            <IconButton
-              icon="content-copy"
-              size={20}
-              style={styles.copyIcon}
-              onPress={onCopy}
-            />
-          </Pressable>
+            {/* Reply Text */}
+            <Pressable onPress={onCopy} style={styles.replyContainer}>
+              <Text variant="bodyLarge" style={styles.replyText}>
+                {reply}
+              </Text>
+              <IconButton
+                icon="content-copy"
+                size={20}
+                style={styles.copyIcon}
+                onPress={onCopy}
+              />
+            </Pressable>
 
-          {/* Delete Switch */}
-          <View style={styles.deleteSection}>
-            <Text variant="bodyMedium">{MESSAGES.REPLY_MODAL_DELETE_HINT}</Text>
-            <Switch
-              value={deleteScreenshots}
-              onValueChange={onDeleteScreenshots}
-            />
-          </View>
+            {/* Delete Switch */}
+            <View style={styles.deleteSection}>
+              <Text variant="bodyMedium">
+                {MESSAGES.REPLY_MODAL_DELETE_HINT}
+              </Text>
+              <Switch
+                value={deleteScreenshots}
+                onValueChange={onDeleteScreenshots}
+              />
+            </View>
 
-          {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <View style={styles.modifySection}>
-              <Tooltip
-                title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
-                enterTouchDelay={50}
-                leaveTouchDelay={1000}
-                theme={{
-                  colors: {
-                    onSurface: theme.colors.inverseOnSurface,
-                    surface: theme.colors.inverseSurface,
-                  },
-                  fonts: {
-                    bodyMedium: {
-                      ...theme.fonts.bodyMedium,
-                      lineHeight: 24,
+            {/* Action Buttons */}
+            <View style={styles.actionButtons}>
+              <View style={styles.modifySection}>
+                <Tooltip
+                  title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
+                  enterTouchDelay={50}
+                  leaveTouchDelay={1000}
+                  theme={{
+                    colors: {
+                      onSurface: theme.colors.inverseOnSurface,
+                      surface: theme.colors.inverseSurface,
                     },
-                  },
-                  roundness: 8,
-                }}>
-                <IconButton
-                  icon="information"
-                  size={20}
-                  style={styles.infoIcon}
-                  iconColor={theme.colors.onSurfaceVariant}
-                />
-              </Tooltip>
-              <Pressable onPress={onModifyResponse} style={styles.modifyButton}>
-                <Text variant="bodyMedium" style={styles.modifyText}>
-                  {MESSAGES.REPLY_MODAL_MODIFY}
+                    fonts: {
+                      bodyMedium: {
+                        ...theme.fonts.bodyMedium,
+                        lineHeight: 24,
+                      },
+                    },
+                    roundness: 8,
+                  }}>
+                  <IconButton
+                    icon="information"
+                    size={20}
+                    style={styles.infoIcon}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                </Tooltip>
+                <Pressable
+                  onPress={onModifyResponse}
+                  style={styles.modifyButton}>
+                  <Text variant="bodyMedium" style={styles.modifyText}>
+                    {MESSAGES.REPLY_MODAL_MODIFY}
+                  </Text>
+                </Pressable>
+              </View>
+              <Pressable onPress={onDone} style={styles.doneButton}>
+                <Text variant="bodyMedium" style={styles.doneText}>
+                  {MESSAGES.REPLY_MODAL_DONE}
                 </Text>
               </Pressable>
             </View>
-            <Pressable onPress={onDone} style={styles.doneButton}>
-              <Text variant="bodyMedium" style={styles.doneText}>
-                {MESSAGES.REPLY_MODAL_DONE}
-              </Text>
-            </Pressable>
           </View>
         </View>
       </Modal>
@@ -124,6 +130,8 @@ const styles = StyleSheet.create({
     margin: 20,
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
+  },
+  overflowContainer: {
     overflow: 'hidden',
   },
   modalContent: {
