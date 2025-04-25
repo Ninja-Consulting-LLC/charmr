@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, {createContext, useContext, useEffect, useState} from 'react';
+import {config} from '../config/config';
 import {UserPlan} from '../types/enums';
 
 interface User {
@@ -32,6 +33,8 @@ interface Store {
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
   updateUserPlan: (plan: UserPlan) => Promise<void>;
+  showUpgradeModal: boolean;
+  setShowUpgradeModal: (show: boolean) => void;
 }
 
 // Create context with a default value
@@ -60,6 +63,8 @@ const StoreContext = createContext<Store>({
   isLoading: true,
   setIsLoading: () => {},
   updateUserPlan: async () => {},
+  showUpgradeModal: false,
+  setShowUpgradeModal: () => {},
 });
 
 // Custom hook to use the store
@@ -76,6 +81,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [user, setUserState] = useState<User>({
     id: '',
     plan: UserPlan.FREE,
@@ -95,21 +101,18 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const syncUserWithBackend = async (userId: string, userData: User) => {
     try {
       // First check if user exists
-      const response = await axios.get(
-        'http://localhost:3001/api/admin/users',
-        {
-          headers: {
-            Authorization: 'Bearer dev-admin-token',
-          },
+      const response = await axios.get(`${config.apiBaseUrl}/api/admin/users`, {
+        headers: {
+          Authorization: 'Bearer dev-admin-token',
         },
-      );
+      });
 
       const existingUser = response.data.find((u: User) => u.id === userId);
 
       if (!existingUser) {
         // Create the user if they don't exist
         await axios.post(
-          'http://localhost:3001/api/admin/users',
+          `${config.apiBaseUrl}/api/admin/users`,
           {
             id: userId,
             email: `${userId}@example.com`, // Default email for dev users
@@ -236,6 +239,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading,
     setIsLoading,
     updateUserPlan,
+    showUpgradeModal,
+    setShowUpgradeModal,
   };
 
   return (
