@@ -32,6 +32,8 @@ interface Store {
   isLoading: boolean;
   setIsLoading: (isLoading: boolean) => void;
   updateUserPlan: (plan: UserPlan) => Promise<void>;
+  showUpgradeModal: boolean;
+  setShowUpgradeModal: (show: boolean) => void;
 }
 
 // Create context with a default value
@@ -60,6 +62,8 @@ const StoreContext = createContext<Store>({
   isLoading: true,
   setIsLoading: () => {},
   updateUserPlan: async () => {},
+  showUpgradeModal: false,
+  setShowUpgradeModal: () => {},
 });
 
 // Custom hook to use the store
@@ -76,6 +80,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [user, setUserState] = useState<User>({
     id: '',
     plan: UserPlan.FREE,
@@ -236,6 +241,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading,
     setIsLoading,
     updateUserPlan,
+    showUpgradeModal,
+    setShowUpgradeModal,
   };
 
   return (

@@ -23,6 +23,7 @@ import {
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
+import {useImagePicker} from '../hooks/useImagePicker';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
@@ -73,11 +74,11 @@ const messageStyles = [
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
-const HomeContent: React.FC = () => {
+const ResponseGenerator: React.FC = () => {
   const {userId, skipRateLimiting, user, setUser} = useStore();
+  const {images, setImages, pickImages} = useImagePicker();
 
   // Keyboard modal state
-  const [images, setImages] = useState<SelectedImage[]>([]);
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -127,74 +128,6 @@ const HomeContent: React.FC = () => {
     setMatches(prev => prev.filter(m => m !== match));
     if (selectedMatch === match) {
       setSelectedMatch(null);
-    }
-  };
-
-  const pickImages = async () => {
-    try {
-      // Get currently selected image paths for comparison
-      const existingPaths = new Set(images.map(img => img.path));
-      const existingAssetIds = new Set(
-        images.filter(img => img.assetId).map(img => img.assetId),
-      );
-
-      const isPlusOrPremium =
-        user?.plan === UserPlan.PLUS || user?.plan === UserPlan.PREMIUM;
-      const maxFiles = isPlusOrPremium ? 10 : 1;
-
-      // If user is on free plan and already has a screenshot, show upgrade modal
-      if (user?.plan === UserPlan.FREE && images.length > 0) {
-        setShowScreenshotUpgrade(true);
-        setShowUpgradeModal(true);
-        return;
-      }
-
-      const result = await ImagePicker.openPicker({
-        mediaType: 'photo',
-        multiple: isPlusOrPremium,
-        cropping: false,
-        writeTempFile: true,
-        includeBase64: true,
-        includeExif: true,
-        smartAlbums: ['Screenshots'],
-        defaultAlbum: 'Screenshots',
-        maxFiles,
-        selectedAssets: images.map(img => ({
-          uri: img.path,
-          type: img.mime || 'image/jpeg',
-          ...(img.assetId && {id: img.assetId}),
-        })),
-      });
-
-      console.log('Image picker result:', result);
-
-      const newImages = (
-        (Array.isArray(result) ? result : [result]) as PickerImage[]
-      )
-        .filter(img => {
-          // Filter out duplicates based on path or assetId
-          const isDuplicate =
-            existingPaths.has(img.path) ||
-            (img.localIdentifier && existingAssetIds.has(img.localIdentifier));
-          if (isDuplicate) {
-            console.log('Skipping duplicate image:', img.path);
-          }
-          return !isDuplicate;
-        })
-        .map(img => ({
-          path: img.path,
-          assetId: img.localIdentifier || img.id,
-          mime: img.mime,
-        }));
-
-      console.log('New unique images:', newImages);
-      if (newImages.length > 0) {
-        setImages(prev => [...prev, ...newImages]);
-      }
-    } catch (error: any) {
-      if (error?.message !== 'User cancelled image selection') {
-        console.error('Error picking images:', error);
-      }
     }
   };
 
@@ -711,4 +644,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeContent;
+export default ResponseGenerator;
