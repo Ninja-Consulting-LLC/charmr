@@ -240,6 +240,7 @@ struct CustomToolbar: View {
             .buttonStyle(OutlineButtonStyle())
 
             Button(hasGeneratedOpener ? "Regenerate" : "Generate Opener") {
+                isCustomKeyboard = true
                 if hasGeneratedOpener {
                     // Regenerate: Clear existing text first
                     controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: -Int.max)
@@ -308,7 +309,7 @@ struct CustomKeyboardView: View {
             if isCustomKeyboard {
                 // Custom keyboard with style selector
                 StylePickerView(controller: controller, selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
-                    .frame(height: 210)
+                    .frame(height: 230)
                     .background(Color.primaryGradient)
             } else {
                 // Default KeyboardKit keyboard
@@ -321,7 +322,7 @@ struct CustomKeyboardView: View {
                     emojiKeyboard: { $0.view },
                     toolbar: { _ in EmptyView() }
                 )
-                .frame(height: 210)
+                .frame(height: 230)
                 .background(Color.primaryGradient)
             }
         }
