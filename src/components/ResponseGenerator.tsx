@@ -4,7 +4,6 @@ import React, {useEffect, useState} from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -236,11 +235,11 @@ const ResponseGenerator: React.FC = () => {
   };
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      testID="response-generator-container">
+    <View style={styles.container} testID="response-generator-container">
       <View style={styles.contentContainer}>
-        <ScrollView style={styles.scrollView}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}>
           {/* Match Selection */}
           {showMatchSelector && (
             <View style={styles.matchSection}>
@@ -333,7 +332,7 @@ const ResponseGenerator: React.FC = () => {
         testID="error-snackbar">
         {error || copyMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -347,7 +346,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    flexGrow: 1,
   },
   matchSection: {
     paddingBottom: 16,
@@ -369,7 +371,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.background,
   },
   generateButton: {
     backgroundColor: theme.colors.secondary,
