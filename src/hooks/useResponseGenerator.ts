@@ -92,9 +92,19 @@ export const useResponseGenerator = ({
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating reply:', error);
-      setError(MESSAGES.GENERATION_ERROR);
+      if (error.response?.data) {
+        setError(error.response.data.error);
+        if (error.response.data.limits) {
+          setUser({
+            dailyMessagesUsed: error.response.data.limits.dailyMessagesUsed,
+            extraMessages: error.response.data.limits.extraMessages,
+          });
+        }
+      } else {
+        setError(error.message || MESSAGES.GENERATION_ERROR);
+      }
     } finally {
       setLoading(false);
     }

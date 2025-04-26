@@ -59,9 +59,12 @@ export const generateReply = async (
     );
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating reply:', error);
-    throw error; // Pass through the axios error directly
+    if (error.response?.data) {
+      return error.response.data;
+    }
+    throw error;
   }
 };
 

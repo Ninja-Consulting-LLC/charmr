@@ -13,6 +13,7 @@ import Config from 'react-native-config';
 import {PaperProvider} from 'react-native-paper';
 import AppNavigator from './src/navigation/AppNavigator';
 import {RootStackParamList} from './src/navigation/types';
+import {initializeRevenueCat} from './src/services/revenueCatService';
 import {StoreProvider} from './src/store';
 import {theme} from './src/theme/theme';
 import {getPlanLimits} from './src/utils/planLimits';
@@ -25,6 +26,9 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        // Initialize RevenueCat
+        await initializeRevenueCat();
+
         // Get stored user data
         const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
         const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
@@ -78,7 +82,7 @@ function App(): React.JSX.Element {
     checkOnboardingStatus();
 
     console.log('🔥 Configuring Google Sign-In');
-    console.log('💰 RevenueCat API Key:', Config.REVENUECAT_IOS_KEY);
+    console.log('💰 RevenueCat API Key:', Config.REVENUECAT_DEV_API_KEY);
 
     GoogleSignin.configure({
       iosClientId:

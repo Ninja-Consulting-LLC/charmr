@@ -7,7 +7,7 @@ import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {getPlanLimits} from '../utils/planLimits';
-import {MessagePackModal} from './MessagePackModal';
+import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -189,12 +189,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       <MessagePackModal
         visible={showMessagePackModal}
         onDismiss={() => setShowMessagePackModal(false)}
+        currentBalance={user.extraMessages}
       />
 
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgrade}
       />
     </>
   );
