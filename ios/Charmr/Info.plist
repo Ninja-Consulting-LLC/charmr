@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>AIDatingKeyboard</string>
+	<string>Charmr</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,11 +24,11 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.ninjadating.aidatingkeyboard.temp2</string>
+			<string>com.ninjadating.charmr</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n</string>
-				<string>aidatingkeyboard</string>
+				<string>charmr</string>
 			</array>
 		</dict>
 	</array>

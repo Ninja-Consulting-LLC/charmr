@@ -202,7 +202,7 @@ struct StylePickerView: View {
                         .foregroundColor(.white)
                 }
                 Button(action: {
-                    if let url = URL(string: "aidatingkeyboard://open/screenshot") {
+                    if let url = URL(string: "charmr://open/screenshot") {
                         controller.openUrl(url)
                     }
                 }) {
@@ -232,7 +232,7 @@ struct CustomToolbar: View {
     var body: some View {
         HStack(spacing: 8) {
             Button("Open Charmr") {
-                if let url = URL(string: "aidatingkeyboard://open/screenshot") {
+                if let url = URL(string: "charmr://open/screenshot") {
                     print("Opening app with URL:", url.absoluteString)
                     controller.openUrl(url)
                 }
