@@ -227,13 +227,34 @@ const DevMenu = () => {
       const data = await response.json();
       console.log('Reset message limit response:', data);
 
-      // Update local state
+      // Fetch fresh user data from backend
+      const userResponse = await fetch(
+        `${config.apiBaseUrl}/api/users/${userId}`,
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+            'X-Auth-Bypass': 'true',
+          },
+        },
+      );
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch updated user data');
+      }
+
+      const userData = await userResponse.json();
+
+      // Update local state with fresh data
       setUser({
-        dailyMessagesUsed: 0,
-        lastResetDate: new Date().toISOString().split('T')[0],
+        dailyMessagesUsed: userData.dailyMessagesUsed,
+        lastResetDate: userData.lastResetDate,
+        extraMessages: userData.extraMessages,
       });
+
+      Alert.alert('Success', 'Message limit reset successfully');
     } catch (error) {
       console.error('Error resetting message limit:', error);
+      Alert.alert('Error', 'Failed to reset message limit');
     }
   };
 

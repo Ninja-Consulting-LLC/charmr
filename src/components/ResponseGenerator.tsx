@@ -78,7 +78,7 @@ const ResponseGenerator: React.FC = () => {
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
 
   // Custom hooks
-  const {response, loading, error, generateResponse, resetResponse} =
+  const {response, loading, error, errorType, generateResponse, resetResponse} =
     useResponseGenerator({
       images,
       selectedMatch,
@@ -90,6 +90,23 @@ const ResponseGenerator: React.FC = () => {
     loadMatches();
     setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
   }, [user?.plan]);
+
+  // Handle modal visibility based on state changes
+  useEffect(() => {
+    if (errorType === 'MESSAGE_LIMIT') {
+      setShowMessagePackModal(true);
+      setShowReplyModal(false);
+    } else if (response) {
+      setShowReplyModal(true);
+      setShowMessagePackModal(false);
+      handleCopyToClipboard();
+      if (selectedMatch) {
+        updateMatchLastUsed(selectedMatch);
+      }
+    } else if (error) {
+      setShowSnackbar(true);
+    }
+  }, [response, error, errorType, selectedMatch]);
 
   const loadMatches = async () => {
     const loadedMatches = await getMatches();
@@ -174,24 +191,13 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Reset states at the start
+    setShowReplyModal(false);
+    setShowMessagePackModal(false);
+    setShowSnackbar(false);
+
     try {
       await generateResponse(prompt);
-      if (error) {
-        if (
-          error === 'Message limit reached' ||
-          error === MESSAGES.MESSAGE_LIMIT
-        ) {
-          setShowMessagePackModal(true);
-        }
-        return;
-      }
-      if (response) {
-        setShowReplyModal(true);
-        handleCopyToClipboard();
-        if (selectedMatch) {
-          await updateMatchLastUsed(selectedMatch);
-        }
-      }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setShowSnackbar(true);
@@ -204,6 +210,7 @@ const ResponseGenerator: React.FC = () => {
     setPrompt('');
     resetResponse();
     setShowReplyModal(false);
+    setShowSnackbar(false);
   };
 
   const handleCopyToClipboard = () => {
@@ -224,6 +231,7 @@ const ResponseGenerator: React.FC = () => {
 
   const handleModifyResponse = () => {
     setShowReplyModal(false);
+    setShowSnackbar(false);
   };
 
   const handlePickImages = async () => {
@@ -336,17 +344,18 @@ const ResponseGenerator: React.FC = () => {
 
       <MessagePackModal
         visible={showMessagePackModal}
-        onDismiss={() => setShowMessagePackModal(false)}
+        onDismiss={() => {
+          setShowMessagePackModal(false);
+          setShowSnackbar(false);
+        }}
         currentBalance={user?.extraMessages || 0}
         errorMessage={
-          error === 'Message limit reached' || error === MESSAGES.MESSAGE_LIMIT
-            ? MESSAGES.MESSAGE_LIMIT
-            : undefined
+          errorType === 'MESSAGE_LIMIT' ? MESSAGES.MESSAGE_LIMIT : undefined
         }
       />
 
       <Snackbar
-        visible={showSnackbar}
+        visible={showSnackbar && !showMessagePackModal}
         onDismiss={() => setShowSnackbar(false)}
         action={{
           label: 'Dismiss',

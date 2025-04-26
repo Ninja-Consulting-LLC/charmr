@@ -5,6 +5,7 @@ export interface GenerateReplyRequest {
   matchId: string;
   deleteAfterResponse: boolean;
   skipRateLimiting?: boolean;
+  context?: string;
 }
 
 export interface GenerateReplyResponse {
