@@ -80,21 +80,6 @@ export const createReplyController = async () => {
         }
       }
 
-      // Increment message count (unless skipping rate limiting)
-      if (!skipRateLimiting) {
-        const incrementSuccess =
-          await messageLimitService.incrementMessageCount(userId);
-        if (!incrementSuccess) {
-          logger.error('Failed to increment message count', {userId});
-          return res.status(500).json({
-            error: 'Failed to process message',
-            message: 'Could not update message count',
-          });
-        }
-        // Get updated limits
-        messageLimits = await messageLimitService.getMessageLimits(userId);
-      }
-
       // Get user's plan
       const db = await getDatabase();
       const user = await db.getUser(userId);
@@ -102,20 +87,10 @@ export const createReplyController = async () => {
         return res.status(404).json({error: 'User not found'});
       }
 
-      // For premium/pro users, matchId is required
-      if (user.plan !== SubscriptionTier.FREE && !matchId) {
-        return res.status(400).json({
-          error: 'Match selection is required for Premium and Pro users',
-          type: 'MATCH_SELECTION_REQUIRED',
-        });
-      }
-
-      // Load conversation history for the specified match
-      const conversationHistory = await loadConversation(
-        userId,
-        matchId,
-        user.plan,
-      );
+      // Load conversation history for the specified match if matchId is provided
+      const conversationHistory = matchId
+        ? await loadConversation(userId, matchId, user.plan)
+        : [];
 
       // Extract all assistant messages and summaries
       const previousAssistantMessages = conversationHistory
@@ -236,6 +211,21 @@ export const createReplyController = async () => {
         systemMessageId: savedSystemMessage.id,
         assistantMessageId: savedAssistantMessage.id,
       });
+
+      // Increment message count (unless skipping rate limiting)
+      if (!skipRateLimiting) {
+        const incrementSuccess =
+          await messageLimitService.incrementMessageCount(userId);
+        if (!incrementSuccess) {
+          logger.error('Failed to increment message count', {userId});
+          return res.status(500).json({
+            error: 'Failed to process message',
+            message: 'Could not update message count',
+          });
+        }
+        // Get updated limits
+        messageLimits = await messageLimitService.getMessageLimits(userId);
+      }
 
       res.json({
         reply,

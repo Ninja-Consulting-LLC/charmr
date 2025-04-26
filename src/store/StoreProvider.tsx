@@ -169,7 +169,12 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         name: `User ${newUserId}`,
       });
 
-      setUser(newUser);
+      // Ensure the user plan is set to FREE
+      setUser({
+        ...newUser,
+        plan: SubscriptionTier.FREE,
+        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+      });
       setIsLoading(false);
     } catch (error) {
       console.error('Error creating user:', error);

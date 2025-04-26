@@ -56,8 +56,20 @@ export interface Database {
     content: string;
     timestamp: string;
   }>;
-  getMessages: (userId: string, matchId: string) => Promise<Message[]>;
+  getMessages: (
+    userId: string,
+    matchId?: string,
+  ) => Promise<
+    Array<{
+      id: number;
+      userId: string;
+      matchId: string;
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: string;
+    }>
+  >;
   all: (sql: string, params?: any[]) => Promise<any[]>;
-  run: (sql: string, params?: any[]) => Promise<void>;
+  run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;
 }

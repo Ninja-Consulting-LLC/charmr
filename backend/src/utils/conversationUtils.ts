@@ -13,22 +13,18 @@ export interface Message {
 
 export async function loadConversation(
   userId: string,
-  matchId: string,
+  matchId?: string,
   userPlan: SubscriptionTier = SubscriptionTier.FREE,
 ): Promise<Message[]> {
   try {
     const db = await getDatabase();
 
-    // For premium/pro users, only return messages for the specified matchId
-    if (userPlan !== SubscriptionTier.FREE) {
-      if (!matchId) {
-        return [];
-      }
-      return await db.getMessages(userId, matchId);
+    // Only load conversation history if we have a matchId and user is pro
+    if (userPlan === SubscriptionTier.FREE || !matchId) {
+      return [];
     }
 
-    // For free users, return all messages
-    return await db.getMessages(userId, ''); // Pass empty string as matchId to get all messages
+    return await db.getMessages(userId, matchId);
   } catch (error) {
     logger.error('Error loading conversation:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -42,12 +38,12 @@ export async function loadConversation(
 
 export async function saveMessage(
   userId: string,
-  matchId: string,
+  matchId: string | undefined,
   message: Omit<Message, 'id' | 'userId' | 'matchId'>,
 ): Promise<Message> {
   try {
     const db = await getDatabase();
-    const savedMessage = await db.saveMessage(userId, matchId, message);
+    const savedMessage = await db.saveMessage(userId, matchId || '', message);
     logger.info('Message saved successfully:', {
       userId,
       matchId,
@@ -69,7 +65,7 @@ export async function saveMessage(
 
 export async function appendConversation(
   userId: string,
-  matchId: string,
+  matchId: string | undefined,
   summary: string,
   assistantMessage: string,
 ): Promise<void> {

@@ -2,13 +2,10 @@ import {SubscriptionTier} from '../types/enums';
 
 export const getPlanLimits = (plan: SubscriptionTier): number => {
   switch (plan) {
-    case SubscriptionTier.FREE:
-      return 5;
-    case SubscriptionTier.PREMIUM:
-      return 50;
     case SubscriptionTier.PRO:
-      return 200;
+      return Infinity; // Unlimited messages for PRO
+    case SubscriptionTier.FREE:
     default:
-      return 5;
+      return 5; // 5 messages per day for free tier
   }
 };

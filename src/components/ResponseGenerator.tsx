@@ -20,6 +20,7 @@ import {
 import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
 import MatchSelector from './MatchSelector';
+import MessagePackModal from './MessagePackModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -74,6 +75,7 @@ const ResponseGenerator: React.FC = () => {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
+  const [showMessagePackModal, setShowMessagePackModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, generateResponse, resetResponse} =
@@ -174,17 +176,20 @@ const ResponseGenerator: React.FC = () => {
   const handleSubmit = async () => {
     try {
       await generateResponse(prompt);
+      if (error) {
+        if (
+          error === 'Message limit reached' ||
+          error === MESSAGES.MESSAGE_LIMIT
+        ) {
+          setShowMessagePackModal(true);
+        }
+        return;
+      }
       if (response) {
         setShowReplyModal(true);
         handleCopyToClipboard();
         if (selectedMatch) {
           await updateMatchLastUsed(selectedMatch);
-        }
-      }
-      if (error) {
-        setShowSnackbar(true);
-        if (error === MESSAGES.MESSAGE_LIMIT) {
-          setShowUpgradeModal(true);
         }
       }
     } catch (error) {
@@ -208,7 +213,7 @@ const ResponseGenerator: React.FC = () => {
     }
   };
 
-  const handleUpgrade = (tierId: string) => {
+  const handleUpgrade = (tier: SubscriptionTier) => {
     setShowUpgradeModal(false);
   };
 
@@ -327,6 +332,17 @@ const ResponseGenerator: React.FC = () => {
         onModifyResponse={handleModifyResponse}
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
+      />
+
+      <MessagePackModal
+        visible={showMessagePackModal}
+        onDismiss={() => setShowMessagePackModal(false)}
+        currentBalance={user?.extraMessages || 0}
+        errorMessage={
+          error === 'Message limit reached' || error === MESSAGES.MESSAGE_LIMIT
+            ? MESSAGES.MESSAGE_LIMIT
+            : undefined
+        }
       />
 
       <Snackbar
