@@ -26,8 +26,11 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
+        console.log('🚀 Starting app initialization...');
+
         // Initialize RevenueCat
         await initializeRevenueCat();
+        console.log('💰 RevenueCat initialized');
 
         // Get stored user data
         const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
