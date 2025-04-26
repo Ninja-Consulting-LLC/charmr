@@ -1,43 +1,18 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
+import {getProPaywall, handlePurchase} from '../services/revenueCatService';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
+import {SubscriptionTier} from '../types/subscription';
 
 interface UpgradeModalProps {
   visible: boolean;
   onDismiss: () => void;
-  onUpgrade: (tier: SubscriptionTier) => void;
+  onUpgrade?: (tier: SubscriptionTier) => void;
   showRateLimitMessage?: boolean;
   showScreenshotMessage?: boolean;
 }
-
-const TIERS = [
-  {
-    id: SubscriptionTier.PREMIUM,
-    name: 'Premium',
-    price: '$9.99/month',
-    messages: '25 messages/day',
-    features: [
-      'Advanced response generation',
-      'Priority support',
-      'Custom response styles',
-    ],
-  },
-  {
-    id: SubscriptionTier.PRO,
-    name: 'Pro',
-    price: '$19.99/month',
-    messages: '200 messages/day',
-    features: [
-      'Premium response generation',
-      '24/7 priority support',
-      'Custom response styles',
-      'Advanced analytics',
-    ],
-  },
-];
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({
   visible,
@@ -46,9 +21,55 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
   showRateLimitMessage,
   showScreenshotMessage,
 }) => {
-  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(
-    SubscriptionTier.PREMIUM,
-  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [packages, setPackages] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    const fetchPaywall = async () => {
+      if (visible) {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const proPaywall = await getProPaywall();
+          if (proPaywall) {
+            setPackages(proPaywall);
+          } else {
+            // Fallback to default UI
+            setPackages([]);
+          }
+        } catch (err) {
+          setError('Failed to load subscription options');
+          // Fallback to default UI
+          setPackages([]);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchPaywall();
+  }, [visible]);
+
+  const handleUpgrade = async (productId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const success = await handlePurchase(productId);
+      if (success) {
+        onDismiss();
+        if (onUpgrade) {
+          onUpgrade(productId as SubscriptionTier);
+        }
+      } else {
+        setError('Failed to complete purchase');
+      }
+    } catch (err) {
+      setError('Failed to complete purchase');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Portal>
@@ -83,47 +104,49 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
             </Text>
           )}
 
-          <View style={styles.tiersContainer}>
-            {TIERS.map(tier => (
+          {isLoading && packages === null ? (
+            <Text>Loading subscription options...</Text>
+          ) : error ? (
+            <Text style={{color: theme.colors.error}}>{error}</Text>
+          ) : packages && packages.length > 0 ? (
+            <View style={styles.paywallContainer}>
+              {packages.map((pkg: any) => (
+                <Surface
+                  key={pkg.identifier}
+                  style={styles.productCard}
+                  onTouchEnd={() => handleUpgrade(pkg.product.identifier)}>
+                  <View style={styles.productContent}>
+                    <Text variant="titleMedium">{pkg.product.title}</Text>
+                    <Text
+                      variant="headlineMedium"
+                      style={{color: theme.colors.primary}}>
+                      {pkg.product.priceString}
+                    </Text>
+                    <Text variant="bodyMedium">{pkg.product.description}</Text>
+                  </View>
+                </Surface>
+              ))}
+            </View>
+          ) : (
+            // Fallback UI
+            <View style={styles.paywallContainer}>
               <Surface
-                key={tier.id}
-                style={[
-                  styles.tierCard,
-                  selectedTier === tier.id && styles.selectedTier,
-                ]}>
-                <View style={styles.tierCardPressable}>
-                  <Text variant="titleMedium" style={styles.tierName}>
-                    {tier.name}
-                  </Text>
+                style={styles.productCard}
+                onTouchEnd={() => handleUpgrade('com.ninjadating.charmr.Pro')}>
+                <View style={styles.productContent}>
+                  <Text variant="titleMedium">Pro Plan</Text>
                   <Text
                     variant="headlineMedium"
-                    style={[styles.tierPrice, {color: theme.colors.primary}]}>
-                    {tier.price}
+                    style={{color: theme.colors.primary}}>
+                    $9.99/month
                   </Text>
-                  <Text variant="bodyMedium" style={styles.tierMessages}>
-                    {tier.messages}
+                  <Text variant="bodyMedium">
+                    Unlimited messages and advanced features
                   </Text>
-                  <View style={styles.featuresContainer}>
-                    {tier.features.map((feature, index) => (
-                      <Text
-                        key={index}
-                        variant="bodySmall"
-                        style={styles.feature}>
-                        • {feature}
-                      </Text>
-                    ))}
-                  </View>
                 </View>
               </Surface>
-            ))}
-          </View>
-
-          <Button
-            mode="contained"
-            onPress={() => onUpgrade(selectedTier)}
-            style={styles.upgradeButton}>
-            Upgrade Now
-          </Button>
+            </View>
+          )}
         </View>
       </Modal>
     </Portal>
@@ -155,40 +178,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  tiersContainer: {
+  paywallContainer: {
     gap: 8,
   },
-  tierCard: {
+  productCard: {
     borderRadius: theme.roundness,
     borderWidth: 1,
     borderColor: theme.colors.outline,
-  },
-  selectedTier: {
-    borderColor: theme.colors.primary,
-    backgroundColor: `${theme.colors.primary}10`,
-  },
-  tierCardPressable: {
     padding: 12,
+  },
+  productContent: {
     alignItems: 'center',
-  },
-  tierName: {
-    marginBottom: 4,
-  },
-  tierPrice: {
-    marginBottom: 2,
-  },
-  tierMessages: {
-    marginBottom: 8,
-  },
-  featuresContainer: {
-    width: '100%',
-  },
-  feature: {
-    marginBottom: 2,
-    fontSize: 12,
-  },
-  upgradeButton: {
-    marginTop: 16,
   },
 });
 

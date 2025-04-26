@@ -1,5 +1,5 @@
 import React from 'react';
-import {View} from 'react-native';
+import {Image, View} from 'react-native';
 import {IconButton, Text} from 'react-native-paper';
 import {theme} from '../theme/theme';
 
@@ -22,13 +22,19 @@ const Header: React.FC<HeaderProps> = ({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: theme.colors.background,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.outline,
       }}>
-      <Text variant="headlineSmall" style={{color: theme.colors.onBackground}}>
-        Charmr
-      </Text>
+      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={{width: 50, height: 50}}
+          resizeMode="contain"
+        />
+        <Text variant="headlineSmall" style={{color: theme.colors.surface}}>
+          Charmr
+        </Text>
+      </View>
       <View style={{flexDirection: 'row'}}>
         <IconButton
           icon="account-circle"

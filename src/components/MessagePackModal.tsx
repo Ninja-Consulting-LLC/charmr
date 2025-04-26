@@ -1,204 +1,195 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
+import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import {
-  Button,
-  List,
-  Modal,
-  Portal,
-  Snackbar,
-  Text,
-  useTheme,
-} from 'react-native-paper';
-import {useStore} from '../store';
-
-interface MessagePack {
-  id: string;
-  name: string;
-  price: number;
-  messages: number;
-}
-
-const MESSAGE_PACKS: MessagePack[] = [
-  {
-    id: 'pack-1',
-    name: 'Starter Pack',
-    price: 4.99,
-    messages: 10,
-  },
-  {
-    id: 'pack-2',
-    name: 'Popular Pack',
-    price: 9.99,
-    messages: 25,
-  },
-  {
-    id: 'pack-3',
-    name: 'Mega Pack',
-    price: 19.99,
-    messages: 60,
-  },
-];
+  getMessagePackPaywall,
+  handlePurchase as purchaseProduct,
+} from '../services/revenueCatService';
+import {theme} from '../theme/theme';
 
 interface MessagePackModalProps {
   visible: boolean;
   onDismiss: () => void;
+  currentBalance: number;
+  errorMessage?: string;
 }
 
-export const MessagePackModal: React.FC<MessagePackModalProps> = ({
+const MessagePackModal: React.FC<MessagePackModalProps> = ({
   visible,
   onDismiss,
+  currentBalance,
+  errorMessage,
 }) => {
-  const theme = useTheme();
-  const {user, setUser} = useStore();
-  const [selectedPack, setSelectedPack] = useState<MessagePack | null>(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [packages, setPackages] = useState<any[] | null>(null);
 
-  const handlePurchase = async () => {
-    if (!selectedPack || !user) return;
-
-    try {
-      setIsPurchasing(true);
-      setError(null);
-
-      const response = await fetch('/api/purchase-messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          packId: selectedPack.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to purchase message pack');
+  useEffect(() => {
+    const fetchPaywall = async () => {
+      if (visible) {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const messagePackPaywall = await getMessagePackPaywall();
+          if (messagePackPaywall) {
+            setPackages(messagePackPaywall);
+          } else {
+            // Fallback to default UI
+            setPackages([]);
+          }
+        } catch (err) {
+          setError('Failed to load message pack options');
+          // Fallback to default UI
+          setPackages([]);
+        } finally {
+          setIsLoading(false);
+        }
       }
+    };
 
-      const data = await response.json();
+    fetchPaywall();
+  }, [visible]);
 
-      // Update user in store
-      setUser({
-        ...user,
-        extraMessages: (user.extraMessages || 0) + selectedPack.messages,
-      });
-
-      setShowSnackbar(true);
-      onDismiss();
+  const handleMessagePackPurchase = async (productId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const success = await purchaseProduct(productId);
+      if (success) {
+        onDismiss();
+      } else {
+        setError('Failed to complete purchase');
+      }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to purchase message pack',
-      );
+      setError('Failed to complete purchase');
     } finally {
-      setIsPurchasing(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <>
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={onDismiss}
-          contentContainerStyle={[
-            styles.modal,
-            {backgroundColor: theme.colors.surface},
-          ]}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Purchase Additional Messages
-          </Text>
-          <Text variant="bodyMedium" style={styles.description}>
-            You've used {user?.dailyMessagesUsed || 0} of{' '}
-            {user?.dailyMessageLimit || 5} daily messages.
-            {user?.extraMessages
-              ? ` You have ${user.extraMessages} extra messages available.`
-              : ''}
-          </Text>
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        contentContainerStyle={[
+          styles.modal,
+          {backgroundColor: theme.colors.surface},
+        ]}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="headlineSmall" style={styles.title}>
+              Message Pack
+            </Text>
+            <Button mode="text" onPress={onDismiss} style={styles.closeButton}>
+              Close
+            </Button>
+          </View>
 
-          <List.Section>
-            {MESSAGE_PACKS.map(pack => (
-              <List.Item
-                key={pack.id}
-                title={pack.name}
-                description={`${pack.messages} messages for $${pack.price}`}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon={
-                      selectedPack?.id === pack.id
-                        ? 'radiobox-marked'
-                        : 'radiobox-blank'
-                    }
-                  />
-                )}
-                onPress={() => setSelectedPack(pack)}
-              />
-            ))}
-          </List.Section>
-
-          {error && (
-            <Text style={[styles.error, {color: theme.colors.error}]}>
-              {error}
+          {errorMessage && (
+            <Text style={[styles.errorMessage, {color: theme.colors.error}]}>
+              {errorMessage}
             </Text>
           )}
 
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="outlined"
-              onPress={onDismiss}
-              style={styles.button}
-              disabled={isPurchasing}>
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handlePurchase}
-              loading={isPurchasing}
-              disabled={!selectedPack || isPurchasing}
-              style={styles.button}>
-              Purchase
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+          <Text variant="bodyMedium" style={styles.balanceText}>
+            Current balance: {currentBalance} messages
+          </Text>
 
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        duration={3000}>
-        Successfully purchased {selectedPack?.messages} messages!
-      </Snackbar>
-    </>
+          {isLoading && packages === null ? (
+            <Text>Loading message pack options...</Text>
+          ) : error ? (
+            <Text style={{color: theme.colors.error}}>{error}</Text>
+          ) : packages && packages.length > 0 ? (
+            <View style={styles.paywallContainer}>
+              {packages.map((pkg: any) => (
+                <Surface
+                  key={pkg.identifier}
+                  style={styles.productCard}
+                  onTouchEnd={() =>
+                    handleMessagePackPurchase(pkg.product.identifier)
+                  }>
+                  <View style={styles.productContent}>
+                    <Text variant="titleMedium">{pkg.product.title}</Text>
+                    <Text
+                      variant="headlineMedium"
+                      style={{color: theme.colors.primary}}>
+                      {pkg.product.priceString}
+                    </Text>
+                    <Text variant="bodyMedium">{pkg.product.description}</Text>
+                  </View>
+                </Surface>
+              ))}
+            </View>
+          ) : (
+            // Fallback UI
+            <View style={styles.paywallContainer}>
+              <Surface
+                style={styles.productCard}
+                onTouchEnd={() =>
+                  handleMessagePackPurchase(
+                    'com.ninjadating.charmr.MessagePack',
+                  )
+                }>
+                <View style={styles.productContent}>
+                  <Text variant="titleMedium">Message Pack</Text>
+                  <Text
+                    variant="headlineMedium"
+                    style={{color: theme.colors.primary}}>
+                    $4.99
+                  </Text>
+                  <Text variant="bodyMedium">50 additional messages</Text>
+                </View>
+              </Surface>
+            </View>
+          )}
+        </View>
+      </Modal>
+    </Portal>
   );
 };
 
 const styles = StyleSheet.create({
   modal: {
-    margin: 20,
     padding: 20,
-    borderRadius: 8,
+    margin: 20,
+    borderRadius: theme.roundness,
   },
-  title: {
-    marginBottom: 8,
-    textAlign: 'center',
+  content: {
+    gap: 16,
   },
-  description: {
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  buttonContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  button: {
+  title: {
     flex: 1,
-    marginHorizontal: 8,
   },
-  error: {
-    marginTop: 8,
+  closeButton: {
+    margin: 0,
+  },
+  balanceText: {
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  paywallContainer: {
+    gap: 8,
+  },
+  productCard: {
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+    padding: 12,
+  },
+  productContent: {
+    alignItems: 'center',
+  },
+  errorMessage: {
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });
+
+export default MessagePackModal;

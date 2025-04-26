@@ -58,10 +58,15 @@ export const generateReply = async (
       request,
     );
 
+    console.log('API response:', response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating reply:', error);
-    throw error; // Pass through the axios error directly
+    if (error.response?.data) {
+      console.log('Error response data:', error.response.data);
+      return error.response.data;
+    }
+    throw error;
   }
 };
 

@@ -4,7 +4,6 @@ import React, {useEffect, useState} from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -21,6 +20,7 @@ import {
 import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
 import MatchSelector from './MatchSelector';
+import MessagePackModal from './MessagePackModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -75,9 +75,10 @@ const ResponseGenerator: React.FC = () => {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
+  const [showMessagePackModal, setShowMessagePackModal] = useState(false);
 
   // Custom hooks
-  const {response, loading, error, generateResponse, resetResponse} =
+  const {response, loading, error, errorType, generateResponse, resetResponse} =
     useResponseGenerator({
       images,
       selectedMatch,
@@ -89,6 +90,23 @@ const ResponseGenerator: React.FC = () => {
     loadMatches();
     setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
   }, [user?.plan]);
+
+  // Handle modal visibility based on state changes
+  useEffect(() => {
+    if (errorType === 'MESSAGE_LIMIT') {
+      setShowMessagePackModal(true);
+      setShowReplyModal(false);
+    } else if (response) {
+      setShowReplyModal(true);
+      setShowMessagePackModal(false);
+      handleCopyToClipboard();
+      if (selectedMatch) {
+        updateMatchLastUsed(selectedMatch);
+      }
+    } else if (error) {
+      setShowSnackbar(true);
+    }
+  }, [response, error, errorType, selectedMatch]);
 
   const loadMatches = async () => {
     const loadedMatches = await getMatches();
@@ -173,21 +191,13 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    // Reset states at the start
+    setShowReplyModal(false);
+    setShowMessagePackModal(false);
+    setShowSnackbar(false);
+
     try {
       await generateResponse(prompt);
-      if (response) {
-        setShowReplyModal(true);
-        handleCopyToClipboard();
-        if (selectedMatch) {
-          await updateMatchLastUsed(selectedMatch);
-        }
-      }
-      if (error) {
-        setShowSnackbar(true);
-        if (error === MESSAGES.MESSAGE_LIMIT) {
-          setShowUpgradeModal(true);
-        }
-      }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setShowSnackbar(true);
@@ -200,6 +210,7 @@ const ResponseGenerator: React.FC = () => {
     setPrompt('');
     resetResponse();
     setShowReplyModal(false);
+    setShowSnackbar(false);
   };
 
   const handleCopyToClipboard = () => {
@@ -209,7 +220,7 @@ const ResponseGenerator: React.FC = () => {
     }
   };
 
-  const handleUpgrade = (tierId: string) => {
+  const handleUpgrade = (tier: SubscriptionTier) => {
     setShowUpgradeModal(false);
   };
 
@@ -220,6 +231,7 @@ const ResponseGenerator: React.FC = () => {
 
   const handleModifyResponse = () => {
     setShowReplyModal(false);
+    setShowSnackbar(false);
   };
 
   const handlePickImages = async () => {
@@ -236,11 +248,11 @@ const ResponseGenerator: React.FC = () => {
   };
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      testID="response-generator-container">
+    <View style={styles.container} testID="response-generator-container">
       <View style={styles.contentContainer}>
-        <ScrollView style={styles.scrollView}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}>
           {/* Match Selection */}
           {showMatchSelector && (
             <View style={styles.matchSection}>
@@ -265,7 +277,9 @@ const ResponseGenerator: React.FC = () => {
 
           {/* Prompt Input */}
           <View style={styles.promptSection}>
-            <Text variant="titleMedium">Enter your prompt (optional)</Text>
+            <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
+              Enter your prompt (optional)
+            </Text>
             <TextInput
               value={prompt}
               onChangeText={setPrompt}
@@ -274,8 +288,13 @@ const ResponseGenerator: React.FC = () => {
               style={[styles.promptInput]}
               testID="prompt-input"
               placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-              placeholderTextColor={theme.colors.onSurfaceDisabled}
+              placeholderTextColor={theme.colors.secondary}
               textAlignVertical="top"
+              cursorColor={theme.colors.background}
+              selectionColor={theme.colors.background}
+              textColor={theme.colors.background}
+              underlineColor="transparent"
+              activeUnderlineColor="transparent"
             />
           </View>
         </ScrollView>
@@ -323,8 +342,20 @@ const ResponseGenerator: React.FC = () => {
         deleteScreenshots={deleteScreenshots}
       />
 
+      <MessagePackModal
+        visible={showMessagePackModal}
+        onDismiss={() => {
+          setShowMessagePackModal(false);
+          setShowSnackbar(false);
+        }}
+        currentBalance={user?.extraMessages || 0}
+        errorMessage={
+          errorType === 'MESSAGE_LIMIT' ? MESSAGES.MESSAGE_LIMIT : undefined
+        }
+      />
+
       <Snackbar
-        visible={showSnackbar}
+        visible={showSnackbar && !showMessagePackModal}
         onDismiss={() => setShowSnackbar(false)}
         action={{
           label: 'Dismiss',
@@ -333,21 +364,23 @@ const ResponseGenerator: React.FC = () => {
         testID="error-snackbar">
         {error || copyMessage}
       </Snackbar>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   contentContainer: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    flexGrow: 1,
   },
   matchSection: {
     paddingBottom: 16,
@@ -361,7 +394,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderColor: theme.colors.secondary,
     borderRadius: 8,
     padding: 4,
     minHeight: 80,
@@ -369,7 +402,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.background,
   },
   generateButton: {
     backgroundColor: theme.colors.secondary,

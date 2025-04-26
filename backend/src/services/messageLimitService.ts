@@ -7,15 +7,12 @@ interface PlanLimits {
   dailyMessageLimit: number;
 }
 
-const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
+const PLAN_LIMITS: Partial<Record<SubscriptionTier, PlanLimits>> = {
   [SubscriptionTier.FREE]: {
     dailyMessageLimit: 5,
   },
-  [SubscriptionTier.PREMIUM]: {
-    dailyMessageLimit: 50,
-  },
   [SubscriptionTier.PRO]: {
-    dailyMessageLimit: 200,
+    dailyMessageLimit: Infinity,
   },
 };
 

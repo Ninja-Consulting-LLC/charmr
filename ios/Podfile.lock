@@ -81,6 +81,8 @@ PODS:
     - hermes-engine/Pre-built (= 0.79.1)
   - hermes-engine/Pre-built (0.79.1)
   - PromisesObjC (2.4.0)
+  - PurchasesHybridCommon (13.28.1):
+    - RevenueCat (= 5.21.2)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -1429,6 +1431,10 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-config (1.5.5):
+    - react-native-config/App (= 1.5.5)
+  - react-native-config/App (1.5.5):
+    - React-Core
   - react-native-safe-area-context (5.4.0):
     - DoubleConversion
     - glog
@@ -1827,6 +1833,7 @@ PODS:
     - React-perflogger (= 0.79.1)
     - React-utils (= 0.79.1)
   - RecaptchaInterop (101.0.0)
+  - RevenueCat (5.21.2)
   - RNAppleAuthentication (2.4.1):
     - React-Core
   - RNCAsyncStorage (2.1.2):
@@ -1922,7 +1929,10 @@ PODS:
     - React-Core
     - React-RCTImage
     - TOCropViewController (~> 2.7.4)
-  - RNReanimated (3.17.4):
+  - RNPurchases (8.9.5):
+    - PurchasesHybridCommon (= 13.28.1)
+    - React-Core
+  - RNReanimated (3.17.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1945,10 +1955,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 3.17.4)
-    - RNReanimated/worklets (= 3.17.4)
+    - RNReanimated/reanimated (= 3.17.5)
+    - RNReanimated/worklets (= 3.17.5)
     - Yoga
-  - RNReanimated/reanimated (3.17.4):
+  - RNReanimated/reanimated (3.17.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1971,9 +1981,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated/apple (= 3.17.4)
+    - RNReanimated/reanimated/apple (= 3.17.5)
     - Yoga
-  - RNReanimated/reanimated/apple (3.17.4):
+  - RNReanimated/reanimated/apple (3.17.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1997,7 +2007,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated/worklets (3.17.4):
+  - RNReanimated/worklets (3.17.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2020,9 +2030,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/worklets/apple (= 3.17.4)
+    - RNReanimated/worklets/apple (= 3.17.5)
     - Yoga
-  - RNReanimated/worklets/apple (3.17.4):
+  - RNReanimated/worklets/apple (3.17.5):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2170,6 +2180,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
+  - react-native-config (from `../node_modules/react-native-config`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -2210,6 +2221,7 @@ DEPENDENCIES:
   - "RNFBInstallations (from `../node_modules/@react-native-firebase/installations`)"
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNImageCropPicker (from `../node_modules/react-native-image-crop-picker`)
+  - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
@@ -2231,7 +2243,9 @@ SPEC REPOS:
     - GTMAppAuth
     - GTMSessionFetcher
     - PromisesObjC
+    - PurchasesHybridCommon
     - RecaptchaInterop
+    - RevenueCat
     - SocketRocket
     - TOCropViewController
 
@@ -2317,6 +2331,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-cameraroll:
     :path: "../node_modules/@react-native-camera-roll/camera-roll"
+  react-native-config:
+    :path: "../node_modules/react-native-config"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2397,6 +2413,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-google-signin/google-signin"
   RNImageCropPicker:
     :path: "../node_modules/react-native-image-crop-picker"
+  RNPurchases:
+    :path: "../node_modules/react-native-purchases"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2429,6 +2447,7 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   hermes-engine: c32f2e405098bc1ebe30630a051ddce6f21d3c2e
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  PurchasesHybridCommon: bb4c1ddc8683a18859da35f45a0717379f889d94
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: 0ada4fb1e5c5637bff940dc40b94e2d3bf96b0ab
   RCTRequired: 76ca80ff10acb3834ed0dacba9645645009578a2
@@ -2461,6 +2480,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 3dec40b2c7bc9b2a0e89079adecec8553623b28a
   React-microtasksnativemodule: 5b347f4a4b6e2451a55301ed935bcc5261ba87cf
   react-native-cameraroll: 23d28040c32ca8b20661e0c41b56ab041779244b
+  react-native-config: 644074ab88db883fcfaa584f03520ec29589d7df
   react-native-safe-area-context: 5928d84c879db2f9eb6969ca70e68f58623dbf25
   React-NativeModulesApple: e8e6b7992257fe68f77d5ce39f34384cd6226edf
   React-oscompat: 74eb4badd12e93899f37a5dbb03d8a638011a292
@@ -2494,6 +2514,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 025b1e9baf2a32b7466b00c20dd5b1b8c6388d07
   ReactCommon: ff9f7add7560c9f15cf6e9d0320f9ad45b696062
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  RevenueCat: d8174cfd72fab33f3b877d38c9f033142dc87c60
   RNAppleAuthentication: c3dddf5918126c9aae85dc2e2ce9fb87835e9e04
   RNCAsyncStorage: 646c1bf2ebfc78d6632a3b0399f471fba8101e73
   RNCClipboard: 055cd8f50702b9ebc5a58f7622e0cda073878d21
@@ -2502,13 +2523,14 @@ SPEC CHECKSUMS:
   RNFBInstallations: 0af3ed83ee414205ae466cc5dde4864c01179f99
   RNGoogleSignin: 0a90492ff2894496b21fc4aa4d6e09ad61691b5b
   RNImageCropPicker: b0afedeefd8655254a15c34103718455fde6ce59
-  RNReanimated: d48e87df3d70586eb405a77240aa0dafaa857ee4
+  RNPurchases: 5f964623075a95f48fc76f65a6669bbaf2a0fc12
+  RNReanimated: a3f55346df73f35c38bf0b446294d3d0b1ac8cf9
   RNScreens: a25b818417609cbd805474dffd2d28b229704cfc
   RNVectorIcons: fe9afebb925c9ce70f441b611d679e402ecb3f6e
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   TOCropViewController: 80b8985ad794298fb69d3341de183f33d1853654
   Yoga: 0f6757ba6d7d652f42bba3423f925dbf23d51aab
 
-PODFILE CHECKSUM: b836f06054cceafb4040d7495ba14ac018497708
+PODFILE CHECKSUM: 47f79c2e9b243200bc4bf1add98e0a98f1a5504a
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

@@ -7,7 +7,7 @@ import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {getPlanLimits} from '../utils/planLimits';
-import {MessagePackModal} from './MessagePackModal';
+import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -131,9 +131,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           <List.Subheader>Message Limits</List.Subheader>
           <List.Item
             title="Daily Messages"
-            description={`${
-              user.dailyMessagesUsed
-            } / ${user.getDailyMessageLimit()} used`}
+            description={`${user.dailyMessagesUsed} / ${getPlanLimits(
+              user.plan,
+            )}`}
             left={props => <List.Icon {...props} icon="message" />}
           />
           {user.extraMessages > 0 && (
@@ -182,19 +182,19 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           />
         </List.Section>
         <Text style={styles.planInfo}>
-          {user.getDailyMessageLimit()} messages per day
+          {getPlanLimits(user.plan)} messages per day
         </Text>
       </Animated.View>
 
       <MessagePackModal
         visible={showMessagePackModal}
         onDismiss={() => setShowMessagePackModal(false)}
+        currentBalance={user.extraMessages}
       />
 
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgrade}
       />
     </>
   );

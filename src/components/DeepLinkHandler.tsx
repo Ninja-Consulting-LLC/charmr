@@ -15,17 +15,17 @@ export const DeepLinkHandler: React.FC = () => {
       console.log('  - Full URL:', url);
       console.log(
         '  - URL includes /homescreen:',
-        url.includes('aidatingkeyboard://open/homescreen'),
+        url.includes('charmr://open/homescreen'),
       );
       console.log(
         '  - URL includes /screenshot:',
-        url.includes('aidatingkeyboard://open/screenshot'),
+        url.includes('charmr://open/screenshot'),
       );
 
-      if (url.includes('aidatingkeyboard://open/homescreen')) {
+      if (url.includes('charmr://open/homescreen')) {
         console.log('📱 Navigating to Home screen');
         navigation.navigate('Home' as never);
-      } else if (url.includes('aidatingkeyboard://open/screenshot')) {
+      } else if (url.includes('charmr://open/screenshot')) {
         console.log('📸 Opening screenshot upload flow:');
         console.log('  1. Navigating to Home screen');
         navigation.navigate('Home' as never);

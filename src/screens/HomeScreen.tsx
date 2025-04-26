@@ -20,7 +20,7 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
 
   return (
     <>
-      <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.primary}}>
         <View style={{flex: 1}}>
           <View style={{flex: 1}}>
             <Header

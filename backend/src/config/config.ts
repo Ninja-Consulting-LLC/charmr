@@ -35,6 +35,12 @@ export const config = {
     defaultFrom: process.env.EMAIL_DEFAULT_FROM || 'noreply@charmr.app',
     defaultReplyTo: process.env.EMAIL_DEFAULT_REPLY_TO || 'support@charmr.app',
   },
+  limits: {
+    proDailyMessageLimit: parseInt(
+      process.env.PRO_DAILY_MESSAGE_LIMIT || '200',
+      10,
+    ),
+  },
 } as const;
 
 // Validate required environment variables
