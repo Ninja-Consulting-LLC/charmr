@@ -96,8 +96,21 @@ export const resetUserMessageLimit = async (req: Request, res: Response) => {
       lastResetDate: new Date().toISOString().split('T')[0],
     });
 
+    // Fetch the updated user data to ensure consistency
+    const updatedUser = await db.getUser(userId);
+    if (!updatedUser) {
+      throw new Error('Failed to fetch updated user data');
+    }
+
     logger.info('Reset message limit for user:', {userId});
-    res.json({message: 'Message limit reset successfully'});
+    res.json({
+      message: 'Message limit reset successfully',
+      user: {
+        dailyMessagesUsed: updatedUser.dailyMessagesUsed,
+        lastResetDate: updatedUser.lastResetDate,
+        extraMessages: updatedUser.extraMessages,
+      },
+    });
   } catch (error) {
     logger.error('Error resetting message limit:', {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -146,7 +146,10 @@ export const findUserByInstallationId = async (
       getDailyMessageLimit: () => getPlanLimits(data.plan),
     };
   } catch (error) {
-    console.error('Error finding user by installation ID:', error);
+    // Only log 404 errors to console, suppress other errors
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.error('Error finding user by installation ID:', error);
+    }
     return null;
   }
 };

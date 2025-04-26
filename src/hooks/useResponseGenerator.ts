@@ -16,6 +16,7 @@ interface UseResponseGeneratorReturn {
   response: string | null;
   loading: boolean;
   error: string | null;
+  errorType: string | null;
   generateResponse: (prompt: string) => Promise<void>;
   resetResponse: () => void;
 }
@@ -29,6 +30,7 @@ export const useResponseGenerator = ({
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<string | null>(null);
 
   const convertToBase64 = async (path: string): Promise<string> => {
     try {
@@ -47,19 +49,25 @@ export const useResponseGenerator = ({
   };
 
   const generateResponse = async (prompt: string) => {
+    // Reset states at the start
+    setLoading(true);
+    setError(null);
+    setErrorType(null);
+    setResponse(null);
+
     if (images.length === 0) {
       setError(MESSAGES.NO_IMAGES);
+      setErrorType('NO_IMAGES');
+      setLoading(false);
       return;
     }
 
     if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
+      setErrorType('SELECT_MATCH_REQUIRED');
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
-    setError(null);
-    setResponse(null);
 
     try {
       const base64Images = await Promise.all(
@@ -68,7 +76,7 @@ export const useResponseGenerator = ({
             if (img.base64) return img.base64;
             return await convertToBase64(img.path);
           } catch (error) {
-            console.error('Error converting image to base64:', error);
+            console.error('Error converting to base64:', error);
             throw new Error('Failed to process images. Please try again.');
           }
         }),
@@ -81,10 +89,27 @@ export const useResponseGenerator = ({
         matchId: selectedMatch ? generateMatchId(selectedMatch) : '',
       });
 
+      console.log('Received reply:', reply);
+
       if (reply.error) {
+        console.log('Setting error state:', {
+          error: reply.error,
+          type: reply.type,
+        });
         setError(reply.error);
-      } else {
+        setErrorType(reply.type || 'UNKNOWN');
+        setResponse(null);
+        if (reply.limits) {
+          setUser({
+            dailyMessagesUsed: reply.limits.dailyMessagesUsed,
+            extraMessages: reply.limits.extraMessages,
+          });
+        }
+      } else if (reply.reply) {
+        console.log('Setting response state:', reply.reply);
         setResponse(reply.reply);
+        setError(null);
+        setErrorType(null);
         if (reply.limits) {
           setUser({
             dailyMessagesUsed: reply.limits.dailyMessagesUsed,
@@ -92,9 +117,22 @@ export const useResponseGenerator = ({
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating reply:', error);
-      setError(MESSAGES.GENERATION_ERROR);
+      if (error.response?.data) {
+        setError(error.response.data.error);
+        setErrorType(error.response.data.type || 'UNKNOWN');
+        if (error.response.data.limits) {
+          setUser({
+            dailyMessagesUsed: error.response.data.limits.dailyMessagesUsed,
+            extraMessages: error.response.data.limits.extraMessages,
+          });
+        }
+      } else {
+        setError(error.message || MESSAGES.GENERATION_ERROR);
+        setErrorType('UNKNOWN');
+      }
+      setResponse(null);
     } finally {
       setLoading(false);
     }
@@ -103,12 +141,14 @@ export const useResponseGenerator = ({
   const resetResponse = () => {
     setResponse(null);
     setError(null);
+    setErrorType(null);
   };
 
   return {
     response,
     loading,
     error,
+    errorType,
     generateResponse,
     resetResponse,
   };

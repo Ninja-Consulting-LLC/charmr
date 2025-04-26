@@ -1,6 +1,7 @@
 import path from 'path';
 import {open} from 'sqlite';
 import sqlite3 from 'sqlite3';
+import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {Database, User} from './types';
@@ -137,6 +138,15 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     incrementMessageCount: async (userId: string): Promise<boolean> => {
       try {
         const today = new Date().toISOString().split('T')[0];
+        const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
+
+        if (!user) {
+          logger.error('User not found when incrementing message count', {
+            userId,
+          });
+          return false;
+        }
+
         const result = await db.run(
           `UPDATE users
            SET dailyMessagesUsed = CASE
@@ -146,8 +156,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
            extraMessages = CASE
              WHEN dailyMessagesUsed >= (SELECT CASE
                WHEN plan = 'free' THEN 5
-               WHEN plan = 'premium' THEN 50
-               WHEN plan = 'pro' THEN 200
+               WHEN plan = 'pro' THEN ?
                ELSE 5
              END) AND extraMessages > 0
              THEN extraMessages - 1
@@ -157,20 +166,48 @@ export const createSqliteDatabase = async (): Promise<Database> => {
            WHERE id = ? AND (
              dailyMessagesUsed < (SELECT CASE
                WHEN plan = 'free' THEN 5
-               WHEN plan = 'premium' THEN 50
-               WHEN plan = 'pro' THEN 200
+               WHEN plan = 'pro' THEN ?
                ELSE 5
              END)
              OR lastResetDate != ?
              OR extraMessages > 0
            )`,
-          [today, today, userId, today],
+          [
+            today,
+            config.limits.proDailyMessageLimit,
+            today,
+            userId,
+            config.limits.proDailyMessageLimit,
+            today,
+          ],
         );
-        return (result.changes ?? 0) > 0;
+
+        const success = (result.changes ?? 0) > 0;
+
+        if (success) {
+          logger.info('Message count incremented', {
+            userId,
+            plan: user.plan,
+            dailyMessagesUsed: user.dailyMessagesUsed + 1,
+            extraMessages: user.extraMessages,
+            limit: user.plan === 'pro' ? config.limits.proDailyMessageLimit : 5,
+          });
+        } else {
+          logger.warn('Message limit reached', {
+            userId,
+            plan: user.plan,
+            dailyMessagesUsed: user.dailyMessagesUsed,
+            extraMessages: user.extraMessages,
+            limit: user.plan === 'pro' ? config.limits.proDailyMessageLimit : 5,
+          });
+        }
+
+        return success;
       } catch (error) {
         logger.error('Failed to increment message count', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
+          userId,
         });
         throw error;
       }

@@ -35,6 +35,12 @@ export const config = {
     defaultFrom: process.env.EMAIL_DEFAULT_FROM || 'noreply@example.invalid',
     defaultReplyTo: process.env.EMAIL_DEFAULT_REPLY_TO || 'support@example.invalid',
   },
+  limits: {
+    proDailyMessageLimit: parseInt(
+      process.env.PRO_DAILY_MESSAGE_LIMIT || '200',
+      10,
+    ),
+  },
 } as const;
 
 // Validate required environment variables

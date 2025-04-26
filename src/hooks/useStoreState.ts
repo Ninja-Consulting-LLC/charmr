@@ -11,6 +11,14 @@ export const useStoreState = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Add debug logging for authentication state changes
+  useEffect(() => {
+    console.log('🔐 Authentication state changed:', isAuthenticated);
+    AsyncStorage.getItem('isAuthenticated').then(value => {
+      console.log('🔐 Stored authentication state:', value);
+    });
+  }, [isAuthenticated]);
+
   const setUser = (newUser: Partial<User>) => {
     const updatedUser = {
       ...user,
@@ -41,25 +49,32 @@ export const useStoreState = () => {
 
   const handleGoogleLogin = async (firebaseUser: any) => {
     try {
+      console.log('🔐 Starting Google login process...');
+
       // First check if a user exists with this email
       const existingUser = await userService.findUserByEmail(
         firebaseUser.email,
       );
+
       if (existingUser) {
+        console.log('👤 Found existing user:', existingUser.id);
         setUserId(existingUser.id);
         await AsyncStorage.setItem('userId', existingUser.id);
         setUser(existingUser);
         setIsAuthenticated(true);
         await AsyncStorage.setItem('isAuthenticated', 'true');
+        console.log('✅ Successfully authenticated existing user');
         return;
       }
 
       // If we have an anonymous user ID, link it with the new registered user
       if (userId && userId !== firebaseUser.uid) {
+        console.log('🔗 Linking anonymous user with registered user');
         await userService.linkUsers(userId, firebaseUser.uid);
       }
 
       // Create a new user in our backend with Firebase user info
+      console.log('👤 Creating new user...');
       const newUser = await userService.createUser({
         id: firebaseUser.uid,
         email: firebaseUser.email || `${firebaseUser.uid}@example.com`,
@@ -72,8 +87,9 @@ export const useStoreState = () => {
       setUser(newUser);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
+      console.log('✅ Successfully created and authenticated new user');
     } catch (error) {
-      console.error('Error in Google login:', error);
+      console.error('❌ Error in Google login:', error);
       throw error;
     }
   };

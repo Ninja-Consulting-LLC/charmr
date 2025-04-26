@@ -7,6 +7,7 @@ import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
 import {clearDatabase, generateReply, testContext} from '../services/api';
+import {simulateProEntitlement} from '../services/revenueCatService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
@@ -226,13 +227,34 @@ const DevMenu = () => {
       const data = await response.json();
       console.log('Reset message limit response:', data);
 
-      // Update local state
+      // Fetch fresh user data from backend
+      const userResponse = await fetch(
+        `${config.apiBaseUrl}/api/users/${userId}`,
+        {
+          headers: {
+            Authorization: 'Bearer dev-admin-token',
+            'X-Auth-Bypass': 'true',
+          },
+        },
+      );
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch updated user data');
+      }
+
+      const userData = await userResponse.json();
+
+      // Update local state with fresh data
       setUser({
-        dailyMessagesUsed: 0,
-        lastResetDate: new Date().toISOString().split('T')[0],
+        dailyMessagesUsed: userData.dailyMessagesUsed,
+        lastResetDate: userData.lastResetDate,
+        extraMessages: userData.extraMessages,
       });
+
+      Alert.alert('Success', 'Message limit reset successfully');
     } catch (error) {
       console.error('Error resetting message limit:', error);
+      Alert.alert('Error', 'Failed to reset message limit');
     }
   };
 
@@ -265,6 +287,22 @@ const DevMenu = () => {
       Alert.alert('Development', 'Database cleared successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to clear database');
+    }
+  };
+
+  const handleSimulateProEntitlement = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'No user ID available');
+      return;
+    }
+
+    try {
+      await simulateProEntitlement(userId);
+      await updateUserPlan(SubscriptionTier.PRO);
+      Alert.alert('Success', 'Pro entitlement simulated successfully');
+    } catch (error) {
+      console.error('Failed to simulate pro entitlement:', error);
+      Alert.alert('Error', 'Failed to simulate pro entitlement');
     }
   };
 
@@ -403,12 +441,6 @@ const DevMenu = () => {
                   </Button>
                   <Button
                     mode="contained"
-                    onPress={() => handleChangePlan(SubscriptionTier.PREMIUM)}
-                    style={styles.planButton}>
-                    Premium
-                  </Button>
-                  <Button
-                    mode="contained"
                     onPress={() => handleChangePlan(SubscriptionTier.PRO)}
                     style={styles.planButton}>
                     Pro
@@ -437,6 +469,16 @@ const DevMenu = () => {
                   onPress={handleClearStorage}
                   style={styles.button}>
                   Clear Storage
+                </Button>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>RevenueCat Testing</Text>
+                <Button
+                  mode="contained"
+                  onPress={handleSimulateProEntitlement}
+                  style={styles.button}>
+                  Simulate Pro Subscription
                 </Button>
               </View>
             </View>
