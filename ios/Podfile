@@ -5,7 +5,7 @@ prepare_react_native_project!
 
 use_frameworks! :linkage => :static
 
-target 'AIDatingKeyboard' do
+target 'Charmr' do
   config = use_native_modules!
 
   use_react_native!(

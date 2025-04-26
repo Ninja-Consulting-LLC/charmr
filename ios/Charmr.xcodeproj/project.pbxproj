@@ -8,13 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		2B02122D0670065D80DD9125 /* Pods_AIDatingKeyboard.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21FAB8B7B972DE5197DF59BA /* Pods_AIDatingKeyboard.framework */; };
+		2B02122D0670065D80DD9125 /* Pods_Charmr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21FAB8B7B972DE5197DF59BA /* Pods_Charmr.framework */; };
 		428EFC2C506D9C2516DC7A8E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BC43A8772DB590E300376DC5 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BC43A8762DB590E300376DC5 /* GoogleService-Info.plist */; };
 		BC81A40C2DB5982900626B4A /* Dummy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC81A40B2DB5982400626B4A /* Dummy.swift */; };
-		BCB29EA42DB2F40100A24B21 /* MagicAiKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCB29EA42DB2F40100A24B21 /* CharmrKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCB29E9D2DB2F40100A24B21 /* CharmrKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BCB29EB92DB2F5B400A24B21 /* KeyboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = BCB29EB82DB2F5B400A24B21 /* KeyboardKit */; };
 /* End PBXBuildFile section */
 
@@ -24,7 +24,7 @@
 			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = BCB29E9C2DB2F40100A24B21;
-			remoteInfo = MagicAiKeyboard;
+			remoteInfo = CharmrKeyboard;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -35,7 +35,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				BCB29EA42DB2F40100A24B21 /* MagicAiKeyboard.appex in Embed Foundation Extensions */,
+				BCB29EA42DB2F40100A24B21 /* CharmrKeyboard.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -43,43 +43,43 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* AIDatingKeyboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIDatingKeyboard.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = AIDatingKeyboard/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = AIDatingKeyboard/Info.plist; sourceTree = "<group>"; };
-		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = AIDatingKeyboard/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		21FAB8B7B972DE5197DF59BA /* Pods_AIDatingKeyboard.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AIDatingKeyboard.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = AIDatingKeyboard/AppDelegate.swift; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = AIDatingKeyboard/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8E1670F7A0377CB243D56650 /* Pods-AIDatingKeyboard.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AIDatingKeyboard.release.xcconfig"; path = "Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard.release.xcconfig"; sourceTree = "<group>"; };
-		BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardViewController.swift; path = MagicAiKeyboard/KeyboardViewController.swift; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* Charmr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Charmr.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Charmr/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Charmr/Info.plist; sourceTree = "<group>"; };
+		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Charmr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		21FAB8B7B972DE5197DF59BA /* Pods_Charmr.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Charmr.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Charmr/AppDelegate.swift; sourceTree = "<group>"; };
+		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Charmr/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		8E1670F7A0377CB243D56650 /* Pods-Charmr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.release.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.release.xcconfig"; sourceTree = "<group>"; };
+		BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardViewController.swift; path = CharmrKeyboard/KeyboardViewController.swift; sourceTree = "<group>"; };
 		BC43A8762DB590E300376DC5 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BC81A40B2DB5982400626B4A /* Dummy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dummy.swift; sourceTree = "<group>"; };
-		BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MagicAiKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		D5DBFB976595F1EA1B2EB355 /* Pods-AIDatingKeyboard.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AIDatingKeyboard.debug.xcconfig"; path = "Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard.debug.xcconfig"; sourceTree = "<group>"; };
+		BCB29E9D2DB2F40100A24B21 /* CharmrKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CharmrKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5DBFB976595F1EA1B2EB355 /* Pods-Charmr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.debug.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BCB29EA52DB2F40100A24B21 /* Exceptions for "MagicAiKeyboard" folder in "MagicAiKeyboard" target */ = {
+		BCB29EA52DB2F40100A24B21 /* Exceptions for "CharmrKeyboard" folder in "CharmrKeyboard" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */;
+			target = BCB29E9C2DB2F40100A24B21 /* CharmrKeyboard */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */ = {
+		BCB29E9E2DB2F40100A24B21 /* CharmrKeyboard */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				BCB29EA52DB2F40100A24B21 /* Exceptions for "MagicAiKeyboard" folder in "MagicAiKeyboard" target */,
+				BCB29EA52DB2F40100A24B21 /* Exceptions for "CharmrKeyboard" folder in "CharmrKeyboard" target */,
 			);
 			explicitFileTypes = {
 			};
 			explicitFolders = (
 			);
-			path = MagicAiKeyboard;
+			path = CharmrKeyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -89,7 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2B02122D0670065D80DD9125 /* Pods_AIDatingKeyboard.framework in Frameworks */,
+				2B02122D0670065D80DD9125 /* Pods_Charmr.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,7 +104,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* AIDatingKeyboard */ = {
+		13B07FAE1A68108700A75B9A /* Charmr */ = {
 			isa = PBXGroup;
 			children = (
 				BC81A40B2DB5982400626B4A /* Dummy.swift */,
@@ -115,14 +115,14 @@
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				BC43A8762DB590E300376DC5 /* GoogleService-Info.plist */,
 			);
-			name = AIDatingKeyboard;
+			name = Charmr;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				21FAB8B7B972DE5197DF59BA /* Pods_AIDatingKeyboard.framework */,
+				21FAB8B7B972DE5197DF59BA /* Pods_Charmr.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -138,9 +138,9 @@
 			isa = PBXGroup;
 			children = (
 				BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */,
-				13B07FAE1A68108700A75B9A /* AIDatingKeyboard */,
+				13B07FAE1A68108700A75B9A /* Charmr */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
-				BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */,
+				BCB29E9E2DB2F40100A24B21 /* CharmrKeyboard */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
@@ -153,8 +153,8 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* AIDatingKeyboard.app */,
-				BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */,
+				13B07F961A680F5B00A75B9A /* Charmr.app */,
+				BCB29E9D2DB2F40100A24B21 /* CharmrKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -162,8 +162,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				D5DBFB976595F1EA1B2EB355 /* Pods-AIDatingKeyboard.debug.xcconfig */,
-				8E1670F7A0377CB243D56650 /* Pods-AIDatingKeyboard.release.xcconfig */,
+				D5DBFB976595F1EA1B2EB355 /* Pods-Charmr.debug.xcconfig */,
+				8E1670F7A0377CB243D56650 /* Pods-Charmr.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -171,9 +171,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* AIDatingKeyboard */ = {
+		13B07F861A680F5B00A75B9A /* Charmr */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "AIDatingKeyboard" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Charmr" */;
 			buildPhases = (
 				2C603B6F00B2ED5D9A53CE51 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -190,14 +190,14 @@
 			dependencies = (
 				BCB29EA32DB2F40100A24B21 /* PBXTargetDependency */,
 			);
-			name = AIDatingKeyboard;
-			productName = AIDatingKeyboard;
-			productReference = 13B07F961A680F5B00A75B9A /* AIDatingKeyboard.app */;
+			name = Charmr;
+			productName = Charmr;
+			productReference = 13B07F961A680F5B00A75B9A /* Charmr.app */;
 			productType = "com.apple.product-type.application";
 		};
-		BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */ = {
+		BCB29E9C2DB2F40100A24B21 /* CharmrKeyboard */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */;
+			buildConfigurationList = BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "CharmrKeyboard" */;
 			buildPhases = (
 				BCB29E992DB2F40100A24B21 /* Sources */,
 				BCB29E9A2DB2F40100A24B21 /* Frameworks */,
@@ -208,14 +208,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				BCB29E9E2DB2F40100A24B21 /* MagicAiKeyboard */,
+				BCB29E9E2DB2F40100A24B21 /* CharmrKeyboard */,
 			);
-			name = MagicAiKeyboard;
+			name = CharmrKeyboard;
 			packageProductDependencies = (
 				BCB29EB82DB2F5B400A24B21 /* KeyboardKit */,
 			);
-			productName = MagicAiKeyboard;
-			productReference = BCB29E9D2DB2F40100A24B21 /* MagicAiKeyboard.appex */;
+			productName = CharmrKeyboard;
+			productReference = BCB29E9D2DB2F40100A24B21 /* CharmrKeyboard.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -235,7 +235,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "AIDatingKeyboard" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Charmr" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -251,8 +251,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* AIDatingKeyboard */,
-				BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */,
+				13B07F861A680F5B00A75B9A /* Charmr */,
+				BCB29E9C2DB2F40100A24B21 /* CharmrKeyboard */,
 			);
 		};
 /* End PBXProject section */
@@ -310,7 +310,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-AIDatingKeyboard-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-Charmr-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -323,15 +323,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		6B527F560F3DBAB120E55F1E /* [CP] Embed Pods Frameworks */ = {
@@ -340,15 +340,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AIDatingKeyboard/Pods-AIDatingKeyboard-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		DBC65AE2727070ADE6EF2281 /* [CP-User] [RNFB] Core Configuration */ = {
@@ -388,7 +388,7 @@
 /* Begin PBXTargetDependency section */
 		BCB29EA32DB2F40100A24B21 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BCB29E9C2DB2F40100A24B21 /* MagicAiKeyboard */;
+			target = BCB29E9C2DB2F40100A24B21 /* CharmrKeyboard */;
 			targetProxy = BCB29EA22DB2F40100A24B21 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -396,14 +396,14 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D5DBFB976595F1EA1B2EB355 /* Pods-AIDatingKeyboard.debug.xcconfig */;
+			baseConfigurationReference = D5DBFB976595F1EA1B2EB355 /* Pods-Charmr.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A2569F44H5;
+				DEVELOPMENT_TEAM = V8MBW2V2C2;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = AIDatingKeyboard/Info.plist;
+				INFOPLIST_FILE = Charmr/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -415,8 +415,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.aidatingkeyboard.temp2;
-				PRODUCT_NAME = AIDatingKeyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.charmr;
+				PRODUCT_NAME = Charmr;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -425,13 +425,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8E1670F7A0377CB243D56650 /* Pods-AIDatingKeyboard.release.xcconfig */;
+			baseConfigurationReference = 8E1670F7A0377CB243D56650 /* Pods-Charmr.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A2569F44H5;
-				INFOPLIST_FILE = AIDatingKeyboard/Info.plist;
+				DEVELOPMENT_TEAM = V8MBW2V2C2;
+				INFOPLIST_FILE = Charmr/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -443,8 +443,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.aidatingkeyboard.temp2;
-				PRODUCT_NAME = AIDatingKeyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.charmr;
+				PRODUCT_NAME = Charmr;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -637,11 +637,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = A2569F44H5;
+				DEVELOPMENT_TEAM = V8MBW2V2C2;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MagicAiKeyboard/Info.plist;
+				INFOPLIST_FILE = CharmrKeyboard/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Magic AI Keyboard";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
@@ -655,7 +655,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.aidatingkeyboard.temp2.MagicAiKeyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.charmr.charmrkeyboard;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -680,11 +680,11 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = A2569F44H5;
+				DEVELOPMENT_TEAM = V8MBW2V2C2;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MagicAiKeyboard/Info.plist;
+				INFOPLIST_FILE = CharmrKeyboard/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Magic AI Keyboard";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
@@ -697,7 +697,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.aidatingkeyboard.temp2.MagicAiKeyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ninjadating.charmr.charmrkeyboard;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -710,7 +710,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "AIDatingKeyboard" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Charmr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -719,7 +719,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "AIDatingKeyboard" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Charmr" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
@@ -728,7 +728,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "MagicAiKeyboard" */ = {
+		BCB29EA62DB2F40100A24B21 /* Build configuration list for PBXNativeTarget "CharmrKeyboard" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BCB29EA72DB2F40100A24B21 /* Debug */,
