@@ -119,6 +119,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const createNewUser = async () => {
     try {
       setIsLoading(true);
+      console.log('👤 Starting new user creation...');
+
       // First check if we have a stored user ID
       const storedUserId = await AsyncStorage.getItem('userId');
       if (storedUserId) {
@@ -126,13 +128,19 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         try {
           const existingUser = await userService.fetchUserData(storedUserId);
           if (existingUser) {
+            console.log('👤 Found existing user:', existingUser.id);
             setUserId(storedUserId);
             setUser(existingUser);
+            setIsAuthenticated(true);
+            await AsyncStorage.setItem('isAuthenticated', 'true');
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          console.log('Error fetching stored user, creating new one:', error);
+          console.log(
+            '❌ Error fetching stored user, creating new one:',
+            error,
+          );
         }
       }
 
@@ -144,18 +152,22 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           installationId,
         );
         if (existingUser) {
+          console.log('👤 Found user by installation ID:', existingUser.id);
           setUserId(existingUser.id);
           await AsyncStorage.setItem('userId', existingUser.id);
           setUser(existingUser);
+          setIsAuthenticated(true);
+          await AsyncStorage.setItem('isAuthenticated', 'true');
           setIsLoading(false);
           return;
         }
       } catch (error) {
-        console.error('Error getting installation ID:', error);
+        console.error('❌ Error getting installation ID:', error);
         // Continue without installation ID
       }
 
       // Create new user
+      console.log('👤 Creating new anonymous user...');
       const newUserId = `user-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
@@ -175,9 +187,17 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         plan: SubscriptionTier.FREE,
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
       });
+
+      // Set authentication state for anonymous user
+      setIsAuthenticated(true);
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      console.log(
+        '✅ Successfully created and authenticated new anonymous user',
+      );
+
       setIsLoading(false);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('❌ Error creating user:', error);
       setIsLoading(false);
       throw error;
     }
