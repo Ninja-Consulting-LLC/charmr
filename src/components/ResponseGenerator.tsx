@@ -264,7 +264,9 @@ const ResponseGenerator: React.FC = () => {
 
           {/* Prompt Input */}
           <View style={styles.promptSection}>
-            <Text variant="titleMedium">Enter your prompt (optional)</Text>
+            <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
+              Enter your prompt (optional)
+            </Text>
             <TextInput
               value={prompt}
               onChangeText={setPrompt}
@@ -273,8 +275,13 @@ const ResponseGenerator: React.FC = () => {
               style={[styles.promptInput]}
               testID="prompt-input"
               placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-              placeholderTextColor={theme.colors.onSurfaceDisabled}
+              placeholderTextColor={theme.colors.secondary}
               textAlignVertical="top"
+              cursorColor={theme.colors.background}
+              selectionColor={theme.colors.background}
+              textColor={theme.colors.background}
+              underlineColor="transparent"
+              activeUnderlineColor="transparent"
             />
           </View>
         </ScrollView>
@@ -339,7 +346,6 @@ const ResponseGenerator: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
   contentContainer: {
     flex: 1,
@@ -363,7 +369,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderColor: theme.colors.secondary,
     borderRadius: 8,
     padding: 4,
     minHeight: 80,
