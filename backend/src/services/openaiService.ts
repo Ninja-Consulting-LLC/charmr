@@ -1,95 +1,60 @@
 import OpenAI from 'openai';
 import {config} from '../config/config';
+import {formatPromptWithContext} from '../config/prompts';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {appendConversation, loadConversation} from '../utils/conversationUtils';
-import {createSandboxService} from './sandboxService';
+import {appendConversation} from '../utils/conversationUtils';
 
 export const createOpenAIService = () => {
-  const openai = config.openai.sandboxMode
-    ? null
-    : new OpenAI({apiKey: config.openai.apiKey});
-  const sandboxService = createSandboxService();
+  if (!config.openai.apiKey) {
+    throw new Error('OPENAI_API_KEY is required');
+  }
+
+  const openai = new OpenAI({
+    apiKey: config.openai.apiKey,
+  });
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
-    // Use sandbox service if in sandbox mode or if OpenAI client is not initialized
-    if (config.openai.sandboxMode || !openai) {
-      return sandboxService.generateReply(request);
-    }
-
     try {
-      // Load conversation history
-      const conversationHistory = await loadConversation(
-        request.userId,
-        request.matchId,
-      );
-      const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
-
-      // Extract assistant messages and format them with context
-      const previousAssistantMessages = recentMessages
-        .filter(msg => msg.role === 'assistant')
-        .map(msg => msg.content)
-        .join('\n');
-
-      const contextMessage = previousAssistantMessages
-        ? `Here are the previous messages we sent to this person for context in generating your response:\n${previousAssistantMessages}`
-        : '';
-
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a helpful dating assistant. Your task is to help users craft engaging and appropriate responses to their matches. Consider the conversation history and context when generating responses.
-
-${contextMessage}
-
-Format your response as follows:
-<summary>
-A brief summary of the match's interests and conversation style based on the history
-</summary>
-<message>
-Your suggested reply to the match
-</message>`,
-        },
-        {
-          role: 'user',
-          content: [
-            {type: 'text', text: request.prompt},
-            ...(request.images.map(image => ({
-              type: 'image_url',
-              image_url: {url: image},
-            })) as OpenAI.Chat.ChatCompletionContentPartImage[]),
-          ],
+          content: formatPromptWithContext(request.prompt),
         },
       ];
 
-      console.log(
-        `[${new Date().toISOString()}] [OpenAI] Sending request to ChatGPT:`,
-        JSON.stringify(messages, null, 2),
-      );
+      if (request.images?.length) {
+        messages[0] = {
+          role: 'system',
+          content: [
+            {type: 'text', text: formatPromptWithContext(request.prompt)},
+            ...request.images.map(img => ({
+              type: 'image_url' as const,
+              image_url: {url: img, detail: 'auto' as const},
+            })),
+          ] as OpenAI.Chat.ChatCompletionContentPart[],
+        } as OpenAI.Chat.ChatCompletionMessageParam;
+      }
 
       const response = await openai.chat.completions.create({
         model: config.openai.model,
         messages,
-        max_tokens: 150,
+        max_tokens: config.openai.maxTokens,
+        temperature: config.openai.temperature,
       });
 
-      console.log(
-        `[${new Date().toISOString()}] [OpenAI] Received response from ChatGPT:`,
-        JSON.stringify(response, null, 2),
-      );
-
-      // Parse the response to extract summary and message
-      const responseContent = response.choices[0]?.message?.content;
-      if (!responseContent) {
-        throw new Error('Empty response from ChatGPT');
+      const text = response.choices[0]?.message?.content || '';
+      if (!text) {
+        throw new Error('No response from OpenAI');
       }
 
-      const summaryMatch = responseContent.match(/<summary>(.*?)<\/summary>/s);
-      const messageMatch = responseContent.match(/<message>(.*?)<\/message>/s);
+      // Parse the response to extract summary and message
+      const summaryMatch = text.match(/<summary>(.*?)<\/summary>/s);
+      const messageMatch = text.match(/<message>(.*?)<\/message>/s);
 
       if (!messageMatch) {
-        throw new Error('Invalid response format from ChatGPT');
+        throw new Error('Invalid response format from OpenAI');
       }
 
       const summary = summaryMatch ? summaryMatch[1].trim() : '';
@@ -105,13 +70,11 @@ Your suggested reply to the match
         );
       }
 
-      const finalResponse = {reply};
-      console.log(
-        `[${new Date().toISOString()}] [OpenAI] Final response:`,
-        JSON.stringify(finalResponse, null, 2),
-      );
-
-      return finalResponse;
+      return {
+        reply,
+        summary,
+        usage: response.usage,
+      };
     } catch (error) {
       console.error(`[${new Date().toISOString()}] [OpenAI] Error:`, error);
       return {
