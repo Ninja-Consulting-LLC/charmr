@@ -3,7 +3,7 @@ import {getDatabase} from '../db';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
-import {loadConversation, saveMessage} from '../utils/conversationUtils';
+import {loadConversation} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 
 interface ChatGptImage {
@@ -138,34 +138,36 @@ export const createReplyController = async () => {
         return res.status(500).json({
           error: response.error,
           type: 'GENERATION_ERROR',
+          limits: messageLimits,
         });
       }
 
-      // Save the system message (summary)
-      const savedSystemMessage = await saveMessage(userId, matchId, {
-        role: 'system',
-        content: response.summary || '',
-        timestamp: new Date().toISOString(),
-      });
+      // Increment message count after successful generation
+      const success = await messageLimitService.incrementMessageCount(userId);
+      if (!success) {
+        logger.warn('Failed to increment message count', {userId});
+        return res.status(500).json({
+          error: 'Failed to update message count',
+          type: 'MESSAGE_COUNT_ERROR',
+          limits: messageLimits,
+        });
+      }
 
-      // Save the assistant's reply
-      const savedAssistantMessage = await saveMessage(userId, matchId, {
-        role: 'assistant',
-        content: response.reply,
-        timestamp: new Date().toISOString(),
-      });
-
-      logger.info('Reply generated and saved successfully', {
+      // Messages are now saved in the AI service, no need to save again here
+      logger.info('Reply generated successfully', {
         userId,
         matchId,
         replyLength: response.reply.length,
-        systemMessageId: savedSystemMessage.id,
-        assistantMessageId: savedAssistantMessage.id,
       });
 
-      return res.json({
+      // Get updated message limits
+      const updatedLimits = await messageLimitService.getMessageLimits(userId);
+
+      res.json({
         reply: response.reply,
-        limits: messageLimits,
+        summary: response.summary,
+        usage: response.usage,
+        limits: updatedLimits,
       });
     } catch (error) {
       logger.error('Error generating reply', {

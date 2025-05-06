@@ -5,21 +5,17 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
 import {
-  clearDatabase,
   createUser,
   getUser,
-  getUserMessages,
-  getUsers,
   linkAnonymousUser,
-  resetUserMessageLimit,
   updateUserPlan,
 } from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
-import {adminAuth} from './middleware/adminAuth';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
+import adminRoutes from './routes/adminRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
 import logger, {stream} from './utils/logger';
@@ -106,15 +102,8 @@ export const createApp = async () => {
   // Create admin router
   const adminRouter = express.Router();
 
-  // Admin routes
-  adminRouter.get('/users', adminAuth, getUsers);
-  adminRouter.post('/clear-database', adminAuth, clearDatabase);
-  adminRouter.get('/users/:userId/messages', adminAuth, getUserMessages);
-  adminRouter.post(
-    '/users/:userId/reset-limit',
-    adminAuth,
-    resetUserMessageLimit,
-  );
+  // Use admin routes
+  adminRouter.use('/', adminRoutes);
 
   // Mount admin router
   app.use('/api/admin', adminRouter);

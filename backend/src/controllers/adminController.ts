@@ -260,3 +260,267 @@ export const linkAnonymousUser = async (req: Request, res: Response) => {
     res.status(500).json({error: 'Failed to link users'});
   }
 };
+
+export const getUserMessageHistory = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+    const db = await getDatabase();
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Get messages with their costs
+    const messages = await db.all(
+      `SELECT m.*, mc.*
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}
+       ORDER BY m.timestamp DESC`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    // Get total costs
+    const costs = await db.getTotalCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    logger.info('Fetched message history for user:', {
+      userId,
+      messageCount: messages.length,
+      totalCost: costs.totalCost,
+      totalTokens: costs.totalTokens,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        plan: user.plan,
+        dailyMessagesUsed: user.dailyMessagesUsed,
+        extraMessages: user.extraMessages,
+      },
+      messages,
+      costs,
+    });
+  } catch (error) {
+    logger.error('Error fetching user message history:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to fetch user message history'});
+  }
+};
+
+export const getMessageCosts = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+    const db = await getDatabase();
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Get detailed cost breakdown
+    const costs = await db.getMessageCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    // Get total costs
+    const totals = await db.getTotalCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    logger.info('Fetched message costs for user:', {
+      userId,
+      costCount: costs.length,
+      totalCost: totals.totalCost,
+      totalTokens: totals.totalTokens,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        plan: user.plan,
+      },
+      costs,
+      totals,
+    });
+  } catch (error) {
+    logger.error('Error fetching message costs:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to fetch message costs'});
+  }
+};
+
+export const getUserInfo = async (req: Request, res: Response) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+    const db = await getDatabase();
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      logger.warn('User not found:', {userId});
+      return res.status(404).json({error: 'User not found', userId});
+    }
+
+    logger.info('Fetching user info:', {userId, startDate, endDate});
+
+    // Get messages with their costs
+    const messages = await db
+      .all(
+        `SELECT m.*, mc.*
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}
+       ORDER BY m.timestamp DESC`,
+        [
+          userId,
+          ...(startDate ? [startDate] : []),
+          ...(endDate ? [endDate] : []),
+        ],
+      )
+      .catch(error => {
+        logger.error('Error fetching messages:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+        });
+        throw new Error(`Failed to fetch messages: ${error.message}`);
+      });
+
+    // Get total costs
+    const costs = await db
+      .getTotalCosts(userId, startDate as string, endDate as string)
+      .catch(error => {
+        logger.error('Error fetching costs:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+        });
+        throw new Error(`Failed to fetch costs: ${error.message}`);
+      });
+
+    // Get unique match IDs and their message counts
+    const matchStats = await db
+      .all(
+        `SELECT matchId, COUNT(*) as messageCount
+       FROM messages
+       WHERE userId = ?
+       ${startDate ? 'AND timestamp >= ?' : ''}
+       ${endDate ? 'AND timestamp <= ?' : ''}
+       GROUP BY matchId
+       ORDER BY messageCount DESC`,
+        [
+          userId,
+          ...(startDate ? [startDate] : []),
+          ...(endDate ? [endDate] : []),
+        ],
+      )
+      .catch(error => {
+        logger.error('Error fetching match stats:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+        });
+        throw new Error(`Failed to fetch match stats: ${error.message}`);
+      });
+
+    // Calculate daily message usage
+    const dailyUsage = await db
+      .all(
+        `SELECT
+         date(timestamp) as date,
+         COUNT(*) as messageCount,
+         SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as userMessages,
+         SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages
+       FROM messages
+       WHERE userId = ?
+       ${startDate ? 'AND timestamp >= ?' : ''}
+       ${endDate ? 'AND timestamp <= ?' : ''}
+       GROUP BY date(timestamp)
+       ORDER BY date DESC`,
+        [
+          userId,
+          ...(startDate ? [startDate] : []),
+          ...(endDate ? [endDate] : []),
+        ],
+      )
+      .catch(error => {
+        logger.error('Error fetching daily usage:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+        });
+        throw new Error(`Failed to fetch daily usage: ${error.message}`);
+      });
+
+    logger.info('Fetched comprehensive user info:', {
+      userId,
+      messageCount: messages.length,
+      matchCount: matchStats.length,
+      totalCost: costs.totalCost,
+      totalTokens: costs.totalTokens,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: user.plan,
+        dailyMessagesUsed: user.dailyMessagesUsed,
+        extraMessages: user.extraMessages,
+        lastResetDate: user.lastResetDate,
+        installationId: user.installationId,
+      },
+      usage: {
+        totalMessages: messages.length,
+        totalCost: costs.totalCost,
+        totalTokens: costs.totalTokens,
+        dailyUsage,
+        matchStats,
+      },
+      messages,
+      costs,
+    });
+  } catch (error) {
+    logger.error('Error fetching user info:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({
+      error: 'Failed to fetch user info',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.params.userId,
+    });
+  }
+};
