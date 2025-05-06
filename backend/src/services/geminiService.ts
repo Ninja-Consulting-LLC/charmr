@@ -60,16 +60,36 @@ export const createGeminiService = () => {
         note: 'Token counts not available in current Gemini API version',
       });
 
-      // Parse the response to extract summary and message
+      // Try to parse the response in different formats
+      let summary = '';
+      let reply = '';
+
+      // First try the expected format with tags
       const summaryMatch = text.match(/<summary>(.*?)<\/summary>/s);
       const messageMatch = text.match(/<message>(.*?)<\/message>/s);
 
-      if (!messageMatch) {
-        throw new Error('Invalid response format from Gemini');
+      if (messageMatch) {
+        // If we have the expected format, use it
+        summary = summaryMatch ? summaryMatch[1].trim() : '';
+        reply = messageMatch[1].trim();
+      } else {
+        // If we don't have the expected format, try to parse the response differently
+        // Look for a clear separation between summary and message
+        const parts = text.split('\n\n');
+        if (parts.length >= 2) {
+          // Assume first part is summary, rest is message
+          summary = parts[0].trim();
+          reply = parts.slice(1).join('\n\n').trim();
+        } else {
+          // If we can't parse it, use the whole text as the reply
+          reply = text.trim();
+        }
       }
 
-      const summary = summaryMatch ? summaryMatch[1].trim() : '';
-      const reply = messageMatch[1].trim();
+      // Validate the response
+      if (!reply) {
+        throw new Error('Empty response from Gemini');
+      }
 
       // Save both the summary and the message
       if (!request.deleteAfterResponse) {
@@ -83,10 +103,37 @@ export const createGeminiService = () => {
 
       return {reply, summary};
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [Gemini] Error:`, error);
+      logger.error('Gemini API error', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.name : 'unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('quota')) {
+          return {
+            reply: '',
+            error:
+              'The AI service is currently unavailable due to quota limits. Please try again later.',
+            type: 'QUOTA_EXCEEDED',
+          };
+        }
+
+        if (error.message.includes('rate limit')) {
+          return {
+            reply: '',
+            error:
+              'The AI service is currently busy. Please try again in a few moments.',
+            type: 'RATE_LIMIT',
+          };
+        }
+      }
+
       return {
         reply: '',
         error: 'Failed to generate reply',
+        type: 'GENERATION_ERROR',
       };
     }
   };

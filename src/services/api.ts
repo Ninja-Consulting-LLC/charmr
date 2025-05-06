@@ -77,11 +77,42 @@ export const generateReply = async (
       isAxiosError: error.isAxiosError,
       stack: error.stack,
     });
+
+    // If we have a response with error data, return it
     if (error.response?.data) {
       console.log('[API] Error response data:', error.response.data);
-      return error.response.data;
+      return {
+        reply: '',
+        error: error.response.data.error || 'Failed to generate reply',
+        type: error.response.data.type || 'GENERATION_ERROR',
+        limits: error.response.data.limits,
+      };
     }
-    throw error;
+
+    // Handle network errors
+    if (error.isAxiosError) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          reply: '',
+          error: 'Request timed out. Please try again.',
+          type: 'TIMEOUT_ERROR',
+        };
+      }
+      if (!error.response) {
+        return {
+          reply: '',
+          error: 'Network error. Please check your connection and try again.',
+          type: 'NETWORK_ERROR',
+        };
+      }
+    }
+
+    // Handle unexpected errors
+    return {
+      reply: '',
+      error: 'An unexpected error occurred. Please try again.',
+      type: 'UNKNOWN_ERROR',
+    };
   }
 };
 

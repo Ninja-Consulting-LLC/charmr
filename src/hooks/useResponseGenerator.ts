@@ -49,8 +49,8 @@ export const useResponseGenerator = ({
       selectedMatch: selectedMatch?.name,
     });
 
-    if (images.length === 0) {
-      console.log('[ResponseGenerator] No images provided');
+    if (images.length === 0 && !prompt.trim()) {
+      console.log('[ResponseGenerator] No images or prompt provided');
       setError(MESSAGES.NO_IMAGES);
       setErrorType('NO_IMAGES');
       setLoading(false);

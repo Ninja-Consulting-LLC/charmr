@@ -3,7 +3,8 @@ export const MESSAGES = {
     "You've reached your daily message limit. Upgrade to continue using Flirtonic.",
   SCREENSHOT_LIMIT:
     'To use multiple screenshots, upgrade to Plus or Premium plan.',
-  NO_IMAGES: 'Please select at least one image to generate a reply.',
+  NO_IMAGES:
+    'Please provide either a screenshot or a prompt to generate a reply.',
   MESSAGE_LIMIT:
     'You have reached your daily message limit. Please purchase more messages to continue.',
   MESSAGE_COPIED:
