@@ -3,6 +3,8 @@ import {config} from '../config/config';
 import {formatPromptWithContext} from '../config/prompts';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {appendConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
+import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
 
 export const createGeminiService = () => {
@@ -32,6 +34,31 @@ export const createGeminiService = () => {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
+
+      // Log the full result structure for debugging
+      logger.debug('Gemini API response structure', {
+        result: JSON.stringify(result, null, 2),
+        response: JSON.stringify(response, null, 2),
+      });
+
+      // For now, we'll log a placeholder usage since we can't reliably get token counts
+      const usage = {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+      };
+
+      const costBreakdown = calculateCost(config.gemini.model, usage);
+      logger.info('Gemini API usage and cost', {
+        model: config.gemini.model,
+        usage,
+        cost: {
+          input: costBreakdown.inputCost.toFixed(6),
+          output: costBreakdown.outputCost.toFixed(6),
+          total: costBreakdown.totalCost.toFixed(6),
+        },
+        note: 'Token counts not available in current Gemini API version',
+      });
 
       // Parse the response to extract summary and message
       const summaryMatch = text.match(/<summary>(.*?)<\/summary>/s);

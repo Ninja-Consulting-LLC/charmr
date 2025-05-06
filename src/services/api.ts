@@ -42,28 +42,43 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 120000, // 2 minute timeout for response generation
 });
 
 export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {
   try {
-    console.log(
-      'Making request to:',
-      `${config.apiBaseUrl}/api/generate-reply`,
-    );
+    console.log('[API] Starting generate reply request', {
+      promptLength: request.prompt?.length,
+      imageCount: request.images?.length,
+      userId: request.userId,
+      matchId: request.matchId,
+    });
 
     const response = await api.post<GenerateReplyResponse>(
       '/api/generate-reply',
       request,
     );
 
-    console.log('API response:', response.data);
+    console.log('[API] Received response:', {
+      hasReply: !!response.data.reply,
+      hasError: !!response.data.error,
+      errorType: response.data.type,
+      limits: response.data.limits,
+    });
     return response.data;
   } catch (error: any) {
-    console.error('Error generating reply:', error);
+    console.error('[API] Error generating reply:', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      responseData: error.response?.data,
+      isAxiosError: error.isAxiosError,
+      stack: error.stack,
+    });
     if (error.response?.data) {
-      console.log('Error response data:', error.response.data);
+      console.log('[API] Error response data:', error.response.data);
       return error.response.data;
     }
     throw error;

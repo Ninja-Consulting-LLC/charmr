@@ -1,5 +1,7 @@
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
+import logger from '../utils/logger';
 
 export const createSandboxService = () => {
   const mockResponses = [
@@ -131,6 +133,21 @@ The lighting in that photo is stunning! You've got a great eye for composition. 
         `[${new Date().toISOString()}] [Sandbox] Generated mock response:`,
         JSON.stringify(mockResponse, null, 2),
       );
+
+      // Log usage and cost for sandbox mode
+      if (mockResponse.usage) {
+        const costBreakdown = calculateCost('gpt-4', mockResponse.usage);
+        logger.info('Sandbox mode API usage and cost', {
+          model: 'gpt-4',
+          usage: mockResponse.usage,
+          cost: {
+            input: costBreakdown.inputCost.toFixed(6),
+            output: costBreakdown.outputCost.toFixed(6),
+            total: costBreakdown.totalCost.toFixed(6),
+          },
+          note: 'Sandbox mode - using mock data',
+        });
+      }
 
       // Parse the response to extract summary and message
       const responseContent = mockResponse.choices[0].message.content;

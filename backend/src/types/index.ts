@@ -12,6 +12,7 @@ export interface GenerateReplyResponse {
   reply: string;
   summary?: string;
   error?: string;
+  type?: 'QUOTA_EXCEEDED' | 'RATE_LIMIT' | 'GENERATION_ERROR';
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;

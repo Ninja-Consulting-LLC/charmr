@@ -16,7 +16,7 @@ const getBaseUrl = () => {
     const isPhysicalDevice = Platform.OS === 'ios' || Platform.OS === 'android';
     if (isPhysicalDevice) {
       // Use the computer's local IP address
-      return 'http://10.0.0.21:3001';
+      return 'http://10.0.0.6:3001';
     }
 
     return `http://${localhost}:3001`;
