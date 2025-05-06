@@ -3,18 +3,29 @@ import {config} from '../config/config';
 import {formatPromptWithContext} from '../config/prompts';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {appendConversation} from '../utils/conversationUtils';
+import {createSandboxService} from './sandboxService';
 
 export const createGeminiService = () => {
-  if (!config.gemini.apiKey) {
-    throw new Error('GEMINI_API_KEY is required');
+  if (!config.gemini.apiKey && !config.gemini.sandboxMode) {
+    throw new Error('GEMINI_API_KEY is required when not in sandbox mode');
   }
 
-  const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
-  const model = genAI.getGenerativeModel({model: config.gemini.model});
+  const genAI =
+    config.gemini.sandboxMode || !config.gemini.apiKey
+      ? null
+      : new GoogleGenerativeAI(config.gemini.apiKey);
+
+  const model = genAI?.getGenerativeModel({model: config.gemini.model});
+  const sandboxService = createSandboxService();
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
+    // Use sandbox service if in sandbox mode or if Gemini client is not initialized
+    if (config.gemini.sandboxMode || !model) {
+      return sandboxService.generateReply(request);
+    }
+
     try {
       const prompt = formatPromptWithContext(request.prompt);
 
