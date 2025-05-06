@@ -25,6 +25,19 @@ export interface Message {
   timestamp: string;
 }
 
+export interface MessageCost {
+  id: number;
+  messageId: number;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+  timestamp: string;
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
@@ -72,4 +85,22 @@ export interface Database {
   all: (sql: string, params?: any[]) => Promise<any[]>;
   run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;
+  saveMessageCost: (
+    messageId: number,
+    cost: Omit<MessageCost, 'id' | 'messageId'>,
+  ) => Promise<MessageCost>;
+  getMessageCosts: (
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<MessageCost[]>;
+  getTotalCosts: (
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<{
+    totalCost: number;
+    totalTokens: number;
+    messageCount: number;
+  }>;
 }

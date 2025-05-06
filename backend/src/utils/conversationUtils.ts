@@ -43,6 +43,7 @@ export async function saveMessage(
 ): Promise<Message> {
   try {
     const db = await getDatabase();
+
     const savedMessage = await db.saveMessage(userId, matchId || '', message);
     logger.info('Message saved successfully:', {
       userId,
@@ -91,6 +92,21 @@ export async function appendConversation(
   await saveMessage(userId, matchId, {
     role: 'assistant',
     content: assistantMessage,
+    timestamp,
+  });
+}
+
+export async function saveUserMessage(
+  userId: string,
+  matchId: string | undefined,
+  content: string,
+): Promise<Message> {
+  const timestamp = new Date().toISOString();
+
+  // Save the user message (incrementMessageCount is now handled in saveMessage)
+  return await saveMessage(userId, matchId, {
+    role: 'user',
+    content,
     timestamp,
   });
 }

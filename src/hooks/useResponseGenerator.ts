@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
+import * as userService from '../services/userService';
 import {useStore} from '../store';
 import {SelectedImage} from '../types';
-import {SubscriptionTier} from '../types/subscription';
+import {SubscriptionTier} from '../types/enums';
 import {compressImages} from '../utils/imageCompression';
 import {generateMatchId, Match} from '../utils/matchUtils';
 
@@ -116,10 +117,10 @@ export const useResponseGenerator = ({
         setErrorType(reply.type || 'UNKNOWN');
         setResponse(null);
         if (reply.limits) {
-          setUser({
-            dailyMessagesUsed: reply.limits.dailyMessagesUsed,
-            extraMessages: reply.limits.extraMessages,
-          });
+          const userData = await userService.fetchUserData(userId);
+          if (userData) {
+            setUser(userData);
+          }
         }
       } else if (reply.reply) {
         console.log('[ResponseGenerator] Setting response state:', {
@@ -129,10 +130,10 @@ export const useResponseGenerator = ({
         setError(null);
         setErrorType(null);
         if (reply.limits) {
-          setUser({
-            dailyMessagesUsed: reply.limits.dailyMessagesUsed,
-            extraMessages: reply.limits.extraMessages,
-          });
+          const userData = await userService.fetchUserData(userId);
+          if (userData) {
+            setUser(userData);
+          }
         }
       }
     } catch (error: any) {
@@ -145,10 +146,10 @@ export const useResponseGenerator = ({
         setError(error.response.data.error);
         setErrorType(error.response.data.type || 'UNKNOWN');
         if (error.response.data.limits) {
-          setUser({
-            dailyMessagesUsed: error.response.data.limits.dailyMessagesUsed,
-            extraMessages: error.response.data.limits.extraMessages,
-          });
+          const userData = await userService.fetchUserData(userId);
+          if (userData) {
+            setUser(userData);
+          }
         }
       } else {
         setError(error.message || MESSAGES.GENERATION_ERROR);

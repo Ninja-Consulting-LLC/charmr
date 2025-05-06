@@ -65,6 +65,13 @@ export const createMessageLimitService = async () => {
         user.dailyMessagesUsed < dailyMessageLimit || user.extraMessages > 0;
 
       if (!canIncrement) {
+        logger.warn('Message limit reached', {
+          userId,
+          plan: user.plan,
+          dailyMessagesUsed: user.dailyMessagesUsed,
+          extraMessages: user.extraMessages,
+          limit: dailyMessageLimit,
+        });
         return false;
       }
 
@@ -78,6 +85,7 @@ export const createMessageLimitService = async () => {
         });
       }
 
+      // Use the database's increment function for atomic updates
       const success = await db.incrementMessageCount(userId);
       if (!success) {
         logger.warn('Failed to increment message count', {userId});

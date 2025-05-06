@@ -76,11 +76,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         const storedUserId = await AsyncStorage.getItem('userId');
         if (storedUserId) {
           try {
-            // Verify user exists in backend
+            // Verify user exists in backend and sync data
             const userData = await userService.fetchUserData(storedUserId);
             if (userData) {
               setUserId(storedUserId);
-              setUser(userData);
+              setUser({
+                ...userData,
+                getDailyMessageLimit: () => getPlanLimits(userData.plan),
+              });
               return;
             }
           } catch (error) {
