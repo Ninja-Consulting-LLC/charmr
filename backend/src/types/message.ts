@@ -1,11 +1,9 @@
 export interface GenerateReplyRequest {
   prompt: string;
-  images: string[];
+  images?: string[];
   userId: string;
   matchId: string;
-  deleteAfterResponse: boolean;
-  skipRateLimiting?: boolean;
-  context?: string;
+  deleteAfterResponse?: boolean;
 }
 
 export interface GenerateReplyResponse {
@@ -17,14 +15,4 @@ export interface GenerateReplyResponse {
     completion_tokens: number;
     total_tokens: number;
   };
-}
-
-export interface ErrorResponse {
-  error: string;
-  statusCode: number;
-}
-
-export interface RateLimitResponse {
-  retryAfter: string;
-  error: string;
 }
