@@ -20,6 +20,7 @@ interface ReplyModalProps {
   onModifyResponse: () => void;
   onDeleteScreenshots: (value: boolean) => void;
   deleteScreenshots: boolean;
+  hasScreenshots: boolean;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
@@ -31,6 +32,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   onModifyResponse,
   onDeleteScreenshots,
   deleteScreenshots,
+  hasScreenshots,
 }) => {
   return (
     <Portal>
@@ -60,16 +62,18 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
               />
             </Pressable>
 
-            {/* Delete Switch */}
-            <View style={styles.deleteSection}>
-              <Text variant="bodyMedium">
-                {MESSAGES.REPLY_MODAL_DELETE_HINT}
-              </Text>
-              <Switch
-                value={deleteScreenshots}
-                onValueChange={onDeleteScreenshots}
-              />
-            </View>
+            {/* Delete Switch - Only show if screenshots were selected */}
+            {hasScreenshots && (
+              <View style={styles.deleteSection}>
+                <Text variant="bodyMedium">
+                  {MESSAGES.REPLY_MODAL_DELETE_HINT}
+                </Text>
+                <Switch
+                  value={deleteScreenshots}
+                  onValueChange={onDeleteScreenshots}
+                />
+              </View>
+            )}
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
@@ -77,7 +81,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                 <Tooltip
                   title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
                   enterTouchDelay={50}
-                  leaveTouchDelay={1000}
+                  leaveTouchDelay={5000}
                   theme={{
                     colors: {
                       onSurface: theme.colors.inverseOnSurface,
