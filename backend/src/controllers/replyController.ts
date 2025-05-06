@@ -1,7 +1,8 @@
 import {Request, Response} from 'express';
 import {getDatabase} from '../db';
+import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
-import {SubscriptionTier} from '../types/enums';
+import {createOpenAIService} from '../services/openaiService';
 import {loadConversation, saveMessage} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 
@@ -45,6 +46,8 @@ Your suggested reply to the match
 
 export const createReplyController = async () => {
   const messageLimitService = await createMessageLimitService();
+  const openaiService = createOpenAIService();
+  const geminiService = createGeminiService();
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
@@ -108,148 +111,72 @@ export const createReplyController = async () => {
           ? `Here is the conversation history for context:\n\nPrevious Summaries:\n${previousSummaries}\n\nPrevious Messages:\n${previousAssistantMessages}`
           : '';
 
-      // Log ChatGPT payload
-      const chatGptPayload = {
-        messages: [
-          {
-            role: 'system',
-            content: `${DATING_COACH_INSTRUCTIONS}\n\n${contextMessage}`,
-          },
-          {
-            role: 'user',
-            content: [
-              {type: 'text', text: prompt},
-              ...(images?.map(
-                (img: string): ChatGptImage => ({
-                  type: 'image_url',
-                  image_url: {url: img, detail: 'auto'},
-                }),
-              ) || []),
-            ],
-          },
-        ],
-        model:
-          process.env.NODE_ENV === 'production'
-            ? 'gpt-4-vision-preview'
-            : 'gpt-4',
-        max_tokens: 500,
-        temperature: 0.7,
-      };
+      // Use Gemini for text-only requests, OpenAI for requests with images
+      const response =
+        images?.length > 0
+          ? await openaiService.generateReply({
+              prompt,
+              images,
+              userId,
+              matchId,
+              deleteAfterResponse: false,
+            })
+          : await geminiService.generateReply({
+              prompt,
+              images: [],
+              userId,
+              matchId,
+              deleteAfterResponse: false,
+            });
 
-      // Create a truncated version of the payload for logging
-      const truncatedPayload = {
-        ...chatGptPayload,
-        messages: chatGptPayload.messages.map(msg => ({
-          ...msg,
-          content: Array.isArray(msg.content)
-            ? msg.content.map(content => ({
-                ...content,
-                image_url:
-                  content.type === 'image_url'
-                    ? {
-                        url: truncateImageData(content.image_url.url),
-                        detail: content.image_url.detail,
-                      }
-                    : undefined,
-              }))
-            : msg.content,
-        })),
-      };
-
-      logger.debug('ChatGPT API request payload', {
-        userId,
-        matchId,
-        payload: truncatedPayload,
-        sandboxMode: process.env.NODE_ENV !== 'production',
-      });
-
-      // TODO: Implement OpenAI integration
-      const reply =
-        user.plan === SubscriptionTier.FREE
-          ? "Hey! I'd love to get to know you better. What's your favorite way to spend a weekend? I'm always looking for new adventures and would love to hear about yours! 😊"
-          : "That's such a cool photo! I love how adventurous you are. I'm actually planning a similar trip next month - maybe we could swap some tips? You seem like someone who knows how to make the most of every moment. What's the most memorable place you've visited? 🌍✨";
-      const summary = 'This is a placeholder summary';
-
-      // Log ChatGPT response
-      logger.debug('ChatGPT API response', {
-        userId,
-        matchId,
-        sandboxMode: process.env.NODE_ENV !== 'production',
-        response: {
-          reply,
-          summary,
-          usage: {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-          },
-          model:
-            process.env.NODE_ENV === 'production'
-              ? 'gpt-4-vision-preview'
-              : 'gpt-4',
-        },
-      });
+      if (response.error) {
+        logger.error('Failed to generate reply', {
+          userId,
+          matchId,
+          error: response.error,
+        });
+        return res.status(500).json({
+          error: response.error,
+          type: 'GENERATION_ERROR',
+        });
+      }
 
       // Save the system message (summary)
       const savedSystemMessage = await saveMessage(userId, matchId, {
         role: 'system',
-        content: summary,
+        content: response.summary || '',
         timestamp: new Date().toISOString(),
       });
 
       // Save the assistant's reply
       const savedAssistantMessage = await saveMessage(userId, matchId, {
         role: 'assistant',
-        content: reply,
+        content: response.reply,
         timestamp: new Date().toISOString(),
       });
 
       logger.info('Reply generated and saved successfully', {
         userId,
         matchId,
-        replyLength: reply.length,
+        replyLength: response.reply.length,
         systemMessageId: savedSystemMessage.id,
         assistantMessageId: savedAssistantMessage.id,
       });
 
-      // Increment message count (unless skipping rate limiting)
-      if (!skipRateLimiting) {
-        const incrementSuccess =
-          await messageLimitService.incrementMessageCount(userId);
-        if (!incrementSuccess) {
-          logger.error('Failed to increment message count', {userId});
-          return res.status(500).json({
-            error: 'Failed to process message',
-            message: 'Could not update message count',
-          });
-        }
-        // Get updated limits
-        messageLimits = await messageLimitService.getMessageLimits(userId);
-      }
-
-      res.json({
-        reply,
+      return res.json({
+        reply: response.reply,
         limits: messageLimits,
-        messages: {
-          system: savedSystemMessage,
-          assistant: savedAssistantMessage,
-        },
       });
     } catch (error) {
-      logger.error('Failed to generate reply', {
+      logger.error('Error generating reply', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         userId,
         matchId,
       });
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate reply',
-        message:
-          process.env.NODE_ENV === 'production'
-            ? 'An unexpected error occurred'
-            : error instanceof Error
-            ? error.message
-            : 'Unknown error',
+        type: 'GENERATION_ERROR',
       });
     }
   };
