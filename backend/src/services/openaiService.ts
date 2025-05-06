@@ -3,19 +3,29 @@ import {config} from '../config/config';
 import {formatPromptWithContext} from '../config/prompts';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {appendConversation} from '../utils/conversationUtils';
+import {createSandboxService} from './sandboxService';
 
 export const createOpenAIService = () => {
-  if (!config.openai.apiKey) {
-    throw new Error('OPENAI_API_KEY is required');
+  if (!config.openai.apiKey && !config.openai.sandboxMode) {
+    throw new Error('OPENAI_API_KEY is required when not in sandbox mode');
   }
 
-  const openai = new OpenAI({
-    apiKey: config.openai.apiKey,
-  });
+  const openai = config.openai.sandboxMode
+    ? null
+    : new OpenAI({
+        apiKey: config.openai.apiKey,
+      });
+
+  const sandboxService = createSandboxService();
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
+    // Use sandbox service if in sandbox mode or if OpenAI client is not initialized
+    if (config.openai.sandboxMode || !openai) {
+      return sandboxService.generateReply(request);
+    }
+
     try {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
