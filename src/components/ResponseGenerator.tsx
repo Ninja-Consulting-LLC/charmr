@@ -278,7 +278,7 @@ const ResponseGenerator: React.FC = () => {
           {/* Prompt Input */}
           <View style={styles.promptSection}>
             <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
-              Enter your prompt (optional)
+              Enter your prompt (optional if you've added a screenshot)
             </Text>
             <TextInput
               value={prompt}
@@ -305,7 +305,7 @@ const ResponseGenerator: React.FC = () => {
             mode="contained"
             onPress={handleSubmit}
             loading={loading}
-            disabled={loading || images.length === 0}
+            disabled={loading || (images.length === 0 && !prompt.trim())}
             style={styles.generateButton}
             testID="submit-button">
             Generate Response

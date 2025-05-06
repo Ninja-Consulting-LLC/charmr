@@ -3,22 +3,32 @@ import winston from 'winston';
 
 const {combine, timestamp, printf, colorize} = winston.format;
 
-// Custom format for log messages
-const logFormat = printf(({level, message, timestamp, ...meta}) => {
-  const metaString = Object.keys(meta).length ? JSON.stringify(meta) : '';
-  return `${timestamp} [${level}]: ${message} ${metaString}`;
-});
+// Custom log format for development
+const devFormat = combine(
+  colorize(),
+  timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
+  printf(({level, message, timestamp, ...meta}) => {
+    // Remove internal winston symbols from meta
+    const {[Symbol.for('splat')]: splat, ...rest} = meta;
+    const metaString = Object.keys(rest).length ? JSON.stringify(rest) : '';
+    return `${timestamp} [${level}]: ${message} ${metaString}`;
+  }),
+);
 
-// Create the logger instance
+// Production format (no color, file-friendly)
+const prodFormat = combine(
+  timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
+  printf(({level, message, timestamp, ...meta}) => {
+    const metaString = Object.keys(meta).length ? JSON.stringify(meta) : '';
+    return `${timestamp} [${level}]: ${message} ${metaString}`;
+  }),
+);
+
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: combine(timestamp({format: 'YYYY-MM-DD HH:mm:ss'}), logFormat),
+  format: process.env.NODE_ENV === 'production' ? prodFormat : devFormat,
   transports: [
-    // Console transport for all environments
-    new winston.transports.Console({
-      format: combine(colorize(), logFormat),
-    }),
-    // File transport for errors in production
+    new winston.transports.Console(),
     ...(process.env.NODE_ENV === 'production'
       ? [
           new winston.transports.File({
@@ -33,7 +43,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// Create a separate stream object for Morgan
 export const stream = {
   write: (message: string) => {
     logger.info(message.trim());

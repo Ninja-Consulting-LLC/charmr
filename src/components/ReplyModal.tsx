@@ -36,7 +36,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
     <Portal>
       <Modal
         visible={visible}
-        onDismiss={onDismiss}
+        onDismiss={() => {}}
         contentContainerStyle={styles.modalContainer}>
         <View style={styles.overflowContainer}>
           <View style={styles.modalContent}>
@@ -45,12 +45,6 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
               <Text variant="titleMedium" style={styles.title}>
                 {MESSAGES.REPLY_MODAL_TITLE}
               </Text>
-              <IconButton
-                icon="close"
-                onPress={onDismiss}
-                size={24}
-                testID="close-button"
-              />
             </View>
 
             {/* Reply Text */}
@@ -139,7 +133,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },

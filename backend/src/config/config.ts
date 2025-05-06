@@ -9,7 +9,7 @@ export const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4-vision-preview',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
     maxTokens: parseInt(process.env.MAX_TOKENS || '1000', 10),
     temperature: parseFloat(process.env.TEMPERATURE || '0.7'),

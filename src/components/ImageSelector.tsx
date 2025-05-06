@@ -42,7 +42,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           onPress={onPickImages}
           testID="image-picker-button">
           <Icon source="image-plus" size={24} color={theme.colors.secondary} />
-          <Text style={styles.addImageText}>Add Screenshot</Text>
+          <Text style={styles.addImageText}>Add Screenshot (Optional)</Text>
           {userPlan === SubscriptionTier.FREE && images.length > 0 && (
             <View style={styles.premiumBadge}>
               <Icon source="star" size={12} color="gold" />
