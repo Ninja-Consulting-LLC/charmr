@@ -278,7 +278,7 @@ const ResponseGenerator: React.FC = () => {
           {/* Prompt Input */}
           <View style={styles.promptSection}>
             <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
-              Enter your prompt (optional if you've added a screenshot)
+              Enter your prompt (required if no screenshot is provided)
             </Text>
             <TextInput
               value={prompt}
@@ -340,6 +340,7 @@ const ResponseGenerator: React.FC = () => {
         onModifyResponse={handleModifyResponse}
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
+        hasScreenshots={images.length > 0}
       />
 
       <MessagePackModal
