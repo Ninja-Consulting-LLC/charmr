@@ -95,6 +95,18 @@ export const createReplyController = async () => {
         ? await loadConversation(userId, matchId, user.plan)
         : [];
 
+      logger.debug('Conversation history loaded', {
+        userId,
+        matchId,
+        userPlan: user.plan,
+        historyLength: conversationHistory.length,
+        history: conversationHistory.map(msg => ({
+          role: msg.role,
+          contentLength: msg.content.length,
+          timestamp: msg.timestamp,
+        })),
+      });
+
       // Extract all assistant messages and summaries
       const previousAssistantMessages = conversationHistory
         .filter(msg => msg.role === 'assistant')
@@ -111,15 +123,33 @@ export const createReplyController = async () => {
           ? `Here is the conversation history for context:\n\nPrevious Summaries:\n${previousSummaries}\n\nPrevious Messages:\n${previousAssistantMessages}`
           : '';
 
-      // Use Gemini for text-only requests, OpenAI for requests with images
+      logger.debug('Context message prepared', {
+        userId,
+        matchId,
+        hasContext: !!contextMessage,
+        contextLength: contextMessage.length,
+        hasAssistantMessages: !!previousAssistantMessages,
+        hasSummaries: !!previousSummaries,
+      });
+
+      // Always use OpenAI service
+      const service = 'openai';
+      logger.debug('Using AI service', {
+        service,
+        hasImages: images?.length > 0,
+        imageCount: images?.length,
+        requestedModel: req.body.model,
+      });
+
       const response =
-        images?.length > 0
+        service === 'openai'
           ? await openaiService.generateReply({
               prompt,
-              images,
+              images: images || [],
               userId,
               matchId,
               deleteAfterResponse: false,
+              model: req.body.model,
             })
           : await geminiService.generateReply({
               prompt,
@@ -128,6 +158,17 @@ export const createReplyController = async () => {
               matchId,
               deleteAfterResponse: false,
             });
+
+      logger.debug('AI service response', {
+        userId,
+        matchId,
+        service,
+        hasError: !!response.error,
+        errorType: response.type,
+        replyLength: response.reply?.length,
+        summaryLength: response.summary?.length,
+        usage: response.usage,
+      });
 
       if (response.error) {
         logger.error('Failed to generate reply', {

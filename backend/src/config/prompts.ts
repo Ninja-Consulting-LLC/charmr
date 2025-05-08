@@ -8,13 +8,11 @@ Guidelines:
 5. Avoid being overly aggressive or inappropriate
 6. Use the conversation history to maintain context and build rapport
 
-Format your response as follows:
-<summary>
-A brief summary of the match's interests and conversation style based on the history
-</summary>
-<message>
-Your suggested reply to the match
-</message>`;
+Respond in the following JSON format:
+{
+  "summary": "A brief summary of the match's interests and conversation style based on the history",
+  "message": "Your suggested reply to the match"
+}`;
 
 export const formatPromptWithContext = (
   prompt: string,

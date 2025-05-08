@@ -296,9 +296,36 @@ export const getUserMessageHistory = async (req: Request, res: Response) => {
       endDate as string,
     );
 
+    // Calculate message stats
+    const userMessages = messages.filter(m => m.role === 'user').length;
+    const assistantMessages = messages.filter(
+      m => m.role === 'assistant',
+    ).length;
+    const systemMessages = messages.filter(m => m.role === 'system').length;
+
+    // Group messages by matchId for stats
+    const matchStats = messages.reduce((acc, msg) => {
+      const matchId = msg.matchId || 'no-match';
+      if (!acc[matchId]) {
+        acc[matchId] = {
+          matchId,
+          messageCount: 0,
+          userMessages: 0,
+          assistantMessages: 0,
+          systemMessages: 0,
+        };
+      }
+      acc[matchId].messageCount++;
+      acc[matchId][`${msg.role}Messages`]++;
+      return acc;
+    }, {});
+
     logger.info('Fetched message history for user:', {
       userId,
       messageCount: messages.length,
+      userMessages,
+      assistantMessages,
+      systemMessages,
       totalCost: costs.totalCost,
       totalTokens: costs.totalTokens,
     });
@@ -307,9 +334,27 @@ export const getUserMessageHistory = async (req: Request, res: Response) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name,
         plan: user.plan,
         dailyMessagesUsed: user.dailyMessagesUsed,
         extraMessages: user.extraMessages,
+        lastResetDate: user.lastResetDate,
+        installationId: user.installationId,
+      },
+      usage: {
+        totalMessages: userMessages,
+        totalCost: costs.totalCost,
+        totalTokens: costs.totalTokens,
+        dailyUsage: [
+          {
+            date: new Date().toISOString().split('T')[0],
+            messageCount: userMessages,
+            userMessages,
+            assistantMessages,
+            systemMessages,
+          },
+        ],
+        matchStats: Object.values(matchStats),
       },
       messages,
       costs,
@@ -391,103 +436,123 @@ export const getUserInfo = async (req: Request, res: Response) => {
 
     logger.info('Fetching user info:', {userId, startDate, endDate});
 
-    // Get messages with their costs
-    const messages = await db
-      .all(
-        `SELECT m.*, mc.*
+    // Get messages with their costs using a direct query
+    const messages = await db.all(
+      `SELECT
+        m.id, m.userId, m.matchId, m.role, m.content, m.timestamp,
+        COALESCE(mc.model, '') as model,
+        COALESCE(mc.promptTokens, 0) as promptTokens,
+        COALESCE(mc.completionTokens, 0) as completionTokens,
+        COALESCE(mc.totalTokens, 0) as totalTokens,
+        COALESCE(mc.inputCost, 0) as inputCost,
+        COALESCE(mc.outputCost, 0) as outputCost,
+        COALESCE(mc.totalCost, 0) as totalCost
        FROM messages m
        LEFT JOIN message_costs mc ON m.id = mc.messageId
        WHERE m.userId = ?
        ${startDate ? 'AND m.timestamp >= ?' : ''}
        ${endDate ? 'AND m.timestamp <= ?' : ''}
        ORDER BY m.timestamp DESC`,
-        [
-          userId,
-          ...(startDate ? [startDate] : []),
-          ...(endDate ? [endDate] : []),
-        ],
-      )
-      .catch(error => {
-        logger.error('Error fetching messages:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId,
-        });
-        throw new Error(`Failed to fetch messages: ${error.message}`);
-      });
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
 
-    // Get total costs
-    const costs = await db
-      .getTotalCosts(userId, startDate as string, endDate as string)
-      .catch(error => {
-        logger.error('Error fetching costs:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId,
-        });
-        throw new Error(`Failed to fetch costs: ${error.message}`);
-      });
+    logger.info('Raw messages from database:', {
+      messages: messages.map(msg => ({
+        id: msg.id,
+        timestamp: msg.timestamp,
+        role: msg.role,
+        model: msg.model,
+      })),
+    });
 
-    // Get unique match IDs and their message counts
-    const matchStats = await db
-      .all(
-        `SELECT matchId, COUNT(*) as messageCount
+    // Calculate total message counts
+    const totalUserMessages = messages.filter(m => m.role === 'user').length;
+    const totalAssistantMessages = messages.filter(
+      m => m.role === 'assistant',
+    ).length;
+    const totalSystemMessages = messages.filter(
+      m => m.role === 'system',
+    ).length;
+
+    // Get match stats with detailed message counts
+    const matchStats = await db.all(
+      `SELECT
+        matchId,
+        COUNT(*) as messageCount,
+        SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as userMessages,
+        SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages,
+        SUM(CASE WHEN role = 'system' THEN 1 ELSE 0 END) as systemMessages
        FROM messages
        WHERE userId = ?
        ${startDate ? 'AND timestamp >= ?' : ''}
        ${endDate ? 'AND timestamp <= ?' : ''}
        GROUP BY matchId
        ORDER BY messageCount DESC`,
-        [
-          userId,
-          ...(startDate ? [startDate] : []),
-          ...(endDate ? [endDate] : []),
-        ],
-      )
-      .catch(error => {
-        logger.error('Error fetching match stats:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId,
-        });
-        throw new Error(`Failed to fetch match stats: ${error.message}`);
-      });
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
 
-    // Calculate daily message usage
-    const dailyUsage = await db
-      .all(
-        `SELECT
+    logger.info('Match stats from database:', {matchStats});
+
+    // Calculate daily message usage with all message types
+    const dailyUsage = await db.all(
+      `SELECT
          date(timestamp) as date,
          COUNT(*) as messageCount,
          SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as userMessages,
-         SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages
+         SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages,
+         SUM(CASE WHEN role = 'system' THEN 1 ELSE 0 END) as systemMessages
        FROM messages
        WHERE userId = ?
        ${startDate ? 'AND timestamp >= ?' : ''}
        ${endDate ? 'AND timestamp <= ?' : ''}
        GROUP BY date(timestamp)
        ORDER BY date DESC`,
-        [
-          userId,
-          ...(startDate ? [startDate] : []),
-          ...(endDate ? [endDate] : []),
-        ],
-      )
-      .catch(error => {
-        logger.error('Error fetching daily usage:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          userId,
-        });
-        throw new Error(`Failed to fetch daily usage: ${error.message}`);
-      });
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Daily usage from database:', {dailyUsage});
+
+    // Calculate total costs
+    const [totalCosts] = await db.all(
+      `SELECT
+         COALESCE(SUM(mc.totalCost), 0) as totalCost,
+         COALESCE(SUM(mc.totalTokens), 0) as totalTokens,
+         COUNT(DISTINCT mc.messageId) as messageCount
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Total costs from database:', {totalCosts});
 
     logger.info('Fetched comprehensive user info:', {
       userId,
       messageCount: messages.length,
+      userMessages: totalUserMessages,
+      assistantMessages: totalAssistantMessages,
+      systemMessages: totalSystemMessages,
       matchCount: matchStats.length,
-      totalCost: costs.totalCost,
-      totalTokens: costs.totalTokens,
+      totalCost: totalCosts?.totalCost || 0,
+      totalTokens: totalCosts?.totalTokens || 0,
     });
 
     res.json({
@@ -503,13 +568,34 @@ export const getUserInfo = async (req: Request, res: Response) => {
       },
       usage: {
         totalMessages: messages.length,
-        totalCost: costs.totalCost,
-        totalTokens: costs.totalTokens,
+        userMessages: totalUserMessages,
+        assistantMessages: totalAssistantMessages,
+        systemMessages: totalSystemMessages,
+        totalCost: totalCosts?.totalCost || 0,
+        totalTokens: totalCosts?.totalTokens || 0,
         dailyUsage,
         matchStats,
       },
-      messages,
-      costs,
+      messages: messages.map(msg => ({
+        id: msg.id,
+        userId: msg.userId,
+        matchId: msg.matchId,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        model: msg.model || '',
+        promptTokens: msg.promptTokens || 0,
+        completionTokens: msg.completionTokens || 0,
+        totalTokens: msg.totalTokens || 0,
+        inputCost: msg.inputCost || 0,
+        outputCost: msg.outputCost || 0,
+        totalCost: msg.totalCost || 0,
+      })),
+      costs: {
+        total: totalCosts?.totalCost || 0,
+        totalTokens: totalCosts?.totalTokens || 0,
+        messageCount: totalCosts?.messageCount || 0,
+      },
     });
   } catch (error) {
     logger.error('Error fetching user info:', {

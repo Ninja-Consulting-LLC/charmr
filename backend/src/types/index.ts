@@ -6,6 +6,7 @@ export interface GenerateReplyRequest {
   deleteAfterResponse: boolean;
   skipRateLimiting?: boolean;
   context?: string;
+  model?: string;
 }
 
 export interface GenerateReplyResponse {

@@ -315,13 +315,13 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       try {
         if (matchId) {
           const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp DESC',
             [userId, matchId],
           );
           return messages;
         } else {
           const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp ASC',
+            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp DESC',
             [userId],
           );
           return messages;
