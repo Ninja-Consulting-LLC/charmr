@@ -16,6 +16,7 @@ import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import adminRoutes from './routes/adminRoutes';
+import matchRoutes from './routes/matchRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
 import logger, {stream} from './utils/logger';
@@ -107,6 +108,9 @@ export const createApp = async () => {
 
   // Mount admin router
   app.use('/api/admin', adminRouter);
+
+  // Mount match routes
+  app.use('/api', matchRoutes);
 
   // Create utility router for testing/development endpoints
   const utilityRouter = express.Router();

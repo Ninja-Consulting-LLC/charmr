@@ -38,6 +38,17 @@ export interface MessageCost {
   timestamp: string;
 }
 
+export interface Match {
+  id: number;
+  userId: string;
+  name: string;
+  platform: string;
+  lastUsed: string | null;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
@@ -103,4 +114,22 @@ export interface Database {
     totalTokens: number;
     messageCount: number;
   }>;
+  getMatches: (userId: string, includeHidden?: boolean) => Promise<Match[]>;
+  addMatch: (userId: string, name: string, platform: string) => Promise<Match>;
+  updateMatchLastUsed: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
+  deleteMatch: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
+  hideMatch: (userId: string, name: string, platform: string) => Promise<void>;
+  restoreMatch: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
 }
