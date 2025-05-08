@@ -2,13 +2,13 @@ CREATE TABLE IF NOT EXISTS message_costs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   messageId INTEGER NOT NULL,
   model TEXT NOT NULL,
-  promptTokens INTEGER NOT NULL,
-  completionTokens INTEGER NOT NULL,
-  totalTokens INTEGER NOT NULL,
-  inputCost REAL NOT NULL,
-  outputCost REAL NOT NULL,
-  totalCost REAL NOT NULL,
-  timestamp TEXT NOT NULL,
+  promptTokens INTEGER NOT NULL DEFAULT 0,
+  completionTokens INTEGER NOT NULL DEFAULT 0,
+  totalTokens INTEGER NOT NULL DEFAULT 0,
+  inputCost REAL NOT NULL DEFAULT 0,
+  outputCost REAL NOT NULL DEFAULT 0,
+  totalCost REAL NOT NULL DEFAULT 0,
+  timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (messageId) REFERENCES messages(id) ON DELETE CASCADE
 );
 
