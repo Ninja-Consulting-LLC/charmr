@@ -19,12 +19,7 @@ export async function loadConversation(
   try {
     const db = await getDatabase();
 
-    // For free users, only load messages with the special free-user matchId
-    if (userPlan === SubscriptionTier.FREE) {
-      return await db.getMessages(userId, 'free-user');
-    }
-
-    // For pro users, only load messages with a valid matchId
+    // For all users, only load messages with a valid matchId
     if (!matchId) {
       return [];
     }
@@ -50,20 +45,15 @@ export async function saveMessage(
     const db = await getDatabase();
     const user = await db.getUser(userId);
 
-    // For free users, use a special matchId
-    if (user?.plan === SubscriptionTier.FREE) {
-      matchId = 'free-user';
-    }
-
-    // For pro users, ensure we have a valid matchId
-    if (user?.plan === SubscriptionTier.PRO && !matchId) {
-      throw new Error('MatchId is required for pro users');
+    // Ensure we have a valid matchId for all users
+    if (!matchId) {
+      throw new Error('MatchId is required');
     }
 
     // Ensure we have a valid timestamp
     const timestamp = message.timestamp || new Date().toISOString();
 
-    const savedMessage = await db.saveMessage(userId, matchId || 'free-user', {
+    const savedMessage = await db.saveMessage(userId, matchId, {
       ...message,
       timestamp,
     });
