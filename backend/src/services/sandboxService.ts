@@ -1,3 +1,4 @@
+import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
@@ -15,12 +16,12 @@ export const createSandboxService = () => {
           index: 0,
           message: {
             role: 'assistant',
-            content: `<summary>
-Based on the conversation history, this match seems to enjoy outdoor activities and has a playful sense of humor. They've responded positively to light-hearted messages and seem interested in getting to know each other better.
-</summary>
-<message>
-That hiking photo looks amazing! I bet you have some great stories from the trail. What's the most unexpected thing you've encountered on a hike?
-</message>`,
+            content: JSON.stringify({
+              summary:
+                "Based on the conversation history, this match seems to enjoy outdoor activities and has a playful sense of humor. They've responded positively to light-hearted messages and seem interested in getting to know each other better.",
+              message:
+                "That hiking photo looks amazing! I bet you have some great stories from the trail. What's the most unexpected thing you've encountered on a hike?",
+            }),
           },
           finish_reason: 'stop',
         },
@@ -41,12 +42,12 @@ That hiking photo looks amazing! I bet you have some great stories from the trai
           index: 0,
           message: {
             role: 'assistant',
-            content: `<summary>
-The match has shown interest in travel and food. They've shared photos from different locations and seem to enjoy trying new cuisines. Previous messages have been casual and friendly.
-</summary>
-<message>
-That pasta dish looks incredible! I'm always on the hunt for new Italian spots. Any other hidden gems you'd recommend in the city?
-</message>`,
+            content: JSON.stringify({
+              summary:
+                "The match has shown interest in travel and food. They've shared photos from different locations and seem to enjoy trying new cuisines. Previous messages have been casual and friendly.",
+              message:
+                "That pasta dish looks incredible! I'm always on the hunt for new Italian spots. Any other hidden gems you'd recommend in the city?",
+            }),
           },
           finish_reason: 'stop',
         },
@@ -67,12 +68,12 @@ That pasta dish looks incredible! I'm always on the hunt for new Italian spots. 
           index: 0,
           message: {
             role: 'assistant',
-            content: `<summary>
-The match has a creative side and enjoys photography. They've shared several artistic shots and seem to appreciate thoughtful comments about their work.
-</summary>
-<message>
-The lighting in that photo is stunning! You've got a great eye for composition. Do you shoot with a specific camera or mostly use your phone?
-</message>`,
+            content: JSON.stringify({
+              summary:
+                "The match has a creative side and enjoys photography. They've shared several artistic shots and seem to appreciate thoughtful comments about their work.",
+              message:
+                "The lighting in that photo is stunning! You've got a great eye for composition. Do you shoot with a specific camera or mostly use your phone?",
+            }),
           },
           finish_reason: 'stop',
         },
@@ -151,27 +152,46 @@ The lighting in that photo is stunning! You've got a great eye for composition. 
 
       // Parse the response to extract summary and message
       const responseContent = mockResponse.choices[0].message.content;
-      const summaryMatch = responseContent.match(/<summary>(.*?)<\/summary>/s);
-      const messageMatch = responseContent.match(/<message>(.*?)<\/message>/s);
-
-      if (!messageMatch) {
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(responseContent);
+      } catch (error) {
+        logger.error('Failed to parse mock response as JSON', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          response: responseContent,
+        });
         throw new Error('Invalid response format from mock service');
       }
 
-      const summary = summaryMatch ? summaryMatch[1].trim() : '';
-      const reply = messageMatch[1].trim();
+      const {summary, message: reply} = parsedResponse;
 
       // Save both the summary and the message
       if (!request.deleteAfterResponse) {
-        await appendConversation(
+        const savedMessage = await appendConversation(
           request.userId,
           request.matchId,
           summary,
           reply,
         );
+
+        // Calculate mock costs
+        const costBreakdown = calculateCost('gpt-4', mockResponse.usage);
+
+        // Save mock message cost
+        const db = await getDatabase();
+        await db.saveMessageCost(savedMessage.id, {
+          model: 'gpt-4',
+          promptTokens: mockResponse.usage.prompt_tokens,
+          completionTokens: mockResponse.usage.completion_tokens,
+          totalTokens: mockResponse.usage.total_tokens,
+          inputCost: costBreakdown.inputCost,
+          outputCost: costBreakdown.outputCost,
+          totalCost: costBreakdown.totalCost,
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      const response = {reply};
+      const response = {reply, summary};
       console.log(
         `[${new Date().toISOString()}] [Sandbox] Final response:`,
         JSON.stringify(response, null, 2),

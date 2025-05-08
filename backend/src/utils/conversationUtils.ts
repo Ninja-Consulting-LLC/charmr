@@ -19,8 +19,13 @@ export async function loadConversation(
   try {
     const db = await getDatabase();
 
-    // Only load conversation history if we have a matchId and user is pro
-    if (userPlan === SubscriptionTier.FREE || !matchId) {
+    // For free users, only load messages with the special free-user matchId
+    if (userPlan === SubscriptionTier.FREE) {
+      return await db.getMessages(userId, 'free-user');
+    }
+
+    // For pro users, only load messages with a valid matchId
+    if (!matchId) {
       return [];
     }
 
@@ -43,8 +48,31 @@ export async function saveMessage(
 ): Promise<Message> {
   try {
     const db = await getDatabase();
+    const user = await db.getUser(userId);
 
-    const savedMessage = await db.saveMessage(userId, matchId || '', message);
+    // For free users, use a special matchId
+    if (user?.plan === SubscriptionTier.FREE) {
+      matchId = 'free-user';
+    }
+
+    // For pro users, ensure we have a valid matchId
+    if (user?.plan === SubscriptionTier.PRO && !matchId) {
+      throw new Error('MatchId is required for pro users');
+    }
+
+    // Ensure we have a valid timestamp
+    const timestamp = message.timestamp || new Date().toISOString();
+
+    const savedMessage = await db.saveMessage(userId, matchId || 'free-user', {
+      ...message,
+      timestamp,
+    });
+
+    // If this is a user message, increment the message count
+    if (message.role === 'user') {
+      await db.incrementMessageCount(userId);
+    }
+
     logger.info('Message saved successfully:', {
       userId,
       matchId,
@@ -69,7 +97,7 @@ export async function appendConversation(
   matchId: string | undefined,
   summary: string,
   assistantMessage: string,
-): Promise<void> {
+): Promise<Message> {
   const timestamp = new Date().toISOString();
 
   logger.info('Saving conversation:', {
@@ -88,8 +116,8 @@ export async function appendConversation(
     });
   }
 
-  // Save the assistant message
-  await saveMessage(userId, matchId, {
+  // Save the assistant message and return it
+  return await saveMessage(userId, matchId, {
     role: 'assistant',
     content: assistantMessage,
     timestamp,
