@@ -1,8 +1,12 @@
 import OpenAI from 'openai';
 import {config} from '../config/config';
-import {formatPromptWithContext} from '../config/prompts';
+import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {appendConversation} from '../utils/conversationUtils';
+import {
+  appendConversation,
+  loadConversation,
+  Message,
+} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
@@ -23,18 +27,71 @@ export const createOpenAIService = () => {
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
-    // Use sandbox service if in sandbox mode or if OpenAI client is not initialized
-    if (config.openai.sandboxMode || !openai) {
+    // Use sandbox service if in sandbox mode
+    if (config.openai.sandboxMode) {
       return sandboxService.generateReply(request);
     }
 
+    // Ensure OpenAI client is initialized
+    if (!openai) {
+      throw new Error('OpenAI client not initialized');
+    }
+
     try {
+      // Load conversation history for context
+      const db = await getDatabase();
+      const user = await db.getUser(request.userId);
+      const conversationHistory = request.matchId
+        ? await loadConversation(request.userId, request.matchId, user?.plan)
+        : [];
+
+      // Extract previous messages for context
+      const previousAssistantMessages = conversationHistory
+        .filter((msg: Message) => msg.role === 'assistant')
+        .map((msg: Message) => msg.content)
+        .join('\n');
+
+      const previousSummaries = conversationHistory
+        .filter((msg: Message) => msg.role === 'system')
+        .map((msg: Message) => msg.content)
+        .join('\n');
+
+      const contextMessage =
+        previousAssistantMessages || previousSummaries
+          ? `Here is the conversation history for context:\n\nPrevious Summaries:\n${previousSummaries}\n\nPrevious Messages:\n${previousAssistantMessages}`
+          : '';
+
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: formatPromptWithContext(request.prompt),
+          content: `You are a helpful dating assistant. Your task is to help users craft engaging and appropriate responses to their matches. Consider the conversation history and context when generating responses.
+
+Guidelines:
+1. Keep responses natural and conversational
+2. Match the tone and style requested by the user
+3. Show genuine interest in the match's interests and experiences
+4. Keep responses concise but engaging
+5. Avoid being overly aggressive or inappropriate
+6. Use the conversation history to maintain context and build rapport
+
+Respond in the following JSON format:
+{
+  "summary": "A brief summary of the match's interests and conversation style based on the history",
+  "message": "Your suggested reply to the match"
+}`,
+        },
+        {
+          role: 'user',
+          content: request.prompt,
         },
       ];
+
+      if (contextMessage) {
+        messages.push({
+          role: 'system',
+          content: contextMessage,
+        });
+      }
 
       if (request.images?.length) {
         messages.push({
@@ -49,26 +106,59 @@ export const createOpenAIService = () => {
         });
       }
 
+      logger.debug('OpenAI API request payload', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model: request.model || config.openai.model,
+        messageCount: messages.length,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          contentLength:
+            typeof msg.content === 'string' ? msg.content.length : 'complex',
+          hasImages:
+            Array.isArray(msg.content) &&
+            msg.content.some(c => c.type === 'image_url'),
+        })),
+        maxTokens: config.openai.maxTokens,
+        temperature: config.openai.temperature,
+      });
+
       const response = await openai.chat.completions.create({
-        model: config.openai.model,
+        model: request.model || config.openai.model,
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
+        response_format: {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';
       if (!text) {
-        throw new Error('No response from OpenAI');
+        throw new Error('Empty response from OpenAI');
       }
+
+      // Parse the JSON response
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(text);
+      } catch (error) {
+        logger.error('Failed to parse OpenAI response as JSON', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          response: text,
+        });
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      const {summary, message: reply} = parsedResponse;
 
       // Calculate and log costs if usage data is available
       if (response.usage) {
-        const costBreakdown = calculateCost(config.openai.model, {
+        const model = request.model || config.openai.model;
+        const costBreakdown = calculateCost(model, {
           ...response.usage,
           image_count: request.images?.length || 0,
         });
         logger.info('OpenAI API usage and cost', {
-          model: config.openai.model,
+          model,
           usage: response.usage,
           cost: {
             input: costBreakdown.inputCost.toFixed(6),
@@ -76,27 +166,34 @@ export const createOpenAIService = () => {
             total: costBreakdown.totalCost.toFixed(6),
           },
         });
-      }
 
-      // Parse the response to extract summary and message
-      const summaryMatch = text.match(/<summary>(.*?)<\/summary>/s);
-      const messageMatch = text.match(/<message>(.*?)<\/message>/s);
+        // Save both the summary and the message
+        if (!request.deleteAfterResponse) {
+          const db = await getDatabase();
+          const timestamp = new Date().toISOString();
 
-      if (!messageMatch) {
-        throw new Error('Invalid response format from OpenAI');
-      }
+          // Save the message and its costs
+          const savedMessage = await appendConversation(
+            request.userId,
+            request.matchId,
+            summary,
+            reply,
+          );
 
-      const summary = summaryMatch ? summaryMatch[1].trim() : '';
-      const reply = messageMatch[1].trim();
-
-      // Save both the summary and the message
-      if (!request.deleteAfterResponse) {
-        await appendConversation(
-          request.userId,
-          request.matchId,
-          summary,
-          reply,
-        );
+          // Save the message cost if usage data is available
+          if (response.usage) {
+            await db.saveMessageCost(savedMessage.id, {
+              model,
+              promptTokens: costBreakdown.usage.prompt_tokens,
+              completionTokens: costBreakdown.usage.completion_tokens,
+              totalTokens: costBreakdown.usage.total_tokens,
+              inputCost: costBreakdown.inputCost,
+              outputCost: costBreakdown.outputCost,
+              totalCost: costBreakdown.totalCost,
+              timestamp,
+            });
+          }
+        }
       }
 
       return {
