@@ -5,12 +5,13 @@ import React, {createContext, useContext, useEffect, useState} from 'react';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
+import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import {
-  Store,
   checkBackendVersion,
   cleanupStaleData,
   defaultStore,
+  Store,
 } from './store';
 
 // Create context with default value
@@ -28,6 +29,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [skipRateLimiting, setSkipRateLimiting] = useState(false);
   const [authBypass, setAuthBypass] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [matches, setMatches] = useState<Match[]>([]);
 
   const {
     userId,
@@ -63,6 +65,40 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       console.error('Error updating user plan:', error);
       throw error;
     }
+  };
+
+  // Load matches when user ID changes
+  useEffect(() => {
+    if (userId) {
+      loadMatches();
+    }
+  }, [userId]);
+
+  const loadMatches = async () => {
+    try {
+      const loadedMatches = await getMatches(true);
+      setMatches(loadedMatches);
+    } catch (error) {
+      console.error('Error loading matches:', error);
+    }
+  };
+
+  const addMatch = (match: Match) => {
+    setMatches(prevMatches => [...prevMatches, match]);
+  };
+
+  const updateMatch = (updatedMatch: Match) => {
+    setMatches(prevMatches =>
+      prevMatches.map(match =>
+        match.id === updatedMatch.id ? updatedMatch : match,
+      ),
+    );
+  };
+
+  const removeMatch = (matchId: number) => {
+    setMatches(prevMatches =>
+      prevMatches.filter(match => match.id !== matchId),
+    );
   };
 
   // Get or create user ID and load user data on component mount
@@ -256,6 +292,13 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     createNewUser,
     linkAnonymousUser,
     handleGoogleLogin,
+    // Match management
+    matches,
+    setMatches,
+    addMatch,
+    updateMatch,
+    removeMatch,
+    loadMatches,
   };
 
   return (

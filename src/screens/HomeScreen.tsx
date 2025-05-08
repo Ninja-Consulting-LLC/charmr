@@ -1,5 +1,5 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DevMenu from '../components/DevMenu';
@@ -17,6 +17,11 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
   const {setShowDevMenu, showDevMenu} = useStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const responseGeneratorRef = useRef<{loadMatches: () => Promise<void>}>(null);
+
+  const handleMatchesUpdated = () => {
+    responseGeneratorRef.current?.loadMatches();
+  };
 
   return (
     <>
@@ -28,13 +33,14 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
               onDevMenuPress={() => setShowDevMenu(true)}
               showDevMenu={__DEV__}
             />
-            <ResponseGenerator />
+            <ResponseGenerator ref={responseGeneratorRef} />
           </View>
           {__DEV__ && showDevMenu && <DevMenu />}
           <UserMenuSlideout
             visible={showUserMenu}
             onDismiss={() => setShowUserMenu(false)}
             onOpenSupport={() => setShowSupportModal(true)}
+            onMatchesUpdated={handleMatchesUpdated}
           />
         </View>
       </SafeAreaView>
