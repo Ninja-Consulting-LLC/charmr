@@ -19,8 +19,8 @@ export async function loadConversation(
   try {
     const db = await getDatabase();
 
-    // For all users, only load messages with a valid matchId
-    if (!matchId) {
+    // Return empty array for no-match-selected
+    if (matchId === 'no-match-selected') {
       return [];
     }
 
@@ -45,15 +45,13 @@ export async function saveMessage(
     const db = await getDatabase();
     const user = await db.getUser(userId);
 
-    // Ensure we have a valid matchId for all users
-    if (!matchId) {
-      throw new Error('MatchId is required');
-    }
+    // Use no-match-selected if matchId is not provided
+    const finalMatchId = matchId || 'no-match-selected';
 
     // Ensure we have a valid timestamp
     const timestamp = message.timestamp || new Date().toISOString();
 
-    const savedMessage = await db.saveMessage(userId, matchId, {
+    const savedMessage = await db.saveMessage(userId, finalMatchId, {
       ...message,
       timestamp,
     });
@@ -65,7 +63,7 @@ export async function saveMessage(
 
     logger.info('Message saved successfully:', {
       userId,
-      matchId,
+      matchId: finalMatchId,
       role: savedMessage.role,
       timestamp: savedMessage.timestamp,
     });

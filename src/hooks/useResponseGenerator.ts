@@ -58,7 +58,7 @@ export const useResponseGenerator = ({
       return;
     }
 
-    if (!selectedMatch) {
+    if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
       console.log('[ResponseGenerator] No match selected');
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
       setErrorType('SELECT_MATCH_REQUIRED');
@@ -97,7 +97,9 @@ export const useResponseGenerator = ({
         prompt: prompt.trim() || 'make it flirty',
         images: base64Images,
         userId,
-        matchId: selectedMatch ? generateMatchId(selectedMatch) : '',
+        matchId: selectedMatch
+          ? generateMatchId(selectedMatch)
+          : 'no-match-selected',
       });
 
       console.log('[ResponseGenerator] Received API response:', {
