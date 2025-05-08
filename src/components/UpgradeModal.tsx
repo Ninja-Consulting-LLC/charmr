@@ -4,7 +4,7 @@ import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {getProPaywall, handlePurchase} from '../services/revenueCatService';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/subscription';
+import {SubscriptionTier} from '../types/enums';
 
 interface UpgradeModalProps {
   visible: boolean;

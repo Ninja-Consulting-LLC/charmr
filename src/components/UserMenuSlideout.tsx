@@ -1,12 +1,14 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, Linking, StyleSheet, Text, View} from 'react-native';
-import {Button, Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {Animated, StyleSheet, View} from 'react-native';
+import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
+import {getMatches, Match, restoreMatch} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
+import HiddenMatchesModal from './HiddenMatchesModal';
 import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -14,12 +16,14 @@ interface UserMenuSlideoutProps {
   visible: boolean;
   onDismiss: () => void;
   onOpenSupport: () => void;
+  onMatchesUpdated?: () => void;
 }
 
 const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   visible,
   onDismiss,
   onOpenSupport,
+  onMatchesUpdated,
 }) => {
   const theme = useTheme();
   const navigation =
@@ -27,6 +31,8 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showHiddenMatchesModal, setShowHiddenMatchesModal] = useState(false);
+  const [hiddenMatches, setHiddenMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -64,6 +70,23 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     }
   }, [visible, slideAnim, fadeAnim]);
 
+  const loadHiddenMatches = async () => {
+    const allMatches = await getMatches(true);
+    const hidden = allMatches.filter(match => match.hidden);
+    setHiddenMatches(hidden);
+  };
+
+  const handleRestoreMatch = async (match: Match) => {
+    await restoreMatch(match.name, match.platform);
+    await loadHiddenMatches();
+    onMatchesUpdated?.();
+  };
+
+  const handleOpenHiddenMatches = async () => {
+    await loadHiddenMatches();
+    setShowHiddenMatchesModal(true);
+  };
+
   const handleSignOut = async () => {
     // Clear user data with correct plan limits
     setUser({
@@ -79,15 +102,13 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     navigation.navigate('Login');
   };
 
-  const handleOpenLink = (url: string) => {
-    Linking.openURL(url);
-  };
-
-  const handleUpgrade = (plan: SubscriptionTier) => {
+  const handleUpgrade = (tier: SubscriptionTier) => {
     setUser({
-      plan,
-      getDailyMessageLimit: () => getPlanLimits(plan),
+      ...user,
+      plan: tier,
+      getDailyMessageLimit: () => getPlanLimits(tier),
     });
+    setShowUpgradeModal(false);
   };
 
   if (!isVisible && !visible) return null;
@@ -131,59 +152,61 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           <List.Subheader>Message Limits</List.Subheader>
           <List.Item
             title="Daily Messages"
-            description={`${user.dailyMessagesUsed} / ${getPlanLimits(
-              user.plan,
-            )}`}
+            description={`${
+              user.dailyMessagesUsed
+            }/${user.getDailyMessageLimit()} used`}
             left={props => <List.Icon {...props} icon="message" />}
           />
-          {user.extraMessages > 0 && (
-            <List.Item
-              title="Extra Messages"
-              description={`${user.extraMessages} available`}
-              left={props => <List.Icon {...props} icon="plus-circle" />}
-            />
-          )}
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={() => setShowMessagePackModal(true)}
-              style={styles.button}>
-              Purchase Messages
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() => setShowUpgradeModal(true)}
-              style={styles.button}>
-              Upgrade Plan
-            </Button>
-          </View>
+          <List.Item
+            title="Extra Messages"
+            description={`${user.extraMessages} remaining`}
+            left={props => <List.Icon {...props} icon="gift" />}
+          />
           <Divider />
-          <List.Subheader>Support & Legal</List.Subheader>
+          <List.Subheader>Matches</List.Subheader>
+          <List.Item
+            title="Hidden Matches"
+            left={props => <List.Icon {...props} icon="archive" />}
+            onPress={handleOpenHiddenMatches}
+          />
+          <Divider />
+          <List.Subheader>Support</List.Subheader>
           <List.Item
             title="Contact Support"
             left={props => <List.Icon {...props} icon="help-circle" />}
-            onPress={() => onOpenSupport()}
+            onPress={onOpenSupport}
+          />
+          <Divider />
+          <List.Subheader>Upgrade & Purchases</List.Subheader>
+          <List.Item
+            title="Buy Message Pack"
+            left={props => <List.Icon {...props} icon="gift" />}
+            onPress={() => setShowMessagePackModal(true)}
           />
           <List.Item
-            title="Terms of Service"
-            left={props => <List.Icon {...props} icon="file-document" />}
-            onPress={() => handleOpenLink('https://charmr.ai/terms')}
-          />
-          <List.Item
-            title="Privacy Policy"
-            left={props => <List.Icon {...props} icon="shield-lock" />}
-            onPress={() => handleOpenLink('https://charmr.ai/privacy')}
+            title="Upgrade Plan"
+            left={props => <List.Icon {...props} icon="star" />}
+            onPress={() => setShowUpgradeModal(true)}
           />
           <Divider />
           <List.Item
-            title="Sign Out"
-            left={props => <List.Icon {...props} icon="logout" />}
-            onPress={handleSignOut}
+            title="Terms of Service"
+            left={props => <List.Icon {...props} icon="file-document" />}
+            onPress={() => navigation.navigate('Terms')}
           />
+          <List.Item
+            title="Privacy Policy"
+            left={props => <List.Icon {...props} icon="shield-account" />}
+            onPress={() => navigation.navigate('Privacy')}
+          />
+          {isAuthenticated && (
+            <List.Item
+              title="Sign Out"
+              left={props => <List.Icon {...props} icon="logout" />}
+              onPress={handleSignOut}
+            />
+          )}
         </List.Section>
-        <Text style={styles.planInfo}>
-          {getPlanLimits(user.plan)} messages per day
-        </Text>
       </Animated.View>
 
       <MessagePackModal
@@ -195,6 +218,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
+        onUpgrade={handleUpgrade}
+      />
+
+      <HiddenMatchesModal
+        visible={showHiddenMatchesModal}
+        onDismiss={() => setShowHiddenMatchesModal(false)}
+        hiddenMatches={hiddenMatches}
+        onRestoreMatch={handleRestoreMatch}
       />
     </>
   );
@@ -231,16 +262,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     margin: 0,
-  },
-  buttonContainer: {
-    padding: 16,
-  },
-  button: {
-    marginVertical: 8,
-  },
-  planInfo: {
-    padding: 16,
-    textAlign: 'center',
   },
 });
 

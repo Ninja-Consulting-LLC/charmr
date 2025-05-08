@@ -1,6 +1,11 @@
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
-import React, {useEffect, useState} from 'react';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
@@ -9,12 +14,13 @@ import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/subscription';
+import {SubscriptionTier} from '../types/enums';
 import {
   addMatch,
   deleteMatch,
-  getMatches,
+  hideMatch,
   Match,
+  restoreMatch,
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
@@ -23,6 +29,10 @@ import MatchSelector from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
+
+export interface ResponseGeneratorRef {
+  loadMatches: () => Promise<void>;
+}
 
 interface CameraRollAsset {
   node: {
@@ -58,8 +68,18 @@ const messageStyles = [
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
-const ResponseGenerator: React.FC = () => {
-  const {userId, skipRateLimiting, user, setUser} = useStore();
+const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
+  const {
+    userId,
+    skipRateLimiting,
+    user,
+    setUser,
+    matches,
+    loadMatches,
+    addMatch: addMatchToStore,
+    updateMatch,
+    removeMatch,
+  } = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
   // State
@@ -67,7 +87,6 @@ const ResponseGenerator: React.FC = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
-  const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
@@ -85,6 +104,10 @@ const ResponseGenerator: React.FC = () => {
       userPlan: user?.plan || SubscriptionTier.FREE,
     });
 
+  useImperativeHandle(ref, () => ({
+    loadMatches,
+  }));
+
   // Load matches on mount
   useEffect(() => {
     loadMatches();
@@ -101,34 +124,62 @@ const ResponseGenerator: React.FC = () => {
       setShowMessagePackModal(false);
       handleCopyToClipboard();
       if (selectedMatch) {
-        updateMatchLastUsed(selectedMatch);
+        updateMatchLastUsed(selectedMatch.name, selectedMatch.platform);
       }
     } else if (error) {
       setShowSnackbar(true);
     }
   }, [response, error, errorType]);
 
-  const loadMatches = async () => {
-    const loadedMatches = await getMatches();
-    setMatches(loadedMatches);
-  };
-
   const handleAddMatch = async (name: string, platform: string) => {
-    const newMatch: Match = {
-      name,
-      platform,
-    };
-
-    await addMatch(newMatch);
-    setMatches(prev => [newMatch, ...prev]);
-    setSelectedMatch(newMatch);
+    try {
+      const newMatch = await addMatch(name, platform);
+      if (newMatch) {
+        addMatchToStore(newMatch);
+        setShowAddMatchModal(false);
+        loadMatches(); // Refresh the matches list
+      }
+    } catch (error) {
+      console.error('Error adding match:', error);
+    }
   };
 
   const handleDeleteMatch = async (match: Match) => {
-    await deleteMatch(match);
-    setMatches(prev => prev.filter(m => m !== match));
-    if (selectedMatch === match) {
-      setSelectedMatch(null);
+    try {
+      const success = await deleteMatch(match.name, match.platform);
+      if (success) {
+        removeMatch(match.id);
+        if (selectedMatch?.id === match.id) {
+          setSelectedMatch(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting match:', error);
+    }
+  };
+
+  const handleHideMatch = async (match: Match) => {
+    try {
+      const success = await hideMatch(match.name, match.platform);
+      if (success) {
+        updateMatch({...match, hidden: true});
+        if (selectedMatch?.id === match.id) {
+          setSelectedMatch(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error hiding match:', error);
+    }
+  };
+
+  const handleRestoreMatch = async (match: Match) => {
+    try {
+      const success = await restoreMatch(match.name, match.platform);
+      if (success) {
+        updateMatch({...match, hidden: false});
+      }
+    } catch (error) {
+      console.error('Error restoring match:', error);
     }
   };
 
@@ -257,7 +308,9 @@ const ResponseGenerator: React.FC = () => {
                 onSelectMatch={setSelectedMatch}
                 onAddMatch={() => setShowAddMatchModal(true)}
                 onDeleteMatch={handleDeleteMatch}
-                userPlan={user?.plan}
+                onHideMatch={handleHideMatch}
+                onRestoreMatch={handleRestoreMatch}
+                userPlan={user?.plan || SubscriptionTier.FREE}
               />
             </View>
           )}
@@ -362,7 +415,7 @@ const ResponseGenerator: React.FC = () => {
       </Snackbar>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
