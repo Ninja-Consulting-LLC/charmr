@@ -88,7 +88,7 @@ const ResponseGenerator: React.FC = () => {
   // Load matches on mount
   useEffect(() => {
     loadMatches();
-    setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
+    setShowMatchSelector(true);
   }, [user?.plan]);
 
   // Handle modal visibility based on state changes
@@ -106,7 +106,7 @@ const ResponseGenerator: React.FC = () => {
     } else if (error) {
       setShowSnackbar(true);
     }
-  }, [response, error, errorType, selectedMatch]);
+  }, [response, error, errorType]);
 
   const loadMatches = async () => {
     const loadedMatches = await getMatches();
@@ -235,11 +235,6 @@ const ResponseGenerator: React.FC = () => {
   };
 
   const handlePickImages = async () => {
-    if (user?.plan === SubscriptionTier.FREE && images.length > 0) {
-      setShowScreenshotUpgrade(true);
-      setShowUpgradeModal(true);
-      return;
-    }
     await pickImages();
   };
 
