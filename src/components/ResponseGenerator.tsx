@@ -8,7 +8,13 @@ import React, {
 } from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
+import {
+  Button,
+  IconButton,
+  Snackbar,
+  Text,
+  TextInput,
+} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -25,7 +31,7 @@ import {
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
-import MatchSelector from './MatchSelector';
+import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
@@ -111,7 +117,6 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   // Load matches on mount
   useEffect(() => {
     loadMatches();
-    setShowMatchSelector(true);
   }, [user?.plan]);
 
   // Handle modal visibility based on state changes
@@ -300,20 +305,54 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
           {/* Match Selection */}
-          {showMatchSelector && (
-            <View style={styles.matchSection}>
-              <MatchSelector
-                matches={matches}
-                selectedMatch={selectedMatch}
-                onSelectMatch={setSelectedMatch}
-                onAddMatch={() => setShowAddMatchModal(true)}
-                onDeleteMatch={handleDeleteMatch}
-                onHideMatch={handleHideMatch}
-                onRestoreMatch={handleRestoreMatch}
-                userPlan={user?.plan || SubscriptionTier.FREE}
-              />
+          <View style={styles.matchSection}>
+            <View style={styles.selectedMatchContainer}>
+              {selectedMatch && (
+                <View style={styles.selectedMatchInfo}>
+                  <View style={styles.selectedMatchHeader}>
+                    <View>
+                      <Text
+                        variant="titleMedium"
+                        style={styles.selectedMatchName}>
+                        {selectedMatch.name}
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        style={styles.selectedMatchPlatform}>
+                        {selectedMatch.platform}
+                      </Text>
+                    </View>
+                    <IconButton
+                      icon="close"
+                      size={20}
+                      onPress={() => setSelectedMatch(null)}
+                      style={styles.unselectButton}
+                    />
+                  </View>
+                </View>
+              )}
+              <Button
+                mode="outlined"
+                onPress={() => setShowMatchSelector(true)}
+                icon="account"
+                style={styles.matchButton}
+                textColor={theme.colors.secondary}>
+                {selectedMatch ? 'Change Match' : 'Select Match'}
+              </Button>
             </View>
-          )}
+            <MatchSelectorModal
+              visible={showMatchSelector}
+              onDismiss={() => setShowMatchSelector(false)}
+              matches={matches}
+              selectedMatch={selectedMatch}
+              onSelectMatch={setSelectedMatch}
+              onAddMatch={() => setShowAddMatchModal(true)}
+              onDeleteMatch={handleDeleteMatch}
+              onHideMatch={handleHideMatch}
+              onRestoreMatch={handleRestoreMatch}
+              userPlan={user?.plan || SubscriptionTier.FREE}
+            />
+          </View>
 
           {/* Image Selection */}
           <ImageSelector
@@ -434,6 +473,7 @@ const styles = StyleSheet.create({
   matchSection: {
     paddingBottom: 16,
     marginBottom: 8,
+    marginTop: 16,
   },
   promptSection: {
     paddingVertical: 8,
@@ -456,6 +496,35 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
+  },
+  selectedMatchContainer: {
+    marginBottom: 16,
+  },
+  selectedMatchInfo: {
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  selectedMatchName: {
+    color: theme.colors.onSurface,
+    fontWeight: 'bold',
+  },
+  selectedMatchPlatform: {
+    color: theme.colors.onSurfaceVariant,
+    textTransform: 'capitalize',
+  },
+  matchButton: {
+    marginBottom: 8,
+    borderColor: theme.colors.secondary,
+  },
+  selectedMatchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  unselectButton: {
+    margin: 0,
   },
 });
 
