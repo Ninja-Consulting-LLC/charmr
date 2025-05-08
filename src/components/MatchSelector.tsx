@@ -1,12 +1,21 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {IconButton, List, Text} from 'react-native-paper';
+import {ScrollView, StyleSheet, View} from 'react-native';
+import {
+  Button,
+  IconButton,
+  List,
+  Modal,
+  Portal,
+  Text,
+} from 'react-native-paper';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
 import DeleteMatchDialog from './DeleteMatchDialog';
 
-interface MatchSelectorProps {
+interface MatchSelectorModalProps {
+  visible: boolean;
+  onDismiss: () => void;
   matches: Match[];
   selectedMatch: Match | null;
   onSelectMatch: (match: Match) => void;
@@ -17,7 +26,9 @@ interface MatchSelectorProps {
   userPlan: SubscriptionTier;
 }
 
-const MatchSelector: React.FC<MatchSelectorProps> = ({
+const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
+  visible,
+  onDismiss,
   matches,
   selectedMatch,
   onSelectMatch,
@@ -27,7 +38,6 @@ const MatchSelector: React.FC<MatchSelectorProps> = ({
   onRestoreMatch,
   userPlan,
 }) => {
-  const [expanded, setExpanded] = React.useState(false);
   const [deleteDialogVisible, setDeleteDialogVisible] = React.useState(false);
   const [matchToDelete, setMatchToDelete] = React.useState<Match | null>(null);
 
@@ -71,85 +81,121 @@ const MatchSelector: React.FC<MatchSelectorProps> = ({
   }, [matches, selectedMatch]);
 
   return (
-    <View style={styles.container}>
-      <List.Section>
-        <List.Subheader style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>Matches</Text>
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        contentContainerStyle={styles.modal}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Select Match</Text>
             <IconButton
-              icon="plus"
+              icon="close"
               size={20}
-              onPress={onAddMatch}
-              style={styles.addButton}
+              onPress={onDismiss}
+              style={styles.closeButton}
             />
           </View>
-        </List.Subheader>
 
-        {sortedMatches.map(match => (
-          <List.Item
-            key={`${match.platform}::${match.name}`}
-            title={match.name}
-            description={match.platform}
-            left={props => (
-              <List.Icon
-                {...props}
-                icon={match.hidden ? 'archive' : 'account'}
-                color={
-                  match.hidden ? theme.colors.disabled : theme.colors.primary
-                }
+          <ScrollView style={styles.scrollView}>
+            {sortedMatches.map(match => (
+              <List.Item
+                key={`${match.platform}::${match.name}`}
+                title={match.name}
+                description={match.platform}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon={match.hidden ? 'archive' : 'account'}
+                    color={
+                      match.hidden
+                        ? theme.colors.disabled
+                        : theme.colors.primary
+                    }
+                  />
+                )}
+                right={props => (
+                  <View style={styles.itemActions}>
+                    <IconButton
+                      {...props}
+                      icon={match.hidden ? 'restore' : 'dots-vertical'}
+                      onPress={() =>
+                        match.hidden
+                          ? onRestoreMatch(match)
+                          : handleDeletePress(match)
+                      }
+                    />
+                    <Button
+                      mode="contained"
+                      onPress={() => {
+                        onSelectMatch(match);
+                        onDismiss();
+                      }}
+                      style={styles.selectButton}>
+                      Select
+                    </Button>
+                  </View>
+                )}
+                style={[
+                  styles.matchItem,
+                  selectedMatch?.id === match.id && styles.selectedMatch,
+                  match.hidden && styles.hiddenMatch,
+                ]}
               />
-            )}
-            right={props => (
-              <IconButton
-                {...props}
-                icon={match.hidden ? 'restore' : 'dots-vertical'}
-                onPress={() =>
-                  match.hidden
-                    ? onRestoreMatch(match)
-                    : handleDeletePress(match)
-                }
-              />
-            )}
-            onPress={() => onSelectMatch(match)}
-            style={[
-              styles.matchItem,
-              selectedMatch?.id === match.id && styles.selectedMatch,
-              match.hidden && styles.hiddenMatch,
-            ]}
-          />
-        ))}
-      </List.Section>
+            ))}
+          </ScrollView>
 
-      <DeleteMatchDialog
-        visible={deleteDialogVisible}
-        onDismiss={() => setDeleteDialogVisible(false)}
-        match={matchToDelete}
-        onDelete={handleConfirmDelete}
-        onArchive={handleArchive}
-      />
-    </View>
+          <View style={styles.footer}>
+            <Button
+              mode="contained"
+              onPress={onAddMatch}
+              icon="plus"
+              style={styles.addButton}>
+              Add New Match
+            </Button>
+          </View>
+        </View>
+
+        <DeleteMatchDialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}
+          match={matchToDelete}
+          onDelete={handleConfirmDelete}
+          onArchive={handleArchive}
+        />
+      </Modal>
+    </Portal>
   );
 };
 
 const styles = StyleSheet.create({
+  modal: {
+    backgroundColor: theme.colors.surface,
+    margin: 20,
+    borderRadius: 8,
+    height: '90%',
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   header: {
-    paddingVertical: 8,
-  },
-  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
   },
-  addButton: {
+  closeButton: {
     margin: 0,
+  },
+  scrollView: {
+    flex: 1,
   },
   matchItem: {
     paddingVertical: 4,
@@ -160,6 +206,21 @@ const styles = StyleSheet.create({
   hiddenMatch: {
     opacity: 0.7,
   },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  selectButton: {
+    marginLeft: 8,
+  },
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outline,
+  },
+  addButton: {
+    width: '100%',
+  },
 });
 
-export default MatchSelector;
+export default MatchSelectorModal;
