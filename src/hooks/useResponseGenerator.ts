@@ -58,10 +58,8 @@ export const useResponseGenerator = ({
       return;
     }
 
-    if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
-      console.log(
-        '[ResponseGenerator] Match selection required for non-free plan',
-      );
+    if (!selectedMatch) {
+      console.log('[ResponseGenerator] No match selected');
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
       setErrorType('SELECT_MATCH_REQUIRED');
       setLoading(false);
