@@ -25,7 +25,7 @@ export const createApp = async () => {
   const app = express();
 
   // Initialize database
-  await getDatabase();
+  const db = await getDatabase();
 
   // Security middleware
   app.use(helmet());
@@ -76,13 +76,21 @@ export const createApp = async () => {
   );
 
   // Initialize controllers
-  const replyController = await createReplyController();
+  const replyController = await createReplyController(db);
 
   // Main application routes
-  app.get('/api/users/:userId', authenticateUser, getUser);
-  app.put('/api/users/:userId/plan', authenticateUser, updateUserPlan);
-  app.post('/api/users/link', authenticateUser, linkAnonymousUser);
-  app.post('/api/users', authenticateUser, createUser);
+  app.get('/api/users/:userId', authenticateUser, (req, res) =>
+    getUser(req, res, db),
+  );
+  app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
+    updateUserPlan(req, res, db),
+  );
+  app.post('/api/users/link', authenticateUser, (req, res) =>
+    linkAnonymousUser(req, res, db),
+  );
+  app.post('/api/users', authenticateUser, (req, res) =>
+    createUser(req, res, db),
+  );
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
     logger.info('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
@@ -104,13 +112,13 @@ export const createApp = async () => {
   const adminRouter = express.Router();
 
   // Use admin routes
-  adminRouter.use('/', adminRoutes);
+  adminRouter.use('/', adminRoutes(db));
 
   // Mount admin router
   app.use('/api/admin', adminRouter);
 
   // Mount match routes
-  app.use('/api', matchRoutes);
+  app.use('/api', matchRoutes(db));
 
   // Create utility router for testing/development endpoints
   const utilityRouter = express.Router();

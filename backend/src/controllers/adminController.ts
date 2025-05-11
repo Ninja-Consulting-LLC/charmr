@@ -1,10 +1,9 @@
 import {Request, Response} from 'express';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import logger from '../utils/logger';
 
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (req: Request, res: Response, db: Database) => {
   try {
-    const db = await getDatabase();
     const users = await db.all('SELECT * FROM users');
     logger.info('Fetched users:', {count: users.length});
     res.json(users);
@@ -14,14 +13,13 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {id, email, name, installationId} = req.body;
-    if (!id) {
+    if (!id || !email || !name) {
       return res.status(400).json({error: 'Missing required fields'});
     }
 
-    const db = await getDatabase();
     const user = await db.createUser(
       id,
       email,
@@ -37,10 +35,13 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserMessages = async (req: Request, res: Response) => {
+export const getUserMessages = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -60,7 +61,7 @@ export const getUserMessages = async (req: Request, res: Response) => {
     logger.info('Fetched messages for user:', {
       userId,
       count: messages.length,
-      matchIds: [...new Set(messages.map(m => m.matchId))],
+      matchIds: [...new Set(messages.map((m: {matchId: string}) => m.matchId))],
     });
 
     // Set headers to prevent caching
@@ -79,10 +80,13 @@ export const getUserMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const resetUserMessageLimit = async (req: Request, res: Response) => {
+export const resetUserMessageLimit = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -121,7 +125,11 @@ export const resetUserMessageLimit = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUserPlan = async (req: Request, res: Response) => {
+export const updateUserPlan = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
     const {plan} = req.body;
@@ -129,8 +137,6 @@ export const updateUserPlan = async (req: Request, res: Response) => {
     if (!plan) {
       return res.status(400).json({error: 'Plan is required'});
     }
-
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -144,7 +150,7 @@ export const updateUserPlan = async (req: Request, res: Response) => {
     });
 
     logger.info('Updated user plan:', {userId, plan});
-    res.json({message: 'Plan updated successfully'});
+    res.status(200).json({message: 'Plan updated successfully'});
   } catch (error) {
     logger.error('Error updating user plan:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -155,9 +161,12 @@ export const updateUserPlan = async (req: Request, res: Response) => {
   }
 };
 
-export const clearDatabase = async (req: Request, res: Response) => {
+export const clearDatabase = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
-    const db = await getDatabase();
     await db.clearDatabase();
     logger.info('Database cleared by admin');
     res.json({message: 'Database cleared successfully'});
@@ -167,10 +176,9 @@ export const clearDatabase = async (req: Request, res: Response) => {
   }
 };
 
-export const getUser = async (req: Request, res: Response) => {
+export const getUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     const user = await db.getUser(userId);
     if (!user) {
@@ -188,17 +196,20 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserByInstallationId = async (req: Request, res: Response) => {
+export const getUserByInstallationId = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {installationId} = req.params;
-    const db = await getDatabase();
 
     const user = await db.getUserByInstallationId(installationId);
     if (!user) {
       return res.status(404).json({error: 'User not found'});
     }
 
-    res.json(user);
+    res.status(200).json(user);
   } catch (error) {
     logger.error('Error getting user by installation ID:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -209,14 +220,16 @@ export const getUserByInstallationId = async (req: Request, res: Response) => {
   }
 };
 
-export const linkAnonymousUser = async (req: Request, res: Response) => {
+export const linkAnonymousUser = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {anonymousUserId, registeredUserId, installationId} = req.body;
     if (!anonymousUserId || !registeredUserId) {
       return res.status(400).json({error: 'Missing required fields'});
     }
-
-    const db = await getDatabase();
 
     // Get the anonymous user's data
     const anonymousUser = await db.getUser(anonymousUserId);
@@ -261,11 +274,14 @@ export const linkAnonymousUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserMessageHistory = async (req: Request, res: Response) => {
+export const getUserMessageHistory = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
     const {startDate, endDate} = req.query;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -297,14 +313,18 @@ export const getUserMessageHistory = async (req: Request, res: Response) => {
     );
 
     // Calculate message stats
-    const userMessages = messages.filter(m => m.role === 'user').length;
-    const assistantMessages = messages.filter(
-      m => m.role === 'assistant',
+    const userMessages = messages.filter(
+      (m: {role: string}) => m.role === 'user',
     ).length;
-    const systemMessages = messages.filter(m => m.role === 'system').length;
+    const assistantMessages = messages.filter(
+      (m: {role: string}) => m.role === 'assistant',
+    ).length;
+    const systemMessages = messages.filter(
+      (m: {role: string}) => m.role === 'system',
+    ).length;
 
     // Group messages by matchId for stats
-    const matchStats = messages.reduce((acc, msg) => {
+    const matchStats = messages.reduce((acc: Record<string, any>, msg: any) => {
       const matchId = msg.matchId || 'no-match';
       if (!acc[matchId]) {
         acc[matchId] = {
@@ -369,11 +389,14 @@ export const getUserMessageHistory = async (req: Request, res: Response) => {
   }
 };
 
-export const getMessageCosts = async (req: Request, res: Response) => {
+export const getMessageCosts = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
     const {startDate, endDate} = req.query;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -421,11 +444,14 @@ export const getMessageCosts = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserInfo = async (req: Request, res: Response) => {
+export const getUserInfo = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
     const {startDate, endDate} = req.query;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -461,7 +487,7 @@ export const getUserInfo = async (req: Request, res: Response) => {
     );
 
     logger.info('Raw messages from database:', {
-      messages: messages.map(msg => ({
+      messages: messages.map((msg: any) => ({
         id: msg.id,
         timestamp: msg.timestamp,
         role: msg.role,
@@ -470,12 +496,14 @@ export const getUserInfo = async (req: Request, res: Response) => {
     });
 
     // Calculate total message counts
-    const totalUserMessages = messages.filter(m => m.role === 'user').length;
+    const totalUserMessages = messages.filter(
+      (m: {role: string}) => m.role === 'user',
+    ).length;
     const totalAssistantMessages = messages.filter(
-      m => m.role === 'assistant',
+      (m: {role: string}) => m.role === 'assistant',
     ).length;
     const totalSystemMessages = messages.filter(
-      m => m.role === 'system',
+      (m: {role: string}) => m.role === 'system',
     ).length;
 
     // Get match stats with detailed message counts
@@ -576,7 +604,7 @@ export const getUserInfo = async (req: Request, res: Response) => {
         dailyUsage,
         matchStats,
       },
-      messages: messages.map(msg => ({
+      messages: messages.map((msg: any) => ({
         id: msg.id,
         userId: msg.userId,
         matchId: msg.matchId,
@@ -608,5 +636,38 @@ export const getUserInfo = async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : 'Unknown error',
       userId: req.params.userId,
     });
+  }
+};
+
+export const updateUser = async (req: Request, res: Response, db: Database) => {
+  try {
+    const {userId} = req.params;
+    const {name, email} = req.body;
+
+    if (!name && !email) {
+      return res.status(400).json({error: 'No fields to update'});
+    }
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Prepare update fields
+    const updateFields: any = {};
+    if (name) updateFields.name = name;
+    if (email) updateFields.email = email;
+
+    await db.updateUser(userId, updateFields);
+    const updatedUser = await db.getUser(userId);
+    res.json(updatedUser);
+  } catch (error) {
+    logger.error('Error updating user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to update user'});
   }
 };
