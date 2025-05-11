@@ -1,4 +1,4 @@
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
@@ -16,9 +16,7 @@ const PLAN_LIMITS: Partial<Record<SubscriptionTier, PlanLimits>> = {
   },
 };
 
-export const createMessageLimitService = async () => {
-  const db = await getDatabase();
-
+export const createMessageLimitService = (db: Database) => {
   const getMessageLimits = async (userId: string) => {
     try {
       let user = await db.getUser(userId);

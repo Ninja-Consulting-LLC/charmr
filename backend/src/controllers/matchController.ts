@@ -1,8 +1,8 @@
 import {Request, Response} from 'express';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import logger from '../utils/logger';
 
-export const getMatches = async (req: Request, res: Response) => {
+export const getMatches = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
     const {includeHidden} = req.query;
@@ -14,8 +14,6 @@ export const getMatches = async (req: Request, res: Response) => {
       headers: req.headers,
       cookies: req.cookies,
     });
-
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -49,278 +47,198 @@ export const getMatches = async (req: Request, res: Response) => {
   }
 };
 
-export const addMatch = async (req: Request, res: Response) => {
+export const addMatch = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
     const {name, platform} = req.body;
-    logger.debug('Adding match', {
-      userId,
-      name,
-      platform,
-      headers: req.headers,
-      cookies: req.cookies,
-    });
 
-    const db = await getDatabase();
+    if (!name || !platform) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
 
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when adding match', {userId, name, platform});
       return res.status(404).json({error: 'User not found'});
     }
 
-    // Validate input
-    if (!name || !platform) {
-      logger.warn('Invalid input when adding match', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(400).json({error: 'Name and platform are required'});
+    // Check if match already exists
+    const matches = await db.getMatches(userId);
+    const existingMatch = matches.find(
+      m => m.name === name && m.platform === platform,
+    );
+    if (existingMatch) {
+      return res.status(409).json({error: 'Match already exists'});
     }
 
-    const match = await db.addMatch(userId, name, platform);
-
-    logger.info('Successfully added match', {
-      userId,
-      matchId: match.id,
-      name,
-      platform,
-    });
-
-    res.status(201).json(match);
+    // Create new match
+    try {
+      const match = await db.addMatch(userId, name, platform);
+      logger.info('Created new match:', {userId, name, platform});
+      res.status(201).json({id: match.id});
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('UNIQUE constraint failed')
+      ) {
+        return res.status(409).json({error: 'Match already exists'});
+      }
+      throw error;
+    }
   } catch (error) {
-    logger.error('Error adding match:', {
+    logger.error('Error creating match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
-    res.status(500).json({error: 'Failed to add match'});
+    res.status(500).json({error: 'Failed to create match'});
   }
 };
 
-export const updateMatchLastUsed = async (req: Request, res: Response) => {
+export const updateMatchLastUsed = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const {name, platform} = req.body;
-    logger.debug('Updating match last used', {
-      userId,
-      name,
-      platform,
-      headers: req.headers,
-      cookies: req.cookies,
-    });
+    const {matchId} = req.body;
 
-    const db = await getDatabase();
+    if (!matchId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
 
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when updating match last used', {
-        userId,
-        name,
-        platform,
-      });
       return res.status(404).json({error: 'User not found'});
     }
 
-    // Validate input
-    if (!name || !platform) {
-      logger.warn('Invalid input when updating match last used', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(400).json({error: 'Name and platform are required'});
+    // Update match last used
+    const result = await db.run(
+      'UPDATE matches SET lastUsed = ?, updatedAt = ? WHERE id = ? AND userId = ?',
+      [new Date().toISOString(), new Date().toISOString(), matchId, userId],
+    );
+
+    if (result.changes === 0) {
+      logger.warn('Match not found when updating last used', {userId, matchId});
+      return res.status(404).json({error: 'Match not found'});
     }
 
-    await db.updateMatchLastUsed(userId, name, platform);
-
-    logger.info('Successfully updated match last used', {
-      userId,
-      name,
-      platform,
-    });
-
-    res.status(200).json({message: 'Match last used updated'});
+    logger.info('Updated match last used:', {userId, matchId});
+    res.json({message: 'Match updated successfully'});
   } catch (error) {
-    logger.error('Error updating match last used:', {
+    logger.error('Error updating match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
-    res.status(500).json({error: 'Failed to update match last used'});
+    res.status(500).json({error: 'Failed to update match'});
   }
 };
 
-export const deleteMatch = async (req: Request, res: Response) => {
+export const deleteMatch = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const {name, platform} = req.body;
-    logger.debug('Deleting match', {
-      userId,
-      name,
-      platform,
-      headers: req.headers,
-      cookies: req.cookies,
-    });
+    const {matchId} = req.body;
 
-    const db = await getDatabase();
+    if (!matchId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
 
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when deleting match', {
-        userId,
-        name,
-        platform,
-      });
       return res.status(404).json({error: 'User not found'});
     }
 
-    // Validate input
-    if (!name || !platform) {
-      logger.warn('Invalid input when deleting match', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(400).json({error: 'Name and platform are required'});
-    }
-
-    await db.deleteMatch(userId, name, platform);
-
-    logger.info('Successfully deleted match', {
+    // Delete match
+    await db.run('DELETE FROM matches WHERE id = ? AND userId = ?', [
+      matchId,
       userId,
-      name,
-      platform,
-    });
+    ]);
 
-    res.status(200).json({message: 'Match deleted'});
+    logger.info('Deleted match:', {userId, matchId});
+    res.json({message: 'Match deleted successfully'});
   } catch (error) {
     logger.error('Error deleting match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
     res.status(500).json({error: 'Failed to delete match'});
   }
 };
 
-export const hideMatch = async (req: Request, res: Response) => {
+export const hideMatch = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
-    const {name, platform} = req.body;
-    logger.debug('Hiding match', {
-      userId,
-      name,
-      platform,
-      headers: req.headers,
-      cookies: req.cookies,
-    });
+    const {matchId} = req.body;
 
-    const db = await getDatabase();
+    if (!matchId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
 
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when hiding match', {
-        userId,
-        name,
-        platform,
-      });
       return res.status(404).json({error: 'User not found'});
     }
 
-    // Validate input
-    if (!name || !platform) {
-      logger.warn('Invalid input when hiding match', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(400).json({error: 'Name and platform are required'});
-    }
+    // Hide match
+    await db.run(
+      'UPDATE matches SET hidden = ?, updatedAt = ? WHERE id = ? AND userId = ?',
+      [true, new Date().toISOString(), matchId, userId],
+    );
 
-    await db.hideMatch(userId, name, platform);
-
-    logger.info('Successfully hid match', {
-      userId,
-      name,
-      platform,
-    });
-
-    res.status(200).json({message: 'Match hidden'});
+    logger.info('Hidden match:', {userId, matchId});
+    res.json({message: 'Match hidden successfully'});
   } catch (error) {
     logger.error('Error hiding match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
     res.status(500).json({error: 'Failed to hide match'});
   }
 };
 
-export const restoreMatch = async (req: Request, res: Response) => {
+export const restoreMatch = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const {name, platform} = req.body;
-    logger.debug('Restoring match', {
-      userId,
-      name,
-      platform,
-      headers: req.headers,
-      cookies: req.cookies,
-    });
+    const {matchId} = req.body;
 
-    const db = await getDatabase();
+    if (!matchId) {
+      return res.status(400).json({error: 'Missing required fields'});
+    }
 
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when restoring match', {
-        userId,
-        name,
-        platform,
-      });
       return res.status(404).json({error: 'User not found'});
     }
 
-    // Validate input
-    if (!name || !platform) {
-      logger.warn('Invalid input when restoring match', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(400).json({error: 'Name and platform are required'});
-    }
+    // Restore match
+    await db.run(
+      'UPDATE matches SET hidden = ?, updatedAt = ? WHERE id = ? AND userId = ?',
+      [false, new Date().toISOString(), matchId, userId],
+    );
 
-    await db.restoreMatch(userId, name, platform);
-
-    logger.info('Successfully restored match', {
-      userId,
-      name,
-      platform,
-    });
-
-    res.status(200).json({message: 'Match restored'});
+    logger.info('Restored match:', {userId, matchId});
+    res.json({message: 'Match restored successfully'});
   } catch (error) {
     logger.error('Error restoring match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
     res.status(500).json({error: 'Failed to restore match'});
   }

@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
@@ -44,35 +44,38 @@ A brief summary of the match's interests and conversation style based on the his
 Your suggested reply to the match
 </message>`;
 
-export const createReplyController = async () => {
-  const messageLimitService = await createMessageLimitService();
+export const createReplyController = (db: Database) => {
+  const messageLimitService = createMessageLimitService(db);
   const openaiService = createOpenAIService();
   const geminiService = createGeminiService();
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-    logger.debug('Generating reply - request payload', {
-      userId,
-      matchId,
-      hasImages: images?.length > 0,
-      skipRateLimiting,
-      prompt,
-      imageCount: images?.length,
-      sandboxMode: process.env.NODE_ENV !== 'production',
-      truncatedImages: images?.map(truncateImageData),
-    });
+    // 1. Validate prompt
+    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+      return res.status(400).json({error: 'Prompt is required.'});
+    }
 
-    try {
+    // Main logic as a promise
+    const mainLogic = (async () => {
+      logger.debug('Generating reply - request payload', {
+        userId,
+        matchId,
+        hasImages: images?.length > 0,
+        skipRateLimiting,
+        prompt,
+        imageCount: images?.length,
+        sandboxMode: process.env.NODE_ENV !== 'production',
+        truncatedImages: images?.map(truncateImageData),
+      });
+
       let messageLimits = null;
-
-      // Check message limits unless skipping rate limiting
       if (!skipRateLimiting) {
         messageLimits = await messageLimitService.getMessageLimits(userId);
         const canSendMessage =
           messageLimits.dailyMessagesUsed < messageLimits.dailyMessageLimit ||
           messageLimits.extraMessages > 0;
-
         if (!canSendMessage) {
           logger.warn('Message limit reached', {userId, messageLimits});
           return res.status(429).json({
@@ -84,9 +87,10 @@ export const createReplyController = async () => {
       }
 
       // Get user's plan
-      const db = await getDatabase();
       const user = await db.getUser(userId);
+      logger.debug('ReplyController: user lookup', {userId, user});
       if (!user) {
+        logger.error('User not found in generateReplyHandler', {userId, user});
         return res.status(404).json({error: 'User not found'});
       }
 
@@ -94,6 +98,14 @@ export const createReplyController = async () => {
       const conversationHistory = matchId
         ? await loadConversation(userId, matchId, user.plan)
         : [];
+
+      // 2. Check if match exists (for message errors test)
+      if (matchId) {
+        const match = await db.getMatchById(matchId);
+        if (!match) {
+          return res.status(404).json({error: 'Match not found'});
+        }
+      }
 
       logger.debug('Conversation history loaded', {
         userId,
@@ -204,12 +216,18 @@ export const createReplyController = async () => {
       // Get updated message limits
       const updatedLimits = await messageLimitService.getMessageLimits(userId);
 
-      res.json({
+      if (res.headersSent) return;
+      return res.status(200).json({
         reply: response.reply,
         summary: response.summary,
         usage: response.usage,
         limits: updatedLimits,
       });
+    })();
+
+    // 3. Error handling
+    try {
+      await mainLogic;
     } catch (error) {
       logger.error('Error generating reply', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -217,10 +235,11 @@ export const createReplyController = async () => {
         userId,
         matchId,
       });
-      return res.status(500).json({
+      res.status(500).json({
         error: 'Failed to generate reply',
         type: 'GENERATION_ERROR',
       });
+      return;
     }
   };
 
