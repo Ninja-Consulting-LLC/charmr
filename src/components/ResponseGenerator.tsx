@@ -9,14 +9,7 @@ import React, {
 } from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {
-  Button,
-  IconButton,
-  Snackbar,
-  Switch,
-  Text,
-  TextInput,
-} from 'react-native-paper';
+import {Button, IconButton, Snackbar, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -35,6 +28,7 @@ import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
+import PromptModal from './PromptModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -89,15 +83,20 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
     addMatch: addMatchToStore,
     updateMatch,
     removeMatch,
+    isDatingCoachEnabled,
+    setIsDatingCoachEnabled,
+    selectedMatch,
+    setSelectedMatch,
+    deleteScreenshots,
+    setDeleteScreenshots,
+    prompt,
+    setPrompt,
   } = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
   // State
-  const [prompt, setPrompt] = useState('');
   const [showSnackbar, setShowSnackbar] = useState(false);
-  const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -105,7 +104,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
-  const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -113,6 +112,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
       images,
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
+      isDatingCoachEnabled,
     });
 
   useImperativeHandle(ref, () => ({
@@ -272,7 +272,8 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
     setShowSnackbar(false);
 
     try {
-      await generateResponse(prompt);
+      // Only include prompt if dating coach is enabled
+      await generateResponse(isDatingCoachEnabled ? prompt : '');
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setShowSnackbar(true);
@@ -319,14 +320,9 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
 
   // Save dating coach preference when changed
   const handleDatingCoachToggle = async (value: boolean) => {
-    try {
-      await AsyncStorage.setItem(DATING_COACH_ENABLED_KEY, value.toString());
-      setIsDatingCoachEnabled(value);
-      if (!value) {
-        setSelectedMatch(null);
-      }
-    } catch (error) {
-      console.error('Error saving dating coach preference:', error);
+    setIsDatingCoachEnabled(value);
+    if (!value) {
+      setSelectedMatch(null);
     }
   };
 
@@ -420,33 +416,35 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
             userPlan={user?.plan}
           />
 
-          {/* Prompt Input - Only show when dating coach is enabled */}
-          {isDatingCoachEnabled && (
-            <View style={styles.promptSection}>
-              <Text
-                variant="titleMedium"
-                style={{color: theme.colors.secondary}}>
-                Enter your prompt (required if no screenshot is provided)
-              </Text>
-              <TextInput
-                value={prompt}
-                onChangeText={setPrompt}
-                multiline
-                numberOfLines={4}
-                style={[styles.promptInput]}
-                testID="prompt-input"
-                placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-                placeholderTextColor={theme.colors.secondary}
-                textAlignVertical="top"
-                cursorColor={theme.colors.background}
-                selectionColor={theme.colors.background}
-                textColor={theme.colors.background}
-                underlineColor="transparent"
-                activeUnderlineColor="transparent"
-              />
+          {/* Notes Display - Only show when dating coach is enabled and notes exist */}
+          {isDatingCoachEnabled && prompt && (
+            <View style={styles.notesSection}>
+              <View style={styles.notesContent}>
+                <Text variant="bodyMedium" style={styles.notesText}>
+                  {prompt}
+                </Text>
+                <IconButton
+                  icon="pencil"
+                  size={20}
+                  onPress={() => setShowPromptModal(true)}
+                  style={styles.editButton}
+                />
+              </View>
             </View>
           )}
         </ScrollView>
+
+        {/* Add Notes Button - Only show when dating coach is enabled and no notes exist */}
+        {isDatingCoachEnabled && !prompt && (
+          <Button
+            mode="outlined"
+            onPress={() => setShowPromptModal(true)}
+            icon="note-text"
+            style={styles.addNotesButton}
+            textColor={theme.colors.secondary}>
+            Add Notes
+          </Button>
+        )}
 
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
@@ -467,6 +465,13 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
         visible={showAddMatchModal}
         onDismiss={() => setShowAddMatchModal(false)}
         onAdd={handleAddMatch}
+      />
+
+      <PromptModal
+        visible={showPromptModal}
+        onDismiss={() => setShowPromptModal(false)}
+        prompt={prompt}
+        onPromptChange={setPrompt}
       />
 
       <UpgradeModal
@@ -553,6 +558,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingHorizontal: 16,
+    gap: 8,
   },
   generateButton: {
     backgroundColor: theme.colors.secondary,
@@ -601,6 +607,31 @@ const styles = StyleSheet.create({
   },
   datingCoachLabel: {
     color: theme.colors.secondary,
+  },
+  notesSection: {
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  notesContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  notesText: {
+    color: theme.colors.onSurface,
+    flex: 1,
+    marginRight: 8,
+  },
+  editButton: {
+    margin: 0,
+  },
+  addNotesButton: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderColor: theme.colors.secondary,
   },
 });
 
