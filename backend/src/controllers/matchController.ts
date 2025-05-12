@@ -130,7 +130,7 @@ export const addMatch = async (req: Request, res: Response, db: Database) => {
         platform,
         matchId: match.id,
       });
-      res.status(201).json({id: match.id});
+      res.status(201).json(match);
     } catch (error) {
       if (
         error instanceof Error &&

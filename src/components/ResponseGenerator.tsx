@@ -141,8 +141,9 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
       const newMatch = await addMatch(name, platform);
       if (newMatch) {
         addMatchToStore(newMatch);
+        setSelectedMatch(newMatch);
         setShowAddMatchModal(false);
-        loadMatches(); // Refresh the matches list
+        loadMatches();
       }
     } catch (error) {
       console.error('Error adding match:', error);
