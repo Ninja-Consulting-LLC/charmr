@@ -15,7 +15,7 @@ import {getDatabase} from './db';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
-import adminRoutes from './routes/adminRoutes';
+import createAdminRouter from './routes/adminRoutes';
 import matchRoutes from './routes/matchRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
@@ -109,10 +109,7 @@ export const createApp = async () => {
   });
 
   // Create admin router
-  const adminRouter = express.Router();
-
-  // Use admin routes
-  adminRouter.use('/', adminRoutes(db));
+  const adminRouter = createAdminRouter(db);
 
   // Mount admin router
   app.use('/api/admin', adminRouter);

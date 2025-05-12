@@ -131,7 +131,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
       if (selectedMatch) {
         updateMatchLastUsed(selectedMatch.name, selectedMatch.platform);
       }
-    } else if (error) {
+    } else if (error && errorType !== '404') {
       setShowSnackbar(true);
     }
   }, [response, error, errorType]);

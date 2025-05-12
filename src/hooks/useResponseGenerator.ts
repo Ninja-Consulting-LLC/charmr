@@ -113,8 +113,10 @@ export const useResponseGenerator = ({
           error: reply.error,
           type: reply.type,
         });
-        setError(reply.error);
-        setErrorType(reply.type || 'UNKNOWN');
+        if (reply.type !== '404') {
+          setError(reply.error);
+          setErrorType(reply.type || 'UNKNOWN');
+        }
         setResponse(null);
         if (reply.limits) {
           const userData = await userService.fetchUserData(userId);
@@ -143,8 +145,10 @@ export const useResponseGenerator = ({
         stack: error.stack,
       });
       if (error.response?.data) {
-        setError(error.response.data.error);
-        setErrorType(error.response.data.type || 'UNKNOWN');
+        if (error.response.status !== 404) {
+          setError(error.response.data.error);
+          setErrorType(error.response.data.type || 'UNKNOWN');
+        }
         if (error.response.data.limits) {
           const userData = await userService.fetchUserData(userId);
           if (userData) {
