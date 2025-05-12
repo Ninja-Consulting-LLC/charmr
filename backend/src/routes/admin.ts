@@ -9,16 +9,29 @@ import {
   resetUserMessageLimit,
   updateUserPlan,
 } from '../controllers/adminController';
+import {Database} from '../db/types';
 
-const router = Router();
+const createAdminRouter = (db: Database) => {
+  const router = Router();
 
-router.get('/users', getUsers);
-router.post('/users', createUser);
-router.get('/users/:userId/messages', getUserMessages);
-router.post('/users/:userId/reset-messages', resetUserMessageLimit);
-router.put('/users/:userId/plan', updateUserPlan);
-router.get('/users/:userId', getUser);
-router.get('/users/installation/:installationId', getUserByInstallationId);
-router.post('/users/link', linkAnonymousUser);
+  // Middleware to inject database
+  const withDb = (handler: Function) => async (req: any, res: any) => {
+    return handler(req, res, db);
+  };
 
-export default router;
+  router.get('/users', withDb(getUsers));
+  router.post('/users', withDb(createUser));
+  router.get('/users/:userId/messages', withDb(getUserMessages));
+  router.post('/users/:userId/reset-messages', withDb(resetUserMessageLimit));
+  router.put('/users/:userId/plan', withDb(updateUserPlan));
+  router.get('/users/:userId', withDb(getUser));
+  router.get(
+    '/users/installation/:installationId',
+    withDb(getUserByInstallationId),
+  );
+  router.post('/users/link', withDb(linkAnonymousUser));
+
+  return router;
+};
+
+export default createAdminRouter;
