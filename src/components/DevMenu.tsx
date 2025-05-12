@@ -211,7 +211,7 @@ const DevMenu = () => {
   const handleResetMessageLimit = async () => {
     try {
       const response = await fetch(
-        `${config.apiBaseUrl}/api/admin/users/${userId}/reset-limit`,
+        `${config.apiBaseUrl}/api/admin/users/${userId}/reset-message-limit`,
         {
           method: 'POST',
           headers: {
