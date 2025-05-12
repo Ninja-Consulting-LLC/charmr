@@ -6,6 +6,7 @@ import {useStore} from '../store';
 import {SelectedImage} from '../types';
 import {SubscriptionTier} from '../types/enums';
 import {compressImages} from '../utils/imageCompression';
+import {logger} from '../utils/logger';
 import {generateMatchId, Match} from '../utils/matchUtils';
 
 interface UseResponseGeneratorProps {
@@ -44,14 +45,14 @@ export const useResponseGenerator = ({
     setLoading(true);
     resetResponse();
 
-    console.log('[ResponseGenerator] Starting response generation', {
+    logger.app.info('[ResponseGenerator] Starting response generation', {
       promptLength: prompt?.length,
       imageCount: images?.length,
       selectedMatch: selectedMatch?.name,
     });
 
     if (images.length === 0 && !prompt.trim()) {
-      console.log('[ResponseGenerator] No images or prompt provided');
+      logger.app.info('[ResponseGenerator] No images or prompt provided');
       setError(MESSAGES.NO_IMAGES);
       setErrorType('NO_IMAGES');
       setLoading(false);
@@ -59,7 +60,7 @@ export const useResponseGenerator = ({
     }
 
     if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
-      console.log('[ResponseGenerator] No match selected');
+      logger.app.info('[ResponseGenerator] No match selected');
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
       setErrorType('SELECT_MATCH_REQUIRED');
       setLoading(false);
@@ -67,23 +68,23 @@ export const useResponseGenerator = ({
     }
 
     try {
-      console.log('[ResponseGenerator] Converting images to base64');
+      logger.app.info('[ResponseGenerator] Converting images to base64');
       const base64Images = await Promise.all(
         images.map(async (img, index) => {
           try {
             if (img.base64) {
-              console.log(
+              logger.app.info(
                 `[ResponseGenerator] Using existing base64 for image ${index}`,
               );
               return img.base64;
             }
-            console.log(
+            logger.app.info(
               `[ResponseGenerator] Converting image ${index} to base64`,
             );
             const compressedImage = await compressImages([img.path]);
             return compressedImage[0].base64;
           } catch (error) {
-            console.error(
+            logger.app.error(
               `[ResponseGenerator] Error converting image ${index}:`,
               error,
             );
@@ -92,7 +93,7 @@ export const useResponseGenerator = ({
         }),
       );
 
-      console.log('[ResponseGenerator] Calling generateReply API');
+      logger.app.info('[ResponseGenerator] Calling generateReply API');
       const reply = await generateReply({
         prompt: prompt.trim() || 'make it flirty',
         images: base64Images,
@@ -102,14 +103,14 @@ export const useResponseGenerator = ({
           : 'no-match-selected',
       });
 
-      console.log('[ResponseGenerator] Received API response:', {
+      logger.app.info('[ResponseGenerator] Received API response:', {
         hasReply: !!reply.reply,
         hasError: !!reply.error,
         errorType: reply.type,
       });
 
       if (reply.error) {
-        console.log('[ResponseGenerator] Setting error state:', {
+        logger.app.info('[ResponseGenerator] Setting error state:', {
           error: reply.error,
           type: reply.type,
         });
@@ -125,7 +126,7 @@ export const useResponseGenerator = ({
           }
         }
       } else if (reply.reply) {
-        console.log('[ResponseGenerator] Setting response state:', {
+        logger.app.info('[ResponseGenerator] Setting response state:', {
           replyLength: reply.reply.length,
         });
         setResponse(reply.reply);
@@ -139,7 +140,7 @@ export const useResponseGenerator = ({
         }
       }
     } catch (error: any) {
-      console.error('[ResponseGenerator] Error in generateResponse:', {
+      logger.app.error('[ResponseGenerator] Error in generateResponse:', {
         message: error.message,
         code: error.code,
         stack: error.stack,
@@ -161,7 +162,7 @@ export const useResponseGenerator = ({
       }
       setResponse(null);
     } finally {
-      console.log('[ResponseGenerator] Finishing response generation');
+      logger.app.info('[ResponseGenerator] Finishing response generation');
       setLoading(false);
     }
   };

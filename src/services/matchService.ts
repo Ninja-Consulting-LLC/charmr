@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {API_BASE_URL} from '../config';
+import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
 
 const getUserId = async () => {
@@ -13,10 +14,8 @@ const getUserId = async () => {
 export const matchService = {
   async getMatches(includeHidden: boolean = false): Promise<Match[]> {
     const userId = await getUserId();
-    console.log('[matchService] Getting matches with params:', {
-      userId,
-      includeHidden,
-    });
+    logger.match.debug('Getting matches', {userId, includeHidden});
+
     const response = await fetch(
       `${API_BASE_URL}/users/${userId}/matches?includeHidden=${includeHidden}`,
       {
@@ -29,23 +28,23 @@ export const matchService = {
     );
 
     if (!response.ok) {
-      console.error('[matchService] Failed to fetch matches:', {
+      const errorData = {
         status: response.status,
         statusText: response.statusText,
-      });
+      };
+      logger.match.error('Failed to fetch matches', errorData);
       throw new Error('Failed to fetch matches');
     }
 
     const matches = await response.json();
-    console.log('[matchService] Received matches:', {
-      count: matches.length,
-      matches,
-    });
+    logger.match.debug('Received matches', {count: matches.length});
     return matches;
   },
 
   async addMatch(name: string, platform: string): Promise<Match> {
     const userId = await getUserId();
+    logger.match.debug('Adding match', {name, platform, userId});
+
     const response = await fetch(`${API_BASE_URL}/users/${userId}/matches`, {
       method: 'POST',
       headers: {
@@ -56,10 +55,19 @@ export const matchService = {
     });
 
     if (!response.ok) {
+      const errorData = {
+        status: response.status,
+        statusText: response.statusText,
+        name,
+        platform,
+      };
+      logger.match.error('Failed to add match', errorData);
       throw new Error('Failed to add match');
     }
 
-    return response.json();
+    const match = await response.json();
+    logger.match.debug('Added match', {match});
+    return match;
   },
 
   async deleteMatch(name: string, platform: string): Promise<void> {

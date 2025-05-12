@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {logger} from './logger';
 
 export class DevUtils {
   static shouldBypassAuth(): boolean {
@@ -9,27 +10,27 @@ export class DevUtils {
   static async resetOnboarding(): Promise<void> {
     try {
       await AsyncStorage.removeItem('hasOnboarded');
-      console.log('Onboarding reset successfully');
+      logger.app.info('Onboarding reset successfully');
     } catch (error) {
-      console.error('Error resetting onboarding:', error);
+      logger.app.error('Error resetting onboarding', error);
     }
   }
 
   static async clearStorage(): Promise<void> {
     try {
       await AsyncStorage.clear();
-      console.log('Storage cleared successfully');
+      logger.app.info('Storage cleared successfully');
     } catch (error) {
-      console.error('Error clearing storage:', error);
+      logger.app.error('Error clearing storage', error);
     }
   }
 
   static async clearMatchStorage(): Promise<void> {
     try {
       await AsyncStorage.removeItem('matches');
-      console.log('Match storage cleared successfully');
+      logger.app.info('Match storage cleared successfully');
     } catch (error) {
-      console.error('Error clearing match storage:', error);
+      logger.app.error('Error clearing match storage', error);
     }
   }
 
@@ -37,9 +38,9 @@ export class DevUtils {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const items = await AsyncStorage.multiGet(keys);
-      console.log('Storage contents:', items);
+      logger.app.info('Storage contents', items);
     } catch (error) {
-      console.error('Error inspecting storage:', error);
+      logger.app.error('Error inspecting storage', error);
     }
   }
 
@@ -48,9 +49,9 @@ export class DevUtils {
       const currentMode = await AsyncStorage.getItem('sandboxMode');
       const newMode = currentMode === 'true' ? 'false' : 'true';
       await AsyncStorage.setItem('sandboxMode', newMode);
-      console.log('Sandbox mode toggled to:', newMode);
+      logger.app.info('Sandbox mode toggled', {newMode});
     } catch (error) {
-      console.error('Error toggling sandbox mode:', error);
+      logger.app.error('Error toggling sandbox mode', error);
     }
   }
 
@@ -59,7 +60,7 @@ export class DevUtils {
       const mode = await AsyncStorage.getItem('sandboxMode');
       return mode === 'true';
     } catch (error) {
-      console.error('Error checking sandbox mode:', error);
+      logger.app.error('Error checking sandbox mode', error);
       return false;
     }
   }

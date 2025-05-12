@@ -1,5 +1,6 @@
 import {Platform} from 'react-native';
 import Config from 'react-native-config';
+import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
 const getBaseUrl = () => {
@@ -31,13 +32,13 @@ export const config = {
 
 // Log all config variables in development
 if (__DEV__) {
-  console.log('Environment Variables:', {
+  logger.config.info('Environment Variables', {
     LOCAL_IP: Config.LOCAL_IP,
     API_BASE_URL: Config.API_BASE_URL,
     NODE_ENV: Config.NODE_ENV,
     // Add any other environment variables you want to log
   });
-  console.log('App Config:', config);
+  logger.config.info('App Config', config);
 }
 
 // Type for the config object

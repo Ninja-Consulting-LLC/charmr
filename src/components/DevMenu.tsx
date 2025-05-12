@@ -12,6 +12,7 @@ import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {DevUtils} from '../utils/devUtils';
+import {logger} from '../utils/logger';
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -225,7 +226,7 @@ const DevMenu = () => {
       }
 
       const data = await response.json();
-      console.log('Reset message limit response:', data);
+      logger.app.info('Reset message limit response', data);
 
       // Fetch fresh user data from backend
       const userResponse = await fetch(
@@ -253,7 +254,7 @@ const DevMenu = () => {
 
       Alert.alert('Success', 'Message limit reset successfully');
     } catch (error) {
-      console.error('Error resetting message limit:', error);
+      logger.app.error('Error resetting message limit', error);
       Alert.alert('Error', 'Failed to reset message limit');
     }
   };

@@ -16,6 +16,7 @@ import {RootStackParamList} from './src/navigation/types';
 import {initializeRevenueCat} from './src/services/revenueCatService';
 import {StoreProvider} from './src/store';
 import {theme} from './src/theme/theme';
+import {logger} from './src/utils/logger';
 import {getPlanLimits} from './src/utils/planLimits';
 
 function App(): React.JSX.Element {
@@ -26,11 +27,11 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        console.log('🚀 Starting app initialization...');
+        logger.app.info('🚀 Starting app initialization...');
 
         // Initialize RevenueCat
         await initializeRevenueCat();
-        console.log('💰 RevenueCat initialized');
+        logger.app.info('💰 RevenueCat initialized');
 
         // Get stored user data
         const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
@@ -41,42 +42,50 @@ function App(): React.JSX.Element {
         const user = userJson ? JSON.parse(userJson) : null;
 
         // Log user state
-        console.log('\n🔍 User State Check:');
-        console.log(
-          '   Authentication Status:',
-          isAuthenticated === 'true'
-            ? '✅ Authenticated'
-            : '❌ Not Authenticated',
+        logger.app.info('\n🔍 User State Check:');
+        logger.app.info(
+          '   Authentication Status: ' +
+            (isAuthenticated === 'true'
+              ? '✅ Authenticated'
+              : '❌ Not Authenticated'),
         );
-        console.log(
-          '   Onboarding Status:',
-          hasOnboarded === 'true' ? '✅ Completed' : '❌ Not Completed',
+        logger.app.info(
+          '   Onboarding Status: ' +
+            (hasOnboarded === 'true' ? '✅ Completed' : '❌ Not Completed'),
         );
-        console.log('   User ID:', userId || 'Not set');
-        console.log('   Sandbox Mode:', sandboxMode || 'Not set');
+        logger.app.info('   User ID: ' + (userId || 'Not set'));
+        logger.app.info('   Sandbox Mode: ' + (sandboxMode || 'Not set'));
 
         if (user) {
-          console.log('\n👤 User Details:');
-          console.log('   Email:', user.email || 'Not set');
-          console.log('   Name:', user.name || 'Not set');
+          logger.app.info('\n👤 User Details:');
+          logger.app.info('   Email: ' + (user.email || 'Not set'));
+          logger.app.info('   Name: ' + (user.name || 'Not set'));
 
-          console.log('\n💰 Plan Details:');
-          console.log('   Plan:', user.plan || 'Free');
-          console.log('   Daily Messages Used:', user.dailyMessagesUsed || 0);
-          console.log('   Daily Message Limit:', getPlanLimits(user.plan));
-          console.log('   Extra Messages:', user.extraMessages || 0);
-          console.log('   Last Reset Date:', user.lastResetDate || 'Never');
+          logger.app.info('\n💰 Plan Details:');
+          logger.app.info('   Plan: ' + (user.plan || 'Free'));
+          logger.app.info(
+            '   Daily Messages Used: ' + (user.dailyMessagesUsed || 0),
+          );
+          logger.app.info(
+            '   Daily Message Limit: ' + getPlanLimits(user.plan),
+          );
+          logger.app.info('   Extra Messages: ' + (user.extraMessages || 0));
+          logger.app.info(
+            '   Last Reset Date: ' + (user.lastResetDate || 'Never'),
+          );
         }
 
         if (isAuthenticated === 'true') {
-          console.log('\n🚀 User is authenticated, navigating to Home');
+          logger.app.info('\n🚀 User is authenticated, navigating to Home');
           setInitialRoute('Home');
         } else {
-          console.log('\n🔒 User is not authenticated, navigating to Login');
+          logger.app.info(
+            '\n🔒 User is not authenticated, navigating to Login',
+          );
           setInitialRoute('Login');
         }
       } catch (error) {
-        console.error('❌ Error checking app status:', error);
+        logger.app.error('❌ Error checking app status:', error);
       } finally {
         setIsReady(true);
       }
@@ -84,8 +93,8 @@ function App(): React.JSX.Element {
 
     checkOnboardingStatus();
 
-    console.log('🔥 Configuring Google Sign-In');
-    console.log('💰 RevenueCat API Key:', Config.REVENUECAT_DEV_API_KEY);
+    logger.app.info('🔥 Configuring Google Sign-In');
+    logger.app.info('💰 RevenueCat API Key:', Config.REVENUECAT_DEV_API_KEY);
 
     GoogleSignin.configure({
       iosClientId:
