@@ -3,6 +3,7 @@ import React, {useEffect} from 'react';
 import {Linking} from 'react-native';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useStore} from '../store';
+import {logger} from '../utils/logger';
 
 export const DeepLinkHandler: React.FC = () => {
   const {user} = useStore();
@@ -11,58 +12,60 @@ export const DeepLinkHandler: React.FC = () => {
 
   useEffect(() => {
     const handleDeepLink = async (url: string) => {
-      console.log('🔍 Deep Link Analysis:');
-      console.log('  - Full URL:', url);
-      console.log(
-        '  - URL includes /homescreen:',
-        url.includes('charmr://open/homescreen'),
+      logger.deepLink.info('🔍 Deep Link Analysis:');
+      logger.deepLink.info('  - Full URL: ' + url);
+      logger.deepLink.info(
+        '  - URL includes /homescreen: ' +
+          url.includes('charmr://open/homescreen'),
       );
-      console.log(
-        '  - URL includes /screenshot:',
-        url.includes('charmr://open/screenshot'),
+      logger.deepLink.info(
+        '  - URL includes /screenshot: ' +
+          url.includes('charmr://open/screenshot'),
       );
 
       if (url.includes('charmr://open/homescreen')) {
-        console.log('📱 Navigating to Home screen');
+        logger.deepLink.info('📱 Navigating to Home screen');
         navigation.navigate('Home' as never);
       } else if (url.includes('charmr://open/screenshot')) {
-        console.log('📸 Opening screenshot upload flow:');
-        console.log('  1. Navigating to Home screen');
+        logger.deepLink.info('📸 Opening screenshot upload flow:');
+        logger.deepLink.info('  1. Navigating to Home screen');
         navigation.navigate('Home' as never);
 
-        console.log('  2. Waiting for navigation to complete...');
+        logger.deepLink.info('  2. Waiting for navigation to complete...');
         setTimeout(async () => {
           try {
-            console.log('  3. Attempting to open image picker...');
+            logger.deepLink.info('  3. Attempting to open image picker...');
             await pickImages();
-            console.log('  ✅ Image picker opened successfully');
+            logger.deepLink.info('  ✅ Image picker opened successfully');
           } catch (error) {
-            console.error('  ❌ Error opening image picker:', error);
+            logger.deepLink.error('  ❌ Error opening image picker:', error);
           }
         }, 500);
       } else {
-        console.log('⚠️ Unhandled deep link URL pattern');
+        logger.deepLink.info('⚠️ Unhandled deep link URL pattern');
       }
     };
 
-    console.log('🔄 Setting up deep link handlers...');
+    logger.deepLink.info('🔄 Setting up deep link handlers...');
 
     // Listen for deep links while app is running
     const subscription = Linking.addEventListener('url', ({url}) => {
-      console.log('📨 Received deep link event while app running:', url);
+      logger.deepLink.info(
+        '📨 Received deep link event while app running: ' + url,
+      );
       handleDeepLink(url);
     });
 
     // Check for initial deep link that launched the app
     Linking.getInitialURL().then(url => {
-      console.log('🚀 Checking initial deep link URL:', url);
+      logger.deepLink.info('🚀 Checking initial deep link URL: ' + url);
       if (url) {
         handleDeepLink(url);
       }
     });
 
     return () => {
-      console.log('♻️ Cleaning up deep link handlers');
+      logger.deepLink.info('♻️ Cleaning up deep link handlers');
       subscription.remove();
     };
   }, [navigation, user, pickImages]);

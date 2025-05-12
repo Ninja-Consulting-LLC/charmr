@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useEffect, useState} from 'react';
 import * as userService from '../services/userService';
 import {User} from '../types/user';
+import {logger} from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 import {createDefaultUser, shouldResetDailyCount} from '../utils/storeUtils';
 
@@ -13,9 +14,9 @@ export const useStoreState = () => {
 
   // Add debug logging for authentication state changes
   useEffect(() => {
-    console.log('🔐 Authentication state changed:', isAuthenticated);
+    logger.auth.info('🔐 Authentication state changed:', isAuthenticated);
     AsyncStorage.getItem('isAuthenticated').then(value => {
-      console.log('🔐 Stored authentication state:', value);
+      logger.auth.info('🔐 Stored authentication state:', value);
     });
   }, [isAuthenticated]);
 
@@ -49,7 +50,7 @@ export const useStoreState = () => {
 
   const handleGoogleLogin = async (firebaseUser: any) => {
     try {
-      console.log('🔐 Starting Google login process...');
+      logger.auth.info('🔐 Starting Google login process...');
 
       // First check if a user exists with this email
       const existingUser = await userService.findUserByEmail(
@@ -57,24 +58,24 @@ export const useStoreState = () => {
       );
 
       if (existingUser) {
-        console.log('👤 Found existing user:', existingUser.id);
+        logger.auth.info('👤 Found existing user:', existingUser.id);
         setUserId(existingUser.id);
         await AsyncStorage.setItem('userId', existingUser.id);
         setUser(existingUser);
         setIsAuthenticated(true);
         await AsyncStorage.setItem('isAuthenticated', 'true');
-        console.log('✅ Successfully authenticated existing user');
+        logger.auth.info('✅ Successfully authenticated existing user');
         return;
       }
 
       // If we have an anonymous user ID, link it with the new registered user
       if (userId && userId !== firebaseUser.uid) {
-        console.log('🔗 Linking anonymous user with registered user');
+        logger.auth.info('🔗 Linking anonymous user with registered user');
         await userService.linkUsers(userId, firebaseUser.uid);
       }
 
       // Create a new user in our backend with Firebase user info
-      console.log('👤 Creating new user...');
+      logger.auth.info('👤 Creating new user...');
       const newUser = await userService.createUser({
         id: firebaseUser.uid,
         email: firebaseUser.email || `${firebaseUser.uid}@example.com`,
@@ -87,9 +88,9 @@ export const useStoreState = () => {
       setUser(newUser);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
-      console.log('✅ Successfully created and authenticated new user');
+      logger.auth.info('✅ Successfully created and authenticated new user');
     } catch (error) {
-      console.error('❌ Error in Google login:', error);
+      logger.auth.error('❌ Error in Google login:', error);
       throw error;
     }
   };

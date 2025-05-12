@@ -5,6 +5,7 @@ import React, {createContext, useContext, useEffect, useState} from 'react';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
 import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import {
@@ -62,7 +63,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         getDailyMessageLimit: () => getPlanLimits(plan),
       });
     } catch (error) {
-      console.error('Error updating user plan:', error);
+      logger.app.error('Error updating user plan:', error);
       throw error;
     }
   };
@@ -79,7 +80,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       const loadedMatches = await getMatches(true);
       setMatches(loadedMatches);
     } catch (error) {
-      console.error('Error loading matches:', error);
+      logger.app.error('Error loading matches:', error);
     }
   };
 
@@ -126,7 +127,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             // Only log if it's not a 404 error (which is expected when user doesn't exist)
             const axiosError = error as AxiosError;
             if (axiosError.response?.status !== 404) {
-              console.warn(
+              logger.app.warn(
                 'Error fetching stored user:',
                 axiosError.message || 'Unknown error',
               );
@@ -141,7 +142,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         // Only log unexpected errors
         const axiosError = error as AxiosError;
         if (axiosError.response?.status !== 404) {
-          console.error(
+          logger.app.error(
             'Unexpected error during user initialization:',
             axiosError.message || 'Unknown error',
           );
@@ -158,7 +159,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const createNewUser = async () => {
     try {
       setIsLoading(true);
-      console.log('👤 Starting new user creation...');
+      logger.app.info('👤 Starting new user creation...');
 
       // First check if we have a stored user ID
       const storedUserId = await AsyncStorage.getItem('userId');
@@ -167,7 +168,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         try {
           const existingUser = await userService.fetchUserData(storedUserId);
           if (existingUser) {
-            console.log('👤 Found existing user:', existingUser.id);
+            logger.app.info('👤 Found existing user:', existingUser.id);
             setUserId(storedUserId);
             setUser(existingUser);
             setIsAuthenticated(true);
@@ -176,7 +177,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             return;
           }
         } catch (error) {
-          console.log(
+          logger.app.info(
             '❌ Error fetching stored user, creating new one:',
             error,
           );
@@ -191,7 +192,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           installationId,
         );
         if (existingUser) {
-          console.log('👤 Found user by installation ID:', existingUser.id);
+          logger.app.info('👤 Found user by installation ID:', existingUser.id);
           setUserId(existingUser.id);
           await AsyncStorage.setItem('userId', existingUser.id);
           setUser(existingUser);
@@ -201,12 +202,12 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           return;
         }
       } catch (error) {
-        console.error('❌ Error getting installation ID:', error);
+        logger.app.error('❌ Error getting installation ID:', error);
         // Continue without installation ID
       }
 
       // Create new user
-      console.log('👤 Creating new anonymous user...');
+      logger.app.info('👤 Creating new anonymous user...');
       const newUserId = `user-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
@@ -230,13 +231,13 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       // Set authentication state for anonymous user
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
-      console.log(
+      logger.app.info(
         '✅ Successfully created and authenticated new anonymous user',
       );
 
       setIsLoading(false);
     } catch (error) {
-      console.error('❌ Error creating user:', error);
+      logger.app.error('❌ Error creating user:', error);
       setIsLoading(false);
       throw error;
     }
@@ -264,7 +265,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         setUser(userData);
       }
     } catch (error) {
-      console.error('Error linking users:', error);
+      logger.app.error('Error linking users:', error);
       throw error;
     }
   };
