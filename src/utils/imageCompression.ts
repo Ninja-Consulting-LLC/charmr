@@ -1,4 +1,4 @@
-import ImageResizer from 'react-native-image-resizer';
+import ImageResizer from '@bam.tech/react-native-image-resizer';
 
 export interface CompressedImage {
   uri: string;

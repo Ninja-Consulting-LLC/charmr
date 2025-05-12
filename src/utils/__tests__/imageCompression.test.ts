@@ -1,7 +1,7 @@
-import ImageResizer from 'react-native-image-resizer';
+import ImageResizer from '@bam.tech/react-native-image-resizer';
 import {compressImage, compressImages} from '../imageCompression';
 
-jest.mock('react-native-image-resizer', () => ({
+jest.mock('@bam.tech/react-native-image-resizer', () => ({
   createResizedImage: jest.fn(),
 }));
 
