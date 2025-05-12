@@ -1,18 +1,20 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React, {useEffect, useRef} from 'react';
+import {ActivityIndicator, View} from 'react-native';
 import {DeepLinkHandler} from '../components/DeepLinkHandler';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import {useStore} from '../store/StoreProvider';
+import {theme} from '../theme/theme';
 import {logger} from '../utils/logger';
 import {RootStackParamList} from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
-  const {isAuthenticated} = useStore();
+  const {isAuthenticated, isLoading} = useStore();
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -21,13 +23,25 @@ const AppNavigator = () => {
     }
     isInitializedRef.current = true;
 
-    logger.app.info('🔄 AppNavigator mounted');
+    logger.app.info('🔄 AppNavigator mounted', {
+      isAuthenticated,
+      isLoading,
+    });
 
     return () => {
       logger.app.info('🔄 AppNavigator unmounted');
       isInitializedRef.current = false;
     };
-  }, []);
+  }, [isAuthenticated, isLoading]);
+
+  // Show loading indicator while checking authentication
+  if (isLoading) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
