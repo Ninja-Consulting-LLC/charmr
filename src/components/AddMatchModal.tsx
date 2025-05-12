@@ -74,7 +74,7 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                 Platform:
               </Text>
               <View style={styles.platformButtons}>
-                {PLATFORMS.map(p => (
+                {PLATFORMS.map((p, idx) => (
                   <Button
                     key={p}
                     mode={platform === p ? 'contained' : 'outlined'}
@@ -82,7 +82,10 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                       setPlatform(p);
                       setPlatformError('');
                     }}
-                    style={styles.platformButton}
+                    style={[
+                      styles.platformButton,
+                      idx === PLATFORMS.length - 1 && {marginRight: 0},
+                    ]}
                     testID={`platform-${p}-button`}>
                     {p}
                   </Button>
@@ -119,6 +122,7 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 20,
     borderRadius: 8,
+    zIndex: 1000,
   },
   overflowContainer: {},
   content: {
@@ -147,10 +151,13 @@ const styles = StyleSheet.create({
   },
   platformButtons: {
     flexDirection: 'row',
-    gap: 8,
   },
   platformButton: {
-    flex: 1,
+    marginRight: 8,
+    height: 40,
+    minWidth: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     color: '#D32F2F',

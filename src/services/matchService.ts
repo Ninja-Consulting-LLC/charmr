@@ -43,9 +43,16 @@ export const matchService = {
 
   async addMatch(name: string, platform: string): Promise<Match> {
     const userId = await getUserId();
-    logger.match.debug('Adding match', {name, platform, userId});
+    const url = `${API_BASE_URL}/users/${userId}/matches`;
+    logger.match.debug('Adding match', {
+      name,
+      platform,
+      userId,
+      url,
+      apiBaseUrl: API_BASE_URL,
+    });
 
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/matches`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -60,6 +67,8 @@ export const matchService = {
         statusText: response.statusText,
         name,
         platform,
+        url,
+        apiBaseUrl: API_BASE_URL,
       };
       logger.match.error('Failed to add match', errorData);
       throw new Error('Failed to add match');

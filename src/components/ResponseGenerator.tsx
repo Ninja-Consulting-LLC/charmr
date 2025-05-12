@@ -346,7 +346,10 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
               matches={matches}
               selectedMatch={selectedMatch}
               onSelectMatch={setSelectedMatch}
-              onAddMatch={() => setShowAddMatchModal(true)}
+              onAddMatch={() => {
+                setShowMatchSelector(false);
+                setShowAddMatchModal(true);
+              }}
               onDeleteMatch={handleDeleteMatch}
               onHideMatch={handleHideMatch}
               onRestoreMatch={handleRestoreMatch}

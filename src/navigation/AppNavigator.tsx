@@ -1,23 +1,38 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import React from 'react';
+import React, {useEffect, useRef} from 'react';
 import {DeepLinkHandler} from '../components/DeepLinkHandler';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import {useStore} from '../store/StoreProvider';
+import {logger} from '../utils/logger';
 import {RootStackParamList} from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-interface AppNavigatorProps {
-  initialRouteName: keyof RootStackParamList;
-}
+const AppNavigator = () => {
+  const {isAuthenticated} = useStore();
+  const isInitializedRef = useRef(false);
 
-const AppNavigator: React.FC<AppNavigatorProps> = ({initialRouteName}) => {
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
+    logger.app.info('🔄 AppNavigator mounted');
+
+    return () => {
+      logger.app.info('🔄 AppNavigator unmounted');
+      isInitializedRef.current = false;
+    };
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={initialRouteName}
+        initialRouteName={isAuthenticated ? 'Home' : 'Login'}
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',

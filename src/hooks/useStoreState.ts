@@ -6,7 +6,7 @@ import {logger} from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 import {createDefaultUser, shouldResetDailyCount} from '../utils/storeUtils';
 
-export const useStoreState = () => {
+export const useStoreState = (skipInitialization = false) => {
   const [userId, setUserId] = useState('');
   const [user, setUserState] = useState<User>(createDefaultUser());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,11 +14,14 @@ export const useStoreState = () => {
 
   // Add debug logging for authentication state changes
   useEffect(() => {
-    logger.auth.info('🔐 Authentication state changed:', isAuthenticated);
-    AsyncStorage.getItem('isAuthenticated').then(value => {
-      logger.auth.info('🔐 Stored authentication state:', value);
-    });
-  }, [isAuthenticated]);
+    if (typeof isAuthenticated !== 'undefined') {
+      logger.app.info('Auth State Changed', {
+        event: 'auth_state_change',
+        isAuthenticated,
+        userId,
+      });
+    }
+  }, [isAuthenticated, userId]);
 
   const setUser = (newUser: Partial<User>) => {
     const updatedUser = {
@@ -48,6 +51,29 @@ export const useStoreState = () => {
     return () => clearInterval(interval);
   }, [user.lastResetDate]);
 
+  // Only run initialization if not skipped
+  useEffect(() => {
+    if (!skipInitialization) {
+      const initializeState = async () => {
+        try {
+          const storedUserId = await AsyncStorage.getItem('userId');
+          const storedIsAuthenticated = await AsyncStorage.getItem(
+            'isAuthenticated',
+          );
+
+          if (storedUserId && storedIsAuthenticated === 'true') {
+            setUserId(storedUserId);
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          logger.auth.error('Error initializing state:', error);
+        }
+      };
+
+      initializeState();
+    }
+  }, [skipInitialization]);
+
   const handleGoogleLogin = async (firebaseUser: any) => {
     try {
       logger.auth.info('🔐 Starting Google login process...');
@@ -64,7 +90,11 @@ export const useStoreState = () => {
         setUser(existingUser);
         setIsAuthenticated(true);
         await AsyncStorage.setItem('isAuthenticated', 'true');
-        logger.auth.info('✅ Successfully authenticated existing user');
+        logger.app.info('Google Login Success', {
+          event: 'google_login_success',
+          userId: existingUser.id,
+          email: existingUser.email,
+        });
         return;
       }
 
@@ -88,9 +118,16 @@ export const useStoreState = () => {
       setUser(newUser);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
-      logger.auth.info('✅ Successfully created and authenticated new user');
+      logger.app.info('Google Login Success', {
+        event: 'google_login_success',
+        userId: firebaseUser.uid,
+        email: firebaseUser.email,
+      });
     } catch (error) {
-      logger.auth.error('❌ Error in Google login:', error);
+      logger.app.error('Google Login Error', {
+        event: 'google_login_error',
+        error: error instanceof Error ? error.message : error,
+      });
       throw error;
     }
   };

@@ -17,7 +17,7 @@ const createMatchRouter = (db: Database) => {
   router.use(authenticateUser);
 
   // Get all matches for a user
-  router.get('/matches/:userId', (req, res) => getMatches(req, res, db));
+  router.get('/users/:userId/matches', (req, res) => getMatches(req, res, db));
 
   // Add a new match
   router.post('/users/:userId/matches', (req, res) => addMatch(req, res, db));
