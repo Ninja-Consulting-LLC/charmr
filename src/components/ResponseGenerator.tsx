@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import React, {
@@ -12,6 +13,7 @@ import {
   Button,
   IconButton,
   Snackbar,
+  Switch,
   Text,
   TextInput,
 } from 'react-native-paper';
@@ -74,6 +76,8 @@ const messageStyles = [
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
+const DATING_COACH_ENABLED_KEY = '@charmr/dating_coach_enabled';
+
 const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   const {
     userId,
@@ -101,6 +105,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -118,6 +123,19 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   useEffect(() => {
     loadMatches();
   }, [user?.plan]);
+
+  // Load dating coach preference on mount
+  useEffect(() => {
+    const loadDatingCoachPreference = async () => {
+      try {
+        const enabled = await AsyncStorage.getItem(DATING_COACH_ENABLED_KEY);
+        setIsDatingCoachEnabled(enabled === 'true');
+      } catch (error) {
+        console.error('Error loading dating coach preference:', error);
+      }
+    };
+    loadDatingCoachPreference();
+  }, []);
 
   // Handle modal visibility based on state changes
   useEffect(() => {
@@ -299,64 +317,100 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
     setDeleteScreenshots(value);
   };
 
+  // Save dating coach preference when changed
+  const handleDatingCoachToggle = async (value: boolean) => {
+    try {
+      await AsyncStorage.setItem(DATING_COACH_ENABLED_KEY, value.toString());
+      setIsDatingCoachEnabled(value);
+      if (!value) {
+        setSelectedMatch(null);
+      }
+    } catch (error) {
+      console.error('Error saving dating coach preference:', error);
+    }
+  };
+
   return (
     <View style={styles.container} testID="response-generator-container">
       <View style={styles.contentContainer}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
-          {/* Match Selection */}
-          <View style={styles.matchSection}>
-            <View style={styles.selectedMatchContainer}>
-              {selectedMatch && (
-                <View style={styles.selectedMatchInfo}>
-                  <View style={styles.selectedMatchHeader}>
-                    <View>
-                      <Text
-                        variant="titleMedium"
-                        style={styles.selectedMatchName}>
-                        {selectedMatch.name}
-                      </Text>
-                      <Text
-                        variant="bodyMedium"
-                        style={styles.selectedMatchPlatform}>
-                        {selectedMatch.platform}
-                      </Text>
-                    </View>
-                    <IconButton
-                      icon="close"
-                      size={20}
-                      onPress={() => setSelectedMatch(null)}
-                      style={styles.unselectButton}
-                    />
-                  </View>
-                </View>
-              )}
-              <Button
-                mode="outlined"
-                onPress={() => setShowMatchSelector(true)}
-                icon="account"
-                style={styles.matchButton}
-                textColor={theme.colors.secondary}>
-                {selectedMatch ? 'Change Match' : 'Select Match'}
-              </Button>
-            </View>
-            <MatchSelectorModal
-              visible={showMatchSelector}
-              onDismiss={() => setShowMatchSelector(false)}
-              matches={matches}
-              selectedMatch={selectedMatch}
-              onSelectMatch={setSelectedMatch}
-              onAddMatch={() => {
-                setShowMatchSelector(false);
-                setShowAddMatchModal(true);
-              }}
-              onDeleteMatch={handleDeleteMatch}
-              onHideMatch={handleHideMatch}
-              onRestoreMatch={handleRestoreMatch}
-              userPlan={user?.plan || SubscriptionTier.FREE}
+          {/* Dating Coach Toggle */}
+          <View style={styles.datingCoachToggle}>
+            <Text variant="titleMedium" style={styles.datingCoachLabel}>
+              Dating Coach
+            </Text>
+            <Switch
+              value={isDatingCoachEnabled}
+              onValueChange={handleDatingCoachToggle}
+              color={theme.colors.secondary}
             />
           </View>
+
+          {/* Match Selection - Only show when dating coach is enabled */}
+          {isDatingCoachEnabled && (
+            <View style={styles.matchSection}>
+              <View style={styles.selectedMatchContainer}>
+                {selectedMatch ? (
+                  <View style={styles.selectedMatchInfo}>
+                    <View style={styles.selectedMatchHeader}>
+                      <View>
+                        <Text
+                          variant="titleMedium"
+                          style={styles.selectedMatchName}>
+                          {selectedMatch.name}
+                        </Text>
+                        <Text
+                          variant="bodyMedium"
+                          style={styles.selectedMatchPlatform}>
+                          {selectedMatch.platform}
+                        </Text>
+                      </View>
+                      <View style={styles.matchActions}>
+                        <IconButton
+                          icon="pencil"
+                          size={20}
+                          onPress={() => setShowMatchSelector(true)}
+                          style={styles.actionButton}
+                        />
+                        <IconButton
+                          icon="close"
+                          size={20}
+                          onPress={() => setSelectedMatch(null)}
+                          style={styles.actionButton}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowMatchSelector(true)}
+                    icon="account"
+                    style={styles.matchButton}
+                    textColor={theme.colors.secondary}>
+                    Select Match
+                  </Button>
+                )}
+              </View>
+              <MatchSelectorModal
+                visible={showMatchSelector}
+                onDismiss={() => setShowMatchSelector(false)}
+                matches={matches}
+                selectedMatch={selectedMatch}
+                onSelectMatch={setSelectedMatch}
+                onAddMatch={() => {
+                  setShowMatchSelector(false);
+                  setShowAddMatchModal(true);
+                }}
+                onDeleteMatch={handleDeleteMatch}
+                onHideMatch={handleHideMatch}
+                onRestoreMatch={handleRestoreMatch}
+                userPlan={user?.plan || SubscriptionTier.FREE}
+              />
+            </View>
+          )}
 
           {/* Image Selection */}
           <ImageSelector
@@ -366,28 +420,32 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
             userPlan={user?.plan}
           />
 
-          {/* Prompt Input */}
-          <View style={styles.promptSection}>
-            <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
-              Enter your prompt (required if no screenshot is provided)
-            </Text>
-            <TextInput
-              value={prompt}
-              onChangeText={setPrompt}
-              multiline
-              numberOfLines={4}
-              style={[styles.promptInput]}
-              testID="prompt-input"
-              placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-              placeholderTextColor={theme.colors.secondary}
-              textAlignVertical="top"
-              cursorColor={theme.colors.background}
-              selectionColor={theme.colors.background}
-              textColor={theme.colors.background}
-              underlineColor="transparent"
-              activeUnderlineColor="transparent"
-            />
-          </View>
+          {/* Prompt Input - Only show when dating coach is enabled */}
+          {isDatingCoachEnabled && (
+            <View style={styles.promptSection}>
+              <Text
+                variant="titleMedium"
+                style={{color: theme.colors.secondary}}>
+                Enter your prompt (required if no screenshot is provided)
+              </Text>
+              <TextInput
+                value={prompt}
+                onChangeText={setPrompt}
+                multiline
+                numberOfLines={4}
+                style={[styles.promptInput]}
+                testID="prompt-input"
+                placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
+                placeholderTextColor={theme.colors.secondary}
+                textAlignVertical="top"
+                cursorColor={theme.colors.background}
+                selectionColor={theme.colors.background}
+                textColor={theme.colors.background}
+                underlineColor="transparent"
+                activeUnderlineColor="transparent"
+              />
+            </View>
+          )}
         </ScrollView>
 
         {/* Generate Button */}
@@ -527,8 +585,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  unselectButton: {
+  matchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
     margin: 0,
+  },
+  datingCoachToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginTop: 16,
+  },
+  datingCoachLabel: {
+    color: theme.colors.secondary,
   },
 });
 
