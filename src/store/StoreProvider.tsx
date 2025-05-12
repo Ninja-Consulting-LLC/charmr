@@ -43,6 +43,15 @@ interface StoreContextType {
   updateMatch: (match: Match) => void;
   removeMatch: (matchId: number) => void;
   loadMatches: () => Promise<void>;
+  // Dating Coach state
+  isDatingCoachEnabled: boolean;
+  setIsDatingCoachEnabled: (enabled: boolean) => void;
+  selectedMatch: Match | null;
+  setSelectedMatch: (match: Match | null) => void;
+  deleteScreenshots: boolean;
+  setDeleteScreenshots: (value: boolean) => void;
+  prompt: string;
+  setPrompt: (prompt: string) => void;
 }
 
 export const StoreContext = createContext<StoreContextType>(
@@ -67,6 +76,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  // Dating Coach state
+  const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [deleteScreenshots, setDeleteScreenshots] = useState(true);
+  const [prompt, setPrompt] = useState('');
 
   const {
     userId,
@@ -79,6 +93,36 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setIsLoading,
     handleGoogleLogin,
   } = useStoreState(true); // Skip initialization in useStoreState
+
+  // Load dating coach preference on mount
+  useEffect(() => {
+    const loadDatingCoachPreference = async () => {
+      try {
+        const enabled = await AsyncStorage.getItem(
+          '@charmr/dating_coach_enabled',
+        );
+        setIsDatingCoachEnabled(enabled === 'true');
+      } catch (error) {
+        console.error('Error loading dating coach preference:', error);
+      }
+    };
+    loadDatingCoachPreference();
+  }, []);
+
+  // Save dating coach preference when changed
+  useEffect(() => {
+    const saveDatingCoachPreference = async () => {
+      try {
+        await AsyncStorage.setItem(
+          '@charmr/dating_coach_enabled',
+          isDatingCoachEnabled.toString(),
+        );
+      } catch (error) {
+        console.error('Error saving dating coach preference:', error);
+      }
+    };
+    saveDatingCoachPreference();
+  }, [isDatingCoachEnabled]);
 
   // Set auth bypass in development mode
   useEffect(() => {
@@ -308,7 +352,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
-  const storeValue = useMemo(
+  const value = useMemo(
     () => ({
       showKeyboardModal,
       setShowKeyboardModal,
@@ -338,6 +382,15 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       updateMatch,
       removeMatch,
       loadMatches,
+      // Dating Coach state
+      isDatingCoachEnabled,
+      setIsDatingCoachEnabled,
+      selectedMatch,
+      setSelectedMatch,
+      deleteScreenshots,
+      setDeleteScreenshots,
+      prompt,
+      setPrompt,
     }),
     [
       showKeyboardModal,
@@ -350,10 +403,15 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       isLoading,
       showUpgradeModal,
       matches,
+      // Dating Coach state
+      isDatingCoachEnabled,
+      selectedMatch,
+      deleteScreenshots,
+      prompt,
     ],
   );
 
   return (
-    <StoreContext.Provider value={storeValue}>{children}</StoreContext.Provider>
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
   );
 };
