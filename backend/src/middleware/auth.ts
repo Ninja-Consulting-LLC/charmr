@@ -2,11 +2,34 @@ import {NextFunction, Request, Response} from 'express';
 import {config} from '../config/config';
 import logger from '../utils/logger';
 
+// Helper function to truncate image data
+const truncateImageData = (image: string): string => {
+  if (!image) return '';
+  // For base64 images, show first 20 chars and last 20 chars
+  if (image.startsWith('data:')) {
+    const base64Part = image.split(',')[1] || '';
+    return `data:image/...;base64,${base64Part.substring(
+      0,
+      20,
+    )}...${base64Part.substring(base64Part.length - 20)}`;
+  }
+  // For URLs, just show the first 50 chars
+  return image.substring(0, 50) + '...';
+};
+
 export const authenticateUser = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
+  // Create a copy of the body with truncated images
+  const truncatedBody = req.body.images
+    ? {
+        ...req.body,
+        images: req.body.images.map(truncateImageData),
+      }
+    : req.body;
+
   logger.debug('Checking authentication', {
     path: req.path,
     method: req.method,
@@ -19,7 +42,7 @@ export const authenticateUser = (
       'content-type': req.headers['content-type'],
     },
     cookies: req.cookies,
-    body: req.body,
+    body: truncatedBody,
   });
 
   // Skip auth in development or if auth bypass header is present

@@ -13,7 +13,8 @@ export interface GenerateReplyRequest {
   prompt: string;
   images: string[];
   userId: string;
-  matchId: string;
+  matchId?: string;
+  skipRateLimiting?: boolean;
 }
 
 export interface GenerateReplyResponse {

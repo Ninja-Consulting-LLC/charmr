@@ -19,7 +19,11 @@ const truncateImageData = (image: string): string => {
   if (!image) return '';
   // For base64 images, show first 20 chars and last 20 chars
   if (image.startsWith('data:')) {
-    return `${image.substring(0, 20)}...${image.substring(image.length - 20)}`;
+    const base64Part = image.split(',')[1] || '';
+    return `data:image/...;base64,${base64Part.substring(
+      0,
+      20,
+    )}...${base64Part.substring(base64Part.length - 20)}`;
   }
   // For URLs, just show the first 50 chars
   return image.substring(0, 50) + '...';
@@ -67,7 +71,7 @@ export const createReplyController = (db: Database) => {
         prompt,
         imageCount: images?.length,
         sandboxMode: process.env.NODE_ENV !== 'production',
-        truncatedImages: images?.map(truncateImageData),
+        images: images?.map(truncateImageData),
       });
 
       let messageLimits = null;

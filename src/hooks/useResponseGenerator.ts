@@ -108,7 +108,7 @@ export const useResponseGenerator = ({
         matchId:
           isDatingCoachEnabled && selectedMatch
             ? generateMatchId(selectedMatch)
-            : 'no-match-selected',
+            : undefined,
       });
 
       logger.app.info('[ResponseGenerator] Received API response:', {
