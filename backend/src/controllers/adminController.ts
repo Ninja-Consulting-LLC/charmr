@@ -16,10 +16,59 @@ export const getUsers = async (req: Request, res: Response, db: Database) => {
 export const createUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {id, email, name, installationId} = req.body;
+    logger.debug('Attempting to create user:', {
+      id,
+      email,
+      name,
+      installationId,
+      body: req.body,
+      headers: req.headers,
+    });
+
     if (!id || !email || !name) {
+      logger.warn('Missing required fields for user creation:', {
+        id,
+        email,
+        name,
+      });
       return res.status(400).json({error: 'Missing required fields'});
     }
 
+    // If installationId is provided, check if a user with that ID exists
+    if (installationId) {
+      logger.debug('Checking for existing user with installationId:', {
+        installationId,
+      });
+      const existingUser = await db.getUserByInstallationId(installationId);
+      logger.debug('Existing user lookup result:', {
+        installationId,
+        userFound: !!existingUser,
+        user: existingUser
+          ? {
+              id: existingUser.id,
+              email: existingUser.email,
+              name: existingUser.name,
+              installationId: existingUser.installationId,
+            }
+          : null,
+      });
+
+      if (existingUser) {
+        logger.info('Found existing user with installationId:', {
+          userId: existingUser.id,
+          installationId,
+        });
+        return res.status(200).json(existingUser);
+      }
+    }
+
+    // Create new user if no existing user found
+    logger.debug('Creating new user:', {
+      id,
+      email,
+      name,
+      installationId,
+    });
     const user = await db.createUser(
       id,
       email,
@@ -27,10 +76,19 @@ export const createUser = async (req: Request, res: Response, db: Database) => {
       undefined,
       installationId,
     );
-    logger.info('Created new user:', {id, email, name, installationId});
+    logger.info('Created new user:', {
+      id,
+      email,
+      name,
+      installationId,
+    });
     res.status(201).json(user);
   } catch (error) {
-    logger.error('Error creating user:', {error});
+    logger.error('Error creating user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      body: req.body,
+    });
     res.status(500).json({error: 'Failed to create user'});
   }
 };

@@ -46,6 +46,39 @@ const api = axios.create({
   timeout: 120000, // 2 minute timeout for response generation
 });
 
+// Add interceptors for logging
+api.interceptors.request.use(request => {
+  logger.app.info(
+    `[API] Request: ${request.method?.toUpperCase()} ${request.url}`,
+    request.data || request.params,
+  );
+  return request;
+});
+
+api.interceptors.response.use(
+  response => {
+    logger.app.info(
+      `[API] Response: ${response.status} ${response.config.url}`,
+      response.data,
+    );
+    return response;
+  },
+  error => {
+    if (error.response) {
+      logger.app.error(
+        `[API] Error Response: ${error.response.status} ${error.config?.url}`,
+        error.response.data,
+      );
+    } else {
+      logger.app.error(
+        `[API] Network/Error: ${error.config?.url || 'unknown url'}`,
+        error.message,
+      );
+    }
+    return Promise.reject(error);
+  },
+);
+
 export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {

@@ -43,21 +43,12 @@ export const createUser = async (userData: {
   id: string;
   email: string;
   name: string;
+  installationId?: string;
 }): Promise<User> => {
   try {
-    // Get the installation ID with retry logic
-    let installationId;
-    try {
-      installationId = await installations().getId();
-    } catch (error) {
-      logger.app.error('Failed to get installation ID:', error);
-      // Continue without installation ID if retrieval fails
-      installationId = undefined;
-    }
-
     const {data} = await axios.post(
       `${config.apiBaseUrl}/api/users`,
-      {...userData, installationId},
+      userData,
       {
         headers: {
           'Content-Type': 'application/json',

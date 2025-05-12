@@ -27,7 +27,10 @@ const getBaseUrl = () => {
 };
 
 export const config = {
-  apiBaseUrl: getBaseUrl(),
+  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+  googleWebClientId:
+    '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
+  revenueCatApiKey: 'appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 } as const;
 
 // Log all config variables in development

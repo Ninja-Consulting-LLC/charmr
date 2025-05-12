@@ -10,7 +10,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {signInWithApple, signInWithGoogle} from '../config/firebase';
-import {useStore} from '../store';
+import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');

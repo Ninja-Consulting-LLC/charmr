@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import {config} from '../config/config';
 import {matchService} from '../services/matchService';
 import {logger} from './logger';
 
@@ -12,22 +15,51 @@ export interface Match {
   updatedAt: string;
 }
 
-export async function getMatches(
-  includeHidden: boolean = false,
-): Promise<Match[]> {
+export const getMatches = async (includeHidden = false): Promise<Match[]> => {
   try {
-    logger.match.debug('Getting matches', {includeHidden});
-    const matches = await matchService.getMatches(includeHidden);
-    logger.match.debug('Got matches', {count: matches.length});
-    return matches;
-  } catch (error) {
-    logger.match.error('Error getting matches', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.debug('No user ID found, returning empty matches array');
+      return [];
+    }
+
+    logger.match.debug('Getting matches', {
+      userId,
+      includeHidden,
     });
-    return [];
+
+    const response = await axios.get(
+      `${config.apiBaseUrl}/api/users/${userId}/matches`,
+      {
+        params: {includeHidden},
+        headers: {
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    // Only treat 404 as an error if it's a user not found error
+    if (
+      error.response?.status === 404 &&
+      error.response?.data?.error === 'User not found'
+    ) {
+      logger.match.error('User not found when getting matches', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+      });
+      throw new Error('User not found');
+    }
+
+    // For any other error, log it and throw
+    logger.match.error('Failed to fetch matches', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+    });
+    throw new Error('Failed to fetch matches');
   }
-}
+};
 
 export async function addMatch(
   name: string,

@@ -1,27 +1,63 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import installations from '@react-native-firebase/installations';
-import {AxiosError} from 'axios';
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
-import {
-  checkBackendVersion,
-  cleanupStaleData,
-  defaultStore,
-  Store,
-} from './store';
 
-// Create context with default value
-const StoreContext = createContext<Store>(defaultStore);
+interface StoreContextType {
+  showKeyboardModal: boolean;
+  setShowKeyboardModal: (show: boolean) => void;
+  userId: string;
+  setUserId: (userId: string) => void;
+  showDevMenu: boolean;
+  setShowDevMenu: (show: boolean) => void;
+  skipRateLimiting: boolean;
+  setSkipRateLimiting: (skip: boolean) => void;
+  authBypass: boolean;
+  setAuthBypass: (bypass: boolean) => void;
+  user: any;
+  setUser: (user: any) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (isAuthenticated: boolean) => void;
+  isLoading: boolean;
+  setIsLoading: (isLoading: boolean) => void;
+  updateUserPlan: (plan: SubscriptionTier) => Promise<void>;
+  showUpgradeModal: boolean;
+  setShowUpgradeModal: (show: boolean) => void;
+  createNewUser: () => Promise<User>;
+  linkAnonymousUser: (registeredUserId: string) => Promise<void>;
+  handleGoogleLogin: (firebaseUser: any) => Promise<void>;
+  matches: Match[];
+  setMatches: (matches: Match[]) => void;
+  addMatch: (match: Match) => void;
+  updateMatch: (match: Match) => void;
+  removeMatch: (matchId: number) => void;
+  loadMatches: () => Promise<void>;
+}
 
-// Custom hook to use the store
-export const useStore = () => useContext(StoreContext);
+export const StoreContext = createContext<StoreContextType>(
+  {} as StoreContextType,
+);
 
-// Provider component
+// Add useStore hook
+export const useStore = () => {
+  const context = useContext(StoreContext);
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+};
+
 export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
@@ -42,7 +78,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading,
     setIsLoading,
     handleGoogleLogin,
-  } = useStoreState();
+  } = useStoreState(true); // Skip initialization in useStoreState
 
   // Set auth bypass in development mode
   useEffect(() => {
@@ -51,19 +87,62 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   }, []);
 
+  // Initialize app state
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        logger.app.info('🚀 Starting app initialization...');
+
+        // Check authentication state
+        const storedIsAuthenticated = await AsyncStorage.getItem(
+          'isAuthenticated',
+        );
+        const storedUserId = await AsyncStorage.getItem('userId');
+
+        logger.app.info('🔍 Checking authentication state:');
+        logger.app.info('  - Stored isAuthenticated:', storedIsAuthenticated);
+        logger.app.info('  - Stored userId:', storedUserId);
+
+        if (storedUserId && storedIsAuthenticated === 'true') {
+          setUserId(storedUserId);
+          setIsAuthenticated(true);
+          logger.app.info('✅ User is authenticated');
+        } else {
+          logger.app.info('❌ User is not authenticated');
+        }
+
+        setIsLoading(false);
+      } catch (error) {
+        logger.app.error('❌ Error initializing app:', error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
   const updateUserPlan = async (plan: SubscriptionTier) => {
     try {
       if (!userId) {
         throw new Error('No user ID available');
       }
-
       await userService.updateUserPlan(userId, plan);
       setUser({
         plan,
         getDailyMessageLimit: () => getPlanLimits(plan),
       });
+      logger.app.info('User Plan Updated', {
+        event: 'update_user_plan',
+        userId,
+        plan,
+      });
     } catch (error) {
-      logger.app.error('Error updating user plan:', error);
+      logger.app.error('User Plan Update Error', {
+        event: 'update_user_plan_error',
+        userId,
+        plan,
+        error: error instanceof Error ? error.message : error,
+      });
       throw error;
     }
   };
@@ -77,15 +156,44 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const loadMatches = async () => {
     try {
+      if (!userId) {
+        logger.match.debug('No user ID available, skipping match load');
+        return;
+      }
+
       const loadedMatches = await getMatches(true);
       setMatches(loadedMatches);
+      logger.app.info('Matches Loaded', {
+        event: 'load_matches',
+        userId,
+        matchCount: loadedMatches.length,
+      });
     } catch (error) {
-      logger.app.error('Error loading matches:', error);
+      // Don't treat empty matches as an error
+      if (
+        error instanceof Error &&
+        error.message === 'Failed to fetch matches'
+      ) {
+        logger.match.debug('No matches found for user', {userId});
+        setMatches([]);
+        return;
+      }
+
+      logger.app.error('Load Matches Error', {
+        event: 'load_matches_error',
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
     }
   };
 
   const addMatch = (match: Match) => {
     setMatches(prevMatches => [...prevMatches, match]);
+    logger.app.info('Match Added', {
+      event: 'add_match',
+      matchId: match.id,
+      userId,
+    });
   };
 
   const updateMatch = (updatedMatch: Match) => {
@@ -94,150 +202,79 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         match.id === updatedMatch.id ? updatedMatch : match,
       ),
     );
+    logger.app.info('Match Updated', {
+      event: 'update_match',
+      matchId: updatedMatch.id,
+      userId,
+    });
   };
 
   const removeMatch = (matchId: number) => {
     setMatches(prevMatches =>
       prevMatches.filter(match => match.id !== matchId),
     );
+    logger.app.info('Match Removed', {
+      event: 'remove_match',
+      matchId,
+      userId,
+    });
   };
-
-  // Get or create user ID and load user data on component mount
-  useEffect(() => {
-    const initUser = async () => {
-      try {
-        // First check backend version
-        await checkBackendVersion();
-
-        // Get stored user ID if it exists
-        const storedUserId = await AsyncStorage.getItem('userId');
-        if (storedUserId) {
-          try {
-            // Verify user exists in backend and sync data
-            const userData = await userService.fetchUserData(storedUserId);
-            if (userData) {
-              setUserId(storedUserId);
-              setUser({
-                ...userData,
-                getDailyMessageLimit: () => getPlanLimits(userData.plan),
-              });
-              return;
-            }
-          } catch (error) {
-            // Only log if it's not a 404 error (which is expected when user doesn't exist)
-            const axiosError = error as AxiosError;
-            if (axiosError.response?.status !== 404) {
-              logger.app.warn(
-                'Error fetching stored user:',
-                axiosError.message || 'Unknown error',
-              );
-            }
-            await cleanupStaleData();
-          }
-        }
-
-        // If we get here, either no stored user or user doesn't exist in backend
-        await createNewUser();
-      } catch (error) {
-        // Only log unexpected errors
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status !== 404) {
-          logger.app.error(
-            'Unexpected error during user initialization:',
-            axiosError.message || 'Unknown error',
-          );
-        }
-        // If initialization fails, clean up and try again
-        await cleanupStaleData();
-        await createNewUser();
-      }
-    };
-
-    initUser();
-  }, []);
 
   const createNewUser = async () => {
     try {
       setIsLoading(true);
-      logger.app.info('👤 Starting new user creation...');
-
-      // First check if we have a stored user ID
-      const storedUserId = await AsyncStorage.getItem('userId');
-      if (storedUserId) {
-        // Try to fetch the stored user
-        try {
-          const existingUser = await userService.fetchUserData(storedUserId);
-          if (existingUser) {
-            logger.app.info('👤 Found existing user:', existingUser.id);
-            setUserId(storedUserId);
-            setUser(existingUser);
-            setIsAuthenticated(true);
-            await AsyncStorage.setItem('isAuthenticated', 'true');
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          logger.app.info(
-            '❌ Error fetching stored user, creating new one:',
-            error,
-          );
-        }
-      }
-
-      // Check if we have an existing user with this installation ID
       let installationId;
       try {
         installationId = await installations().getId();
-        const existingUser = await userService.findUserByInstallationId(
+        logger.app.info('Installation ID Fetched', {
+          event: 'get_installation_id',
           installationId,
-        );
-        if (existingUser) {
-          logger.app.info('👤 Found user by installation ID:', existingUser.id);
-          setUserId(existingUser.id);
-          await AsyncStorage.setItem('userId', existingUser.id);
-          setUser(existingUser);
-          setIsAuthenticated(true);
-          await AsyncStorage.setItem('isAuthenticated', 'true');
-          setIsLoading(false);
-          return;
-        }
+        });
       } catch (error) {
-        logger.app.error('❌ Error getting installation ID:', error);
-        // Continue without installation ID
+        logger.app.error('Installation ID Error', {
+          event: 'get_installation_id_error',
+          error: error instanceof Error ? error.message : error,
+        });
       }
-
-      // Create new user
-      logger.app.info('👤 Creating new anonymous user...');
+      logger.app.info('Creating Anonymous User', {
+        event: 'create_anonymous_user_start',
+        installationId,
+      });
       const newUserId = `user-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
-      setUserId(newUserId);
-      await AsyncStorage.setItem('userId', newUserId);
 
-      // Create user in backend
+      // Create user first
       const newUser = await userService.createUser({
         id: newUserId,
         email: `${newUserId}@example.com`,
         name: `User ${newUserId}`,
+        installationId,
       });
 
-      // Ensure the user plan is set to FREE
+      // Only update state after user is created
+      setUserId(newUserId);
+      await AsyncStorage.setItem('userId', newUserId);
       setUser({
         ...newUser,
         plan: SubscriptionTier.FREE,
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
       });
-
-      // Set authentication state for anonymous user
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
-      logger.app.info(
-        '✅ Successfully created and authenticated new anonymous user',
-      );
 
+      logger.app.info('Anonymous User Created', {
+        event: 'create_anonymous_user_success',
+        newUserId,
+        installationId,
+      });
       setIsLoading(false);
+      return newUser;
     } catch (error) {
-      logger.app.error('❌ Error creating user:', error);
+      logger.app.error('Create User Error', {
+        event: 'create_anonymous_user_error',
+        error: error instanceof Error ? error.message : error,
+      });
       setIsLoading(false);
       throw error;
     }
@@ -248,61 +285,75 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       if (!userId) {
         throw new Error('No anonymous user ID available');
       }
-
-      // Get the installation ID
       const installationId = await installations().getId();
-
-      // Link the users
       await userService.linkUsers(userId, registeredUserId);
-
-      // Update the frontend to use the new user ID
       setUserId(registeredUserId);
       await AsyncStorage.setItem('userId', registeredUserId);
-
-      // Fetch the updated user data
-      const userData = await userService.fetchUserData(registeredUserId);
-      if (userData) {
-        setUser(userData);
-      }
+      setIsAuthenticated(true);
+      await AsyncStorage.setItem('isAuthenticated', 'true');
+      logger.app.info('Anonymous User Linked', {
+        event: 'link_anonymous_user',
+        oldUserId: userId,
+        newUserId: registeredUserId,
+        installationId,
+      });
     } catch (error) {
-      logger.app.error('Error linking users:', error);
+      logger.app.error('Link Anonymous User Error', {
+        event: 'link_anonymous_user_error',
+        oldUserId: userId,
+        newUserId: registeredUserId,
+        error: error instanceof Error ? error.message : error,
+      });
       throw error;
     }
   };
 
-  const value = {
-    showKeyboardModal,
-    setShowKeyboardModal,
-    userId,
-    setUserId,
-    showDevMenu,
-    setShowDevMenu,
-    skipRateLimiting,
-    setSkipRateLimiting,
-    authBypass,
-    setAuthBypass,
-    user,
-    setUser,
-    isAuthenticated,
-    setIsAuthenticated,
-    isLoading,
-    setIsLoading,
-    updateUserPlan,
-    showUpgradeModal,
-    setShowUpgradeModal,
-    createNewUser,
-    linkAnonymousUser,
-    handleGoogleLogin,
-    // Match management
-    matches,
-    setMatches,
-    addMatch,
-    updateMatch,
-    removeMatch,
-    loadMatches,
-  };
+  const storeValue = useMemo(
+    () => ({
+      showKeyboardModal,
+      setShowKeyboardModal,
+      userId,
+      setUserId,
+      showDevMenu,
+      setShowDevMenu,
+      skipRateLimiting,
+      setSkipRateLimiting,
+      authBypass,
+      setAuthBypass,
+      user,
+      setUser,
+      isAuthenticated,
+      setIsAuthenticated,
+      isLoading,
+      setIsLoading,
+      updateUserPlan,
+      showUpgradeModal,
+      setShowUpgradeModal,
+      createNewUser,
+      linkAnonymousUser,
+      handleGoogleLogin,
+      matches,
+      setMatches,
+      addMatch,
+      updateMatch,
+      removeMatch,
+      loadMatches,
+    }),
+    [
+      showKeyboardModal,
+      userId,
+      showDevMenu,
+      skipRateLimiting,
+      authBypass,
+      user,
+      isAuthenticated,
+      isLoading,
+      showUpgradeModal,
+      matches,
+    ],
+  );
 
   return (
-    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+    <StoreContext.Provider value={storeValue}>{children}</StoreContext.Provider>
   );
 };
