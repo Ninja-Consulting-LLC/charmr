@@ -21,6 +21,8 @@ interface ReplyModalProps {
   onDeleteScreenshots: (value: boolean) => void;
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
+  isDatingCoachEnabled: boolean;
+  onRegenerate: () => void;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
@@ -33,6 +35,8 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   onDeleteScreenshots,
   deleteScreenshots,
   hasScreenshots,
+  isDatingCoachEnabled,
+  onRegenerate,
 }) => {
   return (
     <Portal>
@@ -77,39 +81,46 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              <View style={styles.modifySection}>
-                <Tooltip
-                  title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
-                  enterTouchDelay={50}
-                  leaveTouchDelay={5000}
-                  theme={{
-                    colors: {
-                      onSurface: theme.colors.inverseOnSurface,
-                      surface: theme.colors.inverseSurface,
-                    },
-                    fonts: {
-                      bodyMedium: {
-                        ...theme.fonts.bodyMedium,
-                        lineHeight: 24,
+              {isDatingCoachEnabled && (
+                <View style={styles.modifySection}>
+                  <Tooltip
+                    title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
+                    enterTouchDelay={50}
+                    leaveTouchDelay={5000}
+                    theme={{
+                      colors: {
+                        onSurface: theme.colors.inverseOnSurface,
+                        surface: theme.colors.inverseSurface,
                       },
-                    },
-                    roundness: 8,
-                  }}>
-                  <IconButton
-                    icon="information"
-                    size={20}
-                    style={styles.infoIcon}
-                    iconColor={theme.colors.onSurfaceVariant}
-                  />
-                </Tooltip>
-                <Pressable
-                  onPress={onModifyResponse}
-                  style={styles.modifyButton}>
-                  <Text variant="bodyMedium" style={styles.modifyText}>
-                    {MESSAGES.REPLY_MODAL_MODIFY}
-                  </Text>
-                </Pressable>
-              </View>
+                      fonts: {
+                        bodyMedium: {
+                          ...theme.fonts.bodyMedium,
+                          lineHeight: 24,
+                        },
+                      },
+                      roundness: 8,
+                    }}>
+                    <IconButton
+                      icon="information"
+                      size={20}
+                      style={styles.infoIcon}
+                      iconColor={theme.colors.onSurfaceVariant}
+                    />
+                  </Tooltip>
+                  <Pressable
+                    onPress={onModifyResponse}
+                    style={styles.modifyButton}>
+                    <Text variant="bodyMedium" style={styles.modifyText}>
+                      {MESSAGES.REPLY_MODAL_MODIFY}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+              <Pressable onPress={onRegenerate} style={styles.regenerateButton}>
+                <Text variant="bodyMedium" style={styles.regenerateText}>
+                  Regenerate
+                </Text>
+              </Pressable>
               <Pressable onPress={onDone} style={styles.doneButton}>
                 <Text variant="bodyMedium" style={styles.doneText}>
                   {MESSAGES.REPLY_MODAL_DONE}
@@ -206,6 +217,15 @@ const styles = StyleSheet.create({
   tooltipText: {
     color: theme.colors.inverseOnSurface,
     fontSize: 14,
+  },
+  regenerateButton: {
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  regenerateText: {
+    color: theme.colors.onSurfaceVariant,
   },
 });
 

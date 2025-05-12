@@ -15,6 +15,8 @@ interface PromptModalProps {
   onDismiss: () => void;
   prompt: string;
   onPromptChange: (text: string) => void;
+  onGenerateResponse?: () => void;
+  loading?: boolean;
 }
 
 const PromptModal: React.FC<PromptModalProps> = ({
@@ -22,6 +24,8 @@ const PromptModal: React.FC<PromptModalProps> = ({
   onDismiss,
   prompt,
   onPromptChange,
+  onGenerateResponse,
+  loading = false,
 }) => {
   return (
     <Portal>
@@ -69,10 +73,20 @@ const PromptModal: React.FC<PromptModalProps> = ({
 
           {/* Action Buttons */}
           <View style={styles.actions}>
+            {onGenerateResponse && (
+              <Button
+                mode="contained"
+                onPress={onGenerateResponse}
+                loading={loading}
+                disabled={loading || !prompt.trim()}
+                style={[styles.actionButton, styles.generateButton]}>
+                Generate Response
+              </Button>
+            )}
             <Button
-              mode="contained"
+              mode="outlined"
               onPress={onDismiss}
-              style={styles.doneButton}>
+              style={styles.actionButton}>
               Done
             </Button>
           </View>
@@ -114,9 +128,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: 8,
   },
-  doneButton: {
+  actionButton: {
     minWidth: 100,
+  },
+  generateButton: {
+    backgroundColor: theme.colors.primary,
   },
 });
 

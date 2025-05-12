@@ -308,6 +308,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
   const handleModifyResponse = () => {
     setShowReplyModal(false);
     setShowSnackbar(false);
+    setShowPromptModal(true);
   };
 
   const handlePickImages = async () => {
@@ -472,6 +473,8 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
         onDismiss={() => setShowPromptModal(false)}
         prompt={prompt}
         onPromptChange={setPrompt}
+        onGenerateResponse={handleGenerateNew}
+        loading={loading}
       />
 
       <UpgradeModal
@@ -495,6 +498,8 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
         hasScreenshots={images.length > 0}
+        isDatingCoachEnabled={isDatingCoachEnabled}
+        onRegenerate={handleGenerateNew}
       />
 
       <MessagePackModal
