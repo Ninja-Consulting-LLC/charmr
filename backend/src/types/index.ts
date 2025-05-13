@@ -1,3 +1,5 @@
+import {ErrorType, MessageMode, MessageStyle} from './enums';
+
 export interface GenerateReplyRequest {
   prompt: string;
   images: string[];
@@ -7,18 +9,22 @@ export interface GenerateReplyRequest {
   skipRateLimiting?: boolean;
   context?: string;
   model?: string;
+  mode?: MessageMode;
+  style?: MessageStyle;
 }
 
 export interface GenerateReplyResponse {
   reply: string;
   summary?: string;
   error?: string;
-  type?: 'QUOTA_EXCEEDED' | 'RATE_LIMIT' | 'GENERATION_ERROR';
+  type?: ErrorType;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
   };
+  mode: MessageMode;
+  style?: MessageStyle;
 }
 
 export interface ErrorResponse {
