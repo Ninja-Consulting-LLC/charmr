@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {
   forwardRef,
   useEffect,
@@ -13,6 +14,7 @@ import {Button, IconButton, Snackbar, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
+import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
@@ -35,6 +37,10 @@ import UpgradeModal from './UpgradeModal';
 export interface ResponseGeneratorRef {
   loadMatches: () => Promise<void>;
 }
+
+type ResponseGeneratorProps = {
+  navigation: NativeStackScreenProps<RootStackParamList, 'Home'>['navigation'];
+};
 
 interface CameraRollAsset {
   node: {
@@ -72,7 +78,10 @@ const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
 const DATING_COACH_ENABLED_KEY = '@charmr/dating_coach_enabled';
 
-const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
+const ResponseGenerator = forwardRef<
+  ResponseGeneratorRef,
+  ResponseGeneratorProps
+>(({navigation}, ref) => {
   const {
     userId,
     skipRateLimiting,
@@ -327,6 +336,12 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
     }
   };
 
+  const handleMatchSelect = (match: Match) => {
+    setSelectedMatch(match);
+    setShowMatchSelector(false);
+    navigation.navigate('CoachChat', {match});
+  };
+
   return (
     <View style={styles.container} testID="response-generator-container">
       <View style={styles.contentContainer}>
@@ -396,7 +411,7 @@ const ResponseGenerator = forwardRef<ResponseGeneratorRef>((_, ref) => {
                 onDismiss={() => setShowMatchSelector(false)}
                 matches={matches}
                 selectedMatch={selectedMatch}
-                onSelectMatch={setSelectedMatch}
+                onSelectMatch={handleMatchSelect}
                 onAddMatch={() => {
                   setShowMatchSelector(false);
                   setShowAddMatchModal(true);

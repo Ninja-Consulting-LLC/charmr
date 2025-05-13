@@ -3,6 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React, {useEffect, useRef} from 'react';
 import {ActivityIndicator, View} from 'react-native';
 import {DeepLinkHandler} from '../components/DeepLinkHandler';
+import CoachChatScreen from '../screens/CoachChatScreen';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -67,6 +68,17 @@ const AppNavigator = () => {
           options={{
             headerShown: false,
             gestureEnabled: false, // Prevent swipe back to login/onboarding
+          }}
+        />
+        <Stack.Screen
+          name="CoachChat"
+          component={CoachChatScreen}
+          options={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: theme.colors.background,
+            },
+            headerShadowVisible: false,
           }}
         />
       </Stack.Navigator>
