@@ -13,7 +13,7 @@ import {theme} from '../theme/theme';
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const HomeScreen: React.FC<HomeScreenProps> = () => {
+const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const {setShowDevMenu, showDevMenu} = useStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -33,7 +33,10 @@ const HomeScreen: React.FC<HomeScreenProps> = () => {
               onDevMenuPress={() => setShowDevMenu(true)}
               showDevMenu={__DEV__}
             />
-            <ResponseGenerator ref={responseGeneratorRef} />
+            <ResponseGenerator
+              ref={responseGeneratorRef}
+              navigation={navigation}
+            />
           </View>
           {__DEV__ && showDevMenu && <DevMenu />}
           <UserMenuSlideout
