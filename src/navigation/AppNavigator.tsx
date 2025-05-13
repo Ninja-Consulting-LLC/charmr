@@ -75,9 +75,7 @@ const AppNavigator = () => {
           component={CoachChatScreen}
           options={{
             headerShown: true,
-            headerStyle: {
-              backgroundColor: theme.colors.background,
-            },
+            headerTransparent: true,
             headerShadowVisible: false,
           }}
         />
