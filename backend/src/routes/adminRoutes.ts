@@ -1,6 +1,5 @@
 import express from 'express';
 import {
-  clearDatabase,
   createUser,
   getMessageCosts,
   getUser,
@@ -49,7 +48,6 @@ const createAdminRouter = (db: Database) => {
   router.get('/users/:userId/info', (req, res) => getUserInfo(req, res, db));
 
   // Database management
-  router.post('/clear-database', (req, res) => clearDatabase(req, res, db));
   router.post('/reset-db', (req, res) => resetDb(req, res, db));
 
   return router;

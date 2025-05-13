@@ -192,10 +192,10 @@ export const submitSupportRequest = async (
   return response.json();
 };
 
-export const clearDatabase = async () => {
+export const resetDb = async () => {
   try {
     const response = await axios.post(
-      `${config.apiBaseUrl}/api/admin/clear-database`,
+      `${config.apiBaseUrl}/api/admin/reset-db`,
       {},
       {
         headers: {
@@ -209,6 +209,7 @@ export const clearDatabase = async () => {
 
     return response.data;
   } catch (error) {
+    logger.app.error('Error resetting database:', error);
     logger.app.error('Error clearing database:', error);
     throw error;
   }
