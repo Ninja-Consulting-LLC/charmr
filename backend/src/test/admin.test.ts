@@ -1,11 +1,11 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {Request, Response} from 'express';
 import {
-  clearDatabase,
   createUser,
   getUser,
   getUserByInstallationId,
   linkAnonymousUser,
+  resetDb,
   resetUserMessageLimit,
   updateUserPlan,
 } from '../controllers/adminController';
@@ -306,12 +306,12 @@ describe('Admin Domain', () => {
   });
 
   describe('Database Management', () => {
-    it('should clear database', async () => {
-      await clearDatabase(mockRequest as Request, mockResponse as Response, db);
+    it('should reset database', async () => {
+      await resetDb(mockRequest as Request, mockResponse as Response, db);
 
       expect(responseObject).toHaveProperty(
         'message',
-        'Database cleared successfully',
+        'Database reset completed successfully',
       );
     });
   });
