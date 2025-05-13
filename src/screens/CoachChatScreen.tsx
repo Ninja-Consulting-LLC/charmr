@@ -17,6 +17,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import TypingIndicator from '../components/TypingIndicator';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
+import {generateReply} from '../services/api';
+import {useStore} from '../store';
 import {theme} from '../theme/theme';
 
 type CoachChatScreenProps = NativeStackScreenProps<
@@ -42,6 +44,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [selectedMode, setSelectedMode] = useState<ChatMode>('generate');
+  const {userId} = useStore();
 
   useEffect(() => {
     // Set up the header
@@ -95,7 +98,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   };
 
   const onSend = useCallback(
-    (newMessages: IMessageWithImages[] = []) => {
+    async (newMessages: IMessageWithImages[] = []) => {
       // Attach images and mode to the message
       const messageWithImages: IMessageWithImages[] = newMessages.map(msg => ({
         ...msg,
@@ -111,12 +114,18 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       // Show typing indicator
       setIsTyping(true);
 
-      // Simulate AI coach response after a short delay
-      setTimeout(() => {
+      // Call backend reply service
+      try {
+        const response = await generateReply({
+          prompt: newMessages[0]?.text || '',
+          images: images.length > 0 ? images.map(img => img.path) : [],
+          userId,
+          matchId: String(match.id),
+        });
         setIsTyping(false);
         const aiResponse: IMessageWithImages = {
           _id: Date.now() + 1,
-          text: 'Interesting move! Want me to rewrite that in a flirty tone?',
+          text: response.reply || response.error || 'No reply',
           createdAt: new Date(),
           user: {
             _id: 'coach',
@@ -128,9 +137,26 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
         );
-      }, 2000);
+      } catch (err) {
+        setIsTyping(false);
+        setMessages(previousMessages =>
+          GiftedChat.append(previousMessages, [
+            {
+              _id: Date.now() + 2,
+              text: 'Failed to get a reply from the server.',
+              createdAt: new Date(),
+              user: {
+                _id: 'coach',
+                name: 'Coach',
+                avatar: getModeIcon(selectedMode) as string,
+              },
+              mode: selectedMode,
+            },
+          ]),
+        );
+      }
     },
-    [images, setImages, selectedMode],
+    [images, setImages, selectedMode, userId, match.id],
   );
 
   const handleCopyMessage = useCallback((text: string) => {
@@ -328,10 +354,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                     placeholderTextColor="rgba(255, 255, 255, 0.7)"
                     value={text}
                     onChangeText={setText}
-                    placeholder="Type a message..."
+                    placeholder="Type a message or upload screenshot(s)"
                     multiline
                   />
-                  {text.trim().length > 0 && (
+                  {(text.trim().length > 0 || images.length > 0) && (
                     <IconButton
                       icon="send"
                       size={28}
