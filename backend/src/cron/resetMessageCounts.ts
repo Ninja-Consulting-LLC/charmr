@@ -1,9 +1,10 @@
+import {Database} from '../db/types';
 import {createMessageLimitService} from '../services/messageLimitService';
 import logger from '../utils/logger';
 
-export const resetMessageCounts = async () => {
+export const resetMessageCounts = async (db: Database) => {
   try {
-    const messageLimitService = await createMessageLimitService();
+    const messageLimitService = createMessageLimitService(db);
     await messageLimitService.resetDailyMessageCount();
     logger.info('Daily message counts reset successfully');
   } catch (error) {

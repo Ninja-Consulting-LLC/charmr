@@ -91,17 +91,12 @@ export const createRequestValidator =
       JSON.stringify(truncatedRequest, null, 2),
     );
 
-    if (!req.body.userId || !req.body.matchId) {
-      const missingFields = [];
-      if (!req.body.userId) missingFields.push('userId');
-      if (!req.body.matchId) missingFields.push('matchId');
-
+    if (!req.body.userId) {
       console.log(
-        `[${new Date().toISOString()}] Missing required fields:`,
-        missingFields,
+        `[${new Date().toISOString()}] Missing required field: userId`,
       );
       return res.status(400).json({
-        error: `Missing required fields: ${missingFields.join(', ')}`,
+        error: 'Missing required field: userId',
         statusCode: 400,
       });
     }
@@ -119,6 +114,11 @@ export const createRequestValidator =
     // Set default empty prompt if not provided
     if (req.body.prompt === undefined) {
       req.body.prompt = '';
+    }
+
+    // Set default matchId if not provided
+    if (!req.body.matchId) {
+      req.body.matchId = 'no-match-selected';
     }
 
     next();

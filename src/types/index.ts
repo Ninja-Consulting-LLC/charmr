@@ -1,3 +1,4 @@
+import {SubscriptionTier} from './enums';
 import {SelectedImage} from './image';
 import {
   GenerateReplyRequest,
@@ -6,7 +7,7 @@ import {
   MessageStyle,
 } from './message';
 import {Platform} from './platform';
-import {SubscriptionTier, User} from './subscription';
+import {User} from './user';
 
 export {MessageStyle, Platform, SubscriptionTier};
 

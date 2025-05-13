@@ -19,8 +19,8 @@ export async function loadConversation(
   try {
     const db = await getDatabase();
 
-    // Only load conversation history if we have a matchId and user is pro
-    if (userPlan === SubscriptionTier.FREE || !matchId) {
+    // Return empty array for no-match-selected
+    if (matchId === 'no-match-selected') {
       return [];
     }
 
@@ -43,10 +43,27 @@ export async function saveMessage(
 ): Promise<Message> {
   try {
     const db = await getDatabase();
-    const savedMessage = await db.saveMessage(userId, matchId || '', message);
+    const user = await db.getUser(userId);
+
+    // Use no-match-selected if matchId is not provided
+    const finalMatchId = matchId || 'no-match-selected';
+
+    // Ensure we have a valid timestamp
+    const timestamp = message.timestamp || new Date().toISOString();
+
+    const savedMessage = await db.saveMessage(userId, finalMatchId, {
+      ...message,
+      timestamp,
+    });
+
+    // If this is a user message, increment the message count
+    if (message.role === 'user') {
+      await db.incrementMessageCount(userId);
+    }
+
     logger.info('Message saved successfully:', {
       userId,
-      matchId,
+      matchId: finalMatchId,
       role: savedMessage.role,
       timestamp: savedMessage.timestamp,
     });
@@ -68,7 +85,7 @@ export async function appendConversation(
   matchId: string | undefined,
   summary: string,
   assistantMessage: string,
-): Promise<void> {
+): Promise<Message> {
   const timestamp = new Date().toISOString();
 
   logger.info('Saving conversation:', {
@@ -87,10 +104,25 @@ export async function appendConversation(
     });
   }
 
-  // Save the assistant message
-  await saveMessage(userId, matchId, {
+  // Save the assistant message and return it
+  return await saveMessage(userId, matchId, {
     role: 'assistant',
     content: assistantMessage,
+    timestamp,
+  });
+}
+
+export async function saveUserMessage(
+  userId: string,
+  matchId: string | undefined,
+  content: string,
+): Promise<Message> {
+  const timestamp = new Date().toISOString();
+
+  // Save the user message (incrementMessageCount is now handled in saveMessage)
+  return await saveMessage(userId, matchId, {
+    role: 'user',
+    content,
     timestamp,
   });
 }

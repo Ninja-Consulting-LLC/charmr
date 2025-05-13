@@ -9,6 +9,7 @@ import Purchases, {
 import {config} from '../config/config';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
 import {updateUserPlan} from './userService';
 
 // Development configuration for testing in simulator
@@ -36,11 +37,11 @@ export const initializeRevenueCat = async () => {
       apiKey,
     };
     await Purchases.configure(config);
-    console.log('RevenueCat initialized successfully');
+    logger.revenueCat.info('RevenueCat initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize RevenueCat:', error);
+    logger.revenueCat.error('Failed to initialize RevenueCat:', error);
     if (error instanceof Error) {
-      console.error('Error details:', {
+      logger.revenueCat.error('Error details:', {
         message: error.message,
         stack: error.stack,
       });
@@ -51,7 +52,9 @@ export const initializeRevenueCat = async () => {
 // Helper function to simulate pro entitlement in development
 export const simulateProEntitlement = async (userId: string) => {
   if (!__DEV__) {
-    console.warn('simulateProEntitlement can only be used in development mode');
+    logger.revenueCat.warn(
+      'simulateProEntitlement can only be used in development mode',
+    );
     return;
   }
 
@@ -104,10 +107,10 @@ export const simulateProEntitlement = async (userId: string) => {
 
     // Update the customer info with our mock data
     await Purchases.syncPurchases();
-    console.log('Pro entitlement simulated successfully');
+    logger.revenueCat.info('Pro entitlement simulated successfully');
     return mockCustomerInfo;
   } catch (error) {
-    console.error('Failed to simulate pro entitlement:', error);
+    logger.revenueCat.error('Failed to simulate pro entitlement:', error);
     throw error;
   }
 };
@@ -117,7 +120,7 @@ export const getProPaywall = async () => {
     const offerings = await Purchases.getOfferings();
     return offerings.current?.availablePackages || null;
   } catch (error) {
-    console.error('Error fetching pro paywall:', error);
+    logger.revenueCat.error('Error fetching pro paywall:', error);
     return null;
   }
 };
@@ -127,7 +130,7 @@ export const getMessagePackPaywall = async () => {
     const offerings = await Purchases.getOfferings();
     return offerings.current?.availablePackages || null;
   } catch (error) {
-    console.error('Error fetching message pack paywall:', error);
+    logger.revenueCat.error('Error fetching message pack paywall:', error);
     return null;
   }
 };
@@ -181,7 +184,7 @@ export const handlePurchase = async (productId: string) => {
     }
     return false;
   } catch (error) {
-    console.error('Error making purchase:', error);
+    logger.revenueCat.error('Error making purchase:', error);
     return false;
   }
 };

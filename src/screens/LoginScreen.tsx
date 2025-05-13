@@ -12,7 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
 import {RootStackScreenProps} from '../navigation/types';
-import {useStore} from '../store';
+import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
@@ -34,7 +34,8 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 
   const handleGetStarted = async () => {
     try {
-      await createNewUser();
+      const newUser = await createNewUser();
+      // Only navigate after user is fully created
       navigation.navigate('Onboarding');
     } catch (error) {
       console.error('Error creating user:', error);

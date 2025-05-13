@@ -1,8 +1,9 @@
 import {Request, Response} from 'express';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
+import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
-import {SubscriptionTier} from '../types/enums';
-import {loadConversation, saveMessage} from '../utils/conversationUtils';
+import {createOpenAIService} from '../services/openaiService';
+import {loadConversation} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 
 interface ChatGptImage {
@@ -18,7 +19,11 @@ const truncateImageData = (image: string): string => {
   if (!image) return '';
   // For base64 images, show first 20 chars and last 20 chars
   if (image.startsWith('data:')) {
-    return `${image.substring(0, 20)}...${image.substring(image.length - 20)}`;
+    const base64Part = image.split(',')[1] || '';
+    return `data:image/...;base64,${base64Part.substring(
+      0,
+      20,
+    )}...${base64Part.substring(base64Part.length - 20)}`;
   }
   // For URLs, just show the first 50 chars
   return image.substring(0, 50) + '...';
@@ -43,33 +48,38 @@ A brief summary of the match's interests and conversation style based on the his
 Your suggested reply to the match
 </message>`;
 
-export const createReplyController = async () => {
-  const messageLimitService = await createMessageLimitService();
+export const createReplyController = (db: Database) => {
+  const messageLimitService = createMessageLimitService(db);
+  const openaiService = createOpenAIService();
+  const geminiService = createGeminiService();
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-    logger.debug('Generating reply - request payload', {
-      userId,
-      matchId,
-      hasImages: images?.length > 0,
-      skipRateLimiting,
-      prompt,
-      imageCount: images?.length,
-      sandboxMode: process.env.NODE_ENV !== 'production',
-      truncatedImages: images?.map(truncateImageData),
-    });
+    // 1. Validate prompt
+    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+      return res.status(400).json({error: 'Prompt is required.'});
+    }
 
-    try {
+    // Main logic as a promise
+    const mainLogic = (async () => {
+      logger.debug('Generating reply - request payload', {
+        userId,
+        matchId,
+        hasImages: images?.length > 0,
+        skipRateLimiting,
+        prompt,
+        imageCount: images?.length,
+        sandboxMode: process.env.NODE_ENV !== 'production',
+        images: images?.map(truncateImageData),
+      });
+
       let messageLimits = null;
-
-      // Check message limits unless skipping rate limiting
       if (!skipRateLimiting) {
         messageLimits = await messageLimitService.getMessageLimits(userId);
         const canSendMessage =
           messageLimits.dailyMessagesUsed < messageLimits.dailyMessageLimit ||
           messageLimits.extraMessages > 0;
-
         if (!canSendMessage) {
           logger.warn('Message limit reached', {userId, messageLimits});
           return res.status(429).json({
@@ -81,9 +91,10 @@ export const createReplyController = async () => {
       }
 
       // Get user's plan
-      const db = await getDatabase();
       const user = await db.getUser(userId);
+      logger.debug('ReplyController: user lookup', {userId, user});
       if (!user) {
+        logger.error('User not found in generateReplyHandler', {userId, user});
         return res.status(404).json({error: 'User not found'});
       }
 
@@ -91,6 +102,26 @@ export const createReplyController = async () => {
       const conversationHistory = matchId
         ? await loadConversation(userId, matchId, user.plan)
         : [];
+
+      // 2. Check if match exists (for message errors test)
+      if (matchId) {
+        const match = await db.getMatchById(matchId);
+        if (!match) {
+          return res.status(404).json({error: 'Match not found'});
+        }
+      }
+
+      logger.debug('Conversation history loaded', {
+        userId,
+        matchId,
+        userPlan: user.plan,
+        historyLength: conversationHistory.length,
+        history: conversationHistory.map(msg => ({
+          role: msg.role,
+          contentLength: msg.content.length,
+          timestamp: msg.timestamp,
+        })),
+      });
 
       // Extract all assistant messages and summaries
       const previousAssistantMessages = conversationHistory
@@ -108,135 +139,101 @@ export const createReplyController = async () => {
           ? `Here is the conversation history for context:\n\nPrevious Summaries:\n${previousSummaries}\n\nPrevious Messages:\n${previousAssistantMessages}`
           : '';
 
-      // Log ChatGPT payload
-      const chatGptPayload = {
-        messages: [
-          {
-            role: 'system',
-            content: `${DATING_COACH_INSTRUCTIONS}\n\n${contextMessage}`,
-          },
-          {
-            role: 'user',
-            content: [
-              {type: 'text', text: prompt},
-              ...(images?.map(
-                (img: string): ChatGptImage => ({
-                  type: 'image_url',
-                  image_url: {url: img, detail: 'auto'},
-                }),
-              ) || []),
-            ],
-          },
-        ],
-        model:
-          process.env.NODE_ENV === 'production'
-            ? 'gpt-4-vision-preview'
-            : 'gpt-4',
-        max_tokens: 500,
-        temperature: 0.7,
-      };
-
-      // Create a truncated version of the payload for logging
-      const truncatedPayload = {
-        ...chatGptPayload,
-        messages: chatGptPayload.messages.map(msg => ({
-          ...msg,
-          content: Array.isArray(msg.content)
-            ? msg.content.map(content => ({
-                ...content,
-                image_url:
-                  content.type === 'image_url'
-                    ? {
-                        url: truncateImageData(content.image_url.url),
-                        detail: content.image_url.detail,
-                      }
-                    : undefined,
-              }))
-            : msg.content,
-        })),
-      };
-
-      logger.debug('ChatGPT API request payload', {
+      logger.debug('Context message prepared', {
         userId,
         matchId,
-        payload: truncatedPayload,
-        sandboxMode: process.env.NODE_ENV !== 'production',
+        hasContext: !!contextMessage,
+        contextLength: contextMessage.length,
+        hasAssistantMessages: !!previousAssistantMessages,
+        hasSummaries: !!previousSummaries,
       });
 
-      // TODO: Implement OpenAI integration
-      const reply =
-        user.plan === SubscriptionTier.FREE
-          ? "Hey! I'd love to get to know you better. What's your favorite way to spend a weekend? I'm always looking for new adventures and would love to hear about yours! 😊"
-          : "That's such a cool photo! I love how adventurous you are. I'm actually planning a similar trip next month - maybe we could swap some tips? You seem like someone who knows how to make the most of every moment. What's the most memorable place you've visited? 🌍✨";
-      const summary = 'This is a placeholder summary';
+      // Always use OpenAI service
+      const service = 'openai';
+      logger.debug('Using AI service', {
+        service,
+        hasImages: images?.length > 0,
+        imageCount: images?.length,
+        requestedModel: req.body.model,
+      });
 
-      // Log ChatGPT response
-      logger.debug('ChatGPT API response', {
+      const response =
+        service === 'openai'
+          ? await openaiService.generateReply({
+              prompt,
+              images: images || [],
+              userId,
+              matchId,
+              deleteAfterResponse: false,
+              model: req.body.model,
+            })
+          : await geminiService.generateReply({
+              prompt,
+              images: [],
+              userId,
+              matchId,
+              deleteAfterResponse: false,
+            });
+
+      logger.debug('AI service response', {
         userId,
         matchId,
-        sandboxMode: process.env.NODE_ENV !== 'production',
-        response: {
-          reply,
-          summary,
-          usage: {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-          },
-          model:
-            process.env.NODE_ENV === 'production'
-              ? 'gpt-4-vision-preview'
-              : 'gpt-4',
-        },
+        service,
+        hasError: !!response.error,
+        errorType: response.type,
+        replyLength: response.reply?.length,
+        summaryLength: response.summary?.length,
+        usage: response.usage,
       });
 
-      // Save the system message (summary)
-      const savedSystemMessage = await saveMessage(userId, matchId, {
-        role: 'system',
-        content: summary,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Save the assistant's reply
-      const savedAssistantMessage = await saveMessage(userId, matchId, {
-        role: 'assistant',
-        content: reply,
-        timestamp: new Date().toISOString(),
-      });
-
-      logger.info('Reply generated and saved successfully', {
-        userId,
-        matchId,
-        replyLength: reply.length,
-        systemMessageId: savedSystemMessage.id,
-        assistantMessageId: savedAssistantMessage.id,
-      });
-
-      // Increment message count (unless skipping rate limiting)
-      if (!skipRateLimiting) {
-        const incrementSuccess =
-          await messageLimitService.incrementMessageCount(userId);
-        if (!incrementSuccess) {
-          logger.error('Failed to increment message count', {userId});
-          return res.status(500).json({
-            error: 'Failed to process message',
-            message: 'Could not update message count',
-          });
-        }
-        // Get updated limits
-        messageLimits = await messageLimitService.getMessageLimits(userId);
+      if (response.error) {
+        logger.error('Failed to generate reply', {
+          userId,
+          matchId,
+          error: response.error,
+        });
+        return res.status(500).json({
+          error: response.error,
+          type: 'GENERATION_ERROR',
+          limits: messageLimits,
+        });
       }
 
-      res.json({
-        reply,
-        limits: messageLimits,
-        messages: {
-          system: savedSystemMessage,
-          assistant: savedAssistantMessage,
-        },
+      // Increment message count after successful generation
+      const success = await messageLimitService.incrementMessageCount(userId);
+      if (!success) {
+        logger.warn('Failed to increment message count', {userId});
+        return res.status(500).json({
+          error: 'Failed to update message count',
+          type: 'MESSAGE_COUNT_ERROR',
+          limits: messageLimits,
+        });
+      }
+
+      // Messages are now saved in the AI service, no need to save again here
+      logger.info('Reply generated successfully', {
+        userId,
+        matchId,
+        replyLength: response.reply.length,
       });
+
+      // Get updated message limits
+      const updatedLimits = await messageLimitService.getMessageLimits(userId);
+
+      if (res.headersSent) return;
+      return res.status(200).json({
+        reply: response.reply,
+        summary: response.summary,
+        usage: response.usage,
+        limits: updatedLimits,
+      });
+    })();
+
+    // 3. Error handling
+    try {
+      await mainLogic;
     } catch (error) {
-      logger.error('Failed to generate reply', {
+      logger.error('Error generating reply', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         userId,
@@ -244,13 +241,9 @@ export const createReplyController = async () => {
       });
       res.status(500).json({
         error: 'Failed to generate reply',
-        message:
-          process.env.NODE_ENV === 'production'
-            ? 'An unexpected error occurred'
-            : error instanceof Error
-            ? error.message
-            : 'Unknown error',
+        type: 'GENERATION_ERROR',
       });
+      return;
     }
   };
 
