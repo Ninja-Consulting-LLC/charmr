@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import {config} from '../config/config';
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
+import {ErrorType, MessageMode, MessageStyle} from '../types/enums';
 import {
   appendConversation,
   loadConversation,
@@ -64,21 +65,10 @@ export const createOpenAIService = () => {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: `You are a helpful dating assistant. Your task is to help users craft engaging and appropriate responses to their matches. Consider the conversation history and context when generating responses.
-
-Guidelines:
-1. Keep responses natural and conversational
-2. Match the tone and style requested by the user
-3. Show genuine interest in the match's interests and experiences
-4. Keep responses concise but engaging
-5. Avoid being overly aggressive or inappropriate
-6. Use the conversation history to maintain context and build rapport
-
-Respond in the following JSON format:
-{
-  "summary": "A brief summary of the match's interests and conversation style based on the history",
-  "message": "Your suggested reply to the match"
-}`,
+          content: getSystemPrompt(
+            request.mode || MessageMode.GENERATE,
+            request.style,
+          ),
         },
         {
           role: 'user',
@@ -150,91 +140,88 @@ Respond in the following JSON format:
 
       const {summary, message: reply} = parsedResponse;
 
-      // Calculate and log costs if usage data is available
-      if (response.usage) {
-        const model = request.model || config.openai.model;
-        const costBreakdown = calculateCost(model, {
-          ...response.usage,
-          image_count: request.images?.length || 0,
-        });
-        logger.info('OpenAI API usage and cost', {
-          model,
-          usage: response.usage,
-          cost: {
-            input: costBreakdown.inputCost.toFixed(6),
-            output: costBreakdown.outputCost.toFixed(6),
-            total: costBreakdown.totalCost.toFixed(6),
+      // Save the message and its costs if not deleting after response
+      if (!request.deleteAfterResponse) {
+        const db = await getDatabase();
+        const timestamp = new Date().toISOString();
+
+        // Save the message and its costs
+        const savedMessage = await appendConversation(
+          request.userId,
+          request.matchId,
+          summary,
+          reply,
+        );
+
+        // Calculate costs
+        const costBreakdown = calculateCost(
+          request.model || config.openai.model,
+          {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: request.images?.length || 0,
           },
+        );
+
+        // Save the message cost
+        await db.saveMessageCost(savedMessage.id, {
+          model: request.model || config.openai.model,
+          promptTokens: response.usage?.prompt_tokens || 0,
+          completionTokens: response.usage?.completion_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+          inputCost: costBreakdown.inputCost,
+          outputCost: costBreakdown.outputCost,
+          totalCost: costBreakdown.totalCost,
+          timestamp,
         });
-
-        // Save both the summary and the message
-        if (!request.deleteAfterResponse) {
-          const db = await getDatabase();
-          const timestamp = new Date().toISOString();
-
-          // Save the message and its costs
-          const savedMessage = await appendConversation(
-            request.userId,
-            request.matchId,
-            summary,
-            reply,
-          );
-
-          // Save the message cost if usage data is available
-          if (response.usage) {
-            await db.saveMessageCost(savedMessage.id, {
-              model,
-              promptTokens: costBreakdown.usage.prompt_tokens,
-              completionTokens: costBreakdown.usage.completion_tokens,
-              totalTokens: costBreakdown.usage.total_tokens,
-              inputCost: costBreakdown.inputCost,
-              outputCost: costBreakdown.outputCost,
-              totalCost: costBreakdown.totalCost,
-              timestamp,
-            });
-          }
-        }
       }
 
       return {
         reply,
         summary,
         usage: response.usage,
+        mode: request.mode || MessageMode.GENERATE,
+        style: request.style,
       };
     } catch (error: any) {
       logger.error('OpenAI API error', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        type: error.type || 'unknown',
-        code: error.code || 'unknown',
-        status: error.status || 'unknown',
+        type: error instanceof Error ? error.name : 'unknown',
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       // Handle specific error types
-      if (
-        error.code === 'insufficient_quota' ||
-        error.type === 'insufficient_quota'
-      ) {
-        return {
-          reply: '',
-          error:
-            'The AI service is currently unavailable due to quota limits. Please try again later.',
-          type: 'QUOTA_EXCEEDED',
-        };
-      }
+      if (error instanceof Error) {
+        if (error.message.includes('quota')) {
+          return {
+            reply: '',
+            error:
+              'The AI service is currently unavailable due to quota limits. Please try again later.',
+            type: ErrorType.QUOTA_EXCEEDED,
+            mode: request.mode || MessageMode.GENERATE,
+            style: request.style,
+          };
+        }
 
-      if (error.status === 429) {
-        return {
-          reply: '',
-          error:
-            'The AI service is currently busy. Please try again in a few moments.',
-          type: 'RATE_LIMIT',
-        };
+        if (error.message.includes('rate limit')) {
+          return {
+            reply: '',
+            error:
+              'The AI service is currently busy. Please try again in a few moments.',
+            type: ErrorType.RATE_LIMIT,
+            mode: request.mode || MessageMode.GENERATE,
+            style: request.style,
+          };
+        }
       }
 
       return {
         reply: '',
         error: 'Failed to generate reply',
-        type: 'GENERATION_ERROR',
+        type: ErrorType.GENERATION_ERROR,
+        mode: request.mode || MessageMode.GENERATE,
+        style: request.style,
       };
     }
   };
@@ -243,3 +230,67 @@ Respond in the following JSON format:
     generateReply,
   };
 };
+
+function getSystemPrompt(mode: MessageMode, style?: MessageStyle): string {
+  const generateRevisePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
+
+Guidelines:
+1. Keep responses natural and conversational
+2. Match the tone and style requested by the user
+3. Show genuine interest in the match's interests and experiences
+4. Keep responses concise but engaging
+5. Avoid being overly aggressive or inappropriate
+6. Use the conversation history to maintain context and build rapport
+
+${
+  style
+    ? `Tone: Write in a ${style} style that is engaging and appropriate.`
+    : ''
+}
+
+Respond in the following JSON format:
+{
+  "summary": "A brief summary of the match's interests and conversation style based on the history",
+  "message": "Your response"
+}`;
+
+  const coachDiagnosePrompt = `You are a dating coach providing analysis and feedback. Consider the conversation history and context when providing insights.
+
+Guidelines:
+1. Be constructive and specific in your feedback
+2. Focus on communication patterns and effectiveness
+3. Identify both strengths and areas for improvement
+4. Provide actionable suggestions
+5. Maintain a supportive and professional tone
+6. Consider emotional intelligence and awareness
+
+Respond in the following JSON format:
+{
+  "summary": "A brief analysis of the conversation dynamics and patterns",
+  "message": "Your detailed feedback and suggestions"
+}`;
+
+  const modeSpecificPrompts = {
+    [MessageMode.GENERATE]: `Your task is to help users craft engaging and appropriate responses to their matches. ${generateRevisePrompt}`,
+    [MessageMode.COACH]: `Your task is to analyze the conversation like a dating coach and provide constructive advice. Focus on:
+- Communication patterns and effectiveness
+- Areas for improvement
+- Positive aspects to maintain
+- Specific suggestions for better engagement
+${coachDiagnosePrompt}`,
+    [MessageMode.REVISE]: `Your task is to rewrite the user's draft message using the given tone. Focus on:
+- Maintaining the core message and intent
+- Improving clarity and engagement
+- Matching the requested tone
+- Keeping the length appropriate
+${generateRevisePrompt}`,
+    [MessageMode.DIAGNOSE]: `Your task is to provide meta-level feedback on how the user has handled the conversation so far. Focus on:
+- Overall conversation flow and dynamics
+- Emotional intelligence and awareness
+- Response timing and engagement
+- Areas of strength and improvement
+${coachDiagnosePrompt}`,
+  };
+
+  return modeSpecificPrompts[mode];
+}
