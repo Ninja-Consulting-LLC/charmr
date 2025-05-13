@@ -329,3 +329,17 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Admin API Endpoints
+
+### Reset Database (Render Deployment)
+
+To reset the database on the Render-hosted backend, use the following command:
+
+```sh
+curl -X POST https://ai-dating-keyboard.onrender.com/api/admin/reset-db \
+  -H "Authorization: Bearer admin_secret"
+```
+
+- Replace `admin_secret` with your actual admin token if it's different.
+- This will delete all messages and matches in the production database. **Use with caution!**

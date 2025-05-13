@@ -4,6 +4,12 @@ import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
 const getBaseUrl = () => {
+  // First check if API_BASE_URL is set
+  if (Config.API_BASE_URL) {
+    return Config.API_BASE_URL;
+  }
+
+  // Fallback to localhost logic if API_BASE_URL is not set
   if (__DEV__) {
     // Development environment
     const localhost = Platform.select({
@@ -12,22 +18,15 @@ const getBaseUrl = () => {
       default: 'localhost',
     });
 
-    // Check if we're running on a physical device
-    const isPhysicalDevice = Platform.OS === 'ios' || Platform.OS === 'android';
-    if (isPhysicalDevice) {
-      // For physical devices, use the API_BASE_URL from env
-      return Config.API_BASE_URL;
-    }
-
     return `http://${localhost}:3001`;
   }
 
-  // Production environment
-  return Config.API_BASE_URL || 'https://your-production-api.com'; // Replace with your actual production API URL
+  // Production environment fallback
+  return 'https://your-production-api.com';
 };
 
 export const config = {
-  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+  apiBaseUrl: getBaseUrl(),
   googleWebClientId:
     '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
   revenueCatApiKey: 'appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
