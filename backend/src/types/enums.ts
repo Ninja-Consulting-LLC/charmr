@@ -15,6 +15,19 @@ export enum Environment {
   TEST = 'test',
 }
 
+export enum MessageMode {
+  GENERATE = 'generate',
+  COACH = 'coach',
+  REVISE = 'revise',
+  DIAGNOSE = 'diagnose',
+}
+
+export enum MessageStyle {
+  FLIRTY = 'flirty',
+  SMOOTH = 'smooth',
+  FUNNY = 'funny',
+}
+
 export enum ErrorType {
   VALIDATION = 'ValidationError',
   AUTHENTICATION = 'AuthenticationError',
@@ -22,4 +35,6 @@ export enum ErrorType {
   NOT_FOUND = 'NotFoundError',
   INTERNAL = 'InternalServerError',
   RATE_LIMIT = 'RateLimitError',
+  QUOTA_EXCEEDED = 'QUOTA_EXCEEDED',
+  GENERATION_ERROR = 'GENERATION_ERROR',
 }

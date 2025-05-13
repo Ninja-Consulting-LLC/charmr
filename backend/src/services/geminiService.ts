@@ -3,6 +3,7 @@ import {config} from '../config/config';
 import {formatPromptWithContext} from '../config/prompts';
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
+import {ErrorType, MessageMode} from '../types/enums';
 import {appendConversation} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
@@ -98,6 +99,8 @@ export const createGeminiService = () => {
         reply,
         summary,
         usage: undefined,
+        mode: request.mode || MessageMode.GENERATE,
+        style: request.style,
       };
     } catch (error) {
       logger.error('Gemini API error', {
@@ -113,7 +116,9 @@ export const createGeminiService = () => {
             reply: '',
             error:
               'The AI service is currently unavailable due to quota limits. Please try again later.',
-            type: 'QUOTA_EXCEEDED',
+            type: ErrorType.QUOTA_EXCEEDED,
+            mode: request.mode || MessageMode.GENERATE,
+            style: request.style,
           };
         }
 
@@ -122,7 +127,9 @@ export const createGeminiService = () => {
             reply: '',
             error:
               'The AI service is currently busy. Please try again in a few moments.',
-            type: 'RATE_LIMIT',
+            type: ErrorType.RATE_LIMIT,
+            mode: request.mode || MessageMode.GENERATE,
+            style: request.style,
           };
         }
       }
@@ -130,7 +137,9 @@ export const createGeminiService = () => {
       return {
         reply: '',
         error: 'Failed to generate reply',
-        type: 'GENERATION_ERROR',
+        type: ErrorType.GENERATION_ERROR,
+        mode: request.mode || MessageMode.GENERATE,
+        style: request.style,
       };
     }
   };

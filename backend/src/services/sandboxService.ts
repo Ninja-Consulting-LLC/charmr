@@ -191,18 +191,26 @@ export const createSandboxService = () => {
         });
       }
 
-      const response = {reply, summary};
-      console.log(
-        `[${new Date().toISOString()}] [Sandbox] Final response:`,
-        JSON.stringify(response, null, 2),
-      );
-
-      return response;
+      return {
+        reply,
+        summary,
+        usage: mockResponse.usage,
+        mode: request.mode || 'generate',
+        style: request.style,
+      };
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [Sandbox] Error:`, error);
+      logger.error('Sandbox service error', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        type: error instanceof Error ? error.name : 'unknown',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
       return {
         reply: '',
-        error: 'Failed to generate mock reply',
+        error: 'Failed to generate reply',
+        type: 'GENERATION_ERROR',
+        mode: request.mode || 'generate',
+        style: request.style,
       };
     }
   };
