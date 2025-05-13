@@ -232,7 +232,7 @@ export const createOpenAIService = () => {
 };
 
 function getSystemPrompt(mode: MessageMode, style?: MessageStyle): string {
-  const generateRevisePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
+  const generatePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
 
 Guidelines:
 1. Keep responses natural and conversational
@@ -254,7 +254,7 @@ Respond in the following JSON format:
   "message": "Your response"
 }`;
 
-  const coachDiagnosePrompt = `You are a dating coach providing analysis and feedback. Consider the conversation history and context when providing insights.
+  const coachPrompt = `You are a dating coach providing analysis and feedback. Consider the conversation history and context when providing insights.
 
 Guidelines:
 1. Be constructive and specific in your feedback
@@ -271,25 +271,13 @@ Respond in the following JSON format:
 }`;
 
   const modeSpecificPrompts = {
-    [MessageMode.GENERATE]: `Your task is to help users craft engaging and appropriate responses to their matches. ${generateRevisePrompt}`,
+    [MessageMode.GENERATE]: `Your task is to help users craft engaging and appropriate responses to their matches. ${generatePrompt}`,
     [MessageMode.COACH]: `Your task is to analyze the conversation like a dating coach and provide constructive advice. Focus on:
 - Communication patterns and effectiveness
 - Areas for improvement
 - Positive aspects to maintain
 - Specific suggestions for better engagement
-${coachDiagnosePrompt}`,
-    [MessageMode.REVISE]: `Your task is to rewrite the user's draft message using the given tone. Focus on:
-- Maintaining the core message and intent
-- Improving clarity and engagement
-- Matching the requested tone
-- Keeping the length appropriate
-${generateRevisePrompt}`,
-    [MessageMode.DIAGNOSE]: `Your task is to provide meta-level feedback on how the user has handled the conversation so far. Focus on:
-- Overall conversation flow and dynamics
-- Emotional intelligence and awareness
-- Response timing and engagement
-- Areas of strength and improvement
-${coachDiagnosePrompt}`,
+${coachPrompt}`,
   };
 
   return modeSpecificPrompts[mode];

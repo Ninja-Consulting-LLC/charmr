@@ -1,6 +1,7 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import React, {useCallback, useEffect, useState} from 'react';
 import {
+  Clipboard,
   Image,
   Modal,
   ScrollView,
@@ -13,7 +14,7 @@ import {
   IMessage as GiftedIMessage,
   InputToolbar,
 } from 'react-native-gifted-chat';
-import {IconButton, Text} from 'react-native-paper';
+import {IconButton, SegmentedButtons, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import TypingIndicator from '../components/TypingIndicator';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -27,7 +28,10 @@ type CoachChatScreenProps = NativeStackScreenProps<
 
 type IMessageWithImages = GiftedIMessage & {
   images?: string[];
+  mode?: 'generate' | 'coach';
 };
+
+type ChatMode = 'generate' | 'coach';
 
 const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   navigation,
@@ -39,6 +43,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const {images, setImages, pickImages} = useImagePicker();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<ChatMode>('generate');
 
   useEffect(() => {
     // Set up the header
@@ -67,7 +72,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     // Add initial welcome message
     const welcomeMessage: IMessageWithImages = {
       _id: Date.now(),
-      text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say?`,
+      text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
       createdAt: new Date(),
       user: {
         _id: 'coach',
@@ -78,12 +83,31 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     setMessages([welcomeMessage]);
   }, [navigation, match]);
 
+  const getModeHint = (mode: ChatMode) => {
+    switch (mode) {
+      case 'generate':
+        return 'Generating a response...';
+      case 'coach':
+        return 'Asking your coach...';
+    }
+  };
+
+  const getModeIcon = (mode: ChatMode) => {
+    switch (mode) {
+      case 'generate':
+        return '💬';
+      case 'coach':
+        return '👨‍🏫';
+    }
+  };
+
   const onSend = useCallback(
     (newMessages: IMessageWithImages[] = []) => {
-      // Attach images to the message if any
+      // Attach images and mode to the message
       const messageWithImages: IMessageWithImages[] = newMessages.map(msg => ({
         ...msg,
         images: images.length > 0 ? images.map(img => img.path) : undefined,
+        mode: selectedMode,
       }));
       setMessages(previousMessages =>
         GiftedChat.append(previousMessages, messageWithImages),
@@ -104,16 +128,22 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           user: {
             _id: 'coach',
             name: 'Coach',
-            avatar: '👨‍🏫',
+            avatar: getModeIcon(selectedMode) as string,
           },
+          mode: selectedMode,
         };
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
         );
       }, 2000);
     },
-    [images, setImages],
+    [images, setImages, selectedMode],
   );
+
+  const handleCopyMessage = useCallback((text: string) => {
+    Clipboard.setString(text);
+    // You might want to add a toast notification here
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -125,12 +155,22 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           _id: 'user',
         }}
         isTyping={isTyping}
-        renderTypingIndicator={() => (isTyping ? <TypingIndicator /> : null)}
+        renderTypingIndicator={() =>
+          isTyping ? (
+            <View style={styles.typingContainer}>
+              <TypingIndicator />
+              <Text style={styles.typingText}>{getModeHint(selectedMode)}</Text>
+            </View>
+          ) : null
+        }
         renderAvatar={props => {
           if (props.currentMessage?.user._id === 'coach') {
             return (
               <View style={styles.coachAvatar}>
-                <Text style={styles.coachAvatarText}>👨‍🏫</Text>
+                <Image
+                  source={require('../../assets/coach-avatar.png')}
+                  style={styles.coachAvatarImage}
+                />
               </View>
             );
           }
@@ -138,35 +178,57 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         }}
         renderBubble={props => {
           const {currentMessage} = props;
+          const isCopyable =
+            currentMessage?.user._id === 'coach' &&
+            currentMessage?.mode === 'generate';
+
           return (
-            <View
-              style={[
-                styles.bubble,
-                currentMessage?.user._id === 'user'
-                  ? styles.userBubble
-                  : styles.coachBubble,
-              ]}>
-              {currentMessage?.images && currentMessage.images.length > 0 && (
-                <ScrollView horizontal style={styles.bubbleImagesRow}>
-                  {currentMessage.images.map((uri: string, idx: number) => (
-                    <TouchableOpacity
-                      key={uri + idx}
-                      onPress={() => setPreviewImage(uri)}>
-                      <Image source={{uri}} style={styles.bubbleImage} />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-              <Text
+            <TouchableOpacity
+              onPress={() =>
+                isCopyable &&
+                currentMessage?.text &&
+                handleCopyMessage(currentMessage.text)
+              }
+              activeOpacity={isCopyable ? 0.7 : 1}>
+              <View
                 style={[
-                  styles.bubbleText,
+                  styles.bubble,
                   currentMessage?.user._id === 'user'
-                    ? styles.userBubbleText
-                    : styles.coachBubbleText,
+                    ? styles.userBubble
+                    : styles.coachBubble,
                 ]}>
-                {currentMessage?.text}
-              </Text>
-            </View>
+                {currentMessage?.images && currentMessage.images.length > 0 && (
+                  <ScrollView horizontal style={styles.bubbleImagesRow}>
+                    {currentMessage.images.map((uri: string, idx: number) => (
+                      <TouchableOpacity
+                        key={uri + idx}
+                        onPress={() => setPreviewImage(uri)}>
+                        <Image source={{uri}} style={styles.bubbleImage} />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+                <View style={styles.bubbleContent}>
+                  <Text
+                    style={[
+                      styles.bubbleText,
+                      currentMessage?.user._id === 'user'
+                        ? styles.userBubbleText
+                        : styles.coachBubbleText,
+                    ]}>
+                    {currentMessage?.text}
+                  </Text>
+                  {isCopyable && (
+                    <IconButton
+                      icon="content-copy"
+                      size={16}
+                      style={styles.copyButton}
+                      iconColor={theme.colors.onSurfaceVariant}
+                    />
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
           );
         }}
         renderActions={props => (
@@ -187,6 +249,30 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         )}
         renderInputToolbar={props => (
           <View>
+            <View style={styles.modeSelector}>
+              <SegmentedButtons
+                value={selectedMode}
+                onValueChange={value => setSelectedMode(value as ChatMode)}
+                buttons={[
+                  {
+                    value: 'generate',
+                    label: '💬 Generate',
+                    style: styles.modeButton,
+                  },
+                  {
+                    value: 'coach',
+                    label: 'Coach',
+                    style: styles.modeButton,
+                    icon: () => (
+                      <Image
+                        source={require('../../assets/coach-avatar.png')}
+                        style={styles.modeButtonIcon}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </View>
             {images.length > 0 && (
               <ScrollView
                 horizontal
@@ -297,7 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   bubble: {
-    maxWidth: '80%',
+    maxWidth: '85%',
     padding: 12,
     borderRadius: 16,
     marginVertical: 4,
@@ -316,6 +402,8 @@ const styles = StyleSheet.create({
   },
   bubbleText: {
     fontSize: 16,
+    flexShrink: 1,
+    marginRight: 8,
   },
   userBubbleText: {
     color: theme.colors.surface,
@@ -331,9 +419,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+    overflow: 'hidden',
   },
-  coachAvatarText: {
-    fontSize: 20,
+  coachAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   inputToolbar: {
     flexDirection: 'row',
@@ -430,33 +520,43 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: {width: 0, height: 2},
   },
-  typingIndicator: {
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     marginLeft: 8,
     marginBottom: 8,
   },
-  typingBubble: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    padding: 10,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
-    width: 52,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    shadowColor: theme.colors.shadow,
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+  typingText: {
+    marginLeft: 8,
+    color: theme.colors.onSurfaceVariant,
+    fontSize: 12,
   },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.onSurfaceVariant,
+  modeSelector: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
+  },
+  modeButton: {
+    flex: 1,
+  },
+  bubbleContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  copyButton: {
+    margin: 0,
+    padding: 0,
+    alignSelf: 'flex-end',
+    marginLeft: 4,
+  },
+  modeButtonIcon: {
+    width: 20,
+    height: 20,
   },
 });
 

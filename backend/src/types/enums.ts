@@ -18,8 +18,6 @@ export enum Environment {
 export enum MessageMode {
   GENERATE = 'generate',
   COACH = 'coach',
-  REVISE = 'revise',
-  DIAGNOSE = 'diagnose',
 }
 
 export enum MessageStyle {
