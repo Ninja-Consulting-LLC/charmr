@@ -5,21 +5,18 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
 import {
-  clearDatabase,
   createUser,
   getUser,
-  getUserMessages,
-  getUsers,
   linkAnonymousUser,
-  resetUserMessageLimit,
   updateUserPlan,
 } from './controllers/adminController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
-import {adminAuth} from './middleware/adminAuth';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
+import createAdminRouter from './routes/adminRoutes';
+import matchRoutes from './routes/matchRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
 import logger, {stream} from './utils/logger';
@@ -28,7 +25,7 @@ export const createApp = async () => {
   const app = express();
 
   // Initialize database
-  await getDatabase();
+  const db = await getDatabase();
 
   // Security middleware
   app.use(helmet());
@@ -79,13 +76,21 @@ export const createApp = async () => {
   );
 
   // Initialize controllers
-  const replyController = await createReplyController();
+  const replyController = await createReplyController(db);
 
   // Main application routes
-  app.get('/api/users/:userId', authenticateUser, getUser);
-  app.put('/api/users/:userId/plan', authenticateUser, updateUserPlan);
-  app.post('/api/users/link', authenticateUser, linkAnonymousUser);
-  app.post('/api/users', authenticateUser, createUser);
+  app.get('/api/users/:userId', authenticateUser, (req, res) =>
+    getUser(req, res, db),
+  );
+  app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
+    updateUserPlan(req, res, db),
+  );
+  app.post('/api/users/link', authenticateUser, (req, res) =>
+    linkAnonymousUser(req, res, db),
+  );
+  app.post('/api/users', authenticateUser, (req, res) =>
+    createUser(req, res, db),
+  );
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
     logger.info('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
@@ -104,20 +109,13 @@ export const createApp = async () => {
   });
 
   // Create admin router
-  const adminRouter = express.Router();
-
-  // Admin routes
-  adminRouter.get('/users', adminAuth, getUsers);
-  adminRouter.post('/clear-database', adminAuth, clearDatabase);
-  adminRouter.get('/users/:userId/messages', adminAuth, getUserMessages);
-  adminRouter.post(
-    '/users/:userId/reset-limit',
-    adminAuth,
-    resetUserMessageLimit,
-  );
+  const adminRouter = createAdminRouter(db);
 
   // Mount admin router
   app.use('/api/admin', adminRouter);
+
+  // Mount match routes
+  app.use('/api', matchRoutes(db));
 
   // Create utility router for testing/development endpoints
   const utilityRouter = express.Router();

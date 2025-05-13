@@ -7,110 +7,110 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import React, {useEffect, useState} from 'react';
-import {StatusBar, View} from 'react-native';
-import Config from 'react-native-config';
+import React, {useEffect, useRef, useState} from 'react';
+import {StatusBar} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
+import Purchases from 'react-native-purchases';
+import {config} from './src/config/config';
 import AppNavigator from './src/navigation/AppNavigator';
-import {RootStackParamList} from './src/navigation/types';
-import {initializeRevenueCat} from './src/services/revenueCatService';
-import {StoreProvider} from './src/store';
+import {StoreProvider} from './src/store/StoreProvider';
 import {theme} from './src/theme/theme';
+import {logger} from './src/utils/logger';
 import {getPlanLimits} from './src/utils/planLimits';
 
-function App(): React.JSX.Element {
+const App = () => {
   const [isReady, setIsReady] = useState(false);
-  const [initialRoute, setInitialRoute] =
-    useState<keyof RootStackParamList>('Login');
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
+    const initializeApp = async () => {
       try {
-        console.log('🚀 Starting app initialization...');
+        // ===== App Initialization =====
+        logger.app.info('🚀 Starting app initialization...');
 
-        // Initialize RevenueCat
-        await initializeRevenueCat();
-        console.log('💰 RevenueCat initialized');
+        // ===== Service Configuration =====
+        logger.app.info('\n🔧 Service Configuration:');
 
-        // Get stored user data
-        const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
+        // Google Sign-In
+        logger.app.info('  🔐 Configuring Google Sign-In...');
+        await GoogleSignin.configure({
+          webClientId: config.googleWebClientId,
+        });
+
+        // RevenueCat
+        logger.app.info('  💰 Initializing RevenueCat...');
+        await Purchases.configure({
+          apiKey: config.revenueCatApiKey,
+        });
+        logger.revenueCat.info('  ✅ RevenueCat initialized successfully');
+
+        // ===== User State =====
+        logger.app.info('\n👤 User State:');
+
+        // Authentication
         const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
         const userId = await AsyncStorage.getItem('userId');
-        const userJson = await AsyncStorage.getItem('user');
-        const sandboxMode = await AsyncStorage.getItem('sandboxMode');
-        const user = userJson ? JSON.parse(userJson) : null;
+        const userData = await AsyncStorage.getItem('user');
 
-        // Log user state
-        console.log('\n🔍 User State Check:');
-        console.log(
-          '   Authentication Status:',
-          isAuthenticated === 'true'
-            ? '✅ Authenticated'
-            : '❌ Not Authenticated',
-        );
-        console.log(
-          '   Onboarding Status:',
-          hasOnboarded === 'true' ? '✅ Completed' : '❌ Not Completed',
-        );
-        console.log('   User ID:', userId || 'Not set');
-        console.log('   Sandbox Mode:', sandboxMode || 'Not set');
+        const user = userData ? JSON.parse(userData) : null;
+        const userDetails = user
+          ? {
+              email: user.email || 'Not set',
+              name: user.name || 'Not set',
+              plan: user.plan || 'Free',
+              dailyMessagesUsed: user.dailyMessagesUsed || 0,
+              dailyMessageLimit: getPlanLimits(user.plan),
+              extraMessages: user.extraMessages || 0,
+              lastResetDate: user.lastResetDate || 'Never',
+            }
+          : null;
 
-        if (user) {
-          console.log('\n👤 User Details:');
-          console.log('   Email:', user.email || 'Not set');
-          console.log('   Name:', user.name || 'Not set');
+        logger.app.info('User State', {
+          authentication: {
+            isAuthenticated,
+            userId,
+          },
+          userDetails,
+        });
 
-          console.log('\n💰 Plan Details:');
-          console.log('   Plan:', user.plan || 'Free');
-          console.log('   Daily Messages Used:', user.dailyMessagesUsed || 0);
-          console.log('   Daily Message Limit:', getPlanLimits(user.plan));
-          console.log('   Extra Messages:', user.extraMessages || 0);
-          console.log('   Last Reset Date:', user.lastResetDate || 'Never');
-        }
+        // ===== Navigation =====
+        const navigationTarget = !isAuthenticated || !userId ? 'Login' : 'Home';
+        logger.app.info('\n🛣️ Navigation:');
+        logger.app.info('Navigation State', {
+          navigationTarget,
+        });
 
-        if (isAuthenticated === 'true') {
-          console.log('\n🚀 User is authenticated, navigating to Home');
-          setInitialRoute('Home');
-        } else {
-          console.log('\n🔒 User is not authenticated, navigating to Login');
-          setInitialRoute('Login');
-        }
-      } catch (error) {
-        console.error('❌ Error checking app status:', error);
-      } finally {
         setIsReady(true);
+      } catch (error) {
+        logger.app.error('\n❌ Error during initialization:', error);
+        setIsReady(true); // Still set ready to show error state
       }
     };
 
-    checkOnboardingStatus();
+    initializeApp();
 
-    console.log('🔥 Configuring Google Sign-In');
-    console.log('💰 RevenueCat API Key:', Config.REVENUECAT_DEV_API_KEY);
-
-    GoogleSignin.configure({
-      iosClientId:
-        '86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n.apps.googleusercontent.com',
-      webClientId:
-        '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
-      offlineAccess: false,
-    });
-  }, []);
+    return () => {
+      isInitializedRef.current = false;
+    };
+  }, []); // Empty dependency array ensures this runs only once
 
   if (!isReady) {
-    return <View style={{flex: 1, backgroundColor: theme.colors.background}} />;
+    return null; // Or a loading screen
   }
 
   return (
     <PaperProvider theme={theme}>
+      <StatusBar barStyle="light-content" />
       <StoreProvider>
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={theme.colors.background}
-        />
-        <AppNavigator initialRouteName={initialRoute} />
+        <AppNavigator />
       </StoreProvider>
     </PaperProvider>
   );
-}
+};
 
 export default App;

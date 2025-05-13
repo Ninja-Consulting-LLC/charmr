@@ -1,12 +1,27 @@
 import {useState} from 'react';
 import ImagePicker from 'react-native-image-crop-picker';
 import {useStore} from '../store';
-import {SubscriptionTier} from '../types/enums';
+
+interface Image {
+  path: string;
+  localIdentifier?: string;
+  id?: string;
+  mime?: string;
+  type?: string;
+  uri?: string;
+}
 
 interface SelectedImage {
   path: string;
   assetId?: string;
   base64?: string;
+  mime?: string;
+}
+
+interface PickerImage {
+  path: string;
+  localIdentifier?: string;
+  id?: string;
   mime?: string;
 }
 
@@ -16,21 +31,16 @@ export const useImagePicker = () => {
 
   const openScreenshotPicker = async () => {
     try {
-      const isPlusOrPremium =
-        user?.plan === SubscriptionTier.PREMIUM ||
-        user?.plan === SubscriptionTier.PRO;
-      const maxFiles = isPlusOrPremium ? 10 : 1;
-
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
-        multiple: isPlusOrPremium,
+        multiple: true,
         cropping: false,
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
         smartAlbums: ['Screenshots'],
         defaultAlbum: 'Screenshots',
-        maxFiles,
+        maxFiles: 10,
         selectedAssets: images.map(img => ({
           uri: img.path,
           type: img.mime || 'image/jpeg',
@@ -49,12 +59,6 @@ export const useImagePicker = () => {
 
   const pickImages = async () => {
     try {
-      // If user is on free plan and already has a screenshot, show upgrade modal
-      if (user?.plan === SubscriptionTier.FREE && images.length > 0) {
-        setShowUpgradeModal(true);
-        return;
-      }
-
       const result = await openScreenshotPicker();
 
       // Get currently selected image paths for comparison
@@ -63,7 +67,7 @@ export const useImagePicker = () => {
         images.filter(img => img.assetId).map(img => img.assetId),
       );
 
-      const newImages = result
+      const newImages = (result as PickerImage[])
         .filter(img => {
           // Filter out duplicates based on path or assetId
           const isDuplicate =

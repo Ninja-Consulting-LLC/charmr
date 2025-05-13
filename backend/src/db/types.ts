@@ -25,6 +25,30 @@ export interface Message {
   timestamp: string;
 }
 
+export interface MessageCost {
+  id: number;
+  messageId: number;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+  timestamp: string;
+}
+
+export interface Match {
+  id: number;
+  userId: string;
+  name: string;
+  platform: string;
+  lastUsed: string | null;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
@@ -72,4 +96,41 @@ export interface Database {
   all: (sql: string, params?: any[]) => Promise<any[]>;
   run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;
+  saveMessageCost: (
+    messageId: number,
+    cost: Omit<MessageCost, 'id' | 'messageId'>,
+  ) => Promise<MessageCost>;
+  getMessageCosts: (
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<MessageCost[]>;
+  getTotalCosts: (
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<{
+    totalCost: number;
+    totalTokens: number;
+    messageCount: number;
+  }>;
+  getMatches: (userId: string, includeHidden?: boolean) => Promise<Match[]>;
+  getMatchById: (matchId: number | string) => Promise<Match | null>;
+  addMatch: (userId: string, name: string, platform: string) => Promise<Match>;
+  updateMatchLastUsed: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
+  deleteMatch: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
+  hideMatch: (userId: string, name: string, platform: string) => Promise<void>;
+  restoreMatch: (
+    userId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
 }

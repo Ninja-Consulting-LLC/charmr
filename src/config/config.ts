@@ -1,13 +1,13 @@
 import {Platform} from 'react-native';
-
-const DEV = __DEV__;
+import Config from 'react-native-config';
+import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
 const getBaseUrl = () => {
-  if (DEV) {
+  if (__DEV__) {
     // Development environment
     const localhost = Platform.select({
-      ios: 'localhost', // For iOS simulator
+      ios: Config.LOCAL_IP, // For iOS simulator
       android: '10.0.2.2', // For Android emulator
       default: 'localhost',
     });
@@ -15,20 +15,34 @@ const getBaseUrl = () => {
     // Check if we're running on a physical device
     const isPhysicalDevice = Platform.OS === 'ios' || Platform.OS === 'android';
     if (isPhysicalDevice) {
-      // Use the computer's local IP address
-      return 'http://10.0.0.21:3001';
+      // For physical devices, use the API_BASE_URL from env
+      return Config.API_BASE_URL;
     }
 
     return `http://${localhost}:3001`;
   }
 
   // Production environment
-  return 'https://your-production-api.com'; // Replace with your actual production API URL
+  return Config.API_BASE_URL || 'https://your-production-api.com'; // Replace with your actual production API URL
 };
 
 export const config = {
-  apiBaseUrl: getBaseUrl(),
+  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+  googleWebClientId:
+    '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
+  revenueCatApiKey: 'appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 } as const;
+
+// Log all config variables in development
+if (__DEV__) {
+  logger.config.info('Environment Variables', {
+    LOCAL_IP: Config.LOCAL_IP,
+    API_BASE_URL: Config.API_BASE_URL,
+    NODE_ENV: Config.NODE_ENV,
+    // Add any other environment variables you want to log
+  });
+  logger.config.info('App Config', config);
+}
 
 // Type for the config object
 export type Config = typeof config;

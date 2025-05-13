@@ -4,7 +4,7 @@ import sqlite3 from 'sqlite3';
 import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
-import {Database, User} from './types';
+import {Database, Match, MessageCost, User} from './types';
 
 export const createSqliteDatabase = async (): Promise<Database> => {
   const dbPath = path.join(process.cwd(), 'data', 'charmr.db');
@@ -37,6 +37,40 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       timestamp TEXT NOT NULL,
       FOREIGN KEY (userId) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS message_costs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      messageId INTEGER NOT NULL,
+      model TEXT NOT NULL,
+      promptTokens INTEGER NOT NULL,
+      completionTokens INTEGER NOT NULL,
+      totalTokens INTEGER NOT NULL,
+      inputCost REAL NOT NULL,
+      outputCost REAL NOT NULL,
+      totalCost REAL NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (messageId) REFERENCES messages(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_message_costs_message ON message_costs(messageId);
+    CREATE INDEX IF NOT EXISTS idx_message_costs_timestamp ON message_costs(timestamp);
+
+    CREATE TABLE IF NOT EXISTS matches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      lastUsed TEXT,
+      hidden BOOLEAN NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(userId, name, platform)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_matches_user ON matches(userId);
+    CREATE INDEX IF NOT EXISTS idx_matches_last_used ON matches(lastUsed);
+    CREATE INDEX IF NOT EXISTS idx_matches_hidden ON matches(hidden);
   `);
 
   return {
@@ -147,69 +181,53 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           return false;
         }
 
-        const result = await db.run(
-          `UPDATE users
-           SET dailyMessagesUsed = CASE
-             WHEN lastResetDate = ? THEN dailyMessagesUsed + 1
-             ELSE 1
-           END,
-           extraMessages = CASE
-             WHEN dailyMessagesUsed >= (SELECT CASE
-               WHEN plan = 'free' THEN 5
-               WHEN plan = 'pro' THEN ?
-               ELSE 5
-             END) AND extraMessages > 0
-             THEN extraMessages - 1
-             ELSE extraMessages
-           END,
-           lastResetDate = ?
-           WHERE id = ? AND (
-             dailyMessagesUsed < (SELECT CASE
-               WHEN plan = 'free' THEN 5
-               WHEN plan = 'pro' THEN ?
-               ELSE 5
-             END)
-             OR lastResetDate != ?
-             OR extraMessages > 0
-           )`,
-          [
-            today,
-            config.limits.proDailyMessageLimit,
-            today,
-            userId,
-            config.limits.proDailyMessageLimit,
-            today,
-          ],
-        );
+        // Reset daily count if it's a new day
+        if (user.lastResetDate !== today) {
+          await db.run(
+            'UPDATE users SET dailyMessagesUsed = 1, lastResetDate = ? WHERE id = ?',
+            [today, userId],
+          );
+          return true;
+        }
 
-        const success = (result.changes ?? 0) > 0;
+        // Check if we can increment based on limits
+        const dailyLimit =
+          user.plan === 'pro' ? config.limits.proDailyMessageLimit : 5;
+        const canIncrement =
+          user.dailyMessagesUsed < dailyLimit || user.extraMessages > 0;
 
-        if (success) {
-          logger.info('Message count incremented', {
-            userId,
-            plan: user.plan,
-            dailyMessagesUsed: user.dailyMessagesUsed + 1,
-            extraMessages: user.extraMessages,
-            limit: user.plan === 'pro' ? config.limits.proDailyMessageLimit : 5,
-          });
-        } else {
+        if (!canIncrement) {
           logger.warn('Message limit reached', {
             userId,
             plan: user.plan,
             dailyMessagesUsed: user.dailyMessagesUsed,
             extraMessages: user.extraMessages,
-            limit: user.plan === 'pro' ? config.limits.proDailyMessageLimit : 5,
+            limit: dailyLimit,
           });
+          return false;
         }
 
-        return success;
+        // If we have extra messages, use those first
+        if (user.dailyMessagesUsed >= dailyLimit && user.extraMessages > 0) {
+          await db.run(
+            'UPDATE users SET extraMessages = extraMessages - 1 WHERE id = ?',
+            [userId],
+          );
+        }
+
+        // Increment the daily message count
+        await db.run(
+          'UPDATE users SET dailyMessagesUsed = dailyMessagesUsed + 1 WHERE id = ?',
+          [userId],
+        );
+
+        return true;
       } catch (error) {
         logger.error('Failed to increment message count', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
-          userId,
         });
-        throw error;
+        return false;
       }
     },
 
@@ -314,13 +332,13 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       try {
         if (matchId) {
           const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp DESC',
             [userId, matchId],
           );
           return messages;
         } else {
           const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp ASC',
+            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp DESC',
             [userId],
           );
           return messages;
@@ -367,6 +385,291 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         logger.error('Failed to clear database', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    saveMessageCost: async (
+      messageId: number,
+      cost: Omit<MessageCost, 'id' | 'messageId'>,
+    ): Promise<MessageCost> => {
+      try {
+        const result = await db.run(
+          `INSERT INTO message_costs (
+            messageId, model, promptTokens, completionTokens, totalTokens,
+            inputCost, outputCost, totalCost, timestamp
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            messageId,
+            cost.model,
+            cost.promptTokens,
+            cost.completionTokens,
+            cost.totalTokens,
+            cost.inputCost,
+            cost.outputCost,
+            cost.totalCost,
+            cost.timestamp,
+          ],
+        );
+
+        return {
+          id: result.lastID!,
+          messageId,
+          ...cost,
+        };
+      } catch (error) {
+        logger.error('Failed to save message cost', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          messageId,
+          cost,
+        });
+        throw error;
+      }
+    },
+
+    getMessageCosts: async (
+      userId: string,
+      startDate?: string,
+      endDate?: string,
+    ): Promise<MessageCost[]> => {
+      try {
+        let query = `
+          SELECT mc.*
+          FROM message_costs mc
+          JOIN messages m ON mc.messageId = m.id
+          WHERE m.userId = ?
+        `;
+        const params: any[] = [userId];
+
+        if (startDate) {
+          query += ' AND mc.timestamp >= ?';
+          params.push(startDate);
+        }
+        if (endDate) {
+          query += ' AND mc.timestamp <= ?';
+          params.push(endDate);
+        }
+
+        query += ' ORDER BY mc.timestamp DESC';
+
+        return await db.all(query, params);
+      } catch (error) {
+        logger.error('Failed to get message costs', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+          startDate,
+          endDate,
+        });
+        throw error;
+      }
+    },
+
+    getTotalCosts: async (
+      userId: string,
+      startDate?: string,
+      endDate?: string,
+    ): Promise<{
+      totalCost: number;
+      totalTokens: number;
+      messageCount: number;
+    }> => {
+      try {
+        let query = `
+          SELECT
+            SUM(mc.totalCost) as totalCost,
+            SUM(mc.totalTokens) as totalTokens,
+            COUNT(DISTINCT mc.messageId) as messageCount
+          FROM message_costs mc
+          JOIN messages m ON mc.messageId = m.id
+          WHERE m.userId = ?
+        `;
+        const params: any[] = [userId];
+
+        if (startDate) {
+          query += ' AND mc.timestamp >= ?';
+          params.push(startDate);
+        }
+        if (endDate) {
+          query += ' AND mc.timestamp <= ?';
+          params.push(endDate);
+        }
+
+        const result = await db.get(query, params);
+        return {
+          totalCost: result.totalCost || 0,
+          totalTokens: result.totalTokens || 0,
+          messageCount: result.messageCount || 0,
+        };
+      } catch (error) {
+        logger.error('Failed to get total costs', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+          startDate,
+          endDate,
+        });
+        throw error;
+      }
+    },
+
+    // Match methods
+    getMatches: async (
+      userId: string,
+      includeHidden: boolean = false,
+    ): Promise<Match[]> => {
+      try {
+        logger.debug('Database getMatches called with:', {
+          userId,
+          includeHidden,
+        });
+        const query = `
+          SELECT * FROM matches
+          WHERE userId = ?
+          ${includeHidden ? '' : 'AND hidden = 0'}
+          ORDER BY lastUsed DESC NULLS LAST
+        `;
+        logger.debug('Database query:', {query});
+        const matches = await db.all(query, [userId]);
+        logger.debug('Database query result:', {
+          matchesCount: matches.length,
+          hiddenMatchesCount: matches.filter(m => m.hidden).length,
+        });
+        return matches;
+      } catch (error) {
+        logger.error('Failed to get matches', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    addMatch: async (
+      userId: string,
+      name: string,
+      platform: string,
+    ): Promise<Match> => {
+      try {
+        const now = new Date().toISOString();
+        const result = await db.run(
+          `INSERT INTO matches (userId, name, platform, lastUsed, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [userId, name, platform, now, now, now],
+        );
+
+        const match = await db.get('SELECT * FROM matches WHERE id = ?', [
+          result.lastID,
+        ]);
+
+        return match;
+      } catch (error) {
+        logger.error('Failed to add match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    updateMatchLastUsed: async (
+      userId: string,
+      name: string,
+      platform: string,
+    ): Promise<void> => {
+      try {
+        const now = new Date().toISOString();
+        await db.run(
+          `UPDATE matches
+           SET lastUsed = ?, updatedAt = ?
+           WHERE userId = ? AND name = ? AND platform = ?`,
+          [now, now, userId, name, platform],
+        );
+      } catch (error) {
+        logger.error('Failed to update match last used', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    deleteMatch: async (
+      userId: string,
+      name: string,
+      platform: string,
+    ): Promise<void> => {
+      try {
+        await db.run(
+          'DELETE FROM matches WHERE userId = ? AND name = ? AND platform = ?',
+          [userId, name, platform],
+        );
+      } catch (error) {
+        logger.error('Failed to delete match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    hideMatch: async (
+      userId: string,
+      name: string,
+      platform: string,
+    ): Promise<void> => {
+      try {
+        const now = new Date().toISOString();
+        await db.run(
+          `UPDATE matches
+           SET hidden = 1, updatedAt = ?
+           WHERE userId = ? AND name = ? AND platform = ?`,
+          [now, userId, name, platform],
+        );
+      } catch (error) {
+        logger.error('Failed to hide match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    restoreMatch: async (
+      userId: string,
+      name: string,
+      platform: string,
+    ): Promise<void> => {
+      try {
+        const now = new Date().toISOString();
+        await db.run(
+          `UPDATE matches
+           SET hidden = 0, updatedAt = ?
+           WHERE userId = ? AND name = ? AND platform = ?`,
+          [now, userId, name, platform],
+        );
+      } catch (error) {
+        logger.error('Failed to restore match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    getMatchById: async (matchId: number | string) => {
+      try {
+        const match = await db.get('SELECT * FROM matches WHERE id = ?', [
+          matchId,
+        ]);
+        return match || null;
+      } catch (error) {
+        logger.error('Failed to get match by id', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          matchId,
         });
         throw error;
       }

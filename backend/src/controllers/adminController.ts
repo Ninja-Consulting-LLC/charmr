@@ -1,10 +1,9 @@
 import {Request, Response} from 'express';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import logger from '../utils/logger';
 
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (req: Request, res: Response, db: Database) => {
   try {
-    const db = await getDatabase();
     const users = await db.all('SELECT * FROM users');
     logger.info('Fetched users:', {count: users.length});
     res.json(users);
@@ -14,14 +13,62 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {id, email, name, installationId} = req.body;
-    if (!id) {
+    logger.debug('Attempting to create user:', {
+      id,
+      email,
+      name,
+      installationId,
+      body: req.body,
+      headers: req.headers,
+    });
+
+    if (!id || !email || !name) {
+      logger.warn('Missing required fields for user creation:', {
+        id,
+        email,
+        name,
+      });
       return res.status(400).json({error: 'Missing required fields'});
     }
 
-    const db = await getDatabase();
+    // If installationId is provided, check if a user with that ID exists
+    if (installationId) {
+      logger.debug('Checking for existing user with installationId:', {
+        installationId,
+      });
+      const existingUser = await db.getUserByInstallationId(installationId);
+      logger.debug('Existing user lookup result:', {
+        installationId,
+        userFound: !!existingUser,
+        user: existingUser
+          ? {
+              id: existingUser.id,
+              email: existingUser.email,
+              name: existingUser.name,
+              installationId: existingUser.installationId,
+            }
+          : null,
+      });
+
+      if (existingUser) {
+        logger.info('Found existing user with installationId:', {
+          userId: existingUser.id,
+          installationId,
+        });
+        return res.status(200).json(existingUser);
+      }
+    }
+
+    // Create new user if no existing user found
+    logger.debug('Creating new user:', {
+      id,
+      email,
+      name,
+      installationId,
+    });
     const user = await db.createUser(
       id,
       email,
@@ -29,18 +76,30 @@ export const createUser = async (req: Request, res: Response) => {
       undefined,
       installationId,
     );
-    logger.info('Created new user:', {id, email, name, installationId});
+    logger.info('Created new user:', {
+      id,
+      email,
+      name,
+      installationId,
+    });
     res.status(201).json(user);
   } catch (error) {
-    logger.error('Error creating user:', {error});
+    logger.error('Error creating user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      body: req.body,
+    });
     res.status(500).json({error: 'Failed to create user'});
   }
 };
 
-export const getUserMessages = async (req: Request, res: Response) => {
+export const getUserMessages = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -60,7 +119,7 @@ export const getUserMessages = async (req: Request, res: Response) => {
     logger.info('Fetched messages for user:', {
       userId,
       count: messages.length,
-      matchIds: [...new Set(messages.map(m => m.matchId))],
+      matchIds: [...new Set(messages.map((m: {matchId: string}) => m.matchId))],
     });
 
     // Set headers to prevent caching
@@ -79,10 +138,13 @@ export const getUserMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const resetUserMessageLimit = async (req: Request, res: Response) => {
+export const resetUserMessageLimit = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -121,7 +183,11 @@ export const resetUserMessageLimit = async (req: Request, res: Response) => {
   }
 };
 
-export const updateUserPlan = async (req: Request, res: Response) => {
+export const updateUserPlan = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {userId} = req.params;
     const {plan} = req.body;
@@ -129,8 +195,6 @@ export const updateUserPlan = async (req: Request, res: Response) => {
     if (!plan) {
       return res.status(400).json({error: 'Plan is required'});
     }
-
-    const db = await getDatabase();
 
     // First check if user exists
     const user = await db.getUser(userId);
@@ -144,7 +208,7 @@ export const updateUserPlan = async (req: Request, res: Response) => {
     });
 
     logger.info('Updated user plan:', {userId, plan});
-    res.json({message: 'Plan updated successfully'});
+    res.status(200).json({message: 'Plan updated successfully'});
   } catch (error) {
     logger.error('Error updating user plan:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -155,9 +219,12 @@ export const updateUserPlan = async (req: Request, res: Response) => {
   }
 };
 
-export const clearDatabase = async (req: Request, res: Response) => {
+export const clearDatabase = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
-    const db = await getDatabase();
     await db.clearDatabase();
     logger.info('Database cleared by admin');
     res.json({message: 'Database cleared successfully'});
@@ -167,10 +234,9 @@ export const clearDatabase = async (req: Request, res: Response) => {
   }
 };
 
-export const getUser = async (req: Request, res: Response) => {
+export const getUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
-    const db = await getDatabase();
 
     const user = await db.getUser(userId);
     if (!user) {
@@ -188,17 +254,20 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserByInstallationId = async (req: Request, res: Response) => {
+export const getUserByInstallationId = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {installationId} = req.params;
-    const db = await getDatabase();
 
     const user = await db.getUserByInstallationId(installationId);
     if (!user) {
       return res.status(404).json({error: 'User not found'});
     }
 
-    res.json(user);
+    res.status(200).json(user);
   } catch (error) {
     logger.error('Error getting user by installation ID:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -209,14 +278,16 @@ export const getUserByInstallationId = async (req: Request, res: Response) => {
   }
 };
 
-export const linkAnonymousUser = async (req: Request, res: Response) => {
+export const linkAnonymousUser = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
     const {anonymousUserId, registeredUserId, installationId} = req.body;
     if (!anonymousUserId || !registeredUserId) {
       return res.status(400).json({error: 'Missing required fields'});
     }
-
-    const db = await getDatabase();
 
     // Get the anonymous user's data
     const anonymousUser = await db.getUser(anonymousUserId);
@@ -258,5 +329,403 @@ export const linkAnonymousUser = async (req: Request, res: Response) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
     res.status(500).json({error: 'Failed to link users'});
+  }
+};
+
+export const getUserMessageHistory = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Get messages with their costs
+    const messages = await db.all(
+      `SELECT m.*, mc.*
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}
+       ORDER BY m.timestamp DESC`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    // Get total costs
+    const costs = await db.getTotalCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    // Calculate message stats
+    const userMessages = messages.filter(
+      (m: {role: string}) => m.role === 'user',
+    ).length;
+    const assistantMessages = messages.filter(
+      (m: {role: string}) => m.role === 'assistant',
+    ).length;
+    const systemMessages = messages.filter(
+      (m: {role: string}) => m.role === 'system',
+    ).length;
+
+    // Group messages by matchId for stats
+    const matchStats = messages.reduce((acc: Record<string, any>, msg: any) => {
+      const matchId = msg.matchId || 'no-match';
+      if (!acc[matchId]) {
+        acc[matchId] = {
+          matchId,
+          messageCount: 0,
+          userMessages: 0,
+          assistantMessages: 0,
+          systemMessages: 0,
+        };
+      }
+      acc[matchId].messageCount++;
+      acc[matchId][`${msg.role}Messages`]++;
+      return acc;
+    }, {});
+
+    logger.info('Fetched message history for user:', {
+      userId,
+      messageCount: messages.length,
+      userMessages,
+      assistantMessages,
+      systemMessages,
+      totalCost: costs.totalCost,
+      totalTokens: costs.totalTokens,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: user.plan,
+        dailyMessagesUsed: user.dailyMessagesUsed,
+        extraMessages: user.extraMessages,
+        lastResetDate: user.lastResetDate,
+        installationId: user.installationId,
+      },
+      usage: {
+        totalMessages: userMessages,
+        totalCost: costs.totalCost,
+        totalTokens: costs.totalTokens,
+        dailyUsage: [
+          {
+            date: new Date().toISOString().split('T')[0],
+            messageCount: userMessages,
+            userMessages,
+            assistantMessages,
+            systemMessages,
+          },
+        ],
+        matchStats: Object.values(matchStats),
+      },
+      messages,
+      costs,
+    });
+  } catch (error) {
+    logger.error('Error fetching user message history:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to fetch user message history'});
+  }
+};
+
+export const getMessageCosts = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Get detailed cost breakdown
+    const costs = await db.getMessageCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    // Get total costs
+    const totals = await db.getTotalCosts(
+      userId,
+      startDate as string,
+      endDate as string,
+    );
+
+    logger.info('Fetched message costs for user:', {
+      userId,
+      costCount: costs.length,
+      totalCost: totals.totalCost,
+      totalTokens: totals.totalTokens,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        plan: user.plan,
+      },
+      costs,
+      totals,
+    });
+  } catch (error) {
+    logger.error('Error fetching message costs:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to fetch message costs'});
+  }
+};
+
+export const getUserInfo = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId} = req.params;
+    const {startDate, endDate} = req.query;
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      logger.warn('User not found:', {userId});
+      return res.status(404).json({error: 'User not found', userId});
+    }
+
+    logger.info('Fetching user info:', {userId, startDate, endDate});
+
+    // Get messages with their costs using a direct query
+    const messages = await db.all(
+      `SELECT
+        m.id, m.userId, m.matchId, m.role, m.content, m.timestamp,
+        COALESCE(mc.model, '') as model,
+        COALESCE(mc.promptTokens, 0) as promptTokens,
+        COALESCE(mc.completionTokens, 0) as completionTokens,
+        COALESCE(mc.totalTokens, 0) as totalTokens,
+        COALESCE(mc.inputCost, 0) as inputCost,
+        COALESCE(mc.outputCost, 0) as outputCost,
+        COALESCE(mc.totalCost, 0) as totalCost
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}
+       ORDER BY m.timestamp DESC`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Raw messages from database:', {
+      messages: messages.map((msg: any) => ({
+        id: msg.id,
+        timestamp: msg.timestamp,
+        role: msg.role,
+        model: msg.model,
+      })),
+    });
+
+    // Calculate total message counts
+    const totalUserMessages = messages.filter(
+      (m: {role: string}) => m.role === 'user',
+    ).length;
+    const totalAssistantMessages = messages.filter(
+      (m: {role: string}) => m.role === 'assistant',
+    ).length;
+    const totalSystemMessages = messages.filter(
+      (m: {role: string}) => m.role === 'system',
+    ).length;
+
+    // Get match stats with detailed message counts
+    const matchStats = await db.all(
+      `SELECT
+        matchId,
+        COUNT(*) as messageCount,
+        SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as userMessages,
+        SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages,
+        SUM(CASE WHEN role = 'system' THEN 1 ELSE 0 END) as systemMessages
+       FROM messages
+       WHERE userId = ?
+       ${startDate ? 'AND timestamp >= ?' : ''}
+       ${endDate ? 'AND timestamp <= ?' : ''}
+       GROUP BY matchId
+       ORDER BY messageCount DESC`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Match stats from database:', {matchStats});
+
+    // Calculate daily message usage with all message types
+    const dailyUsage = await db.all(
+      `SELECT
+         date(timestamp) as date,
+         COUNT(*) as messageCount,
+         SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as userMessages,
+         SUM(CASE WHEN role = 'assistant' THEN 1 ELSE 0 END) as assistantMessages,
+         SUM(CASE WHEN role = 'system' THEN 1 ELSE 0 END) as systemMessages
+       FROM messages
+       WHERE userId = ?
+       ${startDate ? 'AND timestamp >= ?' : ''}
+       ${endDate ? 'AND timestamp <= ?' : ''}
+       GROUP BY date(timestamp)
+       ORDER BY date DESC`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Daily usage from database:', {dailyUsage});
+
+    // Calculate total costs
+    const [totalCosts] = await db.all(
+      `SELECT
+         COALESCE(SUM(mc.totalCost), 0) as totalCost,
+         COALESCE(SUM(mc.totalTokens), 0) as totalTokens,
+         COUNT(DISTINCT mc.messageId) as messageCount
+       FROM messages m
+       LEFT JOIN message_costs mc ON m.id = mc.messageId
+       WHERE m.userId = ?
+       ${startDate ? 'AND m.timestamp >= ?' : ''}
+       ${endDate ? 'AND m.timestamp <= ?' : ''}`,
+      [
+        userId,
+        ...(startDate ? [startDate] : []),
+        ...(endDate ? [endDate] : []),
+      ],
+    );
+
+    logger.info('Total costs from database:', {totalCosts});
+
+    logger.info('Fetched comprehensive user info:', {
+      userId,
+      messageCount: messages.length,
+      userMessages: totalUserMessages,
+      assistantMessages: totalAssistantMessages,
+      systemMessages: totalSystemMessages,
+      matchCount: matchStats.length,
+      totalCost: totalCosts?.totalCost || 0,
+      totalTokens: totalCosts?.totalTokens || 0,
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: user.plan,
+        dailyMessagesUsed: user.dailyMessagesUsed,
+        extraMessages: user.extraMessages,
+        lastResetDate: user.lastResetDate,
+        installationId: user.installationId,
+      },
+      usage: {
+        totalMessages: messages.length,
+        userMessages: totalUserMessages,
+        assistantMessages: totalAssistantMessages,
+        systemMessages: totalSystemMessages,
+        totalCost: totalCosts?.totalCost || 0,
+        totalTokens: totalCosts?.totalTokens || 0,
+        dailyUsage,
+        matchStats,
+      },
+      messages: messages.map((msg: any) => ({
+        id: msg.id,
+        userId: msg.userId,
+        matchId: msg.matchId,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        model: msg.model || '',
+        promptTokens: msg.promptTokens || 0,
+        completionTokens: msg.completionTokens || 0,
+        totalTokens: msg.totalTokens || 0,
+        inputCost: msg.inputCost || 0,
+        outputCost: msg.outputCost || 0,
+        totalCost: msg.totalCost || 0,
+      })),
+      costs: {
+        total: totalCosts?.totalCost || 0,
+        totalTokens: totalCosts?.totalTokens || 0,
+        messageCount: totalCosts?.messageCount || 0,
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching user info:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({
+      error: 'Failed to fetch user info',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      userId: req.params.userId,
+    });
+  }
+};
+
+export const updateUser = async (req: Request, res: Response, db: Database) => {
+  try {
+    const {userId} = req.params;
+    const {name, email} = req.body;
+
+    if (!name && !email) {
+      return res.status(400).json({error: 'No fields to update'});
+    }
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Prepare update fields
+    const updateFields: any = {};
+    if (name) updateFields.name = name;
+    if (email) updateFields.email = email;
+
+    await db.updateUser(userId, updateFields);
+    const updatedUser = await db.getUser(userId);
+    res.json(updatedUser);
+  } catch (error) {
+    logger.error('Error updating user:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+    });
+    res.status(500).json({error: 'Failed to update user'});
   }
 };

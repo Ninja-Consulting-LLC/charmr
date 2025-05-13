@@ -42,12 +42,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           onPress={onPickImages}
           testID="image-picker-button">
           <Icon source="image-plus" size={24} color={theme.colors.secondary} />
-          <Text style={styles.addImageText}>Add Screenshot</Text>
-          {userPlan === SubscriptionTier.FREE && images.length > 0 && (
-            <View style={styles.premiumBadge}>
-              <Icon source="star" size={12} color="gold" />
-            </View>
-          )}
+          <Text style={styles.addImageText}>Add Screenshot (Optional)</Text>
         </Pressable>
       </View>
     </View>
@@ -123,14 +118,6 @@ const styles = {
     fontSize: 14,
     textAlign: 'center',
     color: theme.colors.secondary,
-  },
-  premiumBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 8,
-    padding: 2,
   },
 } as const;
 

@@ -8,7 +8,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import {submitSupportRequest} from '../services/api';
-import {useStore} from '../store';
+import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
 import LoginModal from './LoginModal';
 

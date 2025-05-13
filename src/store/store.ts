@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fetchUserData} from '../services/api';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
+import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import {createDefaultUser} from '../utils/storeUtils';
 
@@ -29,6 +30,13 @@ export interface Store {
   createNewUser: () => Promise<void>;
   linkAnonymousUser: (registeredUserId: string) => Promise<void>;
   handleGoogleLogin: (firebaseUser: any) => Promise<void>;
+  // Match management
+  matches: Match[];
+  setMatches: (matches: Match[]) => void;
+  addMatch: (match: Match) => void;
+  updateMatch: (match: Match) => void;
+  removeMatch: (matchId: number) => void;
+  loadMatches: () => Promise<void>;
 }
 
 // Add version key for detecting backend resets
@@ -59,6 +67,13 @@ export const defaultStore: Store = {
   createNewUser: async () => {},
   linkAnonymousUser: async () => {},
   handleGoogleLogin: async () => {},
+  // Match management
+  matches: [],
+  setMatches: () => {},
+  addMatch: () => {},
+  updateMatch: () => {},
+  removeMatch: () => {},
+  loadMatches: async () => {},
 };
 
 // Store utility functions

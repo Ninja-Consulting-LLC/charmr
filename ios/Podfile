@@ -14,6 +14,9 @@ target 'Charmr' do
     :hermes_enabled => true
   )
 
+  # Specify the version of PurchasesHybridCommon
+  pod 'PurchasesHybridCommon', '13.29.1'
+
   # 🔐 Firebase Auth + Google Sign-In (NO modular headers!)
   pod 'Firebase/Auth'
   pod 'GoogleSignIn'
@@ -25,7 +28,7 @@ target 'Charmr' do
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false,
+      :mac_catalyst_enabled => false
     )
   end
 end

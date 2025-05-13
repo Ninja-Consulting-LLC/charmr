@@ -9,10 +9,17 @@ export const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4-vision-preview',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
     maxTokens: parseInt(process.env.MAX_TOKENS || '1000', 10),
     temperature: parseFloat(process.env.TEMPERATURE || '0.7'),
+  },
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
+    sandboxMode: process.env.GEMINI_SANDBOX_MODE === 'true',
+    maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '1000', 10),
+    temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
@@ -44,9 +51,9 @@ export const config = {
 } as const;
 
 // Validate required environment variables
-const requiredEnvVars = ['OPENAI_API_KEY'];
+const requiredEnvVars = ['OPENAI_API_KEY', 'GEMINI_API_KEY'];
 for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
+  if (!process.env[envVar] && process.env.NODE_ENV === 'production') {
     throw new Error(`Missing required environment variable: ${envVar}`);
   }
 }

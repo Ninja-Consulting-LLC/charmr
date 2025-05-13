@@ -1,69 +1,99 @@
 import {useNavigation} from '@react-navigation/native';
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {Linking} from 'react-native';
 import {useImagePicker} from '../hooks/useImagePicker';
-import {useStore} from '../store';
+import {useStore} from '../store/StoreProvider';
+import {logger} from '../utils/logger';
 
 export const DeepLinkHandler: React.FC = () => {
   const {user} = useStore();
   const navigation = useNavigation();
   const {pickImages} = useImagePicker();
+  const subscriptionRef = useRef<any>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
     const handleDeepLink = async (url: string) => {
-      console.log('🔍 Deep Link Analysis:');
-      console.log('  - Full URL:', url);
-      console.log(
-        '  - URL includes /homescreen:',
-        url.includes('charmr://open/homescreen'),
-      );
-      console.log(
-        '  - URL includes /screenshot:',
-        url.includes('charmr://open/screenshot'),
-      );
-
-      if (url.includes('charmr://open/homescreen')) {
-        console.log('📱 Navigating to Home screen');
-        navigation.navigate('Home' as never);
-      } else if (url.includes('charmr://open/screenshot')) {
-        console.log('📸 Opening screenshot upload flow:');
-        console.log('  1. Navigating to Home screen');
-        navigation.navigate('Home' as never);
-
-        console.log('  2. Waiting for navigation to complete...');
-        setTimeout(async () => {
-          try {
-            console.log('  3. Attempting to open image picker...');
-            await pickImages();
-            console.log('  ✅ Image picker opened successfully');
-          } catch (error) {
-            console.error('  ❌ Error opening image picker:', error);
-          }
-        }, 500);
-      } else {
-        console.log('⚠️ Unhandled deep link URL pattern');
+      let actionTaken = 'none';
+      let errorMessage = null;
+      try {
+        if (url.includes('charmr://open/homescreen')) {
+          actionTaken = 'navigate_home';
+          navigation.navigate('Home' as never);
+        } else if (url.includes('charmr://open/screenshot')) {
+          actionTaken = 'navigate_home_and_open_image_picker';
+          navigation.navigate('Home' as never);
+          setTimeout(async () => {
+            try {
+              await pickImages();
+            } catch (error) {
+              errorMessage =
+                error instanceof Error ? error.message : String(error);
+              logger.deepLink.error('Deep Link Image Picker Error', {
+                event: 'deep_link_image_picker_error',
+                url,
+                error: errorMessage,
+              });
+            }
+          }, 500);
+        } else {
+          actionTaken = 'unhandled_pattern';
+        }
+      } catch (error) {
+        errorMessage = error instanceof Error ? error.message : String(error);
       }
+      logger.deepLink.info('Deep Link Event', {
+        event: 'deep_link_event',
+        url,
+        includesHomescreen: url.includes('charmr://open/homescreen'),
+        includesScreenshot: url.includes('charmr://open/screenshot'),
+        actionTaken,
+        error: errorMessage,
+      });
     };
 
-    console.log('🔄 Setting up deep link handlers...');
+    logger.deepLink.info('Deep Link Handler Setup', {
+      event: 'deep_link_handler_setup',
+    });
+
+    // Clean up any existing subscription
+    if (subscriptionRef.current) {
+      logger.deepLink.info('Deep Link Handler Cleanup', {
+        event: 'deep_link_handler_cleanup',
+      });
+      subscriptionRef.current.remove();
+    }
 
     // Listen for deep links while app is running
-    const subscription = Linking.addEventListener('url', ({url}) => {
-      console.log('📨 Received deep link event while app running:', url);
+    subscriptionRef.current = Linking.addEventListener('url', ({url}) => {
       handleDeepLink(url);
     });
 
     // Check for initial deep link that launched the app
     Linking.getInitialURL().then(url => {
-      console.log('🚀 Checking initial deep link URL:', url);
+      logger.deepLink.info('Deep Link Initial URL Check', {
+        event: 'deep_link_initial_url_check',
+        url,
+      });
       if (url) {
         handleDeepLink(url);
       }
     });
 
     return () => {
-      console.log('♻️ Cleaning up deep link handlers');
-      subscription.remove();
+      logger.deepLink.info('Deep Link Handler Cleanup', {
+        event: 'deep_link_handler_cleanup',
+      });
+      if (subscriptionRef.current) {
+        subscriptionRef.current.remove();
+        subscriptionRef.current = null;
+      }
+      isInitializedRef.current = false;
     };
   }, [navigation, user, pickImages]);
 

@@ -3,6 +3,7 @@ import axios from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
 import {UserData} from '../types/user';
+import {logger} from '../utils/logger';
 
 interface GenerateReplyRequest {
   prompt: string;
@@ -42,43 +43,122 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 120000, // 2 minute timeout for response generation
 });
+
+// Add interceptors for logging
+api.interceptors.request.use(request => {
+  logger.app.info(
+    `[API] Request: ${request.method?.toUpperCase()} ${request.url}`,
+    request.data || request.params,
+  );
+  return request;
+});
+
+api.interceptors.response.use(
+  response => {
+    logger.app.info(
+      `[API] Response: ${response.status} ${response.config.url}`,
+      response.data,
+    );
+    return response;
+  },
+  error => {
+    if (error.response) {
+      logger.app.error(
+        `[API] Error Response: ${error.response.status} ${error.config?.url}`,
+        error.response.data,
+      );
+    } else {
+      logger.app.error(
+        `[API] Network/Error: ${error.config?.url || 'unknown url'}`,
+        error.message,
+      );
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {
   try {
-    console.log(
-      'Making request to:',
-      `${config.apiBaseUrl}/api/generate-reply`,
-    );
+    logger.app.info('[API] Starting generate reply request', {
+      promptLength: request.prompt?.length,
+      imageCount: request.images?.length,
+      userId: request.userId,
+      matchId: request.matchId,
+    });
 
     const response = await api.post<GenerateReplyResponse>(
       '/api/generate-reply',
       request,
     );
 
-    console.log('API response:', response.data);
+    logger.app.info('[API] Received response:', {
+      hasReply: !!response.data.reply,
+      hasError: !!response.data.error,
+      errorType: response.data.type,
+      limits: response.data.limits,
+    });
     return response.data;
   } catch (error: any) {
-    console.error('Error generating reply:', error);
+    logger.app.error('[API] Error generating reply', {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      responseData: error.response?.data,
+      isAxiosError: error.isAxiosError,
+      stack: error.stack,
+    });
+
+    // If we have a response with error data, return it
     if (error.response?.data) {
-      console.log('Error response data:', error.response.data);
-      return error.response.data;
+      logger.app.info('[API] Error response data', error.response.data);
+      return {
+        reply: '',
+        error: error.response.data.error || 'Failed to generate reply',
+        type: error.response.data.type || 'GENERATION_ERROR',
+        limits: error.response.data.limits,
+      };
     }
-    throw error;
+
+    // Handle network errors
+    if (error.isAxiosError) {
+      if (error.code === 'ECONNABORTED') {
+        return {
+          reply: '',
+          error: 'Request timed out. Please try again.',
+          type: 'TIMEOUT_ERROR',
+        };
+      }
+      if (!error.response) {
+        return {
+          reply: '',
+          error: 'Network error. Please check your connection and try again.',
+          type: 'NETWORK_ERROR',
+        };
+      }
+    }
+
+    // Handle unexpected errors
+    return {
+      reply: '',
+      error: 'An unexpected error occurred. Please try again.',
+      type: 'UNKNOWN_ERROR',
+    };
   }
 };
 
 export const testContext = async (): Promise<void> => {
   try {
-    console.log(
+    logger.app.info(
       'Testing context with URL:',
       `${config.apiBaseUrl}/api/test-context`,
     );
     await api.post('/api/test-context');
   } catch (error) {
-    console.error('Error testing context:', error);
+    logger.app.error('Error testing context:', error);
     throw error;
   }
 };
@@ -129,7 +209,7 @@ export const clearDatabase = async () => {
 
     return response.data;
   } catch (error) {
-    console.error('Error clearing database:', error);
+    logger.app.error('Error clearing database:', error);
     throw error;
   }
 };
@@ -152,7 +232,7 @@ export const fetchUserData = async (
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching user data:', error);
+    logger.app.error('Error fetching user data:', error);
     return null;
   }
 };

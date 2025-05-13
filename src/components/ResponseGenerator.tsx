@@ -1,28 +1,46 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
-import React, {useEffect, useState} from 'react';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import {Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, Snackbar, Text, TextInput} from 'react-native-paper';
+import {Button, IconButton, Snackbar, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
+import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/subscription';
+import {SubscriptionTier} from '../types/enums';
 import {
   addMatch,
   deleteMatch,
-  getMatches,
+  hideMatch,
   Match,
+  restoreMatch,
   updateMatchLastUsed,
 } from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
-import MatchSelector from './MatchSelector';
+import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
+import PromptModal from './PromptModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
+
+export interface ResponseGeneratorRef {
+  loadMatches: () => Promise<void>;
+}
+
+type ResponseGeneratorProps = {
+  navigation: NativeStackScreenProps<RootStackParamList, 'Home'>['navigation'];
+};
 
 interface CameraRollAsset {
   node: {
@@ -58,17 +76,36 @@ const messageStyles = [
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble'];
 
-const ResponseGenerator: React.FC = () => {
-  const {userId, skipRateLimiting, user, setUser} = useStore();
+const DATING_COACH_ENABLED_KEY = '@charmr/dating_coach_enabled';
+
+const ResponseGenerator = forwardRef<
+  ResponseGeneratorRef,
+  ResponseGeneratorProps
+>(({navigation}, ref) => {
+  const {
+    userId,
+    skipRateLimiting,
+    user,
+    setUser,
+    matches,
+    loadMatches,
+    addMatch: addMatchToStore,
+    updateMatch,
+    removeMatch,
+    isDatingCoachEnabled,
+    setIsDatingCoachEnabled,
+    selectedMatch,
+    setSelectedMatch,
+    deleteScreenshots,
+    setDeleteScreenshots,
+    prompt,
+    setPrompt,
+  } = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
   // State
-  const [prompt, setPrompt] = useState('');
   const [showSnackbar, setShowSnackbar] = useState(false);
-  const [deleteScreenshots, setDeleteScreenshots] = useState(true);
   const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showAddMatchModal, setShowAddMatchModal] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -76,6 +113,7 @@ const ResponseGenerator: React.FC = () => {
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -83,13 +121,30 @@ const ResponseGenerator: React.FC = () => {
       images,
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
+      isDatingCoachEnabled,
     });
+
+  useImperativeHandle(ref, () => ({
+    loadMatches,
+  }));
 
   // Load matches on mount
   useEffect(() => {
     loadMatches();
-    setShowMatchSelector(user?.plan !== SubscriptionTier.FREE);
   }, [user?.plan]);
+
+  // Load dating coach preference on mount
+  useEffect(() => {
+    const loadDatingCoachPreference = async () => {
+      try {
+        const enabled = await AsyncStorage.getItem(DATING_COACH_ENABLED_KEY);
+        setIsDatingCoachEnabled(enabled === 'true');
+      } catch (error) {
+        console.error('Error loading dating coach preference:', error);
+      }
+    };
+    loadDatingCoachPreference();
+  }, []);
 
   // Handle modal visibility based on state changes
   useEffect(() => {
@@ -101,34 +156,63 @@ const ResponseGenerator: React.FC = () => {
       setShowMessagePackModal(false);
       handleCopyToClipboard();
       if (selectedMatch) {
-        updateMatchLastUsed(selectedMatch);
+        updateMatchLastUsed(selectedMatch.name, selectedMatch.platform);
       }
-    } else if (error) {
+    } else if (error && errorType !== '404') {
       setShowSnackbar(true);
     }
-  }, [response, error, errorType, selectedMatch]);
-
-  const loadMatches = async () => {
-    const loadedMatches = await getMatches();
-    setMatches(loadedMatches);
-  };
+  }, [response, error, errorType]);
 
   const handleAddMatch = async (name: string, platform: string) => {
-    const newMatch: Match = {
-      name,
-      platform,
-    };
-
-    await addMatch(newMatch);
-    setMatches(prev => [newMatch, ...prev]);
-    setSelectedMatch(newMatch);
+    try {
+      const newMatch = await addMatch(name, platform);
+      if (newMatch) {
+        addMatchToStore(newMatch);
+        setSelectedMatch(newMatch);
+        setShowAddMatchModal(false);
+        loadMatches();
+      }
+    } catch (error) {
+      console.error('Error adding match:', error);
+    }
   };
 
   const handleDeleteMatch = async (match: Match) => {
-    await deleteMatch(match);
-    setMatches(prev => prev.filter(m => m !== match));
-    if (selectedMatch === match) {
-      setSelectedMatch(null);
+    try {
+      const success = await deleteMatch(match.name, match.platform);
+      if (success) {
+        removeMatch(match.id);
+        if (selectedMatch?.id === match.id) {
+          setSelectedMatch(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting match:', error);
+    }
+  };
+
+  const handleHideMatch = async (match: Match) => {
+    try {
+      const success = await hideMatch(match.name, match.platform);
+      if (success) {
+        updateMatch({...match, hidden: true});
+        if (selectedMatch?.id === match.id) {
+          setSelectedMatch(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error hiding match:', error);
+    }
+  };
+
+  const handleRestoreMatch = async (match: Match) => {
+    try {
+      const success = await restoreMatch(match.name, match.platform);
+      if (success) {
+        updateMatch({...match, hidden: false});
+      }
+    } catch (error) {
+      console.error('Error restoring match:', error);
     }
   };
 
@@ -197,7 +281,8 @@ const ResponseGenerator: React.FC = () => {
     setShowSnackbar(false);
 
     try {
-      await generateResponse(prompt);
+      // Only include prompt if dating coach is enabled
+      await generateResponse(isDatingCoachEnabled ? prompt : '');
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setShowSnackbar(true);
@@ -232,19 +317,29 @@ const ResponseGenerator: React.FC = () => {
   const handleModifyResponse = () => {
     setShowReplyModal(false);
     setShowSnackbar(false);
+    setShowPromptModal(true);
   };
 
   const handlePickImages = async () => {
-    if (user?.plan === SubscriptionTier.FREE && images.length > 0) {
-      setShowScreenshotUpgrade(true);
-      setShowUpgradeModal(true);
-      return;
-    }
     await pickImages();
   };
 
   const handleDeleteScreenshotsToggle = (value: boolean) => {
     setDeleteScreenshots(value);
+  };
+
+  // Save dating coach preference when changed
+  const handleDatingCoachToggle = async (value: boolean) => {
+    setIsDatingCoachEnabled(value);
+    if (!value) {
+      setSelectedMatch(null);
+    }
+  };
+
+  const handleMatchSelect = (match: Match) => {
+    setSelectedMatch(match);
+    setShowMatchSelector(false);
+    navigation.navigate('CoachChat', {match});
   };
 
   return (
@@ -253,16 +348,78 @@ const ResponseGenerator: React.FC = () => {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
-          {/* Match Selection */}
-          {showMatchSelector && (
+          {/* Dating Coach Toggle */}
+          <View style={styles.datingCoachToggle}>
+            <Text variant="titleMedium" style={styles.datingCoachLabel}>
+              Dating Coach
+            </Text>
+            <Switch
+              value={isDatingCoachEnabled}
+              onValueChange={handleDatingCoachToggle}
+              color={theme.colors.secondary}
+            />
+          </View>
+
+          {/* Match Selection - Only show when dating coach is enabled */}
+          {isDatingCoachEnabled && (
             <View style={styles.matchSection}>
-              <MatchSelector
+              <View style={styles.selectedMatchContainer}>
+                {selectedMatch ? (
+                  <View style={styles.selectedMatchInfo}>
+                    <View style={styles.selectedMatchHeader}>
+                      <View>
+                        <Text
+                          variant="titleMedium"
+                          style={styles.selectedMatchName}>
+                          {selectedMatch.name}
+                        </Text>
+                        <Text
+                          variant="bodyMedium"
+                          style={styles.selectedMatchPlatform}>
+                          {selectedMatch.platform}
+                        </Text>
+                      </View>
+                      <View style={styles.matchActions}>
+                        <IconButton
+                          icon="pencil"
+                          size={20}
+                          onPress={() => setShowMatchSelector(true)}
+                          style={styles.actionButton}
+                        />
+                        <IconButton
+                          icon="close"
+                          size={20}
+                          onPress={() => setSelectedMatch(null)}
+                          style={styles.actionButton}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ) : (
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowMatchSelector(true)}
+                    icon="account"
+                    style={styles.matchButton}
+                    textColor={theme.colors.secondary}>
+                    Select Match
+                  </Button>
+                )}
+              </View>
+              <MatchSelectorModal
+                visible={showMatchSelector}
+                onDismiss={() => setShowMatchSelector(false)}
                 matches={matches}
                 selectedMatch={selectedMatch}
-                onSelectMatch={setSelectedMatch}
-                onAddMatch={() => setShowAddMatchModal(true)}
+                onSelectMatch={handleMatchSelect}
+                onAddMatch={() => {
+                  setShowMatchSelector(false);
+                  setShowAddMatchModal(true);
+                }}
                 onDeleteMatch={handleDeleteMatch}
-                userPlan={user?.plan}
+                onHideMatch={handleHideMatch}
+                onRestoreMatch={handleRestoreMatch}
+                userPlan={user?.plan || SubscriptionTier.FREE}
               />
             </View>
           )}
@@ -275,29 +432,35 @@ const ResponseGenerator: React.FC = () => {
             userPlan={user?.plan}
           />
 
-          {/* Prompt Input */}
-          <View style={styles.promptSection}>
-            <Text variant="titleMedium" style={{color: theme.colors.secondary}}>
-              Enter your prompt (optional)
-            </Text>
-            <TextInput
-              value={prompt}
-              onChangeText={setPrompt}
-              multiline
-              numberOfLines={4}
-              style={[styles.promptInput]}
-              testID="prompt-input"
-              placeholder="e.g. 'Make it flirty and playful, but keep it classy' or 'I want to say something about her hat - it's a cute red beanie and she looks really stylish in it. Maybe something about how it matches her personality?'"
-              placeholderTextColor={theme.colors.secondary}
-              textAlignVertical="top"
-              cursorColor={theme.colors.background}
-              selectionColor={theme.colors.background}
-              textColor={theme.colors.background}
-              underlineColor="transparent"
-              activeUnderlineColor="transparent"
-            />
-          </View>
+          {/* Notes Display - Only show when dating coach is enabled and notes exist */}
+          {isDatingCoachEnabled && prompt && (
+            <View style={styles.notesSection}>
+              <View style={styles.notesContent}>
+                <Text variant="bodyMedium" style={styles.notesText}>
+                  {prompt}
+                </Text>
+                <IconButton
+                  icon="pencil"
+                  size={20}
+                  onPress={() => setShowPromptModal(true)}
+                  style={styles.editButton}
+                />
+              </View>
+            </View>
+          )}
         </ScrollView>
+
+        {/* Add Notes Button - Only show when dating coach is enabled and no notes exist */}
+        {isDatingCoachEnabled && !prompt && (
+          <Button
+            mode="outlined"
+            onPress={() => setShowPromptModal(true)}
+            icon="note-text"
+            style={styles.addNotesButton}
+            textColor={theme.colors.secondary}>
+            Add Notes
+          </Button>
+        )}
 
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
@@ -305,7 +468,7 @@ const ResponseGenerator: React.FC = () => {
             mode="contained"
             onPress={handleSubmit}
             loading={loading}
-            disabled={loading || images.length === 0}
+            disabled={loading || (images.length === 0 && !prompt.trim())}
             style={styles.generateButton}
             testID="submit-button">
             Generate Response
@@ -318,6 +481,15 @@ const ResponseGenerator: React.FC = () => {
         visible={showAddMatchModal}
         onDismiss={() => setShowAddMatchModal(false)}
         onAdd={handleAddMatch}
+      />
+
+      <PromptModal
+        visible={showPromptModal}
+        onDismiss={() => setShowPromptModal(false)}
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        onGenerateResponse={handleGenerateNew}
+        loading={loading}
       />
 
       <UpgradeModal
@@ -340,6 +512,9 @@ const ResponseGenerator: React.FC = () => {
         onModifyResponse={handleModifyResponse}
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
+        hasScreenshots={images.length > 0}
+        isDatingCoachEnabled={isDatingCoachEnabled}
+        onRegenerate={handleGenerateNew}
       />
 
       <MessagePackModal
@@ -366,7 +541,7 @@ const ResponseGenerator: React.FC = () => {
       </Snackbar>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -385,6 +560,7 @@ const styles = StyleSheet.create({
   matchSection: {
     paddingBottom: 16,
     marginBottom: 8,
+    marginTop: 16,
   },
   promptSection: {
     paddingVertical: 8,
@@ -402,11 +578,80 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingHorizontal: 16,
+    gap: 8,
   },
   generateButton: {
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
+  },
+  selectedMatchContainer: {
+    marginBottom: 16,
+  },
+  selectedMatchInfo: {
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  selectedMatchName: {
+    color: theme.colors.onSurface,
+    fontWeight: 'bold',
+  },
+  selectedMatchPlatform: {
+    color: theme.colors.onSurfaceVariant,
+    textTransform: 'capitalize',
+  },
+  matchButton: {
+    marginBottom: 8,
+    borderColor: theme.colors.secondary,
+  },
+  selectedMatchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  matchActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    margin: 0,
+  },
+  datingCoachToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginTop: 16,
+  },
+  datingCoachLabel: {
+    color: theme.colors.secondary,
+  },
+  notesSection: {
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+  },
+  notesContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  notesText: {
+    color: theme.colors.onSurface,
+    flex: 1,
+    marginRight: 8,
+  },
+  editButton: {
+    margin: 0,
+  },
+  addNotesButton: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderColor: theme.colors.secondary,
   },
 });
 

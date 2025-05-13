@@ -1,24 +1,22 @@
-export enum MessageStyle {
-  FLIRTY = 'flirty',
-  SMOOTH = 'smooth',
-  FUNNY = 'funny',
-}
+import {
+  GenerateReplyRequest as BackendGenerateReplyRequest,
+  GenerateReplyResponse as BackendGenerateReplyResponse,
+} from '../../backend/src/types';
 
 export interface MessageLimit {
   dailyMessagesUsed: number;
   extraMessages: number;
 }
 
-export interface GenerateReplyRequest {
-  prompt: string;
-  images: string[];
-  userId: string;
-  matchId: string;
+// Extend the backend request type for frontend-specific needs
+export interface GenerateReplyRequest
+  extends Omit<BackendGenerateReplyRequest, 'matchId'> {
+  matchId?: string; // Make matchId optional in frontend
 }
 
-export interface GenerateReplyResponse {
-  reply: string;
-  error?: string;
-  type?: string;
-  limits?: MessageLimit;
+// Extend the backend response type for frontend-specific needs
+export interface GenerateReplyResponse
+  extends Omit<BackendGenerateReplyResponse, 'type'> {
+  type?: string; // Keep as string in frontend for backward compatibility
+  limits?: MessageLimit; // Add frontend-specific limits
 }
