@@ -7,7 +7,8 @@ import logger from '../utils/logger';
 import {Database, Match, MessageCost, User} from './types';
 
 export const createSqliteDatabase = async (): Promise<Database> => {
-  const dbPath = path.join(process.cwd(), 'data', 'charmr.db');
+  const dbPath =
+    process.env.DB_PATH || path.join(process.cwd(), 'data', 'charmr.db');
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database,

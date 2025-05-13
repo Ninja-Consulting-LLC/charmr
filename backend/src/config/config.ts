@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// TEMP: Print all environment variables for debugging
+console.log('ALL ENV:', process.env);
+
 export const config = {
   server: {
     port: process.env.PORT || 3001,

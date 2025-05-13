@@ -40,11 +40,7 @@ export const createApp = async () => {
 
   // Health check endpoint
   app.get('/health', (req, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: config.server.environment,
-    });
+    res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
   });
 
   // Rate limiting

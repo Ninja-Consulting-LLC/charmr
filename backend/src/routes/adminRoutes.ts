@@ -10,6 +10,7 @@ import {
   getUserMessages,
   getUsers,
   linkAnonymousUser,
+  resetDb,
   resetUserMessageLimit,
   updateUserPlan,
 } from '../controllers/adminController';
@@ -49,6 +50,7 @@ const createAdminRouter = (db: Database) => {
 
   // Database management
   router.post('/clear-database', (req, res) => clearDatabase(req, res, db));
+  router.post('/reset-db', (req, res) => resetDb(req, res, db));
 
   return router;
 };

@@ -729,3 +729,21 @@ export const updateUser = async (req: Request, res: Response, db: Database) => {
     res.status(500).json({error: 'Failed to update user'});
   }
 };
+
+export const resetDb = async (req: Request, res: Response, db: Database) => {
+  try {
+    // Delete all messages and related data
+    await db.run('DELETE FROM message_costs');
+    await db.run('DELETE FROM messages');
+    await db.run('DELETE FROM matches');
+
+    logger.info('Database reset completed successfully');
+    res.status(200).json({message: 'Database reset completed successfully'});
+  } catch (error) {
+    logger.error('Error resetting database:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to reset database'});
+  }
+};
