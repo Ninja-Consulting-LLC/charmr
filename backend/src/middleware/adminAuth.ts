@@ -2,6 +2,10 @@ import {NextFunction, Request, Response} from 'express';
 import {config} from '../config/config';
 
 export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
+  // TEMP: Log admin token and Authorization header for debugging
+  console.log('ADMIN TOKEN (from env):', process.env.ADMIN_TOKEN);
+  console.log('Authorization header:', req.headers.authorization);
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
