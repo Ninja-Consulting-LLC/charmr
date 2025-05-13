@@ -1,5 +1,6 @@
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
+import {ErrorType, MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -195,21 +196,19 @@ export const createSandboxService = () => {
         reply,
         summary,
         usage: mockResponse.usage,
-        mode: request.mode || 'generate',
+        mode: request.mode || MessageMode.GENERATE,
         style: request.style,
       };
     } catch (error) {
       logger.error('Sandbox service error', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        type: error instanceof Error ? error.name : 'unknown',
-        stack: error instanceof Error ? error.stack : undefined,
       });
 
       return {
         reply: '',
         error: 'Failed to generate reply',
-        type: 'GENERATION_ERROR',
-        mode: request.mode || 'generate',
+        type: ErrorType.GENERATION_ERROR,
+        mode: request.mode || MessageMode.GENERATE,
         style: request.style,
       };
     }
