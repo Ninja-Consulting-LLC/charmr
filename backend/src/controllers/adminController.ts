@@ -219,21 +219,6 @@ export const updateUserPlan = async (
   }
 };
 
-export const clearDatabase = async (
-  req: Request,
-  res: Response,
-  db: Database,
-) => {
-  try {
-    await db.clearDatabase();
-    logger.info('Database cleared by admin');
-    res.json({message: 'Database cleared successfully'});
-  } catch (error) {
-    logger.error('Error clearing database:', {error});
-    res.status(500).json({error: 'Failed to clear database'});
-  }
-};
-
 export const getUser = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
@@ -732,11 +717,7 @@ export const updateUser = async (req: Request, res: Response, db: Database) => {
 
 export const resetDb = async (req: Request, res: Response, db: Database) => {
   try {
-    // Delete all messages and related data
-    await db.run('DELETE FROM message_costs');
-    await db.run('DELETE FROM messages');
-    await db.run('DELETE FROM matches');
-
+    await db.clearDatabase();
     logger.info('Database reset completed successfully');
     res.status(200).json({message: 'Database reset completed successfully'});
   } catch (error) {

@@ -6,7 +6,7 @@ import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
 import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
-import {clearDatabase, generateReply, testContext} from '../services/api';
+import {generateReply, resetDb, testContext} from '../services/api';
 import {simulateProEntitlement} from '../services/revenueCatService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
@@ -282,12 +282,12 @@ const DevMenu = () => {
     }
   };
 
-  const handleClearDatabase = async () => {
+  const handleResetDb = async () => {
     try {
-      await clearDatabase();
-      Alert.alert('Development', 'Database cleared successfully');
+      await resetDb();
+      Alert.alert('Development', 'Database reset successfully');
     } catch (error) {
-      Alert.alert('Development Error', 'Failed to clear database');
+      Alert.alert('Development Error', 'Failed to reset database');
     }
   };
 
@@ -455,9 +455,9 @@ const DevMenu = () => {
                 </Text>
                 <Button
                   mode="contained"
-                  onPress={handleClearDatabase}
+                  onPress={handleResetDb}
                   style={styles.button}>
-                  Clear Database
+                  Reset DB
                 </Button>
               </View>
 
