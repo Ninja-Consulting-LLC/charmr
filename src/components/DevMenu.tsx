@@ -3,6 +3,7 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
 import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
+import Config from 'react-native-config';
 import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
@@ -215,7 +216,7 @@ const DevMenu = () => {
         {
           method: 'POST',
           headers: {
-            Authorization: 'Bearer dev-admin-token',
+            Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
             'X-Auth-Bypass': 'true',
           },
         },
@@ -233,7 +234,7 @@ const DevMenu = () => {
         `${config.apiBaseUrl}/api/users/${userId}`,
         {
           headers: {
-            Authorization: 'Bearer dev-admin-token',
+            Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
             'X-Auth-Bypass': 'true',
           },
         },
