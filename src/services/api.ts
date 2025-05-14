@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import Config from 'react-native-config';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
 import {UserData} from '../types/user';
@@ -199,7 +200,7 @@ export const resetDb = async () => {
       {},
       {
         headers: {
-          Authorization: 'Bearer dev-admin-token',
+          Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
         },
       },
     );

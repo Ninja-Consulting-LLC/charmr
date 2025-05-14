@@ -31,7 +31,7 @@ export const config = {
     },
   },
   admin: {
-    token: process.env.ADMIN_TOKEN || 'dev-admin-token',
+    token: process.env.ADMIN_TOKEN,
   },
   email: {
     host: process.env.EMAIL_HOST || 'mailhog',
