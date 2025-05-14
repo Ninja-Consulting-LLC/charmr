@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import {config} from '../config/config';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
@@ -283,17 +284,32 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       logger.app.info('Creating Anonymous User', {
         event: 'create_anonymous_user_start',
         installationId,
+        apiBaseUrl: config.apiBaseUrl,
       });
       const newUserId = `user-${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
 
       // Create user first
+      logger.app.debug('Attempting to create user with data:', {
+        id: newUserId,
+        email: `${newUserId}@example.com`,
+        name: `User ${newUserId}`,
+        installationId,
+      });
+
       const newUser = await userService.createUser({
         id: newUserId,
         email: `${newUserId}@example.com`,
         name: `User ${newUserId}`,
         installationId,
+      });
+
+      logger.app.info('User created successfully', {
+        event: 'create_anonymous_user_success',
+        newUserId,
+        installationId,
+        userData: newUser,
       });
 
       // Only update state after user is created

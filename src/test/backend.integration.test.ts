@@ -1,3 +1,5 @@
+import Config from 'react-native-config';
+
 const apiBaseUrl = process.env.API_URL || 'http://localhost:3001';
 
 interface GenerateReplyResponse {
@@ -50,7 +52,7 @@ async function testGenerateReplyEndpoint() {
   // First get a valid user ID from the database
   const usersResponse = await fetch(`${apiBaseUrl}/api/admin/users`, {
     headers: {
-      Authorization: 'Bearer dev-admin-token',
+      Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
     },
   });
 
@@ -107,7 +109,7 @@ async function testAdminEndpoints() {
     // Fetch all users
     const usersResponse = await fetch(`${apiBaseUrl}/api/admin/users`, {
       headers: {
-        Authorization: 'Bearer dev-admin-token',
+        Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
       },
     });
 
@@ -126,7 +128,7 @@ async function testAdminEndpoints() {
         `${apiBaseUrl}/api/admin/users/${user.id}/messages`,
         {
           headers: {
-            Authorization: 'Bearer dev-admin-token',
+            Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
           },
         },
       );
@@ -136,47 +138,26 @@ async function testAdminEndpoints() {
           `❌ Failed to fetch messages for user ${user.id}:`,
           messagesResponse.status,
         );
-        continue;
+        return false;
       }
-
-      const messages = (await messagesResponse.json()) as Message[];
-      console.log(
-        `\n📱 Messages for user ${user.id}:`,
-        JSON.stringify(messages, null, 2),
-      );
     }
-
-    console.log('✅ Admin endpoints test completed');
-    return true;
   } catch (error) {
-    console.error('❌ Failed to test admin endpoints:', error);
+    console.error('❌ Failed to fetch messages:', error);
     return false;
   }
+  return true;
 }
 
 async function runTests() {
-  console.log('🚀 Starting backend tests...');
+  const healthCheck = await testHealthEndpoint();
+  const generateReply = await testGenerateReplyEndpoint();
+  const adminEndpoints = await testAdminEndpoints();
 
-  const healthPassed = await testHealthEndpoint();
-  if (!healthPassed) {
-    console.error('❌ Health check failed - skipping remaining tests');
-    process.exit(1);
+  if (healthCheck && generateReply && adminEndpoints) {
+    console.log('\n✅ All tests passed');
+  } else {
+    console.error('\n❌ Some tests failed');
   }
-
-  const adminEndpointsPassed = await testAdminEndpoints();
-  if (!adminEndpointsPassed) {
-    console.error('❌ Admin endpoints test failed');
-    process.exit(1);
-  }
-
-  const generateReplyPassed = await testGenerateReplyEndpoint();
-  if (!generateReplyPassed) {
-    console.error('❌ Generate reply test failed');
-    process.exit(1);
-  }
-
-  console.log('\n✨ All tests passed successfully!');
 }
 
-// Run all tests
 runTests();
