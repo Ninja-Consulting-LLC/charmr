@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {Request, Response} from 'express';
+import {config} from '../config/config';
 import {
   createUser,
   getUser,
@@ -12,6 +13,25 @@ import {
 import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
 import {SubscriptionTier} from '../types/enums';
+
+// Use the token from config which reads from environment
+// Only use a test token fallback in test mode
+const getAdminToken = () => {
+  // Use the admin token from config if available
+  if (config.admin.token) {
+    return config.admin.token;
+  }
+
+  // In test mode, we can use a placeholder
+  if (process.env.NODE_ENV === 'test') {
+    console.warn('Warning: Using test admin token. Do not use in production.');
+    return 'test-admin-token';
+  }
+
+  throw new Error('ADMIN_TOKEN environment variable is required');
+};
+
+const adminToken = getAdminToken();
 
 describe('Admin Domain', () => {
   let db: any;
@@ -34,7 +54,7 @@ describe('Admin Domain', () => {
       params: {userId: 'test-user-123'},
       body: {name: 'Test User', email: 'test@example.com'},
       headers: {
-        authorization: 'Bearer dev-admin-token',
+        authorization: `Bearer ${adminToken}`,
       },
       cookies: {},
     };
@@ -60,7 +80,7 @@ describe('Admin Domain', () => {
         installationId: 'test-installation-123',
       },
       headers: {
-        authorization: 'Bearer dev-admin-token',
+        authorization: `Bearer ${adminToken}`,
       },
       cookies: {},
     };
