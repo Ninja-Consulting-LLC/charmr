@@ -11,6 +11,7 @@ import {
   linkAnonymousUser,
   resetDb,
   resetUserMessageLimit,
+  testContext,
   updateUserPlan,
 } from '../controllers/adminController';
 import {Database} from '../db/types';
@@ -49,6 +50,7 @@ const createAdminRouter = (db: Database) => {
 
   // Database management
   router.post('/reset-db', (req, res) => resetDb(req, res, db));
+  router.post('/test-context', (req, res) => testContext(req, res, db));
 
   return router;
 };

@@ -11,7 +11,10 @@ if (!userId) {
 const fetchUserInfo = async () => {
   try {
     const response = await fetch(
-      `http://localhost:${config.server.port}/api/admin/users/${userId}/info`,
+      `${config.server.apiBaseUrl.replace(
+        /\/$/,
+        '',
+      )}/api/admin/users/${userId}/info`,
       {
         headers: {
           Authorization: `Bearer ${config.admin.token}`,

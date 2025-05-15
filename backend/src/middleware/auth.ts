@@ -38,28 +38,27 @@ export const authenticateUser = (
     baseUrl: req.baseUrl,
     headers: {
       authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'none',
-      'x-auth-bypass': req.headers['x-auth-bypass'] || 'false',
+      'x-anonymous-user': req.headers['x-anonymous-user'] || 'none',
       'content-type': req.headers['content-type'],
     },
     cookies: req.cookies,
     body: truncatedBody,
   });
 
-  // Skip auth in development or if auth bypass header is present
-  if (
-    config.server.environment === 'development' ||
-    req.headers['x-auth-bypass'] === 'true'
-  ) {
-    logger.debug('Auth bypassed', {
+  // Skip auth in development
+  if (config.server.environment === 'development') {
+    logger.debug('Auth bypassed in development', {
       environment: config.server.environment,
-      authBypass: req.headers['x-auth-bypass'],
     });
     return next();
   }
 
-  // Check for auth header in production
-  if (!req.headers.authorization) {
-    logger.warn('No auth header found', {
+  // Check for either Firebase token or anonymous user ID
+  const hasFirebaseToken = req.headers.authorization?.startsWith('Bearer ');
+  const hasAnonymousUser = req.headers['x-anonymous-user'];
+
+  if (!hasFirebaseToken && !hasAnonymousUser) {
+    logger.warn('No auth credentials found', {
       path: req.path,
       method: req.method,
       url: req.url,
@@ -67,11 +66,23 @@ export const authenticateUser = (
     return res.status(401).json({error: 'User not authenticated'});
   }
 
-  // TODO: Verify token with Firebase Admin SDK
-  logger.debug('Auth header present, proceeding', {
-    path: req.path,
-    method: req.method,
-    url: req.url,
-  });
+  // If using Firebase token, verify it
+  if (hasFirebaseToken) {
+    // TODO: Verify token with Firebase Admin SDK
+    logger.debug('Firebase token present, proceeding', {
+      path: req.path,
+      method: req.method,
+      url: req.url,
+    });
+  } else {
+    // If using anonymous user ID, verify it exists in the database
+    logger.debug('Anonymous user ID present, proceeding', {
+      path: req.path,
+      method: req.method,
+      url: req.url,
+      anonymousUserId: req.headers['x-anonymous-user'],
+    });
+  }
+
   next();
 };

@@ -728,3 +728,109 @@ export const resetDb = async (req: Request, res: Response, db: Database) => {
     res.status(500).json({error: 'Failed to reset database'});
   }
 };
+
+export const testContext = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    // Create a test user if it doesn't exist
+    const testUserId = 'test-context-user';
+    let user = await db.getUser(testUserId);
+
+    if (!user) {
+      await db.run(
+        'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          testUserId,
+          'test@example.com',
+          'Test Context User',
+          'FREE',
+          0,
+          0,
+          new Date().toISOString().split('T')[0],
+        ],
+      );
+    }
+
+    // Create a test match if it doesn't exist
+    const testMatchId = 'test-context-match';
+    let match = await db.getMatchById(testMatchId);
+
+    if (!match) {
+      await db.run(
+        'INSERT INTO matches (id, userId, name, platform, lastUsed, hidden, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          testMatchId,
+          testUserId,
+          'Test Context Match',
+          'tinder',
+          new Date().toISOString(),
+          false,
+          new Date().toISOString(),
+          new Date().toISOString(),
+        ],
+      );
+    }
+
+    // Add some test messages to establish context
+    const messages = [
+      {
+        role: 'user',
+        content: 'Hello, how are you?',
+      },
+      {
+        role: 'assistant',
+        content: "Hi! I'm doing great, thanks for asking. How about you?",
+      },
+      {
+        role: 'user',
+        content: "I'm good too! What do you like to do for fun?",
+      },
+      {
+        role: 'assistant',
+        content:
+          'I enjoy hiking, reading, and trying new restaurants. What about you?',
+      },
+    ];
+
+    for (const message of messages) {
+      await db.run(
+        'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
+        [
+          testUserId,
+          testMatchId,
+          message.role,
+          message.content,
+          new Date().toISOString(),
+        ],
+      );
+    }
+
+    // Get the conversation history to verify context
+    const conversationHistory = await db.getConversationHistory(
+      testUserId,
+      testMatchId,
+    );
+
+    logger.info('Test context setup completed', {
+      userId: testUserId,
+      matchId: testMatchId,
+      messageCount: conversationHistory.length,
+    });
+
+    res.status(200).json({
+      message: 'Test context setup completed successfully',
+      userId: testUserId,
+      matchId: testMatchId,
+      messageCount: conversationHistory.length,
+    });
+  } catch (error) {
+    logger.error('Error setting up test context:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to set up test context'});
+  }
+};
