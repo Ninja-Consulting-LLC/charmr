@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import axios from 'axios';
 import React, {
   forwardRef,
   useEffect,
@@ -18,6 +19,7 @@ import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
 import {
   addMatch,
   deleteMatch,
@@ -52,13 +54,6 @@ interface CameraRollAsset {
 
 interface CameraRollResponse {
   edges: CameraRollAsset[];
-}
-
-interface PickerImage {
-  path: string;
-  localIdentifier?: string;
-  id?: string;
-  mime?: string;
 }
 
 interface SelectedImage {
@@ -223,17 +218,19 @@ const ResponseGenerator = forwardRef<
 
   const convertToBase64 = async (path: string): Promise<string> => {
     try {
-      const response = await fetch(path);
-      const blob = await response.blob();
+      // We use direct axios for local file operations
+      const response = await axios.get(path, {
+        responseType: 'blob',
+      });
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsDataURL(blob);
+        reader.readAsDataURL(response.data);
       });
     } catch (error) {
-      console.error('Error converting to base64:', error);
-      throw error;
+      logger.app.error('Error converting image to base64:', error);
+      throw new Error('Failed to convert image. Please try again.');
     }
   };
 
