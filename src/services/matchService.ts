@@ -1,154 +1,229 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {API_BASE_URL} from '../config';
+import installations from '@react-native-firebase/installations';
+import {config} from '../config/config';
+import {getAuthToken} from '../config/firebase';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
+import axiosInstance from './axiosInstance';
 
 const getUserId = async () => {
-  const userId = await AsyncStorage.getItem('userId');
-  if (!userId) {
-    throw new Error('User not authenticated');
+  try {
+    // Try to get Firebase token first
+    const token = await getAuthToken();
+    return token;
+  } catch (error) {
+    // If Firebase auth fails, use installation ID
+    const installationId = await installations().getId();
+    return installationId;
   }
-  return userId;
 };
 
-export const matchService = {
-  async getMatches(includeHidden: boolean = false): Promise<Match[]> {
+// Helper to log request details
+const logRequest = (method: string, url: string, body: any = null) => {
+  logger.match.debug(`API Request: ${method} ${url}`, {
+    method,
+    url,
+    body,
+    apiBaseUrl: config.apiBaseUrl,
+  });
+};
+
+// Helper to get auth headers
+const getAuthHeaders = async () => {
+  try {
+    // Try to get Firebase token first
+    const token = await getAuthToken();
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  } catch (error) {
+    // If Firebase auth fails, use anonymous user ID
     const userId = await getUserId();
-    logger.match.debug('Getting matches', {userId, includeHidden});
+    return {
+      'X-Anonymous-User': userId,
+    };
+  }
+};
 
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches?includeHidden=${includeHidden}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      },
-    );
-
-    if (!response.ok) {
-      const errorData = {
-        status: response.status,
-        statusText: response.statusText,
-      };
-      logger.match.error('Failed to fetch matches', errorData);
-      throw new Error('Failed to fetch matches');
+export const getMatches = async (includeHidden = false): Promise<Match[]> => {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      logger.match.error('No user ID found when getting matches');
+      return [];
     }
 
-    const matches = await response.json();
-    logger.match.debug('Received matches', {count: matches.length});
-    return matches;
-  },
+    logger.match.debug('Getting matches', {
+      userId,
+      includeHidden,
+    });
 
-  async addMatch(name: string, platform: string): Promise<Match> {
+    const response = await axiosInstance.get(`/users/${userId}/matches`, {
+      params: {includeHidden},
+    });
+
+    return response.data;
+  } catch (error: any) {
+    // Only treat 404 as an error if it's a user not found error
+    if (
+      error.response?.status === 404 &&
+      error.response?.data?.error === 'User not found'
+    ) {
+      logger.match.error('User not found when getting matches', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+      });
+      throw new Error('User not found');
+    }
+
+    // For any other error, log it and throw
+    logger.match.error('Failed to fetch matches', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+    });
+    throw new Error('Failed to fetch matches');
+  }
+};
+
+export const addMatch = async (
+  name: string,
+  platform: string,
+): Promise<Match | null> => {
+  try {
     const userId = await getUserId();
-    const url = `${API_BASE_URL}/users/${userId}/matches`;
-    logger.match.debug('Adding match', {
+    if (!userId) {
+      logger.match.error('No user ID found when adding match');
+      return null;
+    }
+
+    logger.match.debug('Adding match', {name, platform});
+    const response = await axiosInstance.post(`/users/${userId}/matches`, {
       name,
       platform,
-      userId,
-      url,
-      apiBaseUrl: API_BASE_URL,
     });
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({name, platform}),
+    logger.match.debug('Added match', {match: response.data});
+    return response.data;
+  } catch (error) {
+    logger.match.error('Error adding match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
     });
+    return null;
+  }
+};
 
-    if (!response.ok) {
-      const errorData = {
-        status: response.status,
-        statusText: response.statusText,
-        name,
-        platform,
-        url,
-        apiBaseUrl: API_BASE_URL,
-      };
-      logger.match.error('Failed to add match', errorData);
-      throw new Error('Failed to add match');
+export const deleteMatch = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      logger.match.error('No user ID found when deleting match');
+      return false;
     }
 
-    const match = await response.json();
-    logger.match.debug('Added match', {match});
-    return match;
-  },
-
-  async deleteMatch(name: string, platform: string): Promise<void> {
-    const userId = await getUserId();
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/matches`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({name, platform}),
+    logger.match.debug('Deleting match', {name, platform});
+    await axiosInstance.delete(`/users/${userId}/matches`, {
+      data: {name, platform},
     });
+    logger.match.debug('Deleted match', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error deleting match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
+};
 
-    if (!response.ok) {
-      throw new Error('Failed to delete match');
-    }
-  },
-
-  async hideMatch(name: string, platform: string): Promise<void> {
+export const hideMatch = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
     const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/hide`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to hide match');
+    if (!userId) {
+      logger.match.error('No user ID found when hiding match');
+      return false;
     }
-  },
 
-  async restoreMatch(name: string, platform: string): Promise<void> {
+    logger.match.debug('Hiding match', {name, platform});
+    await axiosInstance.put(`/users/${userId}/matches/hide`, {
+      name,
+      platform,
+    });
+    logger.match.debug('Hidden match', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error hiding match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
+};
+
+export const restoreMatch = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
     const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/restore`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to restore match');
+    if (!userId) {
+      logger.match.error('No user ID found when restoring match');
+      return false;
     }
-  },
 
-  async updateMatchLastUsed(name: string, platform: string): Promise<void> {
+    logger.match.debug('Restoring match', {name, platform});
+    await axiosInstance.put(`/users/${userId}/matches/restore`, {
+      name,
+      platform,
+    });
+    logger.match.debug('Restored match', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error restoring match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
+};
+
+export const updateMatchLastUsed = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
     const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/last-used`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to update match last used');
+    if (!userId) {
+      logger.match.error('No user ID found when updating match last used');
+      return false;
     }
-  },
+
+    logger.match.debug('Updating match last used', {name, platform});
+    await axiosInstance.put(`/users/${userId}/matches/last-used`, {
+      name,
+      platform,
+    });
+    logger.match.debug('Updated match last used', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error updating match last used', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
 };
