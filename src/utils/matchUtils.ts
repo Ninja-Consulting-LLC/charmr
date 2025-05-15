@@ -1,19 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import {config} from '../config/config';
-import {matchService} from '../services/matchService';
+import axiosInstance from '../services/axiosInstance';
 import {logger} from './logger';
 
 export interface Match {
-  id: number;
-  userId: string;
+  id: string;
   name: string;
   platform: string;
-  lastUsed: string | null;
-  hidden: boolean;
-  createdAt: string;
-  updatedAt: string;
+  lastUsed?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+export const getMatchKey = (match: Match): string => {
+  return `${match.platform}::${match.name}`;
+};
 
 export const getMatches = async (includeHidden = false): Promise<Match[]> => {
   try {
@@ -28,15 +28,9 @@ export const getMatches = async (includeHidden = false): Promise<Match[]> => {
       includeHidden,
     });
 
-    const response = await axios.get(
-      `${config.apiBaseUrl}/api/users/${userId}/matches`,
-      {
-        params: {includeHidden},
-        headers: {
-          'X-Auth-Bypass': 'true', // For development only
-        },
-      },
-    );
+    const response = await axiosInstance.get(`/users/${userId}/matches`, {
+      params: {includeHidden},
+    });
 
     return response.data;
   } catch (error: any) {
@@ -61,15 +55,24 @@ export const getMatches = async (includeHidden = false): Promise<Match[]> => {
   }
 };
 
-export async function addMatch(
+export const addMatch = async (
   name: string,
   platform: string,
-): Promise<Match | null> {
+): Promise<Match | null> => {
   try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.error('No user ID found when adding match');
+      return null;
+    }
+
     logger.match.debug('Adding match', {name, platform});
-    const match = await matchService.addMatch(name, platform);
-    logger.match.debug('Added match', {match});
-    return match;
+    const response = await axiosInstance.post(`/users/${userId}/matches`, {
+      name,
+      platform,
+    });
+    logger.match.debug('Added match', {match: response.data});
+    return response.data;
   } catch (error) {
     logger.match.error('Error adding match', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -79,15 +82,23 @@ export async function addMatch(
     });
     return null;
   }
-}
+};
 
-export async function deleteMatch(
+export const deleteMatch = async (
   name: string,
   platform: string,
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.error('No user ID found when deleting match');
+      return false;
+    }
+
     logger.match.debug('Deleting match', {name, platform});
-    await matchService.deleteMatch(name, platform);
+    await axiosInstance.delete(`/users/${userId}/matches`, {
+      data: {name, platform},
+    });
     logger.match.debug('Deleted match', {name, platform});
     return true;
   } catch (error) {
@@ -99,15 +110,24 @@ export async function deleteMatch(
     });
     return false;
   }
-}
+};
 
-export async function hideMatch(
+export const hideMatch = async (
   name: string,
   platform: string,
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.error('No user ID found when hiding match');
+      return false;
+    }
+
     logger.match.debug('Hiding match', {name, platform});
-    await matchService.hideMatch(name, platform);
+    await axiosInstance.put(`/users/${userId}/matches/hide`, {
+      name,
+      platform,
+    });
     logger.match.debug('Hidden match', {name, platform});
     return true;
   } catch (error) {
@@ -119,15 +139,24 @@ export async function hideMatch(
     });
     return false;
   }
-}
+};
 
-export async function restoreMatch(
+export const restoreMatch = async (
   name: string,
   platform: string,
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.error('No user ID found when restoring match');
+      return false;
+    }
+
     logger.match.debug('Restoring match', {name, platform});
-    await matchService.restoreMatch(name, platform);
+    await axiosInstance.put(`/users/${userId}/matches/restore`, {
+      name,
+      platform,
+    });
     logger.match.debug('Restored match', {name, platform});
     return true;
   } catch (error) {
@@ -139,15 +168,24 @@ export async function restoreMatch(
     });
     return false;
   }
-}
+};
 
-export async function updateMatchLastUsed(
+export const updateMatchLastUsed = async (
   name: string,
   platform: string,
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) {
+      logger.match.error('No user ID found when updating match last used');
+      return false;
+    }
+
     logger.match.debug('Updating match last used', {name, platform});
-    await matchService.updateMatchLastUsed(name, platform);
+    await axiosInstance.put(`/users/${userId}/matches/last-used`, {
+      name,
+      platform,
+    });
     logger.match.debug('Updated match last used', {name, platform});
     return true;
   } catch (error) {
@@ -159,8 +197,4 @@ export async function updateMatchLastUsed(
     });
     return false;
   }
-}
-
-export function generateMatchId(match: Match): string {
-  return `${match.platform}::${match.name}`;
-}
+};
