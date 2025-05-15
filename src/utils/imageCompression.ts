@@ -1,4 +1,6 @@
 import ImageResizer from '@bam.tech/react-native-image-resizer';
+import axios from 'axios';
+import {logger} from './logger';
 
 export interface CompressedImage {
   uri: string;
@@ -29,9 +31,11 @@ export const compressImage = async (
       {mode: 'contain', onlyScaleDown: true},
     );
 
+    // We use direct axios for local file operations
     // Convert to base64
-    const response = await fetch(resizedImage.uri);
-    const blob = await response.blob();
+    const response = await axios.get(resizedImage.uri, {
+      responseType: 'blob',
+    });
 
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -44,10 +48,10 @@ export const compressImage = async (
         });
       };
       reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(response.data);
     });
   } catch (error) {
-    console.error('Error compressing image:', error);
+    logger.app.error('Error compressing image:', error);
     throw error;
   }
 };
@@ -64,7 +68,7 @@ export const compressImages = async (
     const compressionPromises = imageUris.map(uri => compressImage(uri));
     return await Promise.all(compressionPromises);
   } catch (error) {
-    console.error('Error compressing multiple images:', error);
+    logger.app.error('Error compressing multiple images:', error);
     throw error;
   }
 };
