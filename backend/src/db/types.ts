@@ -49,6 +49,16 @@ export interface Match {
   updatedAt: string;
 }
 
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'closed' | 'pending';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
@@ -133,4 +143,24 @@ export interface Database {
     name: string,
     platform: string,
   ) => Promise<void>;
+  getConversationHistory: (
+    userId: string,
+    matchId: string,
+  ) => Promise<
+    Array<{
+      role: string;
+      content: string;
+      timestamp: string;
+    }>
+  >;
+
+  // Support methods
+  support: {
+    createTicket: (ticket: Omit<SupportTicket, 'id'>) => Promise<SupportTicket>;
+    getTicketsByUserId: (userId: string) => Promise<SupportTicket[]>;
+    updateTicketStatus: (
+      ticketId: string,
+      status: SupportTicket['status'],
+    ) => Promise<void>;
+  };
 }
