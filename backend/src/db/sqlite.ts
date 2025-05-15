@@ -4,7 +4,7 @@ import sqlite3 from 'sqlite3';
 import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
-import {Database, Match, MessageCost, User} from './types';
+import {Database, Match, MessageCost, SupportTicket, User} from './types';
 
 export const createSqliteDatabase = async (): Promise<Database> => {
   const dbPath =
@@ -674,6 +674,99 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         });
         throw error;
       }
+    },
+
+    getConversationHistory: async (
+      userId: string,
+      matchId: string,
+    ): Promise<
+      Array<{
+        role: string;
+        content: string;
+        timestamp: string;
+      }>
+    > => {
+      try {
+        const messages = await db.all(
+          'SELECT role, content, timestamp FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
+          [userId, matchId],
+        );
+        return messages;
+      } catch (error) {
+        logger.error('Failed to get conversation history', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    support: {
+      createTicket: async (
+        ticket: Omit<SupportTicket, 'id'>,
+      ): Promise<SupportTicket> => {
+        try {
+          const result = await db.run(
+            'INSERT INTO support_tickets (userId, subject, message, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+              ticket.userId,
+              ticket.subject,
+              ticket.message,
+              ticket.status,
+              ticket.createdAt.toISOString(),
+              ticket.updatedAt.toISOString(),
+            ],
+          );
+
+          const insertedTicket = await db.get(
+            'SELECT * FROM support_tickets WHERE id = ?',
+            [result.lastID],
+          );
+
+          return insertedTicket;
+        } catch (error) {
+          logger.error('Failed to create support ticket', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
+
+      getTicketsByUserId: async (userId: string): Promise<SupportTicket[]> => {
+        try {
+          const tickets = await db.all(
+            'SELECT * FROM support_tickets WHERE userId = ? ORDER BY createdAt DESC',
+            [userId],
+          );
+          return tickets;
+        } catch (error) {
+          logger.error('Failed to get tickets by user ID', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
+
+      updateTicketStatus: async (
+        ticketId: string,
+        status: SupportTicket['status'],
+      ): Promise<void> => {
+        try {
+          const now = new Date().toISOString();
+          await db.run(
+            'UPDATE support_tickets SET status = ?, updatedAt = ? WHERE id = ?',
+            [status, now, ticketId],
+          );
+        } catch (error) {
+          logger.error('Failed to update ticket status', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
     },
   };
 };

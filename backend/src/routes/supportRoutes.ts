@@ -1,5 +1,6 @@
 import express from 'express';
-import {submitSupportRequest} from '../controllers/supportController';
+import {createSupportTicket} from '../controllers/supportController';
+import {getDatabase} from '../db';
 import {authenticateUser} from '../middleware';
 
 const router = express.Router();
@@ -16,11 +17,16 @@ router.post(
     next();
   },
   authenticateUser,
-  (req, res, next) => {
+  async (req, res, next) => {
     console.log(
       `[${new Date().toISOString()}] [Support] Route handler reached`,
     );
-    submitSupportRequest(req, res).catch(next);
+    try {
+      const db = await getDatabase();
+      await createSupportTicket(req, res, db);
+    } catch (error) {
+      next(error);
+    }
   },
 );
 
