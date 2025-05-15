@@ -7,10 +7,10 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import {config} from '../config/config';
 import {useStoreState} from '../hooks/useStoreState';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
+import {User} from '../types/user';
 import {logger} from '../utils/logger';
 import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
@@ -267,75 +267,33 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const createNewUser = async () => {
     try {
-      setIsLoading(true);
-      let installationId;
-      try {
-        installationId = await installations().getId();
-        logger.app.info('Installation ID Fetched', {
-          event: 'get_installation_id',
-          installationId,
-        });
-      } catch (error) {
-        logger.app.error('Installation ID Error', {
-          event: 'get_installation_id_error',
-          error: error instanceof Error ? error.message : error,
-        });
-      }
-      logger.app.info('Creating Anonymous User', {
-        event: 'create_anonymous_user_start',
-        installationId,
-        apiBaseUrl: config.apiBaseUrl,
-      });
-      const newUserId = `user-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
-
-      // Create user first
-      logger.app.debug('Attempting to create user with data:', {
-        id: newUserId,
-        email: `${newUserId}@example.com`,
-        name: `User ${newUserId}`,
+      const installationId = await installations().getId();
+      logger.app.debug('Creating new anonymous user with installation ID', {
         installationId,
       });
 
-      const newUser = await userService.createUser({
-        id: newUserId,
-        email: `${newUserId}@example.com`,
-        name: `User ${newUserId}`,
-        installationId,
-      });
-
-      logger.app.info('User created successfully', {
-        event: 'create_anonymous_user_success',
-        newUserId,
-        installationId,
-        userData: newUser,
-      });
-
-      // Only update state after user is created
-      setUserId(newUserId);
-      await AsyncStorage.setItem('userId', newUserId);
-      setUser({
-        ...newUser,
+      const newUser: User = {
+        id: installationId,
+        email: installationId,
         plan: SubscriptionTier.FREE,
+        dailyMessagesUsed: 0,
+        extraMessages: 0,
+        lastResetDate: new Date().toISOString(),
+        installationId,
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
-      });
+      };
+
+      setUser(newUser);
+      setUserId(installationId);
+      await AsyncStorage.setItem('userId', installationId);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
-
-      logger.app.info('Anonymous User Created', {
-        event: 'create_anonymous_user_success',
-        newUserId,
-        installationId,
-      });
-      setIsLoading(false);
       return newUser;
     } catch (error) {
-      logger.app.error('Create User Error', {
-        event: 'create_anonymous_user_error',
-        error: error instanceof Error ? error.message : error,
+      logger.app.error('Error creating new user', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      setIsLoading(false);
       throw error;
     }
   };
@@ -346,11 +304,16 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         throw new Error('No anonymous user ID available');
       }
       const installationId = await installations().getId();
+
+      // Link the users in the backend
       await userService.linkUsers(userId, registeredUserId);
+
+      // Update local state
       setUserId(registeredUserId);
       await AsyncStorage.setItem('userId', registeredUserId);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
+
       logger.app.info('Anonymous User Linked', {
         event: 'link_anonymous_user',
         oldUserId: userId,

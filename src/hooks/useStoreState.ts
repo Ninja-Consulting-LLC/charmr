@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import installations from '@react-native-firebase/installations';
 import {useEffect, useState} from 'react';
 import * as userService from '../services/userService';
 import {User} from '../types/user';
@@ -78,6 +79,9 @@ export const useStoreState = (skipInitialization = false) => {
     try {
       logger.auth.info('🔐 Starting Google login process...');
 
+      // Get the installation ID
+      const installationId = await installations().getId();
+
       // First check if a user exists with this email
       const existingUser = await userService.findUserByEmail(
         firebaseUser.email,
@@ -110,6 +114,7 @@ export const useStoreState = (skipInitialization = false) => {
         id: firebaseUser.uid,
         email: firebaseUser.email || `${firebaseUser.uid}@example.com`,
         name: firebaseUser.displayName || `User ${firebaseUser.uid}`,
+        installationId,
       });
 
       // Update local state with the new user
