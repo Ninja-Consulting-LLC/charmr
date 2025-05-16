@@ -1,8 +1,10 @@
 import {Request, Response} from 'express';
+import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
+import {MessageMode, MessageRole, MessageType} from '../types/enums';
 import {loadConversation} from '../utils/conversationUtils';
 import logger from '../utils/logger';
 
@@ -48,10 +50,11 @@ A brief summary of the match's interests and conversation style based on the his
 Your suggested reply to the match
 </message>`;
 
-export const createReplyController = (db: Database) => {
+export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
   const openaiService = createOpenAIService();
   const geminiService = createGeminiService();
+  const messageRepository = getMessageRepository(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
@@ -210,7 +213,39 @@ export const createReplyController = (db: Database) => {
         });
       }
 
-      // Messages are now saved in the AI service, no need to save again here
+      // Save the message using the repository
+      const timestamp = new Date().toISOString();
+      await messageRepository.createMessage(userId, matchId, {
+        role: MessageRole.ASSISTANT,
+        content: response.reply,
+        timestamp,
+        type: MessageType.TEXT,
+        mode: MessageMode.GENERATE,
+        used: true,
+      });
+
+      // Save the summary if it exists
+      if (response.summary) {
+        await messageRepository.createMessage(userId, matchId, {
+          role: MessageRole.SYSTEM,
+          content: response.summary,
+          timestamp,
+          type: MessageType.SUMMARY,
+          mode: MessageMode.GENERATE,
+          used: true,
+        });
+      }
+
+      // Save screenshots if they exist
+      if (images?.length > 0) {
+        for (const image of images) {
+          await messageRepository.createScreenshot(userId, matchId, {
+            imageData: image,
+            timestamp,
+          });
+        }
+      }
+
       logger.info('Reply generated successfully', {
         userId,
         matchId,
@@ -221,6 +256,7 @@ export const createReplyController = (db: Database) => {
       const updatedLimits = await messageLimitService.getMessageLimits(userId);
 
       if (res.headersSent) return;
+
       return res.status(200).json({
         reply: response.reply,
         summary: response.summary,
@@ -229,22 +265,20 @@ export const createReplyController = (db: Database) => {
       });
     })();
 
-    // 3. Error handling
-    try {
-      await mainLogic;
-    } catch (error) {
-      logger.error('Error generating reply', {
+    // Handle any errors in the main logic
+    mainLogic.catch(error => {
+      logger.error('Error in generateReplyHandler', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
-        userId,
-        matchId,
       });
+
+      if (res.headersSent) return;
+
       res.status(500).json({
-        error: 'Failed to generate reply',
-        type: 'GENERATION_ERROR',
+        error: 'An unexpected error occurred',
+        type: 'UNKNOWN_ERROR',
       });
-      return;
-    }
+    });
   };
 
   return {

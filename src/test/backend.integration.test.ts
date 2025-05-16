@@ -14,12 +14,16 @@ interface User {
 }
 
 interface Message {
-  id: string;
+  id: number;
   userId: string;
   matchId: string;
-  role: string;
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  type: 'text' | 'image' | 'summary';
+  mode: 'generate' | 'coach';
+  used: boolean;
+  replyTo?: number;
 }
 
 async function testHealthEndpoint() {

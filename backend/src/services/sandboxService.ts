@@ -1,6 +1,6 @@
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {ErrorType, MessageMode} from '../types/enums';
+import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -113,6 +113,7 @@ export const createSandboxService = () => {
       const conversationHistory = await loadConversation(
         request.userId,
         request.matchId,
+        SubscriptionTier.FREE,
       );
       const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
 

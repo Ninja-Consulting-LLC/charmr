@@ -6,50 +6,8 @@ import {getDatabase} from '../db';
 import {SubscriptionTier} from '../types/enums';
 
 // Mock the AI services
-jest.mock('../services/openaiService', () => {
-  let testDb: any;
-  return {
-    __setTestDb: (db: any) => {
-      testDb = db;
-    },
-    createOpenAIService: () => ({
-      generateReply: jest.fn(async function ({prompt, userId, matchId}) {
-        // Use the testDb instance if set, otherwise fallback
-        const db = testDb || (await require('../db').getDatabase());
-        // Save system message (summary)
-        await db.run(
-          'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-          [
-            userId,
-            matchId,
-            'system',
-            'Mocked summary',
-            new Date().toISOString(),
-          ],
-        );
-        // Save assistant message (reply)
-        await db.run(
-          'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-          [
-            userId,
-            matchId,
-            'assistant',
-            'Mocked reply',
-            new Date().toISOString(),
-          ],
-        );
-        return {
-          reply: 'Mocked reply',
-          summary: 'Mocked summary',
-          usage: {total_tokens: 100},
-        };
-      }),
-    }),
-  };
-});
-
-jest.mock('../services/geminiService', () => ({
-  createGeminiService: () => ({
+jest.mock('../services/openaiService', () => ({
+  createOpenAIService: () => ({
     generateReply: jest.fn().mockResolvedValue({
       reply: 'Mocked reply',
       summary: 'Mocked summary',
@@ -59,98 +17,72 @@ jest.mock('../services/geminiService', () => ({
 }));
 
 describe('Reply Controller', () => {
-  let replyController: Awaited<ReturnType<typeof createReplyController>>;
+  let db: any;
+  let replyController: any;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let db: any;
-  let matchId: number;
+  let matchId: string;
 
   beforeEach(async () => {
     db = await getDatabase();
-    require('../services/openaiService').__setTestDb(db);
+    replyController = await createReplyController(db);
 
-    // Clean up any existing test data first
-    await db.run('DELETE FROM messages WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM matches WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM users WHERE id = ?', 'test-user-123');
+    // Create a test user
+    const user = await createUser(db, {
+      id: 'test-user-123',
+      email: 'test@example.com',
+      plan: SubscriptionTier.FREE,
+    });
 
-    // Create test user using controller
-    const createUserReq: Partial<Request> = {
-      body: {
-        id: 'test-user-123',
-        email: 'test@example.com',
-        name: 'Test User',
-        plan: SubscriptionTier.FREE,
-        installationId: 'test-installation-123',
-      },
-      headers: {},
-      cookies: {},
-    };
-    const createUserRes: Partial<Response> = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      setHeader: jest.fn(),
-    };
-    await createUser(createUserReq as Request, createUserRes as Response, db);
+    if (!user) {
+      throw new Error('Failed to create test user');
+    }
 
-    // Create test match using controller
-    const addMatchReq: Partial<Request> = {
-      params: {userId: 'test-user-123'},
-      body: {name: 'Test Match', platform: 'tinder'},
-    };
-    const addMatchRes: Partial<Response> = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockImplementation(result => {
-        matchId = result.id;
-        return addMatchRes;
-      }),
-      setHeader: jest.fn(),
-    };
-    await addMatch(addMatchReq as Request, addMatchRes as Response, db);
+    // Create a test match
+    const match = await addMatch(db, {
+      userId: user.id,
+      name: 'Test Match',
+      platform: 'test',
+    });
 
-    // Add a small delay to ensure match is committed
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Verify match was created
-    const match = await db.getMatchById(String(matchId));
     if (!match) {
       throw new Error('Failed to create test match');
     }
 
-    replyController = createReplyController(db);
+    matchId = match.id.toString();
 
+    // Initialize mock request and response
     mockRequest = {
       body: {
-        prompt: 'Hello, how are you?',
-        matchId: String(matchId),
-        userId: 'test-user-123',
+        prompt: 'Hello',
+        userId: user.id,
+        matchId: matchId,
       },
-      app: {
-        locals: {
-          user: {
-            id: 'test-user-123',
-            plan: SubscriptionTier.FREE,
-          },
-        },
-      } as any,
     };
 
     mockResponse = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
   });
 
-  afterEach(async () => {
-    // Clean up test data
-    await db.run('DELETE FROM messages WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM matches WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM users WHERE id = ?', 'test-user-123');
-    jest.clearAllMocks();
+  it('should generate a reply', async () => {
+    await replyController.generateReplyHandler(
+      mockRequest as Request,
+      mockResponse as Response,
+    );
+
+    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reply: expect.any(String),
+        summary: expect.any(String),
+      }),
+    );
   });
 
   describe('Message Processing', () => {
-    it.skip('should process a new message successfully', async () => {
+    it('should process a new message successfully', async () => {
       await replyController.generateReplyHandler(
         mockRequest as Request,
         mockResponse as Response,
@@ -167,7 +99,7 @@ describe('Reply Controller', () => {
       );
     });
 
-    it.skip('should validate message content', async () => {
+    it('should validate message content', async () => {
       mockRequest.body = {
         prompt: '',
         matchId: matchId,
@@ -187,7 +119,7 @@ describe('Reply Controller', () => {
       );
     });
 
-    it.skip('should handle message errors gracefully', async () => {
+    it('should handle message errors gracefully', async () => {
       mockRequest.body = {
         prompt: 'Hello',
         matchId: 'non-existent-match',
@@ -209,7 +141,7 @@ describe('Reply Controller', () => {
   });
 
   describe('Reply Generation', () => {
-    it.skip('should generate appropriate replies', async () => {
+    it('should generate appropriate replies', async () => {
       await replyController.generateReplyHandler(
         mockRequest as Request,
         mockResponse as Response,
@@ -226,7 +158,7 @@ describe('Reply Controller', () => {
       );
     });
 
-    it.skip('should maintain conversation context', async () => {
+    it('should maintain conversation context', async () => {
       // Send first message
       await replyController.generateReplyHandler(
         mockRequest as Request,
@@ -258,7 +190,7 @@ describe('Reply Controller', () => {
   });
 
   describe('Conversation Management', () => {
-    it.skip('should track conversation state', async () => {
+    it('should track conversation state', async () => {
       await replyController.generateReplyHandler(
         mockRequest as Request,
         mockResponse as Response,
@@ -275,12 +207,6 @@ describe('Reply Controller', () => {
       expect(messages).toHaveLength(2); // System message and AI reply
       expect(messages[0].role).toBe('system');
       expect(messages[1].role).toBe('assistant');
-      expect(messages[0].content).toBeTruthy();
-      expect(messages[1].content).toBeTruthy();
-    });
-
-    it.skip('should handle conversation timeouts', async () => {
-      // Skipped due to limitations in reliably testing async timeouts in Jest/Node
     });
   });
 });

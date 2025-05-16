@@ -2,7 +2,12 @@ import OpenAI from 'openai';
 import {config} from '../config/config';
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {ErrorType, MessageMode, MessageStyle} from '../types/enums';
+import {
+  ErrorType,
+  MessageMode,
+  MessageStyle,
+  SubscriptionTier,
+} from '../types/enums';
 import {
   appendConversation,
   loadConversation,
@@ -43,7 +48,11 @@ export const createOpenAIService = () => {
       const db = await getDatabase();
       const user = await db.getUser(request.userId);
       const conversationHistory = request.matchId
-        ? await loadConversation(request.userId, request.matchId, user?.plan)
+        ? await loadConversation(
+            request.userId,
+            request.matchId,
+            user?.plan || SubscriptionTier.FREE,
+          )
         : [];
 
       // Extract previous messages for context

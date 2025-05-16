@@ -4,7 +4,14 @@ import sqlite3 from 'sqlite3';
 import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
-import {Database, Match, MessageCost, SupportTicket, User} from './types';
+import {
+  Database,
+  Match,
+  Message,
+  MessageCost,
+  SupportTicket,
+  User,
+} from './types';
 
 export const createSqliteDatabase = async (): Promise<Database> => {
   const dbPath =
@@ -34,10 +41,34 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       userId TEXT NOT NULL,
       matchId TEXT NOT NULL,
       role TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'text',
+      mode TEXT NOT NULL DEFAULT 'generate',
+      used BOOLEAN NOT NULL DEFAULT 0,
+      replyTo INTEGER,
       content TEXT NOT NULL,
       timestamp TEXT NOT NULL,
-      FOREIGN KEY (userId) REFERENCES users(id)
+      FOREIGN KEY (userId) REFERENCES users(id),
+      FOREIGN KEY (replyTo) REFERENCES messages(id)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_messages_user_match ON messages(userId, matchId);
+    CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_messages_role ON messages(role);
+    CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type);
+    CREATE INDEX IF NOT EXISTS idx_messages_used ON messages(used);
+
+    CREATE TABLE IF NOT EXISTS screenshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT NOT NULL,
+      matchId TEXT NOT NULL,
+      imageData TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (matchId) REFERENCES matches(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_screenshots_user_match ON screenshots(userId, matchId);
+    CREATE INDEX IF NOT EXISTS idx_screenshots_timestamp ON screenshots(timestamp);
 
     CREATE TABLE IF NOT EXISTS message_costs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -284,30 +315,50 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       matchId: string,
       message: {
         role: 'user' | 'assistant' | 'system';
+        type?: 'text' | 'image' | 'summary';
+        mode?: 'generate' | 'coach';
+        used?: boolean;
+        replyTo?: number;
         content: string;
         timestamp: string;
       },
-    ): Promise<{
-      id: number;
-      userId: string;
-      matchId: string;
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: string;
-    }> => {
+    ): Promise<Message> => {
       try {
+        const defaultMessage = {
+          type: 'text' as const,
+          mode: 'generate' as const,
+          used: false,
+        };
+
+        const messageWithDefaults = {
+          ...defaultMessage,
+          ...message,
+        };
+
         const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-          [userId, matchId, message.role, message.content, message.timestamp],
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            userId,
+            matchId,
+            messageWithDefaults.role,
+            messageWithDefaults.type,
+            messageWithDefaults.mode,
+            messageWithDefaults.used ? 1 : 0,
+            messageWithDefaults.replyTo || null,
+            messageWithDefaults.content,
+            messageWithDefaults.timestamp,
+          ],
         );
 
-        // Get the inserted message
         const insertedMessage = await db.get(
           'SELECT * FROM messages WHERE id = ?',
           [result.lastID],
         );
 
-        return insertedMessage;
+        return {
+          ...insertedMessage,
+          used: Boolean(insertedMessage.used),
+        };
       } catch (error) {
         logger.error('Failed to save message', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -320,30 +371,23 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     getMessages: async (
       userId: string,
       matchId?: string,
-    ): Promise<
-      Array<{
-        id: number;
-        userId: string;
-        matchId: string;
-        role: 'user' | 'assistant' | 'system';
-        content: string;
-        timestamp: string;
-      }>
-    > => {
+    ): Promise<Message[]> => {
       try {
+        let query = 'SELECT * FROM messages WHERE userId = ?';
+        const params: any[] = [userId];
+
         if (matchId) {
-          const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp DESC',
-            [userId, matchId],
-          );
-          return messages;
-        } else {
-          const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp DESC',
-            [userId],
-          );
-          return messages;
+          query += ' AND matchId = ?';
+          params.push(matchId);
         }
+
+        query += ' ORDER BY timestamp DESC';
+        const messages = await db.all(query, params);
+
+        return messages.map(msg => ({
+          ...msg,
+          used: Boolean(msg.used),
+        }));
       } catch (error) {
         logger.error('Failed to get messages', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -356,6 +400,18 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     all: async (sql: string, params: any[] = []): Promise<any[]> => {
       try {
         return await db.all(sql, params);
+      } catch (error) {
+        logger.error('Failed to execute query', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    get: async (sql: string, params: any[] = []): Promise<any> => {
+      try {
+        return await db.get(sql, params);
       } catch (error) {
         logger.error('Failed to execute query', {
           error: error instanceof Error ? error.message : 'Unknown error',
