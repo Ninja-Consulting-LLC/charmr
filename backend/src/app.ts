@@ -24,6 +24,9 @@ import logger, {stream} from './utils/logger';
 export const createApp = async () => {
   const app = express();
 
+  // Configure Express to trust proxies (required for express-rate-limit when behind a reverse proxy)
+  app.set('trust proxy', true);
+
   // Initialize database
   const db = await getDatabase();
 

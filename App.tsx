@@ -5,6 +5,16 @@
  * @format
  */
 
+// TypeScript declaration for Firebase modular API warning control
+declare global {
+  var RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS: boolean;
+}
+
+// Silence React Native Firebase modular API migration warnings
+// This can be removed once fully migrated to the modular API
+// See: https://rnfirebase.io/migrating-to-v22
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';

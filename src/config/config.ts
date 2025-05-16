@@ -5,6 +5,16 @@ import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
 const getBaseUrl = () => {
+  // Debug logging for environment variables
+  logger.config.debug('Environment Variables Debug:', {
+    LOCAL_IP: Config.LOCAL_IP,
+    API_BASE_URL: Config.API_BASE_URL,
+    NODE_ENV: Config.NODE_ENV,
+    PLATFORM: Platform.OS,
+    VERSION: Platform.Version,
+    __DEV__: __DEV__,
+  });
+
   // First check if API_BASE_URL is set
   if (Config.API_BASE_URL) {
     logger.config.debug('Using API_BASE_URL from env:', Config.API_BASE_URL);

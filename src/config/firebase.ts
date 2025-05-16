@@ -1,5 +1,11 @@
 import {appleAuth} from '@invertase/react-native-apple-authentication';
-import auth from '@react-native-firebase/auth';
+import {
+  AppleAuthProvider,
+  GoogleAuthProvider,
+  getAuth,
+  signInWithCredential,
+  updateProfile,
+} from '@react-native-firebase/auth';
 import {
   GoogleSignin,
   statusCodes,
@@ -22,11 +28,12 @@ export const signInWithGoogle = async () => {
     }
 
     // Create Google credential with ID token
-    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+    const googleCredential = GoogleAuthProvider.credential(idToken);
     console.log('Created Google credential');
 
     // Sign in to Firebase with credential
-    const userCredential = await auth().signInWithCredential(googleCredential);
+    const auth = getAuth();
+    const userCredential = await signInWithCredential(auth, googleCredential);
     console.log('Successfully signed in to Firebase');
     return userCredential;
   } catch (error: any) {
@@ -64,13 +71,11 @@ export const signInWithApple = async () => {
 
     // Create a Firebase credential from the response
     const {identityToken, nonce} = appleAuthResponse;
-    const appleCredential = auth.AppleAuthProvider.credential(
-      identityToken,
-      nonce,
-    );
+    const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
 
     // Sign in with the credential
-    const userCredential = await auth().signInWithCredential(appleCredential);
+    const auth = getAuth();
+    const userCredential = await signInWithCredential(auth, appleCredential);
 
     // If this is a new user, we might want to update their display name
     if (
@@ -80,7 +85,7 @@ export const signInWithApple = async () => {
       const {givenName, familyName} = appleAuthResponse.fullName;
       const displayName = `${givenName || ''} ${familyName || ''}`.trim();
       if (displayName) {
-        await userCredential.user.updateProfile({displayName});
+        await updateProfile(userCredential.user, {displayName});
       }
     }
 
@@ -100,7 +105,8 @@ export const signInWithApple = async () => {
 
 export const signOut = async () => {
   try {
-    await auth().signOut();
+    const auth = getAuth();
+    await auth.signOut();
     await GoogleSignin.signOut();
   } catch (error) {
     console.error('Sign Out Error:', error);
@@ -109,7 +115,8 @@ export const signOut = async () => {
 };
 
 export const getAuthToken = async (): Promise<string> => {
-  const user = auth().currentUser;
+  const auth = getAuth();
+  const user = auth.currentUser;
   if (!user) {
     throw new Error('User not authenticated');
   }

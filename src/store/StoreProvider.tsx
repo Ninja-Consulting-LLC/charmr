@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import installations from '@react-native-firebase/installations';
+import {getInstallations} from '@react-native-firebase/installations';
 import React, {
   createContext,
   useContext,
@@ -8,11 +8,12 @@ import React, {
   useState,
 } from 'react';
 import {useStoreState} from '../hooks/useStoreState';
+import * as matchService from '../services/matchService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
-import {getMatches, Match} from '../utils/matchUtils';
+import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 
 interface StoreContextType {
@@ -42,7 +43,7 @@ interface StoreContextType {
   setMatches: (matches: Match[]) => void;
   addMatch: (match: Match) => void;
   updateMatch: (match: Match) => void;
-  removeMatch: (matchId: number) => void;
+  removeMatch: (matchId: string) => void;
   loadMatches: () => Promise<void>;
   // Dating Coach state
   isDatingCoachEnabled: boolean;
@@ -53,11 +54,17 @@ interface StoreContextType {
   setDeleteScreenshots: (value: boolean) => void;
   prompt: string;
   setPrompt: (prompt: string) => void;
+  // Installation ID
+  installationId: string | null;
+  getInstallationId: () => Promise<string>;
 }
 
 export const StoreContext = createContext<StoreContextType>(
   {} as StoreContextType,
 );
+
+// Add store instance for use outside of React components
+let storeInstance: StoreContextType | null = null;
 
 // Add useStore hook
 export const useStore = () => {
@@ -65,7 +72,16 @@ export const useStore = () => {
   if (!context) {
     throw new Error('useStore must be used within a StoreProvider');
   }
+  storeInstance = context;
   return context;
+};
+
+// Function to get store instance outside of React components
+export const getStore = () => {
+  if (!storeInstance) {
+    throw new Error('Store not initialized');
+  }
+  return storeInstance;
 };
 
 export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
@@ -77,6 +93,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [installationId, setInstallationId] = useState<string | null>(null);
   // Dating Coach state
   const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -206,7 +223,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         return;
       }
 
-      const loadedMatches = await getMatches(true);
+      const loadedMatches = await matchService.loadMatches(true);
       setMatches(loadedMatches);
       logger.app.info('Matches Loaded', {
         event: 'load_matches',
@@ -214,16 +231,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         matchCount: loadedMatches.length,
       });
     } catch (error) {
-      // Don't treat empty matches as an error
-      if (
-        error instanceof Error &&
-        error.message === 'Failed to fetch matches'
-      ) {
-        logger.match.debug('No matches found for user', {userId});
-        setMatches([]);
-        return;
-      }
-
       logger.app.error('Load Matches Error', {
         event: 'load_matches_error',
         userId,
@@ -232,60 +239,71 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
-  const addMatch = (match: Match) => {
-    setMatches(prevMatches => [...prevMatches, match]);
-    logger.app.info('Match Added', {
-      event: 'add_match',
-      matchId: match.id,
-      userId,
-    });
+  const addMatch = async (match: Match) => {
+    try {
+      const newMatch = await matchService.addMatch(match);
+      setMatches(prevMatches => [...prevMatches, newMatch]);
+      logger.app.info('Match Added', {
+        event: 'add_match',
+        matchId: newMatch.id,
+        userId,
+      });
+    } catch (error) {
+      logger.app.error('Add Match Error', {
+        event: 'add_match_error',
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw error;
+    }
   };
 
-  const updateMatch = (updatedMatch: Match) => {
-    setMatches(prevMatches =>
-      prevMatches.map(match =>
-        match.id === updatedMatch.id ? updatedMatch : match,
-      ),
-    );
-    logger.app.info('Match Updated', {
-      event: 'update_match',
-      matchId: updatedMatch.id,
-      userId,
-    });
+  const updateMatch = async (updatedMatch: Match) => {
+    try {
+      const match = await matchService.updateMatch(updatedMatch);
+      setMatches(prevMatches =>
+        prevMatches.map(m => (m.id === match.id ? match : m)),
+      );
+      logger.app.info('Match Updated', {
+        event: 'update_match',
+        matchId: match.id,
+        userId,
+      });
+    } catch (error) {
+      logger.app.error('Update Match Error', {
+        event: 'update_match_error',
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw error;
+    }
   };
 
-  const removeMatch = (matchId: number) => {
-    setMatches(prevMatches =>
-      prevMatches.filter(match => match.id !== matchId),
-    );
-    logger.app.info('Match Removed', {
-      event: 'remove_match',
-      matchId,
-      userId,
-    });
+  const removeMatch = async (matchId: string) => {
+    try {
+      await matchService.removeMatch(matchId);
+      setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
+      logger.app.info('Match Removed', {
+        event: 'remove_match',
+        matchId,
+        userId,
+      });
+    } catch (error) {
+      logger.app.error('Remove Match Error', {
+        event: 'remove_match_error',
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw error;
+    }
   };
 
   const createNewUser = async () => {
     try {
-      const installationId = await installations().getId();
-      logger.app.debug('Creating new anonymous user with installation ID', {
-        installationId,
-      });
-
-      const newUser: User = {
-        id: installationId,
-        email: installationId,
-        plan: SubscriptionTier.FREE,
-        dailyMessagesUsed: 0,
-        extraMessages: 0,
-        lastResetDate: new Date().toISOString(),
-        installationId,
-        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
-      };
-
+      const newUser = await userService.createAnonymousUser();
       setUser(newUser);
-      setUserId(installationId);
-      await AsyncStorage.setItem('userId', installationId);
+      setUserId(newUser.id);
+      await AsyncStorage.setItem('userId', newUser.id);
       setIsAuthenticated(true);
       await AsyncStorage.setItem('isAuthenticated', 'true');
       return newUser;
@@ -303,10 +321,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       if (!userId) {
         throw new Error('No anonymous user ID available');
       }
-      const installationId = await installations().getId();
 
-      // Link the users in the backend
-      await userService.linkUsers(userId, registeredUserId);
+      await userService.linkAnonymousUser(userId, registeredUserId);
 
       // Update local state
       setUserId(registeredUserId);
@@ -318,7 +334,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         event: 'link_anonymous_user',
         oldUserId: userId,
         newUserId: registeredUserId,
-        installationId,
       });
     } catch (error) {
       logger.app.error('Link Anonymous User Error', {
@@ -327,6 +342,26 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         newUserId: registeredUserId,
         error: error instanceof Error ? error.message : error,
       });
+      throw error;
+    }
+  };
+
+  // Function to get installation ID
+  const getInstallationId = async (): Promise<string> => {
+    try {
+      // Return cached ID if available
+      if (installationId) {
+        return installationId;
+      }
+
+      // Get fresh installation ID
+      const id = await getInstallations().getId();
+      setInstallationId(id);
+
+      logger.app.debug('Got installation ID', {installationId: id});
+      return id;
+    } catch (error) {
+      logger.app.error('Failed to get installation ID:', error);
       throw error;
     }
   };
@@ -361,7 +396,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       updateMatch,
       removeMatch,
       loadMatches,
-      // Dating Coach state
       isDatingCoachEnabled,
       setIsDatingCoachEnabled,
       selectedMatch,
@@ -370,6 +404,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setDeleteScreenshots,
       prompt,
       setPrompt,
+      // Installation ID
+      installationId,
+      getInstallationId,
     }),
     [
       showKeyboardModal,
@@ -382,11 +419,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       isLoading,
       showUpgradeModal,
       matches,
-      // Dating Coach state
       isDatingCoachEnabled,
       selectedMatch,
       deleteScreenshots,
       prompt,
+      installationId,
     ],
   );
 

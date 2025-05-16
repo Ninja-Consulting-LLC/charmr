@@ -1,14 +1,13 @@
-import installations from '@react-native-firebase/installations';
-import axios from 'axios';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 import axiosInstance from './axiosInstance';
+import {installationService} from './installationService';
 
 export const fetchUserData = async (userId: string): Promise<User | null> => {
   try {
-    const {data} = await axiosInstance.get(`/users/${userId}`);
+    const {data} = await axiosInstance.get(`/api/users/${userId}`);
     return {
       ...data,
       getDailyMessageLimit: () => getPlanLimits(data.plan),
@@ -22,9 +21,13 @@ export const fetchUserData = async (userId: string): Promise<User | null> => {
 export const updateUserPlan = async (
   userId: string,
   plan: SubscriptionTier,
-): Promise<void> => {
+): Promise<User> => {
   try {
-    await axiosInstance.put(`/users/${userId}/plan`, {plan});
+    const {data} = await axiosInstance.put(`/api/users/${userId}/plan`, {plan});
+    return {
+      ...data,
+      getDailyMessageLimit: () => getPlanLimits(data.plan),
+    };
   } catch (error) {
     logger.app.error('Error updating user plan:', error);
     throw error;
@@ -38,7 +41,7 @@ export const createUser = async (userData: {
   installationId?: string;
 }): Promise<User> => {
   try {
-    const {data} = await axiosInstance.post('/users', userData);
+    const {data} = await axiosInstance.post('/api/users', userData);
     return {
       ...data,
       getDailyMessageLimit: () => getPlanLimits(data.plan),
@@ -49,22 +52,57 @@ export const createUser = async (userData: {
   }
 };
 
+export const createAnonymousUser = async (): Promise<User> => {
+  try {
+    const installationId = await installationService.getInstallationId();
+    logger.app.debug('Creating new anonymous user with installation ID', {
+      installationId,
+    });
+
+    const newUser = await axiosInstance.post('/api/users', {
+      id: installationId,
+      email: installationId,
+      name: 'Anonymous User',
+      installationId,
+    });
+
+    return {
+      ...newUser.data,
+      getDailyMessageLimit: () => getPlanLimits(newUser.data.plan),
+    };
+  } catch (error) {
+    logger.app.error('Error creating anonymous user', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw error;
+  }
+};
+
 export const linkUsers = async (
   anonymousUserId: string,
   registeredUserId: string,
 ): Promise<void> => {
   try {
-    // Get the installation ID with retry logic
-    let installationId;
-    try {
-      installationId = await installations().getId();
-    } catch (error) {
-      logger.app.error('Failed to get installation ID:', error);
-      // Continue without installation ID if retrieval fails
-      installationId = undefined;
-    }
+    const installationId = await installationService.getInstallationId();
+    await axiosInstance.post('/api/users/link', {
+      anonymousUserId,
+      registeredUserId,
+      installationId,
+    });
+  } catch (error) {
+    logger.app.error('Error linking users:', error);
+    throw error;
+  }
+};
 
-    await axiosInstance.post('/users/link', {
+export const linkAnonymousUser = async (
+  anonymousUserId: string,
+  registeredUserId: string,
+): Promise<void> => {
+  try {
+    const installationId = await installationService.getInstallationId();
+    await axiosInstance.post('/api/users/link', {
       anonymousUserId,
       registeredUserId,
       installationId,
@@ -78,7 +116,7 @@ export const linkUsers = async (
 export const findUserByEmail = async (email: string): Promise<User | null> => {
   try {
     const {data} = await axiosInstance.get(
-      `/users/email/${encodeURIComponent(email)}`,
+      `/api/users/email/${encodeURIComponent(email)}`,
     );
     return {
       ...data,
@@ -95,25 +133,25 @@ export const findUserByInstallationId = async (
 ): Promise<User | null> => {
   try {
     const {data} = await axiosInstance.get(
-      `/users/installation/${installationId}`,
+      `/api/users/installation/${installationId}`,
     );
     return {
       ...data,
       getDailyMessageLimit: () => getPlanLimits(data.plan),
     };
-  } catch (error) {
-    // Only log 404 errors to console, suppress other errors
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      logger.app.error('Error finding user by installation ID', error);
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null;
     }
-    return null;
+    logger.app.error('Error finding user by installation ID:', error);
+    throw error;
   }
 };
 
 // Get user profile
 export const getUserProfile = async (userId: string) => {
   try {
-    const response = await axiosInstance.get(`/users/${userId}`);
+    const response = await axiosInstance.get(`/api/users/${userId}`);
     return response.data;
   } catch (error) {
     logger.app.error('Failed to get user profile:', error);
@@ -124,7 +162,7 @@ export const getUserProfile = async (userId: string) => {
 // Update user profile
 export const updateUserProfile = async (userId: string, data: any) => {
   try {
-    const response = await axiosInstance.put(`/users/${userId}`, data);
+    const response = await axiosInstance.put(`/api/users/${userId}`, data);
     return response.data;
   } catch (error) {
     logger.app.error('Failed to update user profile:', error);
@@ -135,7 +173,7 @@ export const updateUserProfile = async (userId: string, data: any) => {
 // Delete user account
 export const deleteUserAccount = async (userId: string) => {
   try {
-    const response = await axiosInstance.delete(`/users/${userId}`);
+    const response = await axiosInstance.delete(`/api/users/${userId}`);
     return response.data;
   } catch (error) {
     logger.app.error('Failed to delete user account:', error);
@@ -146,7 +184,7 @@ export const deleteUserAccount = async (userId: string) => {
 // Get user settings
 export const getUserSettings = async (userId: string) => {
   try {
-    const response = await axiosInstance.get(`/users/${userId}/settings`);
+    const response = await axiosInstance.get(`/api/users/${userId}/settings`);
     return response.data;
   } catch (error) {
     logger.app.error('Failed to get user settings:', error);
@@ -158,7 +196,7 @@ export const getUserSettings = async (userId: string) => {
 export const updateUserSettings = async (userId: string, settings: any) => {
   try {
     const response = await axiosInstance.put(
-      `/users/${userId}/settings`,
+      `/api/users/${userId}/settings`,
       settings,
     );
     return response.data;

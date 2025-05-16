@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import installations from '@react-native-firebase/installations';
 import {useEffect, useState} from 'react';
 import * as userService from '../services/userService';
+import {useStore} from '../store/StoreProvider';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 import {createDefaultUser, shouldResetDailyCount} from '../utils/storeUtils';
 
 export const useStoreState = (skipInitialization = false) => {
+  const {getInstallationId} = useStore();
   const [userId, setUserId] = useState('');
   const [user, setUserState] = useState<User>(createDefaultUser());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,7 +81,7 @@ export const useStoreState = (skipInitialization = false) => {
       logger.auth.info('🔐 Starting Google login process...');
 
       // Get the installation ID
-      const installationId = await installations().getId();
+      const installationId = await getInstallationId();
 
       // First check if a user exists with this email
       const existingUser = await userService.findUserByEmail(
