@@ -216,7 +216,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         start={{x: 0, y: 0}}
         end={{x: 1, y: 1}}
       />
-      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.headerSpacer} />
         <GiftedChat
           messages={messages}
           text={text}
@@ -501,6 +504,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     zIndex: 2,
+  },
+  headerSpacer: {
+    height: 56, // Standard header height
   },
   gradientBackground: {
     position: 'absolute',
