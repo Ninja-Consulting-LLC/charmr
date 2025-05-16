@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {IconButton, SegmentedButtons, Text} from 'react-native-paper';
+import {Button, IconButton, SegmentedButtons, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import TypingIndicator from '../components/TypingIndicator';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -20,6 +20,7 @@ import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
+import {compressImages} from '../utils/imageCompression';
 
 type CoachChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -40,10 +41,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const {match} = route.params;
   const [messages, setMessages] = useState<IMessageWithImages[]>([]);
   const [text, setText] = useState('');
-  const {images, setImages, pickImages} = useImagePicker();
+  const {images, setImages, pickImages, openSettings} = useImagePicker();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [selectedMode, setSelectedMode] = useState<ChatMode>('generate');
+  const [showPermissionError, setShowPermissionError] = useState(false);
   const {userId} = useStore();
 
   useEffect(() => {
@@ -114,11 +116,42 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       // Show typing indicator
       setIsTyping(true);
 
+      // Convert images to base64
+      let base64Images: string[] = [];
+      if (images.length > 0) {
+        try {
+          const compressedImages = await compressImages(
+            images.map(img => img.path),
+          );
+          base64Images = compressedImages.map(img => img.base64);
+        } catch (error) {
+          console.error('Error compressing images:', error);
+          setIsTyping(false);
+          setMessages(previousMessages =>
+            GiftedChat.append(previousMessages, [
+              {
+                _id: Date.now() + 2,
+                text: 'Failed to process images. Please try again.',
+                createdAt: new Date(),
+                user: {
+                  _id: 'coach',
+                  name: 'Coach',
+                  avatar: getModeIcon(selectedMode) as string,
+                },
+                mode: selectedMode,
+              },
+            ]),
+          );
+          return;
+        }
+      }
+
       // Call backend reply service
       try {
         const response = await generateReply({
-          prompt: newMessages[0]?.text || '',
-          images: images.length > 0 ? images.map(img => img.path) : [],
+          prompt:
+            newMessages[0]?.text || 'Generate a response based on the images',
+          images: base64Images,
           userId,
           matchId: String(match.id),
         });
@@ -163,6 +196,17 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     Clipboard.setString(text);
     // You might want to add a toast notification here
   }, []);
+
+  const handlePickImages = async () => {
+    try {
+      setShowPermissionError(false);
+      await pickImages();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PERMISSION_DENIED') {
+        setShowPermissionError(true);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -266,7 +310,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             <IconButton
               icon="image"
               size={32}
-              onPress={pickImages}
+              onPress={handlePickImages}
               style={{
                 marginBottom: 0,
                 marginTop: 0,
@@ -344,7 +388,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                   <IconButton
                     icon="image"
                     size={32}
-                    onPress={pickImages}
+                    onPress={handlePickImages}
                     style={styles.inputButton}
                     iconColor={theme.colors.surface}
                     accessibilityLabel="Add Screenshot"
@@ -411,6 +455,38 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             onPress={() => setPreviewImage(null)}
             style={styles.previewCloseButton}
           />
+        </View>
+      </Modal>
+      {/* Permission error modal */}
+      <Modal
+        visible={showPermissionError}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPermissionError(false)}>
+        <View style={styles.permissionModal}>
+          <View style={styles.permissionContent}>
+            <Text style={styles.permissionTitle}>Photo Access Required</Text>
+            <Text style={styles.permissionText}>
+              Please grant photo access to add screenshots
+            </Text>
+            <View style={styles.permissionButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => setShowPermissionError(false)}
+                style={styles.permissionButton}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={() => {
+                  openSettings();
+                  setShowPermissionError(false);
+                }}
+                style={styles.permissionButton}>
+                Open Settings
+              </Button>
+            </View>
+          </View>
         </View>
       </Modal>
     </View>
@@ -660,6 +736,38 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  permissionModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  permissionContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 24,
+    width: '80%',
+    maxWidth: 400,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: theme.colors.onSurface,
+  },
+  permissionText: {
+    fontSize: 16,
+    marginBottom: 24,
+    color: theme.colors.onSurfaceVariant,
+  },
+  permissionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  permissionButton: {
+    minWidth: 100,
   },
 });
 

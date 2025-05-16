@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {Image, Pressable, View} from 'react-native';
-import {Icon, Text} from 'react-native-paper';
+import {Button, Icon, Text} from 'react-native-paper';
+import {useImagePicker} from '../hooks/useImagePicker';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {SelectedImage} from '../types/types';
@@ -18,6 +19,20 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   onPickImages,
   userPlan,
 }) => {
+  const [showPermissionError, setShowPermissionError] = useState(false);
+  const {openSettings} = useImagePicker();
+
+  const handlePickImages = async () => {
+    try {
+      setShowPermissionError(false);
+      await onPickImages();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PERMISSION_DENIED') {
+        setShowPermissionError(true);
+      }
+    }
+  };
+
   return (
     <View style={styles.imageSection}>
       <View style={styles.imageGrid}>
@@ -39,12 +54,25 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
         ))}
         <Pressable
           style={styles.addImageButton}
-          onPress={onPickImages}
+          onPress={handlePickImages}
           testID="image-picker-button">
           <Icon source="image-plus" size={24} color={theme.colors.secondary} />
           <Text style={styles.addImageText}>Add Screenshot (Optional)</Text>
         </Pressable>
       </View>
+      {showPermissionError && (
+        <View style={styles.permissionError}>
+          <Text style={styles.permissionErrorText}>
+            Please grant photo access to add screenshots
+          </Text>
+          <Button
+            mode="contained"
+            onPress={openSettings}
+            style={styles.settingsButton}>
+            Open Settings
+          </Button>
+        </View>
+      )}
     </View>
   );
 };
@@ -118,6 +146,21 @@ const styles = {
     fontSize: 14,
     textAlign: 'center',
     color: theme.colors.secondary,
+  },
+  permissionError: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: theme.colors.errorContainer,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  permissionErrorText: {
+    color: theme.colors.error,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  settingsButton: {
+    backgroundColor: theme.colors.error,
   },
 } as const;
 
