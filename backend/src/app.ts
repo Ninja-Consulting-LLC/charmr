@@ -38,6 +38,48 @@ export const createApp = async () => {
     }),
   );
 
+  // Root path endpoint - API information and documentation
+  app.get('/', (req, res) => {
+    const apiInfo = {
+      name: 'Charmr API',
+      version: '1.0.0',
+      description: 'Backend API for the Charmr dating assistant application',
+      environment: config.server.environment,
+      endpoints: [
+        {method: 'GET', path: '/health', description: 'Health check endpoint'},
+        {
+          method: 'GET',
+          path: '/api/users/:userId',
+          description: 'Get user information',
+        },
+        {
+          method: 'PUT',
+          path: '/api/users/:userId/plan',
+          description: 'Update user subscription plan',
+        },
+        {
+          method: 'POST',
+          path: '/api/users/link',
+          description: 'Link anonymous user to registered user',
+        },
+        {method: 'POST', path: '/api/users', description: 'Create a new user'},
+        {
+          method: 'POST',
+          path: '/api/generate-reply',
+          description: 'Generate AI response for dating conversations',
+        },
+        {
+          method: 'POST',
+          path: '/api/support',
+          description: 'Submit a support request',
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+
+    res.status(200).json(apiInfo);
+  });
+
   // Health check endpoint
   app.get('/health', (req, res) => {
     res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
