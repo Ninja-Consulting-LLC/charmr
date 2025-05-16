@@ -28,7 +28,7 @@ export const getMatches = async (includeHidden = false): Promise<Match[]> => {
       includeHidden,
     });
 
-    const response = await axiosInstance.get(`/users/${userId}/matches`, {
+    const response = await axiosInstance.get(`/api/users/${userId}/matches`, {
       params: {includeHidden},
     });
 
@@ -67,7 +67,7 @@ export const addMatch = async (
     }
 
     logger.match.debug('Adding match', {name, platform});
-    const response = await axiosInstance.post(`/users/${userId}/matches`, {
+    const response = await axiosInstance.post(`/api/users/${userId}/matches`, {
       name,
       platform,
     });
@@ -96,7 +96,7 @@ export const deleteMatch = async (
     }
 
     logger.match.debug('Deleting match', {name, platform});
-    await axiosInstance.delete(`/users/${userId}/matches`, {
+    await axiosInstance.delete(`/api/users/${userId}/matches`, {
       data: {name, platform},
     });
     logger.match.debug('Deleted match', {name, platform});
@@ -124,7 +124,7 @@ export const hideMatch = async (
     }
 
     logger.match.debug('Hiding match', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/hide`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/hide`, {
       name,
       platform,
     });
@@ -153,7 +153,7 @@ export const restoreMatch = async (
     }
 
     logger.match.debug('Restoring match', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/restore`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/restore`, {
       name,
       platform,
     });
@@ -182,7 +182,7 @@ export const updateMatchLastUsed = async (
     }
 
     logger.match.debug('Updating match last used', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/last-used`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/last-used`, {
       name,
       platform,
     });

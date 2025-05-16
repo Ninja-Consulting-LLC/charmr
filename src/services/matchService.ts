@@ -1,21 +1,9 @@
-import installations from '@react-native-firebase/installations';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
+import {getUserId} from './authService';
 import axiosInstance from './axiosInstance';
-
-const getUserId = async () => {
-  try {
-    // Try to get Firebase token first
-    const token = await getAuthToken();
-    return token;
-  } catch (error) {
-    // If Firebase auth fails, use installation ID
-    const installationId = await installations().getId();
-    return installationId;
-  }
-};
 
 // Helper to log request details
 const logRequest = (method: string, url: string, body: any = null) => {
@@ -44,72 +32,54 @@ const getAuthHeaders = async () => {
   }
 };
 
-export const getMatches = async (includeHidden = false): Promise<Match[]> => {
+export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
   try {
     const userId = await getUserId();
-    if (!userId) {
-      logger.match.error('No user ID found when getting matches');
-      return [];
-    }
-
-    logger.match.debug('Getting matches', {
-      userId,
-      includeHidden,
-    });
-
-    const response = await axiosInstance.get(`/users/${userId}/matches`, {
+    const {data} = await axiosInstance.get(`/api/users/${userId}/matches`, {
       params: {includeHidden},
     });
-
-    return response.data;
-  } catch (error: any) {
-    // Only treat 404 as an error if it's a user not found error
-    if (
-      error.response?.status === 404 &&
-      error.response?.data?.error === 'User not found'
-    ) {
-      logger.match.error('User not found when getting matches', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-      });
-      throw new Error('User not found');
-    }
-
-    // For any other error, log it and throw
-    logger.match.error('Failed to fetch matches', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-    });
-    throw new Error('Failed to fetch matches');
+    return data;
+  } catch (error) {
+    logger.app.error('Error loading matches:', error);
+    throw error;
   }
 };
 
-export const addMatch = async (
-  name: string,
-  platform: string,
-): Promise<Match | null> => {
+export const addMatch = async (match: Match): Promise<Match> => {
   try {
     const userId = await getUserId();
-    if (!userId) {
-      logger.match.error('No user ID found when adding match');
-      return null;
-    }
-
-    logger.match.debug('Adding match', {name, platform});
-    const response = await axiosInstance.post(`/users/${userId}/matches`, {
-      name,
-      platform,
-    });
-    logger.match.debug('Added match', {match: response.data});
-    return response.data;
+    const {data} = await axiosInstance.post(
+      `/api/users/${userId}/matches`,
+      match,
+    );
+    return data;
   } catch (error) {
-    logger.match.error('Error adding match', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
-    });
-    return null;
+    logger.app.error('Error adding match:', error);
+    throw error;
+  }
+};
+
+export const updateMatch = async (match: Match): Promise<Match> => {
+  try {
+    const userId = await getUserId();
+    const {data} = await axiosInstance.put(
+      `/api/users/${userId}/matches/${match.id}`,
+      match,
+    );
+    return data;
+  } catch (error) {
+    logger.app.error('Error updating match:', error);
+    throw error;
+  }
+};
+
+export const removeMatch = async (matchId: string): Promise<void> => {
+  try {
+    const userId = await getUserId();
+    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
+  } catch (error) {
+    logger.app.error('Error removing match:', error);
+    throw error;
   }
 };
 
@@ -125,7 +95,7 @@ export const deleteMatch = async (
     }
 
     logger.match.debug('Deleting match', {name, platform});
-    await axiosInstance.delete(`/users/${userId}/matches`, {
+    await axiosInstance.delete(`/api/users/${userId}/matches`, {
       data: {name, platform},
     });
     logger.match.debug('Deleted match', {name, platform});
@@ -153,7 +123,7 @@ export const hideMatch = async (
     }
 
     logger.match.debug('Hiding match', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/hide`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/hide`, {
       name,
       platform,
     });
@@ -182,7 +152,7 @@ export const restoreMatch = async (
     }
 
     logger.match.debug('Restoring match', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/restore`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/restore`, {
       name,
       platform,
     });
@@ -211,7 +181,7 @@ export const updateMatchLastUsed = async (
     }
 
     logger.match.debug('Updating match last used', {name, platform});
-    await axiosInstance.put(`/users/${userId}/matches/last-used`, {
+    await axiosInstance.put(`/api/users/${userId}/matches/last-used`, {
       name,
       platform,
     });

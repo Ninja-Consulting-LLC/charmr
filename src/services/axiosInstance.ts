@@ -1,7 +1,7 @@
-import installations from '@react-native-firebase/installations';
 import axios from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
+import {getStore} from '../store/StoreProvider';
 import {logger} from '../utils/logger';
 
 // Create an axios instance with default config
@@ -13,17 +13,6 @@ const axiosInstance = axios.create({
   timeout: 10000, // 10 seconds timeout
 });
 
-// Helper to get anonymous user ID (installation ID)
-const getAnonymousUserId = async (): Promise<string | null> => {
-  try {
-    const installationId = await installations().getId();
-    return installationId;
-  } catch (error) {
-    logger.app.error('Failed to get installation ID:', error);
-    return null;
-  }
-};
-
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async request => {
@@ -31,11 +20,19 @@ axiosInstance.interceptors.request.use(
       // Try to get Firebase token first
       const token = await getAuthToken();
       request.headers.Authorization = `Bearer ${token}`;
+      logger.app.debug('Using Firebase token for authentication');
     } catch (error) {
+      logger.app.debug(
+        'Firebase token not available, falling back to installation ID',
+      );
       // If Firebase auth fails, use installation ID as anonymous user ID
-      const userId = await getAnonymousUserId();
-      if (userId) {
+      try {
+        const {getInstallationId} = getStore();
+        const userId = await getInstallationId();
         request.headers['X-Anonymous-User'] = userId;
+        logger.app.debug('Using installation ID for authentication');
+      } catch (error) {
+        logger.app.error('No authentication method available');
       }
     }
 
