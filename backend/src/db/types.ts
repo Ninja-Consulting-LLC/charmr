@@ -1,4 +1,9 @@
-import {SubscriptionTier} from '../types/enums';
+import {
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
+} from '../types/enums';
 
 export interface MessageLimit {
   dailyMessagesUsed: number;
@@ -20,7 +25,11 @@ export interface Message {
   id: number;
   userId: string;
   matchId: string;
-  role: 'user' | 'assistant' | 'system';
+  role: MessageRole;
+  type: MessageType;
+  mode: MessageMode;
+  used: boolean;
+  replyTo?: number;
   content: string;
   timestamp: string;
 }
@@ -59,6 +68,16 @@ export interface SupportTicket {
   updatedAt: Date;
 }
 
+export interface MessageFilter {
+  role?: MessageRole;
+  type?: MessageType;
+  used?: boolean;
+}
+
+export interface ConversationItem extends Message {
+  imageData?: string; // For messages with type 'image'
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
@@ -78,31 +97,17 @@ export interface Database {
     userId: string,
     matchId: string,
     message: {
-      role: 'user' | 'assistant' | 'system';
+      role: MessageRole;
+      type?: MessageType;
+      mode?: MessageMode;
+      used?: boolean;
+      replyTo?: number;
       content: string;
       timestamp: string;
     },
-  ) => Promise<{
-    id: number;
-    userId: string;
-    matchId: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: string;
-  }>;
-  getMessages: (
-    userId: string,
-    matchId?: string,
-  ) => Promise<
-    Array<{
-      id: number;
-      userId: string;
-      matchId: string;
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: string;
-    }>
-  >;
+  ) => Promise<Message>;
+  getMessages: (userId: string, matchId?: string) => Promise<Message[]>;
+  get: (sql: string, params?: any[]) => Promise<any>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
   run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;

@@ -42,12 +42,21 @@ const createMatchRouter = (db: Database) => {
   });
 
   // Add a new match
-  router.post('/users/:userId/matches', (req, res) => {
+  router.post('/users/:userId/matches', async (req, res) => {
     const userId = getUserFromRequest(req);
     if (userId !== req.params.userId) {
       return res.status(403).json({error: 'Unauthorized access to user data'});
     }
-    return addMatch(req, res, db);
+    const match = await addMatch(db, {
+      userId: req.params.userId,
+      name: req.body.name,
+      platform: req.body.platform,
+    });
+    if (match) {
+      res.status(201).json(match);
+    } else {
+      res.status(400).json({error: 'Failed to create match'});
+    }
   });
 
   // Update match last used
