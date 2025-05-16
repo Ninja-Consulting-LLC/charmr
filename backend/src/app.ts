@@ -10,6 +10,7 @@ import {
   linkAnonymousUser,
   updateUserPlan,
 } from './controllers/adminController';
+import {checkSchemaHealth} from './controllers/devController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
 import {authenticateUser} from './middleware/auth';
@@ -126,9 +127,20 @@ export const createApp = async () => {
   app.post('/api/users/link', authenticateUser, (req, res) =>
     linkAnonymousUser(req, res, db),
   );
-  app.post('/api/users', authenticateUser, (req, res) =>
-    createUser(req, res, db),
-  );
+  app.post('/api/users', authenticateUser, async (req, res) => {
+    const user = await createUser(db, {
+      id: req.body.id,
+      email: req.body.email,
+      name: req.body.name,
+      plan: req.body.plan,
+      installationId: req.body.installationId,
+    });
+    if (user) {
+      res.status(201).json(user);
+    } else {
+      res.status(400).json({error: 'Failed to create user'});
+    }
+  });
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
     logger.info('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
@@ -162,6 +174,10 @@ export const createApp = async () => {
   if (process.env.NODE_ENV !== 'production') {
     utilityRouter.get('/health', (req, res) => {
       res.json({status: 'ok', timestamp: new Date().toISOString()});
+    });
+
+    utilityRouter.get('/check-schema-health', (req, res) => {
+      return checkSchemaHealth(req, res, db);
     });
   }
 
