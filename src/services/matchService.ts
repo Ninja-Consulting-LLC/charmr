@@ -83,10 +83,7 @@ export const removeMatch = async (matchId: string): Promise<void> => {
   }
 };
 
-export const deleteMatch = async (
-  name: string,
-  platform: string,
-): Promise<boolean> => {
+export const deleteMatch = async (matchId: string): Promise<boolean> => {
   try {
     const userId = await getUserId();
     if (!userId) {
@@ -94,18 +91,15 @@ export const deleteMatch = async (
       return false;
     }
 
-    logger.match.debug('Deleting match', {name, platform});
-    await axiosInstance.delete(`/api/users/${userId}/matches`, {
-      data: {name, platform},
-    });
-    logger.match.debug('Deleted match', {name, platform});
+    logger.match.debug('Deleting match', {matchId});
+    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
+    logger.match.debug('Deleted match', {matchId});
     return true;
   } catch (error) {
     logger.match.error('Error deleting match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
+      matchId,
     });
     return false;
   }

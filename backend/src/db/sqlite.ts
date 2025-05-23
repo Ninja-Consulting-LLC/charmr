@@ -653,16 +653,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    deleteMatch: async (
-      userId: string,
-      name: string,
-      platform: string,
-    ): Promise<void> => {
+    deleteMatch: async (userId: string, matchId: string): Promise<void> => {
       try {
-        await db.run(
-          'DELETE FROM matches WHERE userId = ? AND name = ? AND platform = ?',
-          [userId, name, platform],
-        );
+        await db.run('DELETE FROM matches WHERE id = ? AND userId = ?', [
+          matchId,
+          userId,
+        ]);
       } catch (error) {
         logger.error('Failed to delete match', {
           error: error instanceof Error ? error.message : 'Unknown error',

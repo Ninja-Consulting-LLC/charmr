@@ -281,13 +281,15 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const removeMatch = async (matchId: string) => {
     try {
-      await matchService.removeMatch(matchId);
-      setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
-      logger.app.info('Match Removed', {
-        event: 'remove_match',
-        matchId,
-        userId,
-      });
+      const success = await matchService.deleteMatch(matchId);
+      if (success) {
+        setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
+        logger.app.info('Match Removed', {
+          event: 'remove_match',
+          matchId,
+          userId,
+        });
+      }
     } catch (error) {
       logger.app.error('Remove Match Error', {
         event: 'remove_match_error',

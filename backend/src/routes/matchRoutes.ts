@@ -98,8 +98,8 @@ const createMatchRouter = (db: Database) => {
     return updateMatchLastUsed(req, res, db);
   });
 
-  // Delete a match
-  router.delete('/users/:userId/matches', (req, res) => {
+  // Delete a match (RESTful)
+  router.delete('/users/:userId/matches/:matchId', (req, res) => {
     const userId = getUserFromRequest(req);
     if (userId !== req.params.userId) {
       return res.status(403).json({error: 'Unauthorized access to user data'});
