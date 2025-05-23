@@ -203,6 +203,7 @@ export const testContext = async () => {
       {
         headers: {
           'X-Auth-Bypass': 'true', // For development only
+          Authorization: `Bearer ${process.env.ADMIN_TOKEN || 'admin_secret'}`, // Admin token for admin routes
         },
       },
     );
