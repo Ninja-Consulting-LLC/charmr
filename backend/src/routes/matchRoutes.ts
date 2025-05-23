@@ -7,6 +7,7 @@ import {
   restoreMatch,
   updateMatchLastUsed,
 } from '../controllers/matchController';
+import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
 import {authenticateUser} from '../middleware/auth';
 
@@ -39,6 +40,35 @@ const createMatchRouter = (db: Database) => {
       return res.status(403).json({error: 'Unauthorized access to user data'});
     }
     return getMatches(req, res, db);
+  });
+
+  // Get messages for a specific match
+  router.get('/users/:userId/matches/:matchId/messages', async (req, res) => {
+    try {
+      const userId = getUserFromRequest(req);
+      if (userId !== req.params.userId) {
+        return res
+          .status(403)
+          .json({error: 'Unauthorized access to user data'});
+      }
+
+      const {matchId} = req.params;
+      const messageRepository = getMessageRepository(db);
+      const messages = await messageRepository.getMessagesByMatch(
+        userId,
+        matchId,
+      );
+
+      // Set headers to prevent caching
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching match messages:', error);
+      res.status(500).json({error: 'Failed to fetch match messages'});
+    }
   });
 
   // Add a new match

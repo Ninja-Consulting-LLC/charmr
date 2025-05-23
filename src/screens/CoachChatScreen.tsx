@@ -15,11 +15,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import {Button, IconButton, SegmentedButtons, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import TypingIndicator from '../components/TypingIndicator';
+import {config} from '../config/config';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
-import {generateReply} from '../services/api';
+import {generateReply, testContext} from '../services/api';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
+import {MessageMode, MessageRole, MessageType} from '../types/enums';
+import {Message} from '../types/message';
 import {compressImages} from '../utils/imageCompression';
 
 type CoachChatScreenProps = NativeStackScreenProps<
@@ -29,24 +32,34 @@ type CoachChatScreenProps = NativeStackScreenProps<
 
 type IMessageWithImages = GiftedIMessage & {
   images?: string[];
-  mode?: 'generate' | 'coach';
+  mode?: MessageMode;
+  type?: MessageType;
 };
 
-type ChatMode = 'generate' | 'coach';
+const DEBUG_MATCH_ID = 'debug-match';
 
 const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   navigation,
   route,
 }) => {
-  const {match} = route.params;
+  const {match, debugMatchId} = route.params;
   const [messages, setMessages] = useState<IMessageWithImages[]>([]);
   const [text, setText] = useState('');
   const {images, setImages, pickImages, openSettings} = useImagePicker();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<ChatMode>('generate');
+  const [selectedMode, setSelectedMode] = useState<MessageMode>(
+    MessageMode.GENERATE,
+  );
   const [showPermissionError, setShowPermissionError] = useState(false);
   const {userId} = useStore();
+  const [isDevMode, setIsDevMode] = useState(__DEV__);
+  const [useDebugMatch, setUseDebugMatch] = useState(
+    debugMatchId === DEBUG_MATCH_ID,
+  );
+
+  // Use debug match ID if provided and enabled, otherwise use the match from route params
+  const effectiveMatchId = useDebugMatch ? DEBUG_MATCH_ID : match.id;
 
   useEffect(() => {
     // Set up the header
@@ -61,6 +74,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           <Text variant="bodySmall" style={styles.platform}>
             {match.platform}
           </Text>
+          {isDevMode && (
+            <Text variant="labelSmall" style={styles.devBadge}>
+              🧪 Dev Mode
+            </Text>
+          )}
         </View>
       ),
       headerLeft: () => (
@@ -76,25 +94,96 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       },
     });
 
-    // Add initial welcome message
-    const welcomeMessage: IMessageWithImages = {
-      _id: Date.now(),
-      text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
-      createdAt: new Date(),
-      user: {
-        _id: 'coach',
-        name: 'Coach',
-        avatar: '👨‍🏫',
-      },
-    };
-    setMessages([welcomeMessage]);
-  }, [navigation, match]);
+    // In dev mode, seed test data if using debug match
+    if (isDevMode && effectiveMatchId === DEBUG_MATCH_ID) {
+      const seedTestData = async () => {
+        try {
+          const response = await testContext();
+          // Add initial welcome message
+          const welcomeMessage: IMessageWithImages = {
+            _id: Date.now(),
+            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+            createdAt: new Date(),
+            user: {
+              _id: 'coach',
+              name: 'Coach',
+              avatar: '👨‍🏫',
+            },
+            type: MessageType.TEXT,
+            mode: MessageMode.COACH,
+          };
 
-  const getModeIcon = (mode: ChatMode) => {
+          // Fetch messages from the test context
+          try {
+            const messagesResponse = await fetch(
+              `${config.apiBaseUrl}/api/users/${response.userId}/matches/${response.matchId}/messages`,
+              {
+                headers: {
+                  'X-Auth-Bypass': 'true',
+                  'X-Anonymous-User': response.userId,
+                },
+              },
+            );
+            if (!messagesResponse.ok) {
+              throw new Error(
+                `Failed to fetch messages: ${messagesResponse.status}`,
+              );
+            }
+            const messagesData = await messagesResponse.json();
+
+            // Convert backend messages to GiftedChat format
+            const chatMessages: IMessageWithImages[] = messagesData.map(
+              (msg: Message) => ({
+                _id: msg.id,
+                text: msg.content,
+                createdAt: new Date(msg.timestamp),
+                user: {
+                  _id: msg.role === MessageRole.USER ? 'user' : 'coach',
+                  name: msg.role === MessageRole.USER ? 'You' : 'Coach',
+                  avatar: msg.role === MessageRole.USER ? undefined : '👨‍🏫',
+                },
+                type: msg.type,
+                mode: msg.mode,
+                images:
+                  msg.type === MessageType.IMAGE ? [msg.content] : undefined,
+              }),
+            );
+
+            // Add welcome message at the beginning
+            setMessages([welcomeMessage, ...chatMessages]);
+          } catch (error) {
+            console.error('Failed to fetch test messages:', error);
+            // Fallback to just showing welcome message
+            setMessages([welcomeMessage]);
+          }
+        } catch (error) {
+          console.error('Failed to seed test data:', error);
+        }
+      };
+      seedTestData();
+    } else {
+      // Add initial welcome message for non-dev mode
+      const welcomeMessage: IMessageWithImages = {
+        _id: Date.now(),
+        text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+        createdAt: new Date(),
+        user: {
+          _id: 'coach',
+          name: 'Coach',
+          avatar: '👨‍🏫',
+        },
+        type: MessageType.TEXT,
+        mode: MessageMode.COACH,
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [navigation, match, isDevMode, effectiveMatchId, useDebugMatch]);
+
+  const getModeIcon = (mode: MessageMode) => {
     switch (mode) {
-      case 'generate':
+      case MessageMode.GENERATE:
         return '💬';
-      case 'coach':
+      case MessageMode.COACH:
         return '👨‍🏫';
     }
   };
@@ -106,6 +195,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         ...msg,
         images: images.length > 0 ? images.map(img => img.path) : undefined,
         mode: selectedMode,
+        type: images.length > 0 ? MessageType.IMAGE : MessageType.TEXT,
       }));
       setMessages(previousMessages =>
         GiftedChat.append(previousMessages, messageWithImages),
@@ -139,6 +229,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                   avatar: getModeIcon(selectedMode) as string,
                 },
                 mode: selectedMode,
+                type: MessageType.TEXT,
               },
             ]),
           );
@@ -153,7 +244,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             newMessages[0]?.text || 'Generate a response based on the images',
           images: base64Images,
           userId,
-          matchId: String(match.id),
+          matchId: String(effectiveMatchId),
         });
         setIsTyping(false);
         const aiResponse: IMessageWithImages = {
@@ -166,6 +257,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             avatar: getModeIcon(selectedMode) as string,
           },
           mode: selectedMode,
+          type: MessageType.TEXT,
         };
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
@@ -184,12 +276,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 avatar: getModeIcon(selectedMode) as string,
               },
               mode: selectedMode,
+              type: MessageType.TEXT,
             },
           ]),
         );
       }
     },
-    [images, setImages, selectedMode, userId, match.id],
+    [images, setImages, selectedMode, userId, effectiveMatchId],
   );
 
   const handleCopyMessage = useCallback((text: string) => {
@@ -252,7 +345,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             const {currentMessage} = props;
             const isCopyable =
               currentMessage?.user._id === 'coach' &&
-              currentMessage?.mode === 'generate';
+              currentMessage?.mode === MessageMode.GENERATE;
 
             return (
               <TouchableOpacity
@@ -354,19 +447,36 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                   ))}
                 </ScrollView>
               )}
+              {isDevMode && (
+                <View style={styles.debugToggleContainer}>
+                  <TouchableOpacity
+                    onPress={() => setUseDebugMatch(!useDebugMatch)}
+                    style={styles.debugToggle}>
+                    <IconButton
+                      icon={useDebugMatch ? 'test-tube' : 'test-tube-off'}
+                      size={24}
+                      iconColor={theme.colors.tertiary}
+                      style={styles.debugToggleIcon}
+                    />
+                    <Text style={styles.debugToggleText}>
+                      {useDebugMatch ? 'Debug Match' : 'Regular Match'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <View style={styles.modeSelector}>
                 <SegmentedButtons
                   value={selectedMode}
-                  onValueChange={value => setSelectedMode(value as ChatMode)}
+                  onValueChange={value => setSelectedMode(value as MessageMode)}
                   buttons={[
                     {
-                      value: 'generate',
+                      value: MessageMode.GENERATE,
                       label: '💬 Generate',
                       style: styles.modeButton,
                       labelStyle: styles.modeButtonLabel,
                     },
                     {
-                      value: 'coach',
+                      value: MessageMode.COACH,
                       label: 'Coach',
                       style: styles.modeButton,
                       labelStyle: styles.modeButtonLabel,
@@ -774,6 +884,36 @@ const styles = StyleSheet.create({
   },
   permissionButton: {
     minWidth: 100,
+  },
+  devBadge: {
+    color: theme.colors.tertiary,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  debugToggleContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  debugToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  debugToggleIcon: {
+    margin: 0,
+    padding: 0,
+  },
+  debugToggleText: {
+    color: theme.colors.tertiary,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

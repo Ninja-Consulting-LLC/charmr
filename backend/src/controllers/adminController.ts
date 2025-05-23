@@ -1,5 +1,6 @@
 import {Request, Response} from 'express';
 import {Database, User} from '../db/types';
+import {testContextMessages} from '../test/testContextMessages';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 
@@ -703,53 +704,46 @@ export const testContext = async (
     }
 
     // Create a test match if it doesn't exist
-    const testMatchId = 'test-context-match';
-    let match = await db.getMatchById(testMatchId);
+    const testMatchName = 'Test Context Match';
+    const testMatchPlatform = 'tinder';
+    let match = await db.get(
+      'SELECT * FROM matches WHERE userId = ? AND name = ? AND platform = ?',
+      [testUserId, testMatchName, testMatchPlatform],
+    );
 
     if (!match) {
-      await db.run(
-        'INSERT INTO matches (id, userId, name, platform, lastUsed, hidden, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      const result = await db.run(
+        'INSERT INTO matches (userId, name, platform, lastUsed, hidden, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
-          testMatchId,
           testUserId,
-          'Test Context Match',
-          'tinder',
+          testMatchName,
+          testMatchPlatform,
           new Date().toISOString(),
-          false,
+          0,
           new Date().toISOString(),
           new Date().toISOString(),
         ],
       );
+      match = await db.get('SELECT * FROM matches WHERE id = ?', [
+        result.lastID,
+      ]);
     }
 
-    // Add some test messages to establish context
-    const messages = [
-      {
-        role: 'user',
-        content: 'Hello, how are you?',
-      },
-      {
-        role: 'assistant',
-        content: "Hi! I'm doing great, thanks for asking. How about you?",
-      },
-      {
-        role: 'user',
-        content: "I'm good too! What do you like to do for fun?",
-      },
-      {
-        role: 'assistant',
-        content:
-          'I enjoy hiking, reading, and trying new restaurants. What about you?',
-      },
-    ];
+    if (!match) {
+      throw new Error('Failed to create or retrieve test match');
+    }
 
-    for (const message of messages) {
+    // Add test messages from the test context messages file
+    for (const message of testContextMessages) {
       await db.run(
-        'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO messages (userId, matchId, role, type, mode, used, content, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           testUserId,
-          testMatchId,
+          match.id,
           message.role,
+          message.type,
+          message.mode,
+          message.used ? 1 : 0,
           message.content,
           new Date().toISOString(),
         ],
@@ -759,19 +753,19 @@ export const testContext = async (
     // Get the conversation history to verify context
     const conversationHistory = await db.getConversationHistory(
       testUserId,
-      testMatchId,
+      match.id.toString(),
     );
 
     logger.info('Test context setup completed', {
       userId: testUserId,
-      matchId: testMatchId,
+      matchId: match.id,
       messageCount: conversationHistory.length,
     });
 
     res.status(200).json({
       message: 'Test context setup completed successfully',
       userId: testUserId,
-      matchId: testMatchId,
+      matchId: match.id,
       messageCount: conversationHistory.length,
     });
   } catch (error) {
