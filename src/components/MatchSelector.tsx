@@ -20,7 +20,7 @@ interface MatchSelectorModalProps {
   selectedMatch: Match | null;
   onSelectMatch: (match: Match) => void;
   onAddMatch: () => void;
-  onDeleteMatch: (match: Match) => void;
+  onDeleteMatch: (matchId: string) => void;
   onHideMatch: (match: Match) => void;
   onRestoreMatch: (match: Match) => void;
   userPlan: SubscriptionTier;
@@ -48,7 +48,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
 
   const handleConfirmDelete = () => {
     if (matchToDelete) {
-      onDeleteMatch(matchToDelete);
+      onDeleteMatch(matchToDelete.id);
       setDeleteDialogVisible(false);
       setMatchToDelete(null);
     }

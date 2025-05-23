@@ -119,8 +119,7 @@ export const deleteMatch = async (
   db: Database,
 ) => {
   try {
-    const {userId} = req.params;
-    const {matchId} = req.body;
+    const {userId, matchId} = req.params;
 
     if (!matchId) {
       return res.status(400).json({error: 'Missing required fields'});

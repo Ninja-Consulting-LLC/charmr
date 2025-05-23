@@ -16,18 +16,18 @@ import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
 import {RootStackParamList} from '../navigation/types';
-import {useStore} from '../store';
-import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
-import {logger} from '../utils/logger';
 import {
   addMatch,
   deleteMatch,
   hideMatch,
-  Match,
   restoreMatch,
   updateMatchLastUsed,
-} from '../utils/matchUtils';
+} from '../services/matchService';
+import {useStore} from '../store';
+import {theme} from '../theme/theme';
+import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
+import {Match as MatchType} from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
@@ -160,7 +160,7 @@ const ResponseGenerator = forwardRef<
 
   const handleAddMatch = async (name: string, platform: string) => {
     try {
-      const newMatch = await addMatch(name, platform);
+      const newMatch = await addMatch({name, platform} as MatchType);
       if (newMatch) {
         addMatchToStore(newMatch);
         setSelectedMatch(newMatch);
@@ -172,9 +172,9 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleDeleteMatch = async (match: Match) => {
+  const handleDeleteMatch = async (match: MatchType) => {
     try {
-      const success = await deleteMatch(match.name, match.platform);
+      const success = await deleteMatch(match.id);
       if (success) {
         removeMatch(match.id);
         if (selectedMatch?.id === match.id) {
@@ -186,7 +186,7 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleHideMatch = async (match: Match) => {
+  const handleHideMatch = async (match: MatchType) => {
     try {
       const success = await hideMatch(match.name, match.platform);
       if (success) {
@@ -200,7 +200,7 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleRestoreMatch = async (match: Match) => {
+  const handleRestoreMatch = async (match: MatchType) => {
     try {
       const success = await restoreMatch(match.name, match.platform);
       if (success) {
@@ -333,10 +333,14 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleMatchSelect = (match: Match) => {
+  const handleMatchSelect = (match: MatchType) => {
     setSelectedMatch(match);
     setShowMatchSelector(false);
     navigation.navigate('CoachChat', {match});
+  };
+
+  const handleDeleteMatchById = (matchId: string) => {
+    removeMatch(matchId);
   };
 
   return (
@@ -409,11 +413,8 @@ const ResponseGenerator = forwardRef<
                 matches={matches}
                 selectedMatch={selectedMatch}
                 onSelectMatch={handleMatchSelect}
-                onAddMatch={() => {
-                  setShowMatchSelector(false);
-                  setShowAddMatchModal(true);
-                }}
-                onDeleteMatch={handleDeleteMatch}
+                onAddMatch={() => setShowAddMatchModal(true)}
+                onDeleteMatch={handleDeleteMatchById}
                 onHideMatch={handleHideMatch}
                 onRestoreMatch={handleRestoreMatch}
                 userPlan={user?.plan || SubscriptionTier.FREE}

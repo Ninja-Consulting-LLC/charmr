@@ -137,11 +137,7 @@ export interface Database {
     name: string,
     platform: string,
   ) => Promise<void>;
-  deleteMatch: (
-    userId: string,
-    name: string,
-    platform: string,
-  ) => Promise<void>;
+  deleteMatch: (userId: string, matchId: string) => Promise<void>;
   hideMatch: (userId: string, name: string, platform: string) => Promise<void>;
   restoreMatch: (
     userId: string,
