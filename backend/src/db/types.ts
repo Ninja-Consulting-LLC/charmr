@@ -83,13 +83,13 @@ export interface ConversationItem extends Message {
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
-  createUser: (
-    userId: string,
-    email?: string,
-    name?: string,
-    plan?: SubscriptionTier,
-    installationId?: string,
-  ) => Promise<User>;
+  createUser: (user: {
+    id: string;
+    email: string;
+    name: string;
+    plan?: SubscriptionTier;
+    installationId?: string;
+  }) => Promise<User | null>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;

@@ -14,12 +14,12 @@ describe('Match Integration Tests', () => {
   beforeAll(async () => {
     db = await getDatabase();
     // Create test user
-    await db.createUser(
-      testUser.id,
-      testUser.email,
-      testUser.name,
-      testUser.plan,
-    );
+    await db.createUser({
+      id: testUser.id,
+      email: testUser.email,
+      name: testUser.name,
+      plan: testUser.plan,
+    });
   });
 
   afterAll(async () => {

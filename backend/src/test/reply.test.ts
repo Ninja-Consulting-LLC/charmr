@@ -31,6 +31,7 @@ describe('Reply Controller', () => {
     const user = await createUser(db, {
       id: 'test-user-123',
       email: 'test@example.com',
+      name: 'Test User',
       plan: SubscriptionTier.FREE,
     });
 

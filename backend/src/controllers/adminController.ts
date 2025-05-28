@@ -17,24 +17,18 @@ export const getUsers = async (req: Request, res: Response, db: Database) => {
 
 export const createUser = async (
   db: Database,
-  userData: {
+  user: {
     id: string;
-    email?: string;
-    name?: string;
-    plan: SubscriptionTier;
+    email: string;
+    name: string;
+    plan?: SubscriptionTier;
     installationId?: string;
   },
 ): Promise<User | null> => {
   try {
-    return await db.createUser(
-      userData.id,
-      userData.email,
-      userData.name,
-      userData.plan,
-      userData.installationId,
-    );
+    return await db.createUser(user);
   } catch (error) {
-    logger.error('Failed to create user', {
+    logger.error('Error creating user:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });

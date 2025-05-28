@@ -140,13 +140,15 @@ describe('Admin Domain', () => {
     it('should fail to create user with missing required fields', async () => {
       const newUser = await createUser(db, {
         id: 'new-user-123',
+        email: 'new@example.com',
+        name: 'New User',
         plan: SubscriptionTier.FREE,
       });
 
       expect(newUser).toBeTruthy();
       expect(newUser?.id).toBe('new-user-123');
-      expect(newUser?.email).toBeUndefined();
-      expect(newUser?.name).toBeUndefined();
+      expect(newUser?.email).toBe('new@example.com');
+      expect(newUser?.name).toBe('New User');
     });
 
     it('should get all users', async () => {
