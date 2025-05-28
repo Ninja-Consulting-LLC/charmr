@@ -37,6 +37,8 @@ const DevMenu = () => {
     showDevMenu,
     setShowDevMenu,
     updateUserPlan,
+    matches,
+    setMatches,
   } = useStore();
 
   const [isVisible, setIsVisible] = useState(false);
@@ -108,6 +110,7 @@ const DevMenu = () => {
   const handleClearStorage = async () => {
     try {
       await DevUtils.clearStorage();
+      setMatches([]);
       Alert.alert('Development', 'Storage cleared successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to clear storage');
@@ -410,26 +413,29 @@ const DevMenu = () => {
                 Reset Onboarding
               </Button>
 
-              <Button
-                mode="contained"
-                onPress={handleClearStorage}
-                style={styles.button}>
-                Clear Storage
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleClearMatchStorage}
-                style={styles.button}>
-                Clear Match Storage
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleInspectStorage}
-                style={styles.button}>
-                Inspect Storage
-              </Button>
+              <View style={styles.section}>
+                <Text variant="titleSmall" style={styles.sectionTitle}>
+                  Storage & Database
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleClearStorage}
+                  style={styles.button}>
+                  Clear Storage
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleResetDb}
+                  style={styles.button}>
+                  Reset Database
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleInspectStorage}
+                  style={styles.button}>
+                  Inspect Storage
+                </Button>
+              </View>
 
               <Button
                 mode="contained"
@@ -484,30 +490,6 @@ const DevMenu = () => {
                     Pro
                   </Button>
                 </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleSmall" style={styles.sectionTitle}>
-                  Database
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={handleResetDb}
-                  style={styles.button}>
-                  Reset DB
-                </Button>
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleSmall" style={styles.sectionTitle}>
-                  Storage
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={handleClearStorage}
-                  style={styles.button}>
-                  Clear Storage
-                </Button>
               </View>
 
               <View style={styles.section}>

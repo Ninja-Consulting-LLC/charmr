@@ -41,13 +41,13 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       userId TEXT NOT NULL,
       matchId TEXT NOT NULL,
       role TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'text',
-      mode TEXT NOT NULL DEFAULT 'generate',
-      used BOOLEAN NOT NULL DEFAULT 0,
+      type TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
       replyTo INTEGER,
       content TEXT NOT NULL,
       timestamp TEXT NOT NULL,
-      FOREIGN KEY (userId) REFERENCES users(id),
+      imageData TEXT,
       FOREIGN KEY (replyTo) REFERENCES messages(id)
     );
 
@@ -145,32 +145,56 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       installationId?: string,
     ): Promise<User> => {
       try {
-        const user: User = {
-          id: userId,
-          email,
-          name,
-          plan,
-          dailyMessagesUsed: 0,
-          extraMessages: 0,
-          lastResetDate: new Date().toISOString().split('T')[0],
-          installationId,
-        };
+        // Start a transaction
+        await db.run('BEGIN TRANSACTION');
 
-        await db.run(
-          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            user.id,
-            user.email,
-            user.name,
-            user.plan,
-            user.dailyMessagesUsed,
-            user.extraMessages,
-            user.lastResetDate,
-            user.installationId,
-          ],
-        );
+        try {
+          // If installationId is provided, check if a user with this ID already exists
+          if (installationId) {
+            const existingUser = await db.get(
+              'SELECT * FROM users WHERE installationId = ?',
+              installationId,
+            );
+            if (existingUser) {
+              logger.info('User with installationId already exists', {
+                installationId,
+              });
+              await db.run('COMMIT');
+              return existingUser;
+            }
+          }
 
-        return user;
+          const user: User = {
+            id: userId,
+            email,
+            name,
+            plan,
+            dailyMessagesUsed: 0,
+            extraMessages: 0,
+            lastResetDate: new Date().toISOString().split('T')[0],
+            installationId,
+          };
+
+          await db.run(
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              user.id,
+              user.email,
+              user.name,
+              user.plan,
+              user.dailyMessagesUsed,
+              user.extraMessages,
+              user.lastResetDate,
+              user.installationId,
+            ],
+          );
+
+          await db.run('COMMIT');
+          return user;
+        } catch (error) {
+          await db.run('ROLLBACK');
+          throw error;
+        }
       } catch (error) {
         logger.error('Failed to create user', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -321,6 +345,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         replyTo?: number;
         content: string;
         timestamp: string;
+        imageData?: string;
       },
     ): Promise<Message> => {
       try {
@@ -336,7 +361,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         };
 
         const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             userId,
             matchId,
@@ -347,6 +372,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             messageWithDefaults.replyTo || null,
             messageWithDefaults.content,
             messageWithDefaults.timestamp,
+            messageWithDefaults.imageData || null,
           ],
         );
 
@@ -435,8 +461,25 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     clearDatabase: async (): Promise<void> => {
       try {
-        await db.run('DELETE FROM messages');
-        await db.run('DELETE FROM users');
+        // Get all table names
+        const tables = await db.all(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+        );
+
+        // Disable foreign key constraints temporarily
+        await db.run('PRAGMA foreign_keys = OFF');
+
+        // Clear each table
+        for (const table of tables) {
+          await db.run(`DELETE FROM ${table.name}`);
+        }
+
+        // Reset autoincrement counters
+        await db.run('DELETE FROM sqlite_sequence');
+
+        // Re-enable foreign key constraints
+        await db.run('PRAGMA foreign_keys = ON');
+
         logger.info('Database cleared successfully');
       } catch (error) {
         logger.error('Failed to clear database', {

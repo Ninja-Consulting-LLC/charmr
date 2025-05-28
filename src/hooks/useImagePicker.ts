@@ -42,14 +42,14 @@ export const useImagePicker = () => {
     try {
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
-        multiple: true,
+        multiple: false,
         cropping: false,
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
         smartAlbums: ['Screenshots'],
         defaultAlbum: 'Screenshots',
-        maxFiles: 10,
+        maxFiles: 1,
         selectedAssets: images.map(img => ({
           uri: img.path,
           type: img.mime || 'image/jpeg',

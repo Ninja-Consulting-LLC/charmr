@@ -10,6 +10,8 @@ import {
 import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
 import {authenticateUser} from '../middleware/auth';
+import {SubscriptionTier} from '../types/enums';
+import {loadConversation} from '../utils/conversationUtils';
 
 const createMatchRouter = (db: Database) => {
   const router = express.Router();
@@ -54,7 +56,8 @@ const createMatchRouter = (db: Database) => {
 
       const {matchId} = req.params;
       const messageRepository = getMessageRepository(db);
-      const messages = await messageRepository.getMessagesByMatch(
+      // Use the combined timeline (messages + screenshots)
+      const timeline = await messageRepository.getConversationTimeline(
         userId,
         matchId,
       );
@@ -64,7 +67,7 @@ const createMatchRouter = (db: Database) => {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
-      res.json(messages);
+      res.json(timeline);
     } catch (error) {
       console.error('Error fetching match messages:', error);
       res.status(500).json({error: 'Failed to fetch match messages'});
@@ -123,6 +126,25 @@ const createMatchRouter = (db: Database) => {
       return res.status(403).json({error: 'Unauthorized access to user data'});
     }
     return restoreMatch(req, res, db);
+  });
+
+  // Debug endpoint: get full conversation for a user/match
+  router.get('/debug/conversation/:userId/:matchId', async (req, res) => {
+    try {
+      const {userId, matchId} = req.params;
+      // For debugging, assume admin access
+      const conversation = await loadConversation(
+        userId,
+        matchId,
+        SubscriptionTier.FREE,
+      );
+      res.json(conversation);
+    } catch (error) {
+      res.status(500).json({
+        error: 'Failed to load conversation',
+        details: error instanceof Error ? error.message : error,
+      });
+    }
   });
 
   return router;

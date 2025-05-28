@@ -32,6 +32,7 @@ export interface Message {
   replyTo?: number;
   content: string;
   timestamp: string;
+  imageData?: string;
 }
 
 export interface MessageCost {
@@ -71,6 +72,7 @@ export interface SupportTicket {
 export interface MessageFilter {
   role?: MessageRole;
   type?: MessageType;
+  mode?: MessageMode;
   used?: boolean;
 }
 

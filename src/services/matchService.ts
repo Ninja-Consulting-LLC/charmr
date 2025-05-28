@@ -45,20 +45,6 @@ export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
   }
 };
 
-export const addMatch = async (match: Match): Promise<Match> => {
-  try {
-    const userId = await getUserId();
-    const {data} = await axiosInstance.post(
-      `/api/users/${userId}/matches`,
-      match,
-    );
-    return data;
-  } catch (error) {
-    logger.app.error('Error adding match:', error);
-    throw error;
-  }
-};
-
 export const updateMatch = async (match: Match): Promise<Match> => {
   try {
     const userId = await getUserId();
