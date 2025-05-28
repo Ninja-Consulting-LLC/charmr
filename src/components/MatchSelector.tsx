@@ -11,6 +11,7 @@ import {
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
+import AddMatchModal from './AddMatchModal';
 import DeleteMatchDialog from './DeleteMatchDialog';
 
 interface MatchSelectorModalProps {
@@ -19,7 +20,7 @@ interface MatchSelectorModalProps {
   matches: Match[];
   selectedMatch: Match | null;
   onSelectMatch: (match: Match) => void;
-  onAddMatch: () => void;
+  onAddMatch: (name: string, platform: string) => void;
   onDeleteMatch: (matchId: string) => void;
   onHideMatch: (match: Match) => void;
   onRestoreMatch: (match: Match) => void;
@@ -40,6 +41,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
 }) => {
   const [deleteDialogVisible, setDeleteDialogVisible] = React.useState(false);
   const [matchToDelete, setMatchToDelete] = React.useState<Match | null>(null);
+  const [showAddMatchModal, setShowAddMatchModal] = React.useState(false);
 
   const handleDeletePress = (match: Match) => {
     setMatchToDelete(match);
@@ -60,6 +62,11 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
       setDeleteDialogVisible(false);
       setMatchToDelete(null);
     }
+  };
+
+  const handleAddMatch = async (name: string, platform: string) => {
+    await onAddMatch(name, platform);
+    setShowAddMatchModal(false);
   };
 
   // Sort matches by lastUsed date, most recent first
@@ -148,7 +155,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
           <View style={styles.footer}>
             <Button
               mode="contained"
-              onPress={onAddMatch}
+              onPress={() => setShowAddMatchModal(true)}
               icon="plus"
               style={styles.addButton}>
               Add New Match
@@ -164,6 +171,13 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
           onArchive={handleArchive}
         />
       </Modal>
+      <Portal>
+        <AddMatchModal
+          visible={showAddMatchModal}
+          onDismiss={() => setShowAddMatchModal(false)}
+          onAdd={handleAddMatch}
+        />
+      </Portal>
     </Portal>
   );
 };

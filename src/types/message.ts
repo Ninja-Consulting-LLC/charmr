@@ -20,6 +20,7 @@ export interface Message {
   replyTo?: number;
   content: string;
   timestamp: string;
+  imageData?: string; // For messages with type 'image'
 }
 
 // Extend the backend request type for frontend-specific needs

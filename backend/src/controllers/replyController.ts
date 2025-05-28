@@ -1,11 +1,13 @@
 import {Request, Response} from 'express';
+import {config} from '../config/config';
+import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
-import {MessageMode, MessageRole, MessageType} from '../types/enums';
-import {loadConversation} from '../utils/conversationUtils';
+import {appendConversation, loadConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 
 interface ChatGptImage {
@@ -60,7 +62,10 @@ export const createReplyController = async (db: Database) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
     // 1. Validate prompt
-    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+    if (
+      (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
+      (!images || images.length === 0)
+    ) {
       return res.status(400).json({error: 'Prompt is required.'});
     }
 
@@ -202,7 +207,52 @@ export const createReplyController = async (db: Database) => {
         });
       }
 
-      // Increment message count after successful generation
+      // Save the message and its costs if not deleting after response
+      if (!req.body.deleteAfterResponse) {
+        const db = await getDatabase();
+        const timestamp = new Date().toISOString();
+
+        // Save the message and its costs
+        const savedMessage = await appendConversation(
+          userId,
+          matchId,
+          response.summary || '',
+          response.reply,
+          images,
+          prompt,
+        );
+
+        // Calculate costs
+        const costBreakdown = calculateCost(
+          req.body.model || config.openai.model,
+          {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: images?.length || 0,
+          },
+        );
+
+        // Save the message cost
+        await db.saveMessageCost(savedMessage.id, {
+          model: req.body.model || config.openai.model,
+          promptTokens: response.usage?.prompt_tokens || 0,
+          completionTokens: response.usage?.completion_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+          inputCost: costBreakdown.inputCost,
+          outputCost: costBreakdown.outputCost,
+          totalCost: costBreakdown.totalCost,
+          timestamp,
+        });
+      }
+
+      logger.info('Reply generated successfully', {
+        userId,
+        matchId,
+        replyLength: response.reply.length,
+      });
+
+      // Increment message count after successful assistant reply
       const success = await messageLimitService.incrementMessageCount(userId);
       if (!success) {
         logger.warn('Failed to increment message count', {userId});
@@ -212,45 +262,6 @@ export const createReplyController = async (db: Database) => {
           limits: messageLimits,
         });
       }
-
-      // Save the message using the repository
-      const timestamp = new Date().toISOString();
-      await messageRepository.createMessage(userId, matchId, {
-        role: MessageRole.ASSISTANT,
-        content: response.reply,
-        timestamp,
-        type: MessageType.TEXT,
-        mode: MessageMode.GENERATE,
-        used: true,
-      });
-
-      // Save the summary if it exists
-      if (response.summary) {
-        await messageRepository.createMessage(userId, matchId, {
-          role: MessageRole.SYSTEM,
-          content: response.summary,
-          timestamp,
-          type: MessageType.SUMMARY,
-          mode: MessageMode.GENERATE,
-          used: true,
-        });
-      }
-
-      // Save screenshots if they exist
-      if (images?.length > 0) {
-        for (const image of images) {
-          await messageRepository.createScreenshot(userId, matchId, {
-            imageData: image,
-            timestamp,
-          });
-        }
-      }
-
-      logger.info('Reply generated successfully', {
-        userId,
-        matchId,
-        replyLength: response.reply.length,
-      });
 
       // Get updated message limits
       const updatedLimits = await messageLimitService.getMessageLimits(userId);

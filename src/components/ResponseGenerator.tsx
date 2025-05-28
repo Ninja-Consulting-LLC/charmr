@@ -17,7 +17,6 @@ import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
 import {RootStackParamList} from '../navigation/types';
 import {
-  addMatch,
   deleteMatch,
   hideMatch,
   restoreMatch,
@@ -27,8 +26,10 @@ import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
-import {Match as MatchType} from '../utils/matchUtils';
-import AddMatchModal from './AddMatchModal';
+import {
+  addMatch as addMatchUtil,
+  Match as MatchType,
+} from '../utils/matchUtils';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
@@ -158,14 +159,12 @@ const ResponseGenerator = forwardRef<
     }
   }, [response, error, errorType]);
 
-  const handleAddMatch = async (name: string, platform: string) => {
+  const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
-      const newMatch = await addMatch({name, platform} as MatchType);
+      const newMatch = await addMatchUtil(name, platform);
       if (newMatch) {
         addMatchToStore(newMatch);
-        setSelectedMatch(newMatch);
-        setShowAddMatchModal(false);
-        loadMatches();
+        await loadMatches(); // Reload matches to ensure UI is in sync
       }
     } catch (error) {
       console.error('Error adding match:', error);
@@ -413,7 +412,7 @@ const ResponseGenerator = forwardRef<
                 matches={matches}
                 selectedMatch={selectedMatch}
                 onSelectMatch={handleMatchSelect}
-                onAddMatch={() => setShowAddMatchModal(true)}
+                onAddMatch={handleAddMatchFromSelector}
                 onDeleteMatch={handleDeleteMatchById}
                 onHideMatch={handleHideMatch}
                 onRestoreMatch={handleRestoreMatch}
@@ -475,12 +474,6 @@ const ResponseGenerator = forwardRef<
       </View>
 
       {/* Modals */}
-      <AddMatchModal
-        visible={showAddMatchModal}
-        onDismiss={() => setShowAddMatchModal(false)}
-        onAdd={handleAddMatch}
-      />
-
       <PromptModal
         visible={showPromptModal}
         onDismiss={() => setShowPromptModal(false)}

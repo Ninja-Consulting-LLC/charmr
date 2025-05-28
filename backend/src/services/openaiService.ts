@@ -8,11 +8,7 @@ import {
   MessageStyle,
   SubscriptionTier,
 } from '../types/enums';
-import {
-  appendConversation,
-  loadConversation,
-  Message,
-} from '../utils/conversationUtils';
+import {loadConversation, Message} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
@@ -149,42 +145,16 @@ export const createOpenAIService = () => {
 
       const {summary, message: reply} = parsedResponse;
 
-      // Save the message and its costs if not deleting after response
-      if (!request.deleteAfterResponse) {
-        const db = await getDatabase();
-        const timestamp = new Date().toISOString();
-
-        // Save the message and its costs
-        const savedMessage = await appendConversation(
-          request.userId,
-          request.matchId,
-          summary,
-          reply,
-        );
-
-        // Calculate costs
-        const costBreakdown = calculateCost(
-          request.model || config.openai.model,
-          {
-            prompt_tokens: response.usage?.prompt_tokens || 0,
-            completion_tokens: response.usage?.completion_tokens || 0,
-            total_tokens: response.usage?.total_tokens || 0,
-            image_count: request.images?.length || 0,
-          },
-        );
-
-        // Save the message cost
-        await db.saveMessageCost(savedMessage.id, {
-          model: request.model || config.openai.model,
-          promptTokens: response.usage?.prompt_tokens || 0,
-          completionTokens: response.usage?.completion_tokens || 0,
-          totalTokens: response.usage?.total_tokens || 0,
-          inputCost: costBreakdown.inputCost,
-          outputCost: costBreakdown.outputCost,
-          totalCost: costBreakdown.totalCost,
-          timestamp,
-        });
-      }
+      // Calculate costs for the response
+      const costBreakdown = calculateCost(
+        request.model || config.openai.model,
+        {
+          prompt_tokens: response.usage?.prompt_tokens || 0,
+          completion_tokens: response.usage?.completion_tokens || 0,
+          total_tokens: response.usage?.total_tokens || 0,
+          image_count: request.images?.length || 0,
+        },
+      );
 
       return {
         reply,
@@ -192,6 +162,7 @@ export const createOpenAIService = () => {
         usage: response.usage,
         mode: request.mode || MessageMode.GENERATE,
         style: request.style,
+        cost: costBreakdown,
       };
     } catch (error: any) {
       logger.error('OpenAI API error', {

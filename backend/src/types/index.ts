@@ -25,6 +25,11 @@ export interface GenerateReplyResponse {
   };
   mode: MessageMode;
   style?: MessageStyle;
+  cost?: {
+    inputCost: number;
+    outputCost: number;
+    totalCost: number;
+  };
 }
 
 export interface ErrorResponse {
