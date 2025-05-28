@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getInstallations} from '@react-native-firebase/installations';
 import React, {
   createContext,
   useContext,
@@ -54,9 +53,6 @@ interface StoreContextType {
   setDeleteScreenshots: (value: boolean) => void;
   prompt: string;
   setPrompt: (prompt: string) => void;
-  // Installation ID
-  installationId: string | null;
-  getInstallationId: () => Promise<string>;
 }
 
 export const StoreContext = createContext<StoreContextType>(
@@ -93,7 +89,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [installationId, setInstallationId] = useState<string | null>(null);
   // Dating Coach state
   const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -348,26 +343,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
-  // Function to get installation ID
-  const getInstallationId = async (): Promise<string> => {
-    try {
-      // Return cached ID if available
-      if (installationId) {
-        return installationId;
-      }
-
-      // Get fresh installation ID
-      const id = await getInstallations().getId();
-      setInstallationId(id);
-
-      logger.app.debug('Got installation ID', {installationId: id});
-      return id;
-    } catch (error) {
-      logger.app.error('Failed to get installation ID:', error);
-      throw error;
-    }
-  };
-
   const value = useMemo(
     () => ({
       showKeyboardModal,
@@ -406,9 +381,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setDeleteScreenshots,
       prompt,
       setPrompt,
-      // Installation ID
-      installationId,
-      getInstallationId,
     }),
     [
       showKeyboardModal,
@@ -425,7 +397,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       selectedMatch,
       deleteScreenshots,
       prompt,
-      installationId,
     ],
   );
 

@@ -137,66 +137,132 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    createUser: async (
-      userId: string,
-      email?: string,
-      name?: string,
-      plan: SubscriptionTier = SubscriptionTier.FREE,
-      installationId?: string,
-    ): Promise<User> => {
+    createUser: async (user: {
+      id: string;
+      email: string;
+      name: string;
+      plan?: SubscriptionTier;
+      installationId?: string;
+    }): Promise<User | null> => {
       try {
-        // Start a transaction
         await db.run('BEGIN TRANSACTION');
 
-        try {
-          // If installationId is provided, check if a user with this ID already exists
-          if (installationId) {
-            const existingUser = await db.get(
-              'SELECT * FROM users WHERE installationId = ?',
-              installationId,
-            );
-            if (existingUser) {
+        // If installationId is provided, check if a user with this ID already exists
+        if (user.installationId) {
+          const existingUser = await db.get(
+            'SELECT * FROM users WHERE installationId = ?',
+            user.installationId,
+          );
+          if (existingUser) {
+            // If the existing user is anonymous (no email), link it to the new user
+            if (
+              !existingUser.email ||
+              existingUser.email === existingUser.installationId
+            ) {
+              logger.info('Linking anonymous user to registered user', {
+                anonymousUserId: existingUser.id,
+                registeredUserId: user.id,
+              });
+
+              try {
+                // Transfer all messages from anonymous to registered user
+                await db.run(
+                  'UPDATE messages SET userId = ? WHERE userId = ?',
+                  [user.id, existingUser.id],
+                );
+
+                // Transfer all matches from anonymous to registered user
+                await db.run('UPDATE matches SET userId = ? WHERE userId = ?', [
+                  user.id,
+                  existingUser.id,
+                ]);
+
+                // Transfer all screenshots from anonymous to registered user
+                await db.run(
+                  'UPDATE screenshots SET userId = ? WHERE userId = ?',
+                  [user.id, existingUser.id],
+                );
+
+                // Delete the anonymous user and create the new user
+                await db.run('DELETE FROM users WHERE id = ?', [
+                  existingUser.id,
+                ]);
+                await db.run(
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                  [
+                    user.id,
+                    user.email,
+                    user.name,
+                    user.plan || SubscriptionTier.FREE,
+                    existingUser.dailyMessagesUsed,
+                    existingUser.extraMessages,
+                    existingUser.lastResetDate,
+                    user.installationId,
+                  ],
+                );
+
+                const updatedUser = await db.get(
+                  'SELECT * FROM users WHERE id = ?',
+                  user.id,
+                );
+                await db.run('COMMIT');
+                return updatedUser;
+              } catch (error) {
+                await db.run('ROLLBACK');
+                logger.error('Failed to link anonymous user:', {
+                  error:
+                    error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined,
+                  anonymousUserId: existingUser.id,
+                  registeredUserId: user.id,
+                });
+                throw error;
+              }
+            } else {
+              // If the existing user is not anonymous, return it
               logger.info('User with installationId already exists', {
-                installationId,
+                installationId: user.installationId,
               });
               await db.run('COMMIT');
               return existingUser;
             }
           }
+        }
 
-          const user: User = {
-            id: userId,
-            email,
-            name,
-            plan,
-            dailyMessagesUsed: 0,
-            extraMessages: 0,
-            lastResetDate: new Date().toISOString().split('T')[0],
-            installationId,
-          };
-
+        // Create new user
+        try {
           await db.run(
             'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
               user.id,
               user.email,
               user.name,
-              user.plan,
-              user.dailyMessagesUsed,
-              user.extraMessages,
-              user.lastResetDate,
+              user.plan || SubscriptionTier.FREE,
+              0,
+              0,
+              new Date().toISOString().split('T')[0],
               user.installationId,
             ],
           );
 
+          const newUser = await db.get(
+            'SELECT * FROM users WHERE id = ?',
+            user.id,
+          );
           await db.run('COMMIT');
-          return user;
+          return newUser;
         } catch (error) {
           await db.run('ROLLBACK');
+          logger.error('Failed to create new user:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: user.id,
+          });
           throw error;
         }
       } catch (error) {
-        logger.error('Failed to create user', {
+        await db.run('ROLLBACK');
+        logger.error('Failed to create user:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         });
