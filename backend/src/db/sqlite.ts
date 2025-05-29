@@ -826,17 +826,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    getMatchById: async (matchId: number | string) => {
+    getMatchById: async (userId: string, matchId: number | string) => {
       try {
-        const match = await db.get('SELECT * FROM matches WHERE id = ?', [
-          matchId,
-        ]);
+        const match = await db.get(
+          'SELECT * FROM matches WHERE id = ? AND userId = ?',
+          [matchId, userId],
+        );
         return match || null;
       } catch (error) {
         logger.error('Failed to get match by id', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
           matchId,
+          userId,
         });
         throw error;
       }

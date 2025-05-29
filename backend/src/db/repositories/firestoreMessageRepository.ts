@@ -1,4 +1,8 @@
-import {Firestore, QueryDocumentSnapshot} from 'firebase-admin/firestore';
+import {
+  Firestore,
+  Query,
+  QueryDocumentSnapshot,
+} from 'firebase-admin/firestore';
 import {firebaseAdmin} from '../../config/firebase-admin';
 import {MessageMode, MessageRole, MessageType} from '../../types/enums';
 import logger from '../../utils/logger';
@@ -6,11 +10,19 @@ import {ConversationItem, ID, Message, MessageFilter} from '../types';
 import {MessageRepository} from './messageRepository';
 
 export class FirestoreMessageRepository implements MessageRepository {
-  private readonly messagesCollection: string = 'messages';
   private readonly db: Firestore;
 
   constructor() {
     this.db = firebaseAdmin.firestore();
+  }
+
+  private getMessagesCollection(userId: string, matchId: string) {
+    return this.db
+      .collection('users')
+      .doc(userId)
+      .collection('matches')
+      .doc(matchId)
+      .collection('messages');
   }
 
   async createMessage(
@@ -28,9 +40,24 @@ export class FirestoreMessageRepository implements MessageRepository {
     },
   ): Promise<Message> {
     try {
+      // First check if user exists
+      const userDoc = await this.db.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw new Error(`User ${userId} does not exist`);
+      }
+
+      // Then check if match exists
+      const matchDoc = await this.db
+        .collection('users')
+        .doc(userId)
+        .collection('matches')
+        .doc(matchId)
+        .get();
+      if (!matchDoc.exists) {
+        throw new Error(`Match ${matchId} does not exist for user ${userId}`);
+      }
+
       const messageData = {
-        userId,
-        matchId,
         role: message.role,
         type: message.type || MessageType.TEXT,
         mode: message.mode || MessageMode.GENERATE,
@@ -41,9 +68,8 @@ export class FirestoreMessageRepository implements MessageRepository {
         imageData: message.imageData || null,
       };
 
-      const docRef = await this.db
-        .collection(this.messagesCollection)
-        .add(messageData);
+      const messagesCollection = this.getMessagesCollection(userId, matchId);
+      const docRef = await messagesCollection.add(messageData);
       const doc = await docRef.get();
 
       return {
@@ -65,10 +91,7 @@ export class FirestoreMessageRepository implements MessageRepository {
     filter?: MessageFilter,
   ): Promise<Message[]> {
     try {
-      let query = this.db
-        .collection(this.messagesCollection)
-        .where('userId', '==', userId)
-        .where('matchId', '==', matchId);
+      let query: Query = this.getMessagesCollection(userId, matchId);
 
       if (filter) {
         if (filter.role) {
@@ -126,10 +149,29 @@ export class FirestoreMessageRepository implements MessageRepository {
 
   async markMessageAsUsed(messageId: ID): Promise<void> {
     try {
-      const docRef = this.db
-        .collection(this.messagesCollection)
-        .doc(messageId.toString());
-      await docRef.update({used: true});
+      // Since we don't have userId and matchId in the message data anymore,
+      // we need to search for the message in all user matches
+      const usersSnapshot = await this.db.collection('users').get();
+
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        const matchesSnapshot = await userDoc.ref.collection('matches').get();
+
+        for (const matchDoc of matchesSnapshot.docs) {
+          const matchId = matchDoc.id;
+          const messageRef = this.getMessagesCollection(userId, matchId).doc(
+            messageId.toString(),
+          );
+          const messageDoc = await messageRef.get();
+
+          if (messageDoc.exists) {
+            await messageRef.update({used: true});
+            return;
+          }
+        }
+      }
+
+      throw new Error(`Message ${messageId} not found`);
     } catch (error) {
       logger.error('Failed to mark message as used in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -141,15 +183,28 @@ export class FirestoreMessageRepository implements MessageRepository {
 
   async clearDatabase(): Promise<void> {
     try {
-      const snapshot = await this.db.collection(this.messagesCollection).get();
-      const batch = this.db.batch();
-      snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-      logger.info('Messages collection cleared successfully');
+      const usersSnapshot = await this.db.collection('users').get();
+
+      for (const userDoc of usersSnapshot.docs) {
+        const matchesSnapshot = await userDoc.ref.collection('matches').get();
+
+        for (const matchDoc of matchesSnapshot.docs) {
+          const messagesSnapshot = await matchDoc.ref
+            .collection('messages')
+            .get();
+          const batch = this.db.batch();
+
+          messagesSnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+
+          await batch.commit();
+        }
+      }
+
+      logger.info('Messages collections cleared successfully');
     } catch (error) {
-      logger.error('Failed to clear messages collection', {
+      logger.error('Failed to clear messages collections', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });

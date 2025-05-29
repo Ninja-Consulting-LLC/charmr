@@ -130,15 +130,15 @@ export const getDatabase = async (): Promise<Database> => {
         getMatches: async (userId: string) => {
           return matchRepository!.getMatches(userId);
         },
-        getMatchById: async (matchId: ID) => {
-          return matchRepository!.getMatchById(matchId);
+        getMatchById: async (userId: string, matchId: ID) => {
+          return matchRepository!.getMatchById(userId, matchId);
         },
         addMatch: async (
           userId: string,
           name: string,
           platform: string,
         ): Promise<Match> => {
-          return matchRepository!.addMatch({
+          return matchRepository!.addMatch(userId, {
             userId,
             name,
             platform,
@@ -158,11 +158,11 @@ export const getDatabase = async (): Promise<Database> => {
             m => m.name === name && m.platform === platform,
           );
           if (match) {
-            return matchRepository!.updateMatchLastUsed(match.id);
+            return matchRepository!.updateMatchLastUsed(userId, match.id);
           }
         },
         deleteMatch: async (userId: string, matchId: string): Promise<void> => {
-          return matchRepository!.deleteMatch(matchId);
+          return matchRepository!.deleteMatch(userId, matchId);
         },
         hideMatch: async (
           userId: string,
@@ -174,7 +174,7 @@ export const getDatabase = async (): Promise<Database> => {
             m => m.name === name && m.platform === platform,
           );
           if (match) {
-            return matchRepository!.hideMatch(match.id);
+            return matchRepository!.hideMatch(userId, match.id);
           }
         },
         restoreMatch: async (
@@ -187,7 +187,7 @@ export const getDatabase = async (): Promise<Database> => {
             m => m.name === name && m.platform === platform,
           );
           if (match) {
-            return matchRepository!.restoreMatch(match.id);
+            return matchRepository!.restoreMatch(userId, match.id);
           }
         },
 

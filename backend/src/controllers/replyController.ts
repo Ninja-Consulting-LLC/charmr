@@ -113,7 +113,7 @@ export const createReplyController = async (db: Database) => {
 
       // 2. Check if match exists (for message errors test)
       if (matchId) {
-        const match = await db.getMatchById(matchId);
+        const match = await db.getMatchById(userId, matchId);
         if (!match) {
           return res.status(404).json({error: 'Match not found'});
         }
