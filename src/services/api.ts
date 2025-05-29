@@ -183,7 +183,7 @@ export const resetDb = async () => {
       {},
       {
         headers: {
-          Authorization: `Bearer ${process.env.ADMIN_TOKEN || 'admin_secret'}`,
+          Authorization: `Bearer ${await getAuthToken()}`,
           'X-Auth-Bypass': 'true', // For development only
         },
       },
@@ -202,8 +202,8 @@ export const testContext = async () => {
       {},
       {
         headers: {
+          Authorization: `Bearer ${await getAuthToken()}`,
           'X-Auth-Bypass': 'true', // For development only
-          Authorization: `Bearer ${process.env.ADMIN_TOKEN || 'admin_secret'}`, // Admin token for admin routes
         },
       },
     );
