@@ -9,29 +9,45 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "lastUsed",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
       ]
     },
     {
       "collectionGroup": "messages",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "userId",
+          "fieldPath": "role",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "matchId",
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "mode",
           "order": "ASCENDING"
         },
         {

@@ -4,19 +4,20 @@ import logger from '../../utils/logger';
 import {ID, Match} from '../types';
 
 export class FirestoreMatchRepository {
-  private readonly matchesCollection: string = 'matches';
   private readonly db: Firestore;
 
   constructor() {
     this.db = firebaseAdmin.firestore();
   }
 
+  private getMatchesCollection(userId: string) {
+    return this.db.collection('users').doc(userId).collection('matches');
+  }
+
   async getMatches(userId: string): Promise<Match[]> {
     try {
-      const snapshot = await this.db
-        .collection(this.matchesCollection)
+      const snapshot = await this.getMatchesCollection(userId)
         .where('hidden', '==', false)
-        .where('userId', '==', userId)
         .orderBy('lastUsed', 'desc')
         .get();
 
@@ -36,11 +37,9 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async getMatchById(matchId: ID): Promise<Match | null> {
+  async getMatchById(userId: string, matchId: ID): Promise<Match | null> {
     try {
-      const docRef = this.db
-        .collection(this.matchesCollection)
-        .doc(matchId.toString());
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
       const doc = await docRef.get();
 
       if (!doc.exists) {
@@ -61,13 +60,25 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async addMatch(match: Omit<Match, 'id'>): Promise<Match> {
+  async addMatch(
+    userId: string,
+    match: Omit<Match, 'id'> & {id?: string},
+  ): Promise<Match> {
     try {
-      const docRef = await this.db
-        .collection(this.matchesCollection)
-        .add(match);
-      const doc = await docRef.get();
+      // First check if user exists
+      const userDoc = await this.db.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        throw new Error(`User ${userId} does not exist`);
+      }
 
+      let docRef;
+      if (match.id) {
+        docRef = this.getMatchesCollection(userId).doc(match.id);
+        await docRef.set(match);
+      } else {
+        docRef = await this.getMatchesCollection(userId).add(match);
+      }
+      const doc = await docRef.get();
       const data = doc.data() as Omit<Match, 'id'>;
       return {
         id: doc.id,
@@ -82,11 +93,9 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async updateMatchLastUsed(matchId: ID): Promise<void> {
+  async updateMatchLastUsed(userId: string, matchId: ID): Promise<void> {
     try {
-      const docRef = this.db
-        .collection(this.matchesCollection)
-        .doc(matchId.toString());
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
       await docRef.update({
         lastUsed: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -100,11 +109,9 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async deleteMatch(matchId: ID): Promise<void> {
+  async deleteMatch(userId: string, matchId: ID): Promise<void> {
     try {
-      const docRef = this.db
-        .collection(this.matchesCollection)
-        .doc(matchId.toString());
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
       await docRef.delete();
     } catch (error) {
       logger.error('Failed to delete match from Firestore', {
@@ -115,11 +122,9 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async hideMatch(matchId: ID): Promise<void> {
+  async hideMatch(userId: string, matchId: ID): Promise<void> {
     try {
-      const docRef = this.db
-        .collection(this.matchesCollection)
-        .doc(matchId.toString());
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
       await docRef.update({
         hidden: true,
         updatedAt: new Date().toISOString(),
@@ -133,11 +138,9 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async restoreMatch(matchId: ID): Promise<void> {
+  async restoreMatch(userId: string, matchId: ID): Promise<void> {
     try {
-      const docRef = this.db
-        .collection(this.matchesCollection)
-        .doc(matchId.toString());
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
       await docRef.update({
         hidden: false,
         updatedAt: new Date().toISOString(),
@@ -153,15 +156,18 @@ export class FirestoreMatchRepository {
 
   async clearDatabase(): Promise<void> {
     try {
-      const snapshot = await this.db.collection(this.matchesCollection).get();
-      const batch = this.db.batch();
-      snapshot.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
-      logger.info('Matches collection cleared successfully');
+      const usersSnapshot = await this.db.collection('users').get();
+      for (const userDoc of usersSnapshot.docs) {
+        const matchesSnapshot = await userDoc.ref.collection('matches').get();
+        const batch = this.db.batch();
+        matchesSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+      logger.info('Matches subcollections cleared successfully');
     } catch (error) {
-      logger.error('Failed to clear matches collection', {
+      logger.error('Failed to clear matches subcollections', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });

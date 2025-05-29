@@ -135,7 +135,10 @@ export interface Database {
     messageCount: number;
   }>;
   getMatches: (userId: string, includeHidden?: boolean) => Promise<Match[]>;
-  getMatchById: (matchId: number | string) => Promise<Match | null>;
+  getMatchById: (
+    userId: string,
+    matchId: number | string,
+  ) => Promise<Match | null>;
   addMatch: (userId: string, name: string, platform: string) => Promise<Match>;
   updateMatchLastUsed: (
     userId: string,
