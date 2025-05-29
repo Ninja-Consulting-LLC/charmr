@@ -25,8 +25,9 @@ export interface Message {
 
 // Extend the backend request type for frontend-specific needs
 export interface GenerateReplyRequest
-  extends Omit<BackendGenerateReplyRequest, 'matchId'> {
+  extends Omit<BackendGenerateReplyRequest, 'matchId' | 'deleteAfterResponse'> {
   matchId?: string; // Make matchId optional in frontend
+  deleteAfterResponse?: boolean; // Make deleteAfterResponse optional
 }
 
 // Extend the backend response type for frontend-specific needs

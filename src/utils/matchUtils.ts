@@ -17,6 +17,10 @@ export const getMatchKey = (match: Match): string => {
   return `${match.platform}::${match.name}`;
 };
 
+export const generateMatchId = (match: Match): string => {
+  return getMatchKey(match);
+};
+
 export const getMatches = async (includeHidden = false): Promise<Match[]> => {
   try {
     const userId = await AsyncStorage.getItem('userId');

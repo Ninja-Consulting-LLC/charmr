@@ -1,28 +1,15 @@
 import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../config/firebase';
+import {MessageMode} from '../types/enums';
+import {GenerateReplyRequest, GenerateReplyResponse} from '../types/message';
 import {UserData} from '../types/user';
 import {logger} from '../utils/logger';
 import axiosInstance from './axiosInstance';
-
-interface GenerateReplyRequest {
-  prompt: string;
-  images: string[];
-  userId: string;
-  matchId: string;
-  skipRateLimiting?: boolean;
-}
 
 interface MessageLimit {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
-}
-
-interface GenerateReplyResponse {
-  reply: string;
-  error?: string;
-  type?: string;
-  limits?: MessageLimit;
 }
 
 interface SupportRequest {
@@ -77,6 +64,7 @@ export const generateReply = async (
         error: error.response.data.error || 'Failed to generate reply',
         type: error.response.data.type || 'GENERATION_ERROR',
         limits: error.response.data.limits,
+        mode: MessageMode.GENERATE,
       };
     }
 
@@ -87,6 +75,7 @@ export const generateReply = async (
           reply: '',
           error: 'Request timed out. Please try again.',
           type: 'TIMEOUT_ERROR',
+          mode: MessageMode.GENERATE,
         };
       }
       if (!error.response) {
@@ -94,6 +83,7 @@ export const generateReply = async (
           reply: '',
           error: 'Network error. Please check your connection and try again.',
           type: 'NETWORK_ERROR',
+          mode: MessageMode.GENERATE,
         };
       }
     }
@@ -103,6 +93,7 @@ export const generateReply = async (
       reply: '',
       error: 'An unexpected error occurred. Please try again.',
       type: 'UNKNOWN_ERROR',
+      mode: MessageMode.GENERATE,
     };
   }
 };

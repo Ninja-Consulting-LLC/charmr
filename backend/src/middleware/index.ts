@@ -45,7 +45,7 @@ export const createGeneralLimiter = () =>
 export const createGenerateReplyLimiter = () =>
   rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Limit each user to 5 requests per hour
+    max: 100, // Limit each user to 100 requests per hour
     standardHeaders: true,
     legacyHeaders: false,
     skip: req => req.body.skipRateLimiting === true,

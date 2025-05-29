@@ -51,8 +51,6 @@ interface StoreContextType {
   setSelectedMatch: (match: Match | null) => void;
   deleteScreenshots: boolean;
   setDeleteScreenshots: (value: boolean) => void;
-  prompt: string;
-  setPrompt: (prompt: string) => void;
 }
 
 export const StoreContext = createContext<StoreContextType>(
@@ -93,7 +91,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
-  const [prompt, setPrompt] = useState('');
 
   const {
     userId,
@@ -379,8 +376,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setSelectedMatch,
       deleteScreenshots,
       setDeleteScreenshots,
-      prompt,
-      setPrompt,
     }),
     [
       showKeyboardModal,
@@ -396,7 +391,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       isDatingCoachEnabled,
       selectedMatch,
       deleteScreenshots,
-      prompt,
     ],
   );
 
