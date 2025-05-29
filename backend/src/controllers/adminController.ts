@@ -674,7 +674,6 @@ export const resetDb = async (
   try {
     // Get the user's email from the request
     const userEmail = req.user?.email;
-    const authHeader = req.headers.authorization;
 
     // Check if the user is authorized
     if (userEmail !== 'mike.doubintchik@gmail.com') {
@@ -682,18 +681,7 @@ export const resetDb = async (
       return res.status(403).json({error: 'Unauthorized to reset database'});
     }
 
-    // Verify admin token
-    const adminToken = process.env.ADMIN_TOKEN;
-    if (!adminToken) {
-      logger.error('Admin token not configured');
-      return res.status(500).json({error: 'Server configuration error'});
-    }
-
-    const token = authHeader?.split(' ')[1];
-    if (token !== adminToken) {
-      logger.warn('Invalid admin token used for database reset');
-      return res.status(403).json({error: 'Invalid admin token'});
-    }
+    logger.info('Resetting database...');
 
     if (databaseConfig.type === 'firestore') {
       await db.clearDatabase();
@@ -704,7 +692,14 @@ export const resetDb = async (
         .status(200)
         .json({message: 'Firestore database reset completed successfully'});
     } else {
-      res.status(400).json({error: 'Firestore database is not enabled'});
+      // Reset all users' message counts
+      await db.run('UPDATE users SET dailyMessagesUsed = 0');
+
+      // Clear all messages
+      await db.run('DELETE FROM messages');
+
+      logger.info('Database reset complete');
+      res.json({message: 'Database reset successfully'});
     }
   } catch (error) {
     logger.error('Error resetting database:', {

@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {Request, Response} from 'express';
-import {config} from '../config/config';
+import {firebaseAdmin} from '../config/firebase-admin';
 import {
   createUser,
   getUser,
@@ -14,24 +14,49 @@ import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
 import {SubscriptionTier} from '../types/enums';
 
-// Use the token from config which reads from environment
-// Only use a test token fallback in test mode
-const getAdminToken = () => {
-  // Use the admin token from config if available
-  if (config.admin.token) {
-    return config.admin.token;
-  }
+// Helper function to get a Firebase ID token for an admin user
+const getAdminToken = async () => {
+  // Create a custom token for the admin user
+  const uid = 'test-admin-uid';
+  await firebaseAdmin.auth().setCustomUserClaims(uid, {admin: true});
+  const customToken = await firebaseAdmin.auth().createCustomToken(uid);
 
-  // In test mode, we can use a placeholder
-  if (process.env.NODE_ENV === 'test') {
-    console.warn('Warning: Using test admin token. Do not use in production.');
-    return 'test-admin-token';
-  }
+  // Exchange custom token for ID token
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${process.env.FIREBASE_API_KEY}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: customToken,
+        returnSecureToken: true,
+      }),
+    },
+  );
 
-  throw new Error('ADMIN_TOKEN environment variable is required');
+  const data = await response.json();
+  return data.idToken;
 };
 
-const adminToken = getAdminToken();
+describe('Admin API', () => {
+  it('should allow admin to reset database', async () => {
+    const adminToken = await getAdminToken();
+    const response = await fetch('http://localhost:3000/api/admin/reset-db', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.message).toBe('Database reset successfully');
+  });
+
+  // Add more admin tests as needed
+});
 
 describe('Admin Domain', () => {
   let db: any;
@@ -40,9 +65,11 @@ describe('Admin Domain', () => {
   let responseObject: any;
   let generateReplyHandler: any;
   let matchId: string;
+  let adminToken: string;
 
   beforeEach(async () => {
     db = await getDatabase();
+    adminToken = await getAdminToken();
 
     // Clean up any existing test data first
     await db.run('DELETE FROM messages WHERE userId = ?', 'test-user-123');

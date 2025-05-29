@@ -1,11 +1,26 @@
 import {NextFunction, Request, Response} from 'express';
-import {config} from '../config/config';
+import {firebaseAdmin} from '../config/firebase-admin';
 import logger from '../utils/logger';
 
-export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
-  // TEMP: Log admin token and Authorization header for debugging
-  console.log('ADMIN TOKEN (from env):', process.env.ADMIN_TOKEN);
-  console.log('Authorization header:', req.headers.authorization);
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
+export const adminAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  // Enhanced logging for admin token debugging
+  logger.info('Admin Auth Debug:', {
+    authHeader: req.headers.authorization,
+    headers: req.headers,
+  });
 
   const authHeader = req.headers.authorization;
 
@@ -21,10 +36,27 @@ export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({error: 'Invalid authorization header format'});
   }
 
-  if (token !== config.admin.token) {
-    logger.warn('Invalid admin token used', {providedToken: token});
-    return res.status(403).json({error: 'Invalid admin token'});
-  }
+  try {
+    // Verify the Firebase token
+    const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
 
-  next();
+    // Check if the user has admin role in custom claims
+    const user = await firebaseAdmin.auth().getUser(decodedToken.uid);
+    const isAdmin = user.customClaims?.admin === true;
+
+    if (!isAdmin) {
+      logger.warn('User is not an admin', {
+        uid: decodedToken.uid,
+        email: decodedToken.email,
+      });
+      return res.status(403).json({error: 'User is not an admin'});
+    }
+
+    // Add the decoded token to the request for use in route handlers
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    logger.error('Error verifying admin token:', error);
+    return res.status(401).json({error: 'Invalid token'});
+  }
 };

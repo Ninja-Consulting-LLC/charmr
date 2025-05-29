@@ -31,9 +31,6 @@ export const config = {
       origin: process.env.CORS_ORIGIN || '*',
     },
   },
-  admin: {
-    token: process.env.ADMIN_TOKEN,
-  },
   email: {
     host: process.env.EMAIL_HOST || 'mailhog',
     port: parseInt(process.env.EMAIL_PORT || '1025', 10),
