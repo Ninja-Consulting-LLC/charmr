@@ -3,8 +3,8 @@ import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
 import * as userService from '../services/userService';
 import {useStore} from '../store';
-import {SelectedImage} from '../types';
 import {SubscriptionTier} from '../types/enums';
+import {SelectedImage} from '../types/image';
 import {compressImages} from '../utils/imageCompression';
 import {logger} from '../utils/logger';
 import {generateMatchId, Match} from '../utils/matchUtils';
@@ -21,7 +21,7 @@ interface UseResponseGeneratorReturn {
   loading: boolean;
   error: string | null;
   errorType: string | null;
-  generateResponse: (prompt: string) => Promise<void>;
+  generateResponse: (prompt?: string) => Promise<void>;
   resetResponse: () => void;
 }
 
@@ -43,7 +43,7 @@ export const useResponseGenerator = ({
     setErrorType(null);
   };
 
-  const generateResponse = async (prompt: string) => {
+  const generateResponse = async (prompt?: string) => {
     setLoading(true);
     resetResponse();
 
@@ -54,7 +54,7 @@ export const useResponseGenerator = ({
       isDatingCoachEnabled,
     });
 
-    if (images.length === 0 && !prompt.trim()) {
+    if (images.length === 0 && !prompt?.trim()) {
       logger.app.info('[ResponseGenerator] No images or prompt provided');
       setError(MESSAGES.NO_IMAGES);
       setErrorType('NO_IMAGES');
@@ -102,13 +102,14 @@ export const useResponseGenerator = ({
 
       logger.app.info('[ResponseGenerator] Calling generateReply API');
       const reply = await generateReply({
-        prompt: prompt.trim() || 'make it flirty',
+        prompt: prompt?.trim() || '',
         images: base64Images,
         userId,
         matchId:
           isDatingCoachEnabled && selectedMatch
             ? generateMatchId(selectedMatch)
             : undefined,
+        deleteAfterResponse: images.length > 0,
       });
 
       logger.app.info('[ResponseGenerator] Received API response:', {

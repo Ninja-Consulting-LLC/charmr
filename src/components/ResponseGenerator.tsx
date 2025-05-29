@@ -33,7 +33,6 @@ import {
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
-import PromptModal from './PromptModal';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -94,8 +93,6 @@ const ResponseGenerator = forwardRef<
     setSelectedMatch,
     deleteScreenshots,
     setDeleteScreenshots,
-    prompt,
-    setPrompt,
   } = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
@@ -109,7 +106,6 @@ const ResponseGenerator = forwardRef<
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
-  const [showPromptModal, setShowPromptModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -173,9 +169,9 @@ const ResponseGenerator = forwardRef<
 
   const handleDeleteMatch = async (match: MatchType) => {
     try {
-      const success = await deleteMatch(match.id);
+      const success = await deleteMatch(String(match.id));
       if (success) {
-        removeMatch(match.id);
+        removeMatch(String(match.id));
         if (selectedMatch?.id === match.id) {
           setSelectedMatch(null);
         }
@@ -271,16 +267,14 @@ const ResponseGenerator = forwardRef<
   };
 
   const handleSubmit = async () => {
-    // Reset states at the start
-    setShowReplyModal(false);
-    setShowMessagePackModal(false);
-    setShowSnackbar(false);
+    if (images.length === 0) {
+      return;
+    }
 
     try {
-      // Only include prompt if dating coach is enabled
-      await generateResponse(isDatingCoachEnabled ? prompt : '');
+      await generateResponse();
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error('Error generating response:', error);
       setShowSnackbar(true);
     }
   };
@@ -288,7 +282,6 @@ const ResponseGenerator = forwardRef<
   const handleDone = async () => {
     await deleteScreenshotsFromLibrary();
     setImages([]);
-    setPrompt('');
     resetResponse();
     setShowReplyModal(false);
     setShowSnackbar(false);
@@ -313,7 +306,6 @@ const ResponseGenerator = forwardRef<
   const handleModifyResponse = () => {
     setShowReplyModal(false);
     setShowSnackbar(false);
-    setShowPromptModal(true);
   };
 
   const handlePickImages = async () => {
@@ -428,36 +420,7 @@ const ResponseGenerator = forwardRef<
             onPickImages={handlePickImages}
             userPlan={user?.plan}
           />
-
-          {/* Notes Display - Only show when dating coach is enabled and notes exist */}
-          {isDatingCoachEnabled && prompt && (
-            <View style={styles.notesSection}>
-              <View style={styles.notesContent}>
-                <Text variant="bodyMedium" style={styles.notesText}>
-                  {prompt}
-                </Text>
-                <IconButton
-                  icon="pencil"
-                  size={20}
-                  onPress={() => setShowPromptModal(true)}
-                  style={styles.editButton}
-                />
-              </View>
-            </View>
-          )}
         </ScrollView>
-
-        {/* Add Notes Button - Only show when dating coach is enabled and no notes exist */}
-        {isDatingCoachEnabled && !prompt && (
-          <Button
-            mode="outlined"
-            onPress={() => setShowPromptModal(true)}
-            icon="note-text"
-            style={styles.addNotesButton}
-            textColor={theme.colors.secondary}>
-            Add Notes
-          </Button>
-        )}
 
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
@@ -465,7 +428,7 @@ const ResponseGenerator = forwardRef<
             mode="contained"
             onPress={handleSubmit}
             loading={loading}
-            disabled={loading || (images.length === 0 && !prompt.trim())}
+            disabled={loading || images.length === 0}
             style={styles.generateButton}
             testID="submit-button">
             Generate Response
@@ -474,15 +437,6 @@ const ResponseGenerator = forwardRef<
       </View>
 
       {/* Modals */}
-      <PromptModal
-        visible={showPromptModal}
-        onDismiss={() => setShowPromptModal(false)}
-        prompt={prompt}
-        onPromptChange={setPrompt}
-        onGenerateResponse={handleGenerateNew}
-        loading={loading}
-      />
-
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => {
