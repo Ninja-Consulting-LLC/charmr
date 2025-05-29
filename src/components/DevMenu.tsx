@@ -283,9 +283,9 @@ const DevMenu = () => {
   const handleResetDb = async () => {
     try {
       await resetDb();
-      Alert.alert('Development', 'Database reset successfully');
+      Alert.alert('Development', 'Firestore database reset successfully');
     } catch (error) {
-      Alert.alert('Development Error', 'Failed to reset database');
+      Alert.alert('Development Error', 'Failed to reset Firestore database');
     }
   };
 

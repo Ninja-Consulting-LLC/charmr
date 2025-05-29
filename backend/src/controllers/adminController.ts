@@ -1,8 +1,16 @@
 import {Request, Response} from 'express';
+import {databaseConfig} from '../config/database';
 import {Database, User} from '../db/types';
 import {testContextMessages} from '../test/testContextMessages';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
+
+// Extend Express Request type to include user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    email: string;
+  };
+}
 
 export const getUsers = async (req: Request, res: Response, db: Database) => {
   try {
@@ -658,17 +666,76 @@ export const updateUser = async (req: Request, res: Response, db: Database) => {
   }
 };
 
-export const resetDb = async (req: Request, res: Response, db: Database) => {
+export const resetDb = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  db: Database,
+) => {
   try {
-    await db.clearDatabase();
-    logger.info('Database reset completed successfully');
-    res.status(200).json({message: 'Database reset completed successfully'});
+    // Get the user's email from the request
+    const userEmail = req.user?.email;
+    const authHeader = req.headers.authorization;
+
+    // Check if the user is authorized
+    if (userEmail !== 'mike.doubintchik@gmail.com') {
+      logger.warn('Unauthorized database reset attempt:', {userEmail});
+      return res.status(403).json({error: 'Unauthorized to reset database'});
+    }
+
+    // Verify admin token
+    const adminToken = process.env.ADMIN_TOKEN;
+    if (!adminToken) {
+      logger.error('Admin token not configured');
+      return res.status(500).json({error: 'Server configuration error'});
+    }
+
+    const token = authHeader?.split(' ')[1];
+    if (token !== adminToken) {
+      logger.warn('Invalid admin token used for database reset');
+      return res.status(403).json({error: 'Invalid admin token'});
+    }
+
+    if (databaseConfig.type === 'firestore') {
+      await db.clearDatabase();
+      logger.info('Firestore database reset completed successfully', {
+        userEmail,
+      });
+      res
+        .status(200)
+        .json({message: 'Firestore database reset completed successfully'});
+    } else {
+      res.status(400).json({error: 'Firestore database is not enabled'});
+    }
   } catch (error) {
     logger.error('Error resetting database:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
     res.status(500).json({error: 'Failed to reset database'});
+  }
+};
+
+export const resetSqliteDb = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    if (databaseConfig.type === 'sqlite') {
+      await db.clearDatabase();
+      logger.info('SQLite database reset completed successfully');
+      res
+        .status(200)
+        .json({message: 'SQLite database reset completed successfully'});
+    } else {
+      res.status(400).json({error: 'SQLite database is not enabled'});
+    }
+  } catch (error) {
+    logger.error('Error resetting SQLite database:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to reset SQLite database'});
   }
 };
 

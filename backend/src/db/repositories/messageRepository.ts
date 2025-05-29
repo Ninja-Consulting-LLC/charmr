@@ -1,6 +1,6 @@
 import {MessageMode, MessageRole, MessageType} from '../../types/enums';
 import logger from '../../utils/logger';
-import {ConversationItem, Database, Message, MessageFilter} from '../types';
+import {ConversationItem, Database, ID, Message, MessageFilter} from '../types';
 
 export interface MessageRepository {
   createMessage(
@@ -29,7 +29,7 @@ export interface MessageRepository {
     matchId: string,
   ): Promise<ConversationItem[]>;
 
-  markMessageAsUsed(messageId: number): Promise<void>;
+  markMessageAsUsed(messageId: ID): Promise<void>;
 }
 
 export class SQLiteMessageRepository implements MessageRepository {
@@ -144,7 +144,7 @@ export class SQLiteMessageRepository implements MessageRepository {
     }
   }
 
-  async markMessageAsUsed(messageId: number): Promise<void> {
+  async markMessageAsUsed(messageId: ID): Promise<void> {
     try {
       await this.db.run('UPDATE messages SET used = 1 WHERE id = ?', [
         messageId,

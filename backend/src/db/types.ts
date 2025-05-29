@@ -5,6 +5,9 @@ import {
   SubscriptionTier,
 } from '../types/enums';
 
+// Common type for IDs that can be either string or number
+export type ID = string | number;
+
 export interface MessageLimit {
   dailyMessagesUsed: number;
   extraMessages: number;
@@ -22,7 +25,7 @@ export interface User {
 }
 
 export interface Message {
-  id: number;
+  id: ID;
   userId: string;
   matchId: string;
   role: MessageRole;
@@ -36,8 +39,8 @@ export interface Message {
 }
 
 export interface MessageCost {
-  id: number;
-  messageId: number;
+  id: ID;
+  messageId: ID;
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -49,7 +52,7 @@ export interface MessageCost {
 }
 
 export interface Match {
-  id: number;
+  id: ID;
   userId: string;
   name: string;
   platform: string;
@@ -114,7 +117,7 @@ export interface Database {
   run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;
   saveMessageCost: (
-    messageId: number,
+    messageId: ID,
     cost: Omit<MessageCost, 'id' | 'messageId'>,
   ) => Promise<MessageCost>;
   getMessageCosts: (
