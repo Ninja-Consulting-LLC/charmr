@@ -111,7 +111,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         JSON.stringify(chatMessages, null, 2),
       );
 
-      // Add welcome message at the beginning if there are no messages
+      // Add welcome message at the beginning
       const welcomeMessage: IMessageWithImages = {
         _id: Date.now(),
         text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
@@ -125,9 +125,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         mode: MessageMode.COACH,
       };
 
-      setMessages(
-        chatMessages.length > 0 ? chatMessages.reverse() : [welcomeMessage],
-      );
+      // First set the chat messages, then prepend the welcome message
+      setMessages(prevMessages => {
+        const messages = chatMessages.length > 0 ? chatMessages : [];
+        return GiftedChat.prepend(messages.reverse(), [welcomeMessage]);
+      });
     } catch (error) {
       console.error('Failed to fetch messages:', error);
       // Add welcome message as fallback
