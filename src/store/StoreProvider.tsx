@@ -105,7 +105,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading,
     setIsLoading,
     handleGoogleLogin,
-  } = useStoreState(true); // Skip initialization in useStoreState
+  } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
 
   // Load dating coach preference on mount
   useEffect(() => {

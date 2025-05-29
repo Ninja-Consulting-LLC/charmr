@@ -29,6 +29,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
+  console.log('UserMenuSlideout user:', user); // DEBUG LOG
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showHiddenMatchesModal, setShowHiddenMatchesModal] = useState(false);
@@ -144,8 +145,8 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         <List.Section>
           <List.Subheader>Account</List.Subheader>
           <List.Item
-            title={user.email || 'Guest'}
-            description={`Plan: ${user.plan}`}
+            title={user.name || 'Guest'}
+            description={`${user.email || ''}\nPlan: ${user.plan || ''}`}
             left={props => <List.Icon {...props} icon="account" />}
           />
           <Divider />

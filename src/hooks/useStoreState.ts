@@ -68,6 +68,14 @@ export const useStoreState = (skipInitialization = false) => {
           if (storedUserId && storedIsAuthenticated === 'true') {
             setUserId(storedUserId);
             setIsAuthenticated(true);
+
+            // Fetch the full user profile from backend
+            const userProfile = await userService.getUserProfile(storedUserId);
+            console.log('Fetched user profile:', userProfile); // DEBUG LOG
+            if (userProfile) {
+              setUser(userProfile);
+              console.log('Set user to:', userProfile); // DEBUG LOG
+            }
           }
         } catch (error) {
           logger.auth.error('Error initializing state:', error);
