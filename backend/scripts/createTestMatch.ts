@@ -1,5 +1,6 @@
 import {applicationDefault, initializeApp} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
+import {MessageMode, MessageRole, MessageType} from '../src/types/enums';
 
 // Initialize Firebase Admin
 initializeApp({
@@ -47,6 +48,45 @@ async function createTestMatch() {
       .collection('matches')
       .add(matchData);
     console.log('Created test match with ID:', docRef.id);
+
+    // Generate 30 test messages (more than our PAGE_SIZE of 20)
+    const messages = [];
+    const now = new Date();
+
+    for (let i = 0; i < 30; i++) {
+      const timestamp = new Date(now.getTime() - (30 - i) * 60000); // 1 minute apart
+      const isUser = i % 2 === 0;
+
+      messages.push({
+        role: isUser ? MessageRole.USER : MessageRole.ASSISTANT,
+        type: MessageType.TEXT,
+        mode: isUser ? MessageMode.GENERATE : MessageMode.COACH,
+        used: !isUser,
+        replyTo: null,
+        content: isUser
+          ? `Test message ${i + 1} from user`
+          : `Test response ${i + 1} from coach`,
+        timestamp: timestamp.toISOString(),
+        imageData: null,
+      });
+    }
+
+    // Add messages in batches
+    const batch = db.batch();
+    const messagesRef = db
+      .collection('users')
+      .doc(userId)
+      .collection('matches')
+      .doc(docRef.id)
+      .collection('messages');
+
+    messages.forEach(message => {
+      const docRef = messagesRef.doc();
+      batch.set(docRef, message);
+    });
+
+    await batch.commit();
+    console.log(`Successfully added ${messages.length} test messages`);
   } catch (error) {
     console.error('Error creating test match:', error);
   }

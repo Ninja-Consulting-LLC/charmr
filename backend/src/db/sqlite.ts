@@ -464,7 +464,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     getMessages: async (
       userId: string,
       matchId?: string,
-    ): Promise<Message[]> => {
+      pagination?: {
+        limit: number;
+        offset: number;
+      },
+    ): Promise<{
+      messages: Message[];
+      total: number;
+    }> => {
       try {
         let query = 'SELECT * FROM messages WHERE userId = ?';
         const params: any[] = [userId];
@@ -475,12 +482,27 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         }
 
         query += ' ORDER BY timestamp DESC';
-        const messages = await db.all(query, params);
 
-        return messages.map(msg => ({
-          ...msg,
-          used: Boolean(msg.used),
-        }));
+        if (pagination) {
+          query += ' LIMIT ? OFFSET ?';
+          params.push(pagination.limit);
+          params.push(pagination.offset);
+        }
+
+        const messages = await db.all(query, params);
+        const total = await db.get(
+          'SELECT COUNT(*) as count FROM messages WHERE userId = ?' +
+            (matchId ? ' AND matchId = ?' : ''),
+          matchId ? [userId, matchId] : [userId],
+        );
+
+        return {
+          messages: messages.map(msg => ({
+            ...msg,
+            used: Boolean(msg.used),
+          })),
+          total: total.count,
+        };
       } catch (error) {
         logger.error('Failed to get messages', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -846,20 +868,36 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     getConversationHistory: async (
       userId: string,
-      matchId: string,
-    ): Promise<
-      Array<{
-        role: string;
-        content: string;
-        timestamp: string;
-      }>
-    > => {
+      matchId?: string,
+    ): Promise<{
+      messages: Message[];
+      total: number;
+    }> => {
       try {
-        const messages = await db.all(
-          'SELECT role, content, timestamp FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp ASC',
-          [userId, matchId],
+        let query = 'SELECT * FROM messages WHERE userId = ?';
+        const params: any[] = [userId];
+
+        if (matchId) {
+          query += ' AND matchId = ?';
+          params.push(matchId);
+        }
+
+        query += ' ORDER BY timestamp DESC';
+
+        const messages = await db.all(query, params);
+        const total = await db.get(
+          'SELECT COUNT(*) as count FROM messages WHERE userId = ?' +
+            (matchId ? ' AND matchId = ?' : ''),
+          params,
         );
-        return messages;
+
+        return {
+          messages: messages.map(msg => ({
+            ...msg,
+            used: Boolean(msg.used),
+          })),
+          total: total.count,
+        };
       } catch (error) {
         logger.error('Failed to get conversation history', {
           error: error instanceof Error ? error.message : 'Unknown error',

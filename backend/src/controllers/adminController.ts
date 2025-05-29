@@ -812,7 +812,7 @@ export const testContext = async (
     }
 
     // Get the conversation history to verify context
-    const conversationHistory = await db.getConversationHistory(
+    const {messages: conversationHistory} = await db.getConversationHistory(
       testUserId,
       match.id.toString(),
     );

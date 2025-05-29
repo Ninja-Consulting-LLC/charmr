@@ -89,7 +89,14 @@ export class FirestoreMessageRepository implements MessageRepository {
     userId: string,
     matchId: string,
     filter?: MessageFilter,
-  ): Promise<Message[]> {
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    messages: Message[];
+    total: number;
+  }> {
     try {
       let query: Query = this.getMessagesCollection(userId, matchId);
 
@@ -108,17 +115,47 @@ export class FirestoreMessageRepository implements MessageRepository {
         }
       }
 
-      // Order by timestamp ascending
-      query = query.orderBy('timestamp', 'asc');
+      // Get total count first
+      const totalSnapshot = await query.count().get();
+      const total = totalSnapshot.data().count;
+
+      // Order by timestamp descending (newest first)
+      query = query.orderBy('timestamp', 'desc');
+
+      // Apply pagination
+      if (pagination) {
+        // For initial load (offset = 0), we want messages 11-30
+        // For second load (offset = 20), we want messages 1-10
+        const skipCount = pagination.offset;
+        query = query.limit(pagination.limit);
+
+        if (skipCount > 0) {
+          // Get the document at the skip count
+          const offsetSnapshot = await query.limit(skipCount).get();
+
+          if (!offsetSnapshot.empty) {
+            const lastDoc = offsetSnapshot.docs[offsetSnapshot.docs.length - 1];
+            query = query.startAfter(lastDoc);
+          }
+        }
+      }
 
       const snapshot = await query.get();
-      return snapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      const messages = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
         const data = doc.data() as Omit<Message, 'id'>;
         return {
           id: doc.id,
           ...data,
         };
       }) as Message[];
+
+      // Reverse the messages array to maintain chronological order
+      messages.reverse();
+
+      return {
+        messages,
+        total,
+      };
     } catch (error) {
       logger.error('Failed to get messages by match from Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -131,13 +168,32 @@ export class FirestoreMessageRepository implements MessageRepository {
   async getConversationTimeline(
     userId: string,
     matchId: string,
-  ): Promise<ConversationItem[]> {
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    items: ConversationItem[];
+    total: number;
+  }> {
     try {
-      const messages = await this.getMessagesByMatch(userId, matchId);
-      return messages.sort(
+      const {messages, total} = await this.getMessagesByMatch(
+        userId,
+        matchId,
+        undefined,
+        pagination,
+      );
+
+      // Sort by timestamp
+      const sortedMessages = messages.sort(
         (a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
+
+      return {
+        items: sortedMessages,
+        total,
+      };
     } catch (error) {
       logger.error('Failed to get conversation timeline from Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -55,19 +55,31 @@ const createMatchRouter = (db: Database) => {
       }
 
       const {matchId} = req.params;
+      const {limit, offset} = req.query;
+
       const messageRepository = getMessageRepository(db);
       // Use the combined timeline (messages + screenshots)
-      const timeline = await messageRepository.getConversationTimeline(
-        userId,
-        matchId,
-      );
+      const {items: timeline, total} =
+        await messageRepository.getConversationTimeline(
+          userId,
+          matchId,
+          limit && offset
+            ? {
+                limit: parseInt(limit as string, 10),
+                offset: parseInt(offset as string, 10),
+              }
+            : undefined,
+        );
 
       // Set headers to prevent caching
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
-      res.json(timeline);
+      res.json({
+        messages: timeline,
+        total,
+      });
     } catch (error) {
       console.error('Error fetching match messages:', error);
       res.status(500).json({error: 'Failed to fetch match messages'});

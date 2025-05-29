@@ -11,13 +11,13 @@ export const checkSchemaHealth = async (
     const issues: string[] = [];
 
     // Get all messages
-    const messages = await db.getMessages('', '');
+    const {messages} = await db.getMessages('', '');
 
     // Check message counts by type
-    const typeCounts = messages.reduce((acc, msg) => {
+    const typeCounts = messages.reduce((acc: Record<string, number>, msg) => {
       acc[msg.type] = (acc[msg.type] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     // Check used vs unused messages
     const usedCount = messages.filter(m => m.used).length;
