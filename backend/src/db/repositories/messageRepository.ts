@@ -22,12 +22,26 @@ export interface MessageRepository {
     userId: string,
     matchId: string,
     filter?: MessageFilter,
-  ): Promise<Message[]>;
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    messages: Message[];
+    total: number;
+  }>;
 
   getConversationTimeline(
     userId: string,
     matchId: string,
-  ): Promise<ConversationItem[]>;
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    items: ConversationItem[];
+    total: number;
+  }>;
 
   markMessageAsUsed(messageId: ID): Promise<void>;
 }
@@ -85,7 +99,14 @@ export class SQLiteMessageRepository implements MessageRepository {
     userId: string,
     matchId: string,
     filter?: MessageFilter,
-  ): Promise<Message[]> {
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    messages: Message[];
+    total: number;
+  }> {
     try {
       let query = 'SELECT * FROM messages WHERE userId = ? AND matchId = ?';
       const params: any[] = [userId, matchId];
@@ -111,8 +132,22 @@ export class SQLiteMessageRepository implements MessageRepository {
 
       query += ' ORDER BY timestamp ASC';
 
+      if (pagination) {
+        query += ' LIMIT ? OFFSET ?';
+        params.push(pagination.limit);
+        params.push(pagination.offset);
+      }
+
       const messages = await this.db.all(query, params);
-      return messages;
+      const total = await this.db.get(
+        'SELECT COUNT(*) FROM messages WHERE userId = ? AND matchId = ?',
+        [userId, matchId],
+      );
+
+      return {
+        messages,
+        total: total.count,
+      };
     } catch (error) {
       logger.error('Failed to get messages by match', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -125,16 +160,33 @@ export class SQLiteMessageRepository implements MessageRepository {
   async getConversationTimeline(
     userId: string,
     matchId: string,
-  ): Promise<ConversationItem[]> {
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{
+    items: ConversationItem[];
+    total: number;
+  }> {
     try {
       // Get all messages
-      const messages = await this.getMessagesByMatch(userId, matchId);
+      const {messages} = await this.getMessagesByMatch(userId, matchId);
 
       // Sort by timestamp
-      return messages.sort(
+      const sortedMessages = messages.sort(
         (a, b) =>
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
+
+      // Apply pagination
+      const start = pagination?.offset || 0;
+      const end = pagination?.limit ? start + pagination.limit : undefined;
+      const paginatedMessages = sortedMessages.slice(start, end);
+
+      return {
+        items: paginatedMessages,
+        total: sortedMessages.length,
+      };
     } catch (error) {
       logger.error('Failed to get conversation timeline', {
         error: error instanceof Error ? error.message : 'Unknown error',

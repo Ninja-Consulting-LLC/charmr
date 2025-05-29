@@ -9,7 +9,8 @@
     "build": "tsc",
     "test": "jest",
     "test:match": "jest src/test/match.integration.test.ts",
-    "user:info": "ts-node src/scripts/getUserInfo.ts"
+    "user:info": "ts-node src/scripts/getUserInfo.ts",
+    "seed:match": "GOOGLE_APPLICATION_CREDENTIALS=service-account.json npx ts-node scripts/createTestMatch.ts"
   },
   "keywords": [],
   "author": "",

@@ -232,7 +232,16 @@ export const getDatabase = async (): Promise<Database> => {
             throw error;
           }
         },
-        getConversationHistory: async () => [],
+        getConversationHistory: async (userId: string, matchId?: string) => {
+          const messages = await messageRepository!.getMessagesByMatch(
+            userId,
+            matchId || '',
+          );
+          return {
+            messages: messages.messages,
+            total: messages.total,
+          };
+        },
       } as Database;
     } else {
       db = await createSqliteDatabase();

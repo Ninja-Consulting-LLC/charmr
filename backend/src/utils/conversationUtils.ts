@@ -21,13 +21,13 @@ export const loadConversation = async (
     const messageRepository = getMessageRepository(db);
 
     // Get messages for the match
-    const messages = await messageRepository.getMessagesByMatch(
+    const {messages} = await messageRepository.getMessagesByMatch(
       userId,
       matchId,
     );
 
     // Sort messages by timestamp
-    return messages.sort((a, b) => {
+    return messages.sort((a: Message, b: Message) => {
       return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
     });
   } catch (error) {
@@ -54,14 +54,14 @@ export const appendConversation = async (
     const messageRepository = getMessageRepository(db);
 
     // Fetch the latest user message timestamp for this match
-    const messages = await messageRepository.getMessagesByMatch(
+    const {messages} = await messageRepository.getMessagesByMatch(
       userId,
       matchId,
     );
     const latestUserMsg = messages
-      .filter(m => m.role === MessageRole.USER)
+      .filter((m: Message) => m.role === MessageRole.USER)
       .sort(
-        (a, b) =>
+        (a: Message, b: Message) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       )[0];
 
@@ -100,27 +100,13 @@ export const appendConversation = async (
 
     // Save the assistant reply after user message(s)
     const replyTimestamp = new Date(baseTimestamp + 1).toISOString();
-    const savedReply = await messageRepository.createMessage(userId, matchId, {
+    return await messageRepository.createMessage(userId, matchId, {
       role: MessageRole.ASSISTANT,
-      content: reply,
-      timestamp: replyTimestamp,
       type: MessageType.TEXT,
       mode: MessageMode.GENERATE,
+      content: reply,
+      timestamp: replyTimestamp,
     });
-
-    // Save the summary last
-    if (summary) {
-      const summaryTimestamp = new Date(baseTimestamp + 2).toISOString();
-      await messageRepository.createMessage(userId, matchId, {
-        role: MessageRole.SYSTEM,
-        content: summary,
-        timestamp: summaryTimestamp,
-        type: MessageType.SUMMARY,
-        mode: MessageMode.GENERATE,
-      });
-    }
-
-    return savedReply;
   } catch (error) {
     logger.error('Failed to append conversation', {
       error: error instanceof Error ? error.message : 'Unknown error',

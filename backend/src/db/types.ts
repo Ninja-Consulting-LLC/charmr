@@ -111,7 +111,17 @@ export interface Database {
       timestamp: string;
     },
   ) => Promise<Message>;
-  getMessages: (userId: string, matchId?: string) => Promise<Message[]>;
+  getMessages: (
+    userId: string,
+    matchId?: string,
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ) => Promise<{
+    messages: Message[];
+    total: number;
+  }>;
   get: (sql: string, params?: any[]) => Promise<any>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
   run: (sql: string, params?: any[]) => Promise<any>;
@@ -132,7 +142,6 @@ export interface Database {
   ) => Promise<{
     totalCost: number;
     totalTokens: number;
-    messageCount: number;
   }>;
   getMatches: (userId: string, includeHidden?: boolean) => Promise<Match[]>;
   getMatchById: (
@@ -154,14 +163,12 @@ export interface Database {
   ) => Promise<void>;
   getConversationHistory: (
     userId: string,
-    matchId: string,
-  ) => Promise<
-    Array<{
-      role: string;
-      content: string;
-      timestamp: string;
-    }>
-  >;
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<{
+    messages: Message[];
+    total: number;
+  }>;
 
   // Support methods
   support: {
