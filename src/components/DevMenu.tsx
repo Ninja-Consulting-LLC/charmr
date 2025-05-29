@@ -4,7 +4,6 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
-import Config from 'react-native-config';
 import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
@@ -229,7 +228,6 @@ const DevMenu = () => {
         {},
         {
           headers: {
-            Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
             'X-Auth-Bypass': 'true',
           },
         },
