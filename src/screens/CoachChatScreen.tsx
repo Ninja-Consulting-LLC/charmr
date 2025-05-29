@@ -50,6 +50,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [selectedMode, setSelectedMode] = useState<MessageMode>(
     MessageMode.GENERATE,
   );
@@ -62,94 +64,155 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   // Use debug match ID if provided and enabled, otherwise use the match from route params
   const effectiveMatchId = useDebugMatch ? DEBUG_MATCH_ID : match.id;
 
-  const loadMessages = useCallback(async () => {
-    try {
-      setIsLoadingMessages(true);
-      const messagesResponse = await axiosInstance.get(
-        `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
-      );
-      let messagesData = messagesResponse.data;
-      console.log('Raw messages data:', JSON.stringify(messagesData, null, 2));
+  const PAGE_SIZE = 20;
 
-      // Filter out system/summary messages and deduplicate by id
-      const seenIds = new Set();
-      const chatMessages: IMessageWithImages[] = messagesData
-        .filter(
-          (msg: Message) =>
-            msg.role !== MessageRole.SYSTEM && msg.type !== MessageType.SUMMARY,
-        )
-        .filter((msg: Message) => {
-          if (seenIds.has(msg.id)) return false;
-          seenIds.add(msg.id);
-          return true;
-        })
-        .map((msg: Message) => {
-          console.log('Processing message:', {
-            id: msg.id,
-            type: msg.type,
-            hasImageData: !!msg.imageData,
-            content: msg.content,
-          });
+  const loadMessages = useCallback(
+    async (offset = 0) => {
+      try {
+        if (offset === 0) {
+          setIsLoadingMessages(true);
+        } else {
+          setIsLoadingMore(true);
+        }
 
-          return {
-            _id: msg.id,
-            text: msg.content,
-            createdAt: new Date(msg.timestamp),
-            user: {
-              _id: msg.role === MessageRole.USER ? 'user' : 'coach',
-              name: msg.role === MessageRole.USER ? 'You' : 'Coach',
-              avatar: msg.role === MessageRole.USER ? undefined : '👨‍🏫',
+        console.log('Loading messages with offset:', offset);
+        const messagesResponse = await axiosInstance.get(
+          `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
+          {
+            params: {
+              limit: PAGE_SIZE,
+              offset,
             },
-            type: msg.type,
-            mode: msg.mode,
-            images: msg.imageData ? [msg.imageData] : undefined,
-          };
+          },
+        );
+
+        const {messages: messagesData, total} = messagesResponse.data;
+        console.log('Pagination info:', {
+          offset,
+          limit: PAGE_SIZE,
+          total,
+          receivedMessages: messagesData.length,
+          hasMore: offset + PAGE_SIZE < total,
         });
 
-      console.log(
-        'Processed chat messages:',
-        JSON.stringify(chatMessages, null, 2),
-      );
+        // Filter out system/summary messages and deduplicate by id
+        const seenIds = new Set();
+        const chatMessages: IMessageWithImages[] = messagesData
+          .filter(
+            (msg: Message) =>
+              msg.role !== MessageRole.SYSTEM &&
+              msg.type !== MessageType.SUMMARY,
+          )
+          .filter((msg: Message) => {
+            if (seenIds.has(msg.id)) return false;
+            seenIds.add(msg.id);
+            return true;
+          })
+          .map((msg: Message) => {
+            console.log('Processing message:', {
+              id: msg.id,
+              type: msg.type,
+              hasImageData: !!msg.imageData,
+              content: msg.content,
+            });
 
-      // Add welcome message at the beginning
-      const welcomeMessage: IMessageWithImages = {
-        _id: Date.now(),
-        text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
-        createdAt: new Date(),
-        user: {
-          _id: 'coach',
-          name: 'Coach',
-          avatar: '👨‍🏫',
-        },
-        type: MessageType.TEXT,
-        mode: MessageMode.COACH,
-      };
+            return {
+              _id: msg.id,
+              text: msg.content,
+              createdAt: new Date(msg.timestamp),
+              user: {
+                _id: msg.role === MessageRole.USER ? 'user' : 'coach',
+                name: msg.role === MessageRole.USER ? 'You' : 'Coach',
+                avatar: msg.role === MessageRole.USER ? undefined : '👨‍🏫',
+              },
+              type: msg.type,
+              mode: msg.mode,
+              images: msg.imageData ? [msg.imageData] : undefined,
+            };
+          });
 
-      // First set the chat messages, then prepend the welcome message
-      setMessages(prevMessages => {
-        const messages = chatMessages.length > 0 ? chatMessages : [];
-        return GiftedChat.prepend(messages.reverse(), [welcomeMessage]);
-      });
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      // Add welcome message as fallback
-      const welcomeMessage: IMessageWithImages = {
-        _id: Date.now(),
-        text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
-        createdAt: new Date(),
-        user: {
-          _id: 'coach',
-          name: 'Coach',
-          avatar: '👨‍🏫',
-        },
-        type: MessageType.TEXT,
-        mode: MessageMode.COACH,
-      };
-      setMessages([welcomeMessage]);
-    } finally {
-      setIsLoadingMessages(false);
+        console.log(
+          'Processed chat messages:',
+          JSON.stringify(chatMessages, null, 2),
+        );
+
+        // Add welcome message at the beginning if this is the first page
+        if (offset === 0) {
+          const welcomeMessage: IMessageWithImages = {
+            _id: Date.now(),
+            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+            createdAt: new Date(),
+            user: {
+              _id: 'coach',
+              name: 'Coach',
+              avatar: '👨‍🏫',
+            },
+            type: MessageType.TEXT,
+            mode: MessageMode.COACH,
+          };
+
+          setMessages(prevMessages => {
+            const messages = chatMessages.length > 0 ? chatMessages : [];
+            return messages.reverse();
+          });
+        } else {
+          // If this is the last page (no more messages after this), add the welcome message
+          const isLastPage = offset + PAGE_SIZE >= total;
+          const welcomeMessage: IMessageWithImages = {
+            _id: Date.now(),
+            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+            createdAt: new Date(),
+            user: {
+              _id: 'coach',
+              name: 'Coach',
+              avatar: '👨‍🏫',
+            },
+            type: MessageType.TEXT,
+            mode: MessageMode.COACH,
+          };
+
+          setMessages(prevMessages => {
+            const newMessages = chatMessages.reverse();
+            const messages = GiftedChat.prepend(prevMessages, newMessages);
+            return isLastPage
+              ? GiftedChat.prepend(messages, [welcomeMessage])
+              : messages;
+          });
+        }
+
+        // Update hasMoreMessages based on total count
+        setHasMoreMessages(offset + PAGE_SIZE < total);
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+        // Add welcome message as fallback only for first page
+        if (offset === 0) {
+          const welcomeMessage: IMessageWithImages = {
+            _id: Date.now(),
+            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+            createdAt: new Date(),
+            user: {
+              _id: 'coach',
+              name: 'Coach',
+              avatar: '👨‍🏫',
+            },
+            type: MessageType.TEXT,
+            mode: MessageMode.COACH,
+          };
+          setMessages([welcomeMessage]);
+        }
+      } finally {
+        setIsLoadingMessages(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [userId, effectiveMatchId, match.name],
+  );
+
+  const loadMoreMessages = useCallback(() => {
+    if (!isLoadingMore && hasMoreMessages) {
+      loadMessages(messages.length);
     }
-  }, [userId, effectiveMatchId, match.name]);
+  }, [isLoadingMore, hasMoreMessages, messages.length, loadMessages]);
 
   useEffect(() => {
     // Set up the header
@@ -158,12 +221,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       headerTransparent: true,
       headerTitle: () => (
         <View style={styles.headerTitle}>
-          <Text variant="headlineSmall" style={styles.matchName}>
-            {match.name}
-          </Text>
-          <Text variant="bodySmall" style={styles.platform}>
-            {match.platform}
-          </Text>
+          <Text style={styles.headerName}>{match.name}</Text>
+          <Text style={styles.headerPlatform}>{match.platform}</Text>
         </View>
       ),
       headerLeft: () => (
@@ -174,14 +233,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           iconColor={theme.colors.surface}
         />
       ),
-      headerStyle: {
-        backgroundColor: 'transparent',
-      },
     });
 
-    // Load messages
+    // Load initial messages
     loadMessages();
-  }, [navigation, match, loadMessages]);
+  }, [navigation, match.name, match.platform, loadMessages]);
 
   const getModeIcon = (mode: MessageMode) => {
     switch (mode) {
@@ -549,6 +605,17 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             ]}
             renderTime={() => null}
             renderDay={() => null}
+            renderLoading={() => (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.primary}
+                style={styles.loadingIndicator}
+              />
+            )}
+            infiniteScroll
+            loadEarlier={hasMoreMessages}
+            isLoadingEarlier={isLoadingMore}
+            onLoadEarlier={loadMoreMessages}
           />
         )}
       </SafeAreaView>
@@ -635,17 +702,20 @@ const styles = StyleSheet.create({
     width: 200,
     paddingHorizontal: 16,
   },
-  matchName: {
+  headerName: {
     color: theme.colors.surface,
     fontWeight: 'bold',
     fontSize: 24,
     marginBottom: 2,
     textAlign: 'center',
   },
-  platform: {
+  headerPlatform: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
     textAlign: 'center',
+  },
+  headerLeft: {
+    padding: 8,
   },
   messagesContainer: {
     backgroundColor: 'transparent',
@@ -893,6 +963,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingIndicator: {
+    padding: 10,
   },
 });
 
