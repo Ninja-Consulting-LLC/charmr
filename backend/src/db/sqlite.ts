@@ -6,6 +6,7 @@ import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {
   Database,
+  ID,
   Match,
   Message,
   MessageCost,
@@ -557,17 +558,21 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     },
 
     saveMessageCost: async (
-      messageId: number,
+      messageId: ID,
       cost: Omit<MessageCost, 'id' | 'messageId'>,
     ): Promise<MessageCost> => {
       try {
+        // Convert string ID to number for SQLite
+        const numericMessageId =
+          typeof messageId === 'string' ? parseInt(messageId, 10) : messageId;
+
         const result = await db.run(
           `INSERT INTO message_costs (
             messageId, model, promptTokens, completionTokens, totalTokens,
             inputCost, outputCost, totalCost, timestamp
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            messageId,
+            numericMessageId,
             cost.model,
             cost.promptTokens,
             cost.completionTokens,
@@ -581,7 +586,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
         return {
           id: result.lastID!,
-          messageId,
+          messageId: numericMessageId,
           ...cost,
         };
       } catch (error) {

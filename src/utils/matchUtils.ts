@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../services/axiosInstance';
+import {ID} from '../types';
 import {logger} from './logger';
 
 export interface Match {
-  id: string;
+  id: ID;
   name: string;
   platform: string;
   lastUsed?: Date;

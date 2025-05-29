@@ -233,7 +233,7 @@ export const createReplyController = async (db: Database) => {
           },
         );
 
-        // Save the message cost
+        // Save message cost
         await db.saveMessageCost(savedMessage.id, {
           model: req.body.model || config.openai.model,
           promptTokens: response.usage?.prompt_tokens || 0,
@@ -242,7 +242,7 @@ export const createReplyController = async (db: Database) => {
           inputCost: costBreakdown.inputCost,
           outputCost: costBreakdown.outputCost,
           totalCost: costBreakdown.totalCost,
-          timestamp,
+          timestamp: new Date().toISOString(),
         });
       }
 
