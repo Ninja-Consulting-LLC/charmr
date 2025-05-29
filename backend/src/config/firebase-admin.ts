@@ -1,14 +1,17 @@
 import * as admin from 'firebase-admin';
+import * as path from 'path';
 import logger from '../utils/logger';
 
 // Initialize Firebase Admin using the existing project configuration
 const initializeFirebaseAdmin = () => {
   try {
     if (!admin.apps.length) {
+      const serviceAccountPath =
+        process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+        path.join(__dirname, '../../service-account.json');
       admin.initializeApp({
         projectId: 'ai-dating-keyboard', // From .firebaserc
-        // The credentials will be automatically picked up from GOOGLE_APPLICATION_CREDENTIALS
-        // environment variable or from the default service account in production
+        credential: admin.credential.cert(serviceAccountPath),
       });
       logger.info('Firebase Admin initialized successfully');
     }

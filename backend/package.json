@@ -10,7 +10,10 @@
     "test": "jest",
     "test:match": "jest src/test/match.integration.test.ts",
     "user:info": "ts-node src/scripts/getUserInfo.ts",
-    "seed:match": "GOOGLE_APPLICATION_CREDENTIALS=service-account.json npx ts-node scripts/createTestMatch.ts"
+    "seed:match": "GOOGLE_APPLICATION_CREDENTIALS=service-account.json npx ts-node scripts/createTestMatch.ts",
+    "remove-admin": "ts-node scripts/removeAdmin.ts aOTEOQBFmxZhEuyWuXIbabygMF42",
+    "list-admins": "ts-node scripts/listAdmins.ts",
+    "add-admin": "ts-node scripts/setAdmin.ts aOTEOQBFmxZhEuyWuXIbabygMF42"
   },
   "keywords": [],
   "author": "",
