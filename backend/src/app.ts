@@ -7,6 +7,7 @@ import {config} from './config/config';
 import {
   createUser,
   getUser,
+  getUserByInstallationId,
   linkAnonymousUser,
   updateUserPlan,
 } from './controllers/adminController';
@@ -118,6 +119,11 @@ export const createApp = async () => {
   const replyController = await createReplyController(db);
 
   // Main application routes
+  app.get(
+    '/api/users/installation/:installationId',
+    authenticateUser,
+    (req, res) => getUserByInstallationId(req, res, db),
+  );
   app.get('/api/users/:userId', authenticateUser, (req, res) =>
     getUser(req, res, db),
   );

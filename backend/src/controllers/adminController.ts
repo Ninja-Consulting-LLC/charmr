@@ -221,41 +221,87 @@ export const linkAnonymousUser = async (
 ) => {
   try {
     const {anonymousUserId, registeredUserId, installationId} = req.body;
+    logger.info('Starting user linking process', {
+      anonymousUserId,
+      registeredUserId,
+      installationId,
+    });
+
     if (!anonymousUserId || !registeredUserId) {
+      logger.warn('Missing required fields for user linking', {
+        hasAnonymousUserId: !!anonymousUserId,
+        hasRegisteredUserId: !!registeredUserId,
+      });
       return res.status(400).json({error: 'Missing required fields'});
     }
 
     // Get the anonymous user's data
     const anonymousUser = await db.getUser(anonymousUserId);
     if (!anonymousUser) {
+      logger.warn('Anonymous user not found during linking', {
+        anonymousUserId,
+        registeredUserId,
+      });
       return res.status(404).json({error: 'Anonymous user not found'});
     }
+    logger.info('Found anonymous user', {
+      anonymousUserId,
+      anonymousUserEmail: anonymousUser.email,
+      anonymousUserInstallationId: anonymousUser.installationId,
+    });
 
     // Get the registered user
     const registeredUser = await db.getUser(registeredUserId);
     if (!registeredUser) {
+      logger.warn('Registered user not found during linking', {
+        anonymousUserId,
+        registeredUserId,
+      });
       return res.status(404).json({error: 'Registered user not found'});
     }
+    logger.info('Found registered user', {
+      registeredUserId,
+      registeredUserEmail: registeredUser.email,
+      registeredUserInstallationId: registeredUser.installationId,
+    });
 
     // Transfer all messages from anonymous to registered user
+    logger.info('Transferring messages from anonymous to registered user', {
+      anonymousUserId,
+      registeredUserId,
+    });
     await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
       registeredUserId,
       anonymousUserId,
     ]);
 
     // Transfer any remaining extra messages
+    const newExtraMessages =
+      registeredUser.extraMessages + anonymousUser.extraMessages;
+    logger.info('Transferring extra messages', {
+      anonymousUserId,
+      registeredUserId,
+      anonymousExtraMessages: anonymousUser.extraMessages,
+      registeredExtraMessages: registeredUser.extraMessages,
+      newTotalExtraMessages: newExtraMessages,
+    });
     await db.updateUser(registeredUserId, {
-      extraMessages: registeredUser.extraMessages + anonymousUser.extraMessages,
+      extraMessages: newExtraMessages,
       installationId: installationId || registeredUser.installationId,
     });
 
     // Delete the anonymous user
+    logger.info('Deleting anonymous user after successful transfer', {
+      anonymousUserId,
+      registeredUserId,
+    });
     await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
 
-    logger.info('Linked anonymous user to registered user:', {
+    logger.info('Successfully linked anonymous user to registered user', {
       anonymousUserId,
       registeredUserId,
       installationId,
+      transferredExtraMessages: newExtraMessages,
     });
 
     res.json({message: 'User linked successfully'});
@@ -263,6 +309,9 @@ export const linkAnonymousUser = async (
     logger.error('Error linking users:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
+      anonymousUserId: req.body.anonymousUserId,
+      registeredUserId: req.body.registeredUserId,
+      installationId: req.body.installationId,
     });
     res.status(500).json({error: 'Failed to link users'});
   }
