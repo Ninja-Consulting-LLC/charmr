@@ -3,11 +3,13 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
 import {Animated, StyleSheet, View} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {getMatches, Match, restoreMatch} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
+import {cleanupStaleData} from '../utils/storeUtils';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
@@ -89,18 +91,29 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   };
 
   const handleSignOut = async () => {
-    // Clear user data with correct plan limits
-    setUser({
-      id: '',
-      plan: SubscriptionTier.FREE,
-      dailyMessagesUsed: 0,
-      extraMessages: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
-      getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
-    });
-    setIsAuthenticated(false);
-    onDismiss();
-    navigation.navigate('Login');
+    try {
+      // Sign out from Firebase
+      await signOut();
+
+      // Clear user data with correct plan limits
+      setUser({
+        id: '',
+        plan: SubscriptionTier.FREE,
+        dailyMessagesUsed: 0,
+        extraMessages: 0,
+        lastResetDate: new Date().toISOString().split('T')[0],
+        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+      });
+      setIsAuthenticated(false);
+
+      // Clean up any stored data
+      await cleanupStaleData();
+
+      onDismiss();
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleUpgrade = (tier: SubscriptionTier) => {

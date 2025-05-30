@@ -85,13 +85,23 @@ export const linkUsers = async (
 ): Promise<void> => {
   try {
     const installationId = await installationService.getInstallationId();
+    logger.app.info('Linking users with data:', {
+      anonymousUserId,
+      registeredUserId,
+      installationId,
+    });
     await axiosInstance.post('/api/users/link', {
       anonymousUserId,
       registeredUserId,
       installationId,
     });
   } catch (error) {
-    logger.app.error('Error linking users:', error);
+    logger.app.error('Error linking users:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      anonymousUserId,
+      registeredUserId,
+    });
     throw error;
   }
 };
