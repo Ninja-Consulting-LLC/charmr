@@ -22,6 +22,8 @@ export interface User {
   extraMessages: number;
   lastResetDate: string;
   installationId?: string;
+  linkedFrom?: string;
+  linkedAt?: any;
 }
 
 export interface Message {
