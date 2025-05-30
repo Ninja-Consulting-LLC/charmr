@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getInstallations} from '@react-native-firebase/installations';
 import React, {
   createContext,
   useContext,
@@ -46,17 +45,10 @@ interface StoreContextType {
   removeMatch: (matchId: string) => void;
   loadMatches: () => Promise<void>;
   // Dating Coach state
-  isDatingCoachEnabled: boolean;
-  setIsDatingCoachEnabled: (enabled: boolean) => void;
   selectedMatch: Match | null;
   setSelectedMatch: (match: Match | null) => void;
   deleteScreenshots: boolean;
   setDeleteScreenshots: (value: boolean) => void;
-  prompt: string;
-  setPrompt: (prompt: string) => void;
-  // Installation ID
-  installationId: string | null;
-  getInstallationId: () => Promise<string>;
 }
 
 export const StoreContext = createContext<StoreContextType>(
@@ -93,12 +85,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [authBypass, setAuthBypass] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [installationId, setInstallationId] = useState<string | null>(null);
   // Dating Coach state
-  const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
-  const [prompt, setPrompt] = useState('');
 
   const {
     userId,
@@ -110,39 +99,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading,
     setIsLoading,
     handleGoogleLogin,
-  } = useStoreState(true); // Skip initialization in useStoreState
+  } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
 
-  // Load dating coach preference on mount
-  useEffect(() => {
-    const loadDatingCoachPreference = async () => {
-      try {
-        const enabled = await AsyncStorage.getItem(
-          '@charmr/dating_coach_enabled',
-        );
-        setIsDatingCoachEnabled(enabled === 'true');
-      } catch (error) {
-        console.error('Error loading dating coach preference:', error);
-      }
-    };
-    loadDatingCoachPreference();
-  }, []);
-
-  // Save dating coach preference when changed
-  useEffect(() => {
-    const saveDatingCoachPreference = async () => {
-      try {
-        await AsyncStorage.setItem(
-          '@charmr/dating_coach_enabled',
-          isDatingCoachEnabled.toString(),
-        );
-      } catch (error) {
-        console.error('Error saving dating coach preference:', error);
-      }
-    };
-    saveDatingCoachPreference();
-  }, [isDatingCoachEnabled]);
-
-  // Set auth bypass in development mode
+  // Remove dating coach preference loading since we're not using a toggle anymore
   useEffect(() => {
     if (__DEV__ || process.env.NODE_ENV === 'development') {
       setAuthBypass(true);
@@ -281,13 +240,15 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const removeMatch = async (matchId: string) => {
     try {
-      await matchService.removeMatch(matchId);
-      setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
-      logger.app.info('Match Removed', {
-        event: 'remove_match',
-        matchId,
-        userId,
-      });
+      const success = await matchService.deleteMatch(matchId);
+      if (success) {
+        setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
+        logger.app.info('Match Removed', {
+          event: 'remove_match',
+          matchId,
+          userId,
+        });
+      }
     } catch (error) {
       logger.app.error('Remove Match Error', {
         event: 'remove_match_error',
@@ -346,26 +307,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
-  // Function to get installation ID
-  const getInstallationId = async (): Promise<string> => {
-    try {
-      // Return cached ID if available
-      if (installationId) {
-        return installationId;
-      }
-
-      // Get fresh installation ID
-      const id = await getInstallations().getId();
-      setInstallationId(id);
-
-      logger.app.debug('Got installation ID', {installationId: id});
-      return id;
-    } catch (error) {
-      logger.app.error('Failed to get installation ID:', error);
-      throw error;
-    }
-  };
-
   const value = useMemo(
     () => ({
       showKeyboardModal,
@@ -396,17 +337,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       updateMatch,
       removeMatch,
       loadMatches,
-      isDatingCoachEnabled,
-      setIsDatingCoachEnabled,
       selectedMatch,
       setSelectedMatch,
       deleteScreenshots,
       setDeleteScreenshots,
-      prompt,
-      setPrompt,
-      // Installation ID
-      installationId,
-      getInstallationId,
     }),
     [
       showKeyboardModal,
@@ -419,11 +353,8 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       isLoading,
       showUpgradeModal,
       matches,
-      isDatingCoachEnabled,
       selectedMatch,
       deleteScreenshots,
-      prompt,
-      installationId,
     ],
   );
 

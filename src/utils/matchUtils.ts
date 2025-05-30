@@ -1,18 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../services/axiosInstance';
+import {ID} from '../types';
 import {logger} from './logger';
 
 export interface Match {
-  id: string;
+  id: ID;
   name: string;
   platform: string;
   lastUsed?: Date;
   createdAt: Date;
   updatedAt: Date;
+  hidden?: boolean;
 }
 
 export const getMatchKey = (match: Match): string => {
   return `${match.platform}::${match.name}`;
+};
+
+export const generateMatchId = (match: Match): string => {
+  return getMatchKey(match);
 };
 
 export const getMatches = async (includeHidden = false): Promise<Match[]> => {
@@ -81,34 +87,6 @@ export const addMatch = async (
       platform,
     });
     return null;
-  }
-};
-
-export const deleteMatch = async (
-  name: string,
-  platform: string,
-): Promise<boolean> => {
-  try {
-    const userId = await AsyncStorage.getItem('userId');
-    if (!userId) {
-      logger.match.error('No user ID found when deleting match');
-      return false;
-    }
-
-    logger.match.debug('Deleting match', {name, platform});
-    await axiosInstance.delete(`/api/users/${userId}/matches`, {
-      data: {name, platform},
-    });
-    logger.match.debug('Deleted match', {name, platform});
-    return true;
-  } catch (error) {
-    logger.match.error('Error deleting match', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
-    });
-    return false;
   }
 };
 

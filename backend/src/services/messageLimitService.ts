@@ -22,7 +22,16 @@ export const createMessageLimitService = (db: Database) => {
       let user = await db.getUser(userId);
       if (!user) {
         // Create user if they don't exist
-        user = await db.createUser(userId);
+        user = await db.createUser({
+          id: userId,
+          email: `${userId}@example.com`,
+          name: `User ${userId}`,
+          plan: SubscriptionTier.FREE,
+        });
+      }
+
+      if (!user) {
+        throw new Error('Failed to create or get user');
       }
 
       return {

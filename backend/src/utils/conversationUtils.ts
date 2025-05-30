@@ -1,128 +1,128 @@
 import {getDatabase} from '../db';
-import {SubscriptionTier} from '../types/enums';
+import {getMessageRepository} from '../db/repositories';
+import {Message} from '../db/types';
+import {
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
+} from '../types/enums';
 import logger from '../utils/logger';
 
-export interface Message {
-  id: number;
-  userId: string;
-  matchId: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: string;
-}
+export type {Message} from '../db/types';
 
-export async function loadConversation(
+export const loadConversation = async (
   userId: string,
-  matchId?: string,
-  userPlan: SubscriptionTier = SubscriptionTier.FREE,
-): Promise<Message[]> {
+  matchId: string,
+  userPlan: SubscriptionTier,
+): Promise<Message[]> => {
   try {
     const db = await getDatabase();
+    const messageRepository = getMessageRepository(db);
 
-    // Return empty array for no-match-selected
-    if (matchId === 'no-match-selected') {
-      return [];
-    }
+    // Get messages for the match
+    const {messages} = await messageRepository.getMessagesByMatch(
+      userId,
+      matchId,
+    );
 
-    return await db.getMessages(userId, matchId);
+    // Sort messages by timestamp
+    return messages.sort((a: Message, b: Message) => {
+      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    });
   } catch (error) {
-    logger.error('Error loading conversation:', {
+    logger.error('Failed to load conversation', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId,
       matchId,
-    });
-    return [];
-  }
-}
-
-export async function saveMessage(
-  userId: string,
-  matchId: string | undefined,
-  message: Omit<Message, 'id' | 'userId' | 'matchId'>,
-): Promise<Message> {
-  try {
-    const db = await getDatabase();
-    const user = await db.getUser(userId);
-
-    // Use no-match-selected if matchId is not provided
-    const finalMatchId = matchId || 'no-match-selected';
-
-    // Ensure we have a valid timestamp
-    const timestamp = message.timestamp || new Date().toISOString();
-
-    const savedMessage = await db.saveMessage(userId, finalMatchId, {
-      ...message,
-      timestamp,
-    });
-
-    // If this is a user message, increment the message count
-    if (message.role === 'user') {
-      await db.incrementMessageCount(userId);
-    }
-
-    logger.info('Message saved successfully:', {
-      userId,
-      matchId: finalMatchId,
-      role: savedMessage.role,
-      timestamp: savedMessage.timestamp,
-    });
-    return savedMessage;
-  } catch (error) {
-    logger.error('Error saving message:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      userId,
-      matchId,
-      message,
     });
     throw error;
   }
-}
+};
 
-export async function appendConversation(
+export const appendConversation = async (
   userId: string,
-  matchId: string | undefined,
+  matchId: string,
   summary: string,
-  assistantMessage: string,
-): Promise<Message> {
-  const timestamp = new Date().toISOString();
+  reply: string,
+  images?: string[],
+  prompt?: string,
+): Promise<Message> => {
+  try {
+    const db = await getDatabase();
+    const messageRepository = getMessageRepository(db);
 
-  logger.info('Saving conversation:', {
-    userId,
-    matchId,
-    summary,
-    assistantMessage,
-  });
+    // Start with current timestamp for this conversation set
+    let baseTimestamp = Date.now();
 
-  // Save the summary as a system message if it exists
-  if (summary) {
-    await saveMessage(userId, matchId, {
-      role: 'system',
-      content: summary,
-      timestamp,
+    // Save user message first (either text, images, or both)
+    if (images && images.length > 0) {
+      // Save screenshots with or without prompt
+      for (let i = 0; i < images.length; i++) {
+        const timestamp = new Date(baseTimestamp + i * 1000).toISOString();
+        await messageRepository.createMessage(userId, matchId, {
+          role: MessageRole.USER,
+          type: MessageType.IMAGE,
+          mode: MessageMode.GENERATE,
+          content: prompt || '',
+          timestamp,
+          imageData: images[i],
+        });
+      }
+      baseTimestamp += images.length * 1000;
+    } else if (prompt) {
+      // Save regular text message
+      const timestamp = new Date(baseTimestamp).toISOString();
+      await messageRepository.createMessage(userId, matchId, {
+        role: MessageRole.USER,
+        type: MessageType.TEXT,
+        mode: MessageMode.GENERATE,
+        content: prompt,
+        timestamp,
+      });
+      baseTimestamp += 1000;
+    }
+
+    // Save the assistant reply after user message(s)
+    const replyTimestamp = new Date(baseTimestamp).toISOString();
+    const assistantMessage = await messageRepository.createMessage(
+      userId,
+      matchId,
+      {
+        role: MessageRole.ASSISTANT,
+        type: MessageType.TEXT,
+        mode: MessageMode.GENERATE,
+        content: reply,
+        timestamp: replyTimestamp,
+      },
+    );
+    baseTimestamp += 1000;
+
+    // Save the summary message after the assistant's reply
+    if (summary) {
+      const summaryTimestamp = new Date(baseTimestamp).toISOString();
+      await messageRepository.createMessage(userId, matchId, {
+        role: MessageRole.SYSTEM,
+        type: MessageType.SUMMARY,
+        mode: MessageMode.GENERATE,
+        content: summary,
+        timestamp: summaryTimestamp,
+        replyTo:
+          typeof assistantMessage.id === 'string'
+            ? parseInt(assistantMessage.id, 10)
+            : assistantMessage.id,
+      });
+    }
+
+    return assistantMessage;
+  } catch (error) {
+    logger.error('Failed to append conversation', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId,
+      matchId,
     });
+    throw error;
   }
-
-  // Save the assistant message and return it
-  return await saveMessage(userId, matchId, {
-    role: 'assistant',
-    content: assistantMessage,
-    timestamp,
-  });
-}
-
-export async function saveUserMessage(
-  userId: string,
-  matchId: string | undefined,
-  content: string,
-): Promise<Message> {
-  const timestamp = new Date().toISOString();
-
-  // Save the user message (incrementMessageCount is now handled in saveMessage)
-  return await saveMessage(userId, matchId, {
-    role: 'user',
-    content,
-    timestamp,
-  });
-}
+};

@@ -9,6 +9,7 @@ export type RootStackParamList = {
   Admin: undefined;
   CoachChat: {
     match: Match;
+    debugMatchId?: string;
   };
 };
 

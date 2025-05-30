@@ -1,6 +1,16 @@
 import {Request, Response} from 'express';
-import {Database} from '../db/types';
+import {databaseConfig} from '../config/database';
+import {Database, User} from '../db/types';
+import {testContextMessages} from '../test/testContextMessages';
+import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
+
+// Extend Express Request type to include user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    email: string;
+  };
+}
 
 export const getUsers = async (req: Request, res: Response, db: Database) => {
   try {
@@ -13,83 +23,24 @@ export const getUsers = async (req: Request, res: Response, db: Database) => {
   }
 };
 
-export const createUser = async (req: Request, res: Response, db: Database) => {
+export const createUser = async (
+  db: Database,
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    plan?: SubscriptionTier;
+    installationId?: string;
+  },
+): Promise<User | null> => {
   try {
-    const {id, email, name, installationId} = req.body;
-    logger.debug('Attempting to create user:', {
-      id,
-      email,
-      name,
-      installationId,
-      body: req.body,
-      headers: req.headers,
-    });
-
-    if (!id || !email || !name) {
-      logger.warn('Missing required fields for user creation:', {
-        id,
-        email,
-        name,
-      });
-      return res.status(400).json({error: 'Missing required fields'});
-    }
-
-    // If installationId is provided, check if a user with that ID exists
-    if (installationId) {
-      logger.debug('Checking for existing user with installationId:', {
-        installationId,
-      });
-      const existingUser = await db.getUserByInstallationId(installationId);
-      logger.debug('Existing user lookup result:', {
-        installationId,
-        userFound: !!existingUser,
-        user: existingUser
-          ? {
-              id: existingUser.id,
-              email: existingUser.email,
-              name: existingUser.name,
-              installationId: existingUser.installationId,
-            }
-          : null,
-      });
-
-      if (existingUser) {
-        logger.info('Found existing user with installationId:', {
-          userId: existingUser.id,
-          installationId,
-        });
-        return res.status(200).json(existingUser);
-      }
-    }
-
-    // Create new user if no existing user found
-    logger.debug('Creating new user:', {
-      id,
-      email,
-      name,
-      installationId,
-    });
-    const user = await db.createUser(
-      id,
-      email,
-      name,
-      undefined,
-      installationId,
-    );
-    logger.info('Created new user:', {
-      id,
-      email,
-      name,
-      installationId,
-    });
-    res.status(201).json(user);
+    return await db.createUser(user);
   } catch (error) {
     logger.error('Error creating user:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      body: req.body,
     });
-    res.status(500).json({error: 'Failed to create user'});
+    return null;
   }
 };
 
@@ -270,41 +221,87 @@ export const linkAnonymousUser = async (
 ) => {
   try {
     const {anonymousUserId, registeredUserId, installationId} = req.body;
+    logger.info('Starting user linking process', {
+      anonymousUserId,
+      registeredUserId,
+      installationId,
+    });
+
     if (!anonymousUserId || !registeredUserId) {
+      logger.warn('Missing required fields for user linking', {
+        hasAnonymousUserId: !!anonymousUserId,
+        hasRegisteredUserId: !!registeredUserId,
+      });
       return res.status(400).json({error: 'Missing required fields'});
     }
 
     // Get the anonymous user's data
     const anonymousUser = await db.getUser(anonymousUserId);
     if (!anonymousUser) {
+      logger.warn('Anonymous user not found during linking', {
+        anonymousUserId,
+        registeredUserId,
+      });
       return res.status(404).json({error: 'Anonymous user not found'});
     }
+    logger.info('Found anonymous user', {
+      anonymousUserId,
+      anonymousUserEmail: anonymousUser.email,
+      anonymousUserInstallationId: anonymousUser.installationId,
+    });
 
     // Get the registered user
     const registeredUser = await db.getUser(registeredUserId);
     if (!registeredUser) {
+      logger.warn('Registered user not found during linking', {
+        anonymousUserId,
+        registeredUserId,
+      });
       return res.status(404).json({error: 'Registered user not found'});
     }
+    logger.info('Found registered user', {
+      registeredUserId,
+      registeredUserEmail: registeredUser.email,
+      registeredUserInstallationId: registeredUser.installationId,
+    });
 
     // Transfer all messages from anonymous to registered user
+    logger.info('Transferring messages from anonymous to registered user', {
+      anonymousUserId,
+      registeredUserId,
+    });
     await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
       registeredUserId,
       anonymousUserId,
     ]);
 
     // Transfer any remaining extra messages
+    const newExtraMessages =
+      registeredUser.extraMessages + anonymousUser.extraMessages;
+    logger.info('Transferring extra messages', {
+      anonymousUserId,
+      registeredUserId,
+      anonymousExtraMessages: anonymousUser.extraMessages,
+      registeredExtraMessages: registeredUser.extraMessages,
+      newTotalExtraMessages: newExtraMessages,
+    });
     await db.updateUser(registeredUserId, {
-      extraMessages: registeredUser.extraMessages + anonymousUser.extraMessages,
+      extraMessages: newExtraMessages,
       installationId: installationId || registeredUser.installationId,
     });
 
     // Delete the anonymous user
+    logger.info('Deleting anonymous user after successful transfer', {
+      anonymousUserId,
+      registeredUserId,
+    });
     await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
 
-    logger.info('Linked anonymous user to registered user:', {
+    logger.info('Successfully linked anonymous user to registered user', {
       anonymousUserId,
       registeredUserId,
       installationId,
+      transferredExtraMessages: newExtraMessages,
     });
 
     res.json({message: 'User linked successfully'});
@@ -312,6 +309,9 @@ export const linkAnonymousUser = async (
     logger.error('Error linking users:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
+      anonymousUserId: req.body.anonymousUserId,
+      registeredUserId: req.body.registeredUserId,
+      installationId: req.body.installationId,
     });
     res.status(500).json({error: 'Failed to link users'});
   }
@@ -715,17 +715,71 @@ export const updateUser = async (req: Request, res: Response, db: Database) => {
   }
 };
 
-export const resetDb = async (req: Request, res: Response, db: Database) => {
+export const resetDb = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  db: Database,
+) => {
   try {
-    await db.clearDatabase();
-    logger.info('Database reset completed successfully');
-    res.status(200).json({message: 'Database reset completed successfully'});
+    // Get the user's email from the request
+    const userEmail = req.user?.email;
+
+    // Check if the user is authorized
+    if (userEmail !== 'mike.doubintchik@gmail.com') {
+      logger.warn('Unauthorized database reset attempt:', {userEmail});
+      return res.status(403).json({error: 'Unauthorized to reset database'});
+    }
+
+    logger.info('Resetting database...');
+
+    if (databaseConfig.type === 'firestore') {
+      await db.clearDatabase();
+      logger.info('Firestore database reset completed successfully', {
+        userEmail,
+      });
+      res
+        .status(200)
+        .json({message: 'Firestore database reset completed successfully'});
+    } else {
+      // Reset all users' message counts
+      await db.run('UPDATE users SET dailyMessagesUsed = 0');
+
+      // Clear all messages
+      await db.run('DELETE FROM messages');
+
+      logger.info('Database reset complete');
+      res.json({message: 'Database reset successfully'});
+    }
   } catch (error) {
     logger.error('Error resetting database:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
     res.status(500).json({error: 'Failed to reset database'});
+  }
+};
+
+export const resetSqliteDb = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    if (databaseConfig.type === 'sqlite') {
+      await db.clearDatabase();
+      logger.info('SQLite database reset completed successfully');
+      res
+        .status(200)
+        .json({message: 'SQLite database reset completed successfully'});
+    } else {
+      res.status(400).json({error: 'SQLite database is not enabled'});
+    }
+  } catch (error) {
+    logger.error('Error resetting SQLite database:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to reset SQLite database'});
   }
 };
 
@@ -755,53 +809,46 @@ export const testContext = async (
     }
 
     // Create a test match if it doesn't exist
-    const testMatchId = 'test-context-match';
-    let match = await db.getMatchById(testMatchId);
+    const testMatchName = 'Test Context Match';
+    const testMatchPlatform = 'tinder';
+    let match = await db.get(
+      'SELECT * FROM matches WHERE userId = ? AND name = ? AND platform = ?',
+      [testUserId, testMatchName, testMatchPlatform],
+    );
 
     if (!match) {
-      await db.run(
-        'INSERT INTO matches (id, userId, name, platform, lastUsed, hidden, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      const result = await db.run(
+        'INSERT INTO matches (userId, name, platform, lastUsed, hidden, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
-          testMatchId,
           testUserId,
-          'Test Context Match',
-          'tinder',
+          testMatchName,
+          testMatchPlatform,
           new Date().toISOString(),
-          false,
+          0,
           new Date().toISOString(),
           new Date().toISOString(),
         ],
       );
+      match = await db.get('SELECT * FROM matches WHERE id = ?', [
+        result.lastID,
+      ]);
     }
 
-    // Add some test messages to establish context
-    const messages = [
-      {
-        role: 'user',
-        content: 'Hello, how are you?',
-      },
-      {
-        role: 'assistant',
-        content: "Hi! I'm doing great, thanks for asking. How about you?",
-      },
-      {
-        role: 'user',
-        content: "I'm good too! What do you like to do for fun?",
-      },
-      {
-        role: 'assistant',
-        content:
-          'I enjoy hiking, reading, and trying new restaurants. What about you?',
-      },
-    ];
+    if (!match) {
+      throw new Error('Failed to create or retrieve test match');
+    }
 
-    for (const message of messages) {
+    // Add test messages from the test context messages file
+    for (const message of testContextMessages) {
       await db.run(
-        'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO messages (userId, matchId, role, type, mode, used, content, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [
           testUserId,
-          testMatchId,
+          match.id,
           message.role,
+          message.type,
+          message.mode,
+          message.used ? 1 : 0,
           message.content,
           new Date().toISOString(),
         ],
@@ -809,21 +856,21 @@ export const testContext = async (
     }
 
     // Get the conversation history to verify context
-    const conversationHistory = await db.getConversationHistory(
+    const {messages: conversationHistory} = await db.getConversationHistory(
       testUserId,
-      testMatchId,
+      match.id.toString(),
     );
 
     logger.info('Test context setup completed', {
       userId: testUserId,
-      matchId: testMatchId,
+      matchId: match.id,
       messageCount: conversationHistory.length,
     });
 
     res.status(200).json({
       message: 'Test context setup completed successfully',
       userId: testUserId,
-      matchId: testMatchId,
+      matchId: match.id,
       messageCount: conversationHistory.length,
     });
   } catch (error) {

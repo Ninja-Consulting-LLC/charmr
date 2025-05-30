@@ -1,7 +1,6 @@
-import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {ErrorType, MessageMode} from '../types/enums';
-import {appendConversation, loadConversation} from '../utils/conversationUtils';
+import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
+import {loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 
@@ -113,6 +112,7 @@ export const createSandboxService = () => {
       const conversationHistory = await loadConversation(
         request.userId,
         request.matchId,
+        SubscriptionTier.FREE,
       );
       const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
 
@@ -166,31 +166,8 @@ export const createSandboxService = () => {
 
       const {summary, message: reply} = parsedResponse;
 
-      // Save both the summary and the message
-      if (!request.deleteAfterResponse) {
-        const savedMessage = await appendConversation(
-          request.userId,
-          request.matchId,
-          summary,
-          reply,
-        );
-
-        // Calculate mock costs
-        const costBreakdown = calculateCost('gpt-4', mockResponse.usage);
-
-        // Save mock message cost
-        const db = await getDatabase();
-        await db.saveMessageCost(savedMessage.id, {
-          model: 'gpt-4',
-          promptTokens: mockResponse.usage.prompt_tokens,
-          completionTokens: mockResponse.usage.completion_tokens,
-          totalTokens: mockResponse.usage.total_tokens,
-          inputCost: costBreakdown.inputCost,
-          outputCost: costBreakdown.outputCost,
-          totalCost: costBreakdown.totalCost,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      // Calculate costs for the response
+      const costBreakdown = calculateCost('gpt-4', mockResponse.usage);
 
       return {
         reply,
@@ -198,6 +175,7 @@ export const createSandboxService = () => {
         usage: mockResponse.usage,
         mode: request.mode || MessageMode.GENERATE,
         style: request.style,
+        cost: costBreakdown,
       };
     } catch (error) {
       logger.error('Sandbox service error', {

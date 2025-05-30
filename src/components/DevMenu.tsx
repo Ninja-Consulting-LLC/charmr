@@ -4,7 +4,6 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
-import Config from 'react-native-config';
 import {Button, IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
@@ -37,6 +36,8 @@ const DevMenu = () => {
     showDevMenu,
     setShowDevMenu,
     updateUserPlan,
+    matches,
+    setMatches,
   } = useStore();
 
   const [isVisible, setIsVisible] = useState(false);
@@ -108,6 +109,7 @@ const DevMenu = () => {
   const handleClearStorage = async () => {
     try {
       await DevUtils.clearStorage();
+      setMatches([]);
       Alert.alert('Development', 'Storage cleared successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to clear storage');
@@ -226,7 +228,6 @@ const DevMenu = () => {
         {},
         {
           headers: {
-            Authorization: `Bearer ${Config.ADMIN_TOKEN}`,
             'X-Auth-Bypass': 'true',
           },
         },
@@ -280,9 +281,9 @@ const DevMenu = () => {
   const handleResetDb = async () => {
     try {
       await resetDb();
-      Alert.alert('Development', 'Database reset successfully');
+      Alert.alert('Development', 'Firestore database reset successfully');
     } catch (error) {
-      Alert.alert('Development Error', 'Failed to reset database');
+      Alert.alert('Development Error', 'Failed to reset Firestore database');
     }
   };
 
@@ -410,26 +411,29 @@ const DevMenu = () => {
                 Reset Onboarding
               </Button>
 
-              <Button
-                mode="contained"
-                onPress={handleClearStorage}
-                style={styles.button}>
-                Clear Storage
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleClearMatchStorage}
-                style={styles.button}>
-                Clear Match Storage
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleInspectStorage}
-                style={styles.button}>
-                Inspect Storage
-              </Button>
+              <View style={styles.section}>
+                <Text variant="titleSmall" style={styles.sectionTitle}>
+                  Storage & Database
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleClearStorage}
+                  style={styles.button}>
+                  Clear Storage
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleResetDb}
+                  style={styles.button}>
+                  Reset Database
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleInspectStorage}
+                  style={styles.button}>
+                  Inspect Storage
+                </Button>
+              </View>
 
               <Button
                 mode="contained"
@@ -484,30 +488,6 @@ const DevMenu = () => {
                     Pro
                   </Button>
                 </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleSmall" style={styles.sectionTitle}>
-                  Database
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={handleResetDb}
-                  style={styles.button}>
-                  Reset DB
-                </Button>
-              </View>
-
-              <View style={styles.section}>
-                <Text variant="titleSmall" style={styles.sectionTitle}>
-                  Storage
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={handleClearStorage}
-                  style={styles.button}>
-                  Clear Storage
-                </Button>
               </View>
 
               <View style={styles.section}>
