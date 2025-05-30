@@ -8,7 +8,7 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import {Image, Platform, ScrollView, StyleSheet, View} from 'react-native';
+import {Image, Platform, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {Button, IconButton, Snackbar} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
@@ -312,9 +312,7 @@ const ResponseGenerator = forwardRef<
   return (
     <View style={styles.container} testID="response-generator-container">
       <View style={styles.contentContainer}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}>
+        <View style={styles.mainContent}>
           <Button
             mode="contained"
             onPress={() => setShowMatchSelector(true)}
@@ -358,7 +356,7 @@ const ResponseGenerator = forwardRef<
             onRestoreMatch={handleRestoreMatch}
             userPlan={user?.plan || SubscriptionTier.FREE}
           />
-        </ScrollView>
+        </View>
 
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
@@ -432,31 +430,11 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
   },
-  scrollView: {
+  mainContent: {
     flex: 1,
-  },
-  scrollContent: {
     paddingHorizontal: 16,
-    flexGrow: 1,
     alignItems: 'center',
-  },
-  matchSection: {
-    paddingBottom: 16,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  promptSection: {
-    paddingVertical: 8,
-    marginBottom: 8,
-  },
-  promptInput: {
-    marginTop: 8,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: theme.colors.secondary,
-    borderRadius: 8,
-    padding: 4,
-    minHeight: 80,
+    justifyContent: 'space-between',
   },
   buttonContainer: {
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
@@ -539,9 +517,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.secondary,
   },
   imageSection: {
-    marginBottom: 16,
+    flex: 1,
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 24,
   },
 });
 
