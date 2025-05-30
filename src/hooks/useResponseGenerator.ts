@@ -1,10 +1,10 @@
 import {useState} from 'react';
 import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
-import * as userService from '../services/userService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {SelectedImage} from '../types/image';
+import {User} from '../types/user';
 import {compressImages} from '../utils/imageCompression';
 import {logger} from '../utils/logger';
 import {generateMatchId, Match} from '../utils/matchUtils';
@@ -13,6 +13,7 @@ interface UseResponseGeneratorProps {
   images: SelectedImage[];
   selectedMatch: Match | null;
   userPlan: SubscriptionTier;
+  onMessageLimitReached?: () => void;
 }
 
 interface UseResponseGeneratorReturn {
@@ -28,6 +29,7 @@ export const useResponseGenerator = ({
   images,
   selectedMatch,
   userPlan,
+  onMessageLimitReached,
 }: UseResponseGeneratorProps): UseResponseGeneratorReturn => {
   const {userId, setUser} = useStore();
   const [response, setResponse] = useState<string | null>(null);
@@ -113,16 +115,23 @@ export const useResponseGenerator = ({
           error: reply.error,
           type: reply.type,
         });
-        if (reply.type !== '404') {
+        if (reply.type === 'MESSAGE_LIMIT') {
+          onMessageLimitReached?.();
+          setError(null);
+          setErrorType(null);
+        } else if (reply.type !== '404') {
           setError(reply.error);
           setErrorType(reply.type || 'UNKNOWN');
         }
         setResponse(null);
         if (reply.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
+            extraMessages:
+              reply.limits?.extraMessages ?? prevUser.extraMessages,
+          }));
         }
       } else if (reply.reply) {
         logger.app.info('[ResponseGenerator] Setting response state:', {
@@ -132,10 +141,13 @@ export const useResponseGenerator = ({
         setError(null);
         setErrorType(null);
         if (reply.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
+            extraMessages:
+              reply.limits?.extraMessages ?? prevUser.extraMessages,
+          }));
         }
       }
     } catch (error: any) {
@@ -145,15 +157,24 @@ export const useResponseGenerator = ({
         stack: error.stack,
       });
       if (error.response?.data) {
-        if (error.response.status !== 404) {
+        if (error.response.data.type === 'MESSAGE_LIMIT') {
+          onMessageLimitReached?.();
+          setError(null);
+          setErrorType(null);
+        } else if (error.response.status !== 404) {
           setError(error.response.data.error);
           setErrorType(error.response.data.type || 'UNKNOWN');
         }
         if (error.response.data.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              error.response.data.limits?.dailyMessagesUsed ??
+              prevUser.dailyMessagesUsed,
+            extraMessages:
+              error.response.data.limits?.extraMessages ??
+              prevUser.extraMessages,
+          }));
         }
       } else {
         setError(error.message || MESSAGES.GENERATION_ERROR);

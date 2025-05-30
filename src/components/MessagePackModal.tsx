@@ -12,6 +12,7 @@ interface MessagePackModalProps {
   onDismiss: () => void;
   currentBalance: number;
   errorMessage?: string;
+  onUpgrade?: () => void;
 }
 
 const MessagePackModal: React.FC<MessagePackModalProps> = ({
@@ -19,6 +20,7 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
   onDismiss,
   currentBalance,
   errorMessage,
+  onUpgrade,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,11 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleUpgrade = () => {
+    onDismiss();
+    onUpgrade?.();
   };
 
   return (
@@ -143,6 +150,14 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
               </Surface>
             </View>
           )}
+
+          <Button
+            mode="outlined"
+            onPress={handleUpgrade}
+            style={styles.upgradeButton}
+            icon="star">
+            Upgrade to Pro
+          </Button>
         </View>
       </Modal>
     </Portal>
@@ -189,6 +204,10 @@ const styles = StyleSheet.create({
   errorMessage: {
     textAlign: 'center',
     marginBottom: 8,
+  },
+  upgradeButton: {
+    marginTop: 8,
+    borderColor: theme.colors.primary,
   },
 });
 
