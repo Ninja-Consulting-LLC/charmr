@@ -16,17 +16,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import {Button, IconButton, SegmentedButtons, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
+import MessagePackModal from '../components/MessagePackModal';
 import TypingIndicator from '../components/TypingIndicator';
+import UpgradeModal from '../components/UpgradeModal';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
-import {
-  addMatch as addMatchUtil,
-  deleteMatch,
-  hideMatch,
-  restoreMatch,
-} from '../services/matchService';
+import {deleteMatch, hideMatch, restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {
@@ -37,7 +34,7 @@ import {
 } from '../types/enums';
 import {Message} from '../types/message';
 import {compressImages} from '../utils/imageCompression';
-import {Match} from '../utils/matchUtils';
+import {Match, addMatch} from '../utils/matchUtils';
 
 type CoachChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -70,6 +67,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   );
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
+  const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const {userId, matches, user} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
@@ -77,7 +76,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
-      const newMatch = await addMatchUtil(name, platform);
+      const newMatch = await addMatch(name, platform);
       if (newMatch) {
         navigation.setParams({match: newMatch});
       }
@@ -373,6 +372,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           matchId: String(effectiveMatchId),
         });
         setIsTyping(false);
+
+        if (response.type === 'MESSAGE_LIMIT') {
+          setShowMessagePackModal(true);
+          return;
+        }
+
         const aiResponse: IMessageWithImages = {
           _id: Date.now() + 1,
           text: response.reply || response.error || 'No reply',
@@ -388,8 +393,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
         );
-      } catch (err) {
+      } catch (err: any) {
         setIsTyping(false);
+        if (err.response?.data?.type === 'MESSAGE_LIMIT') {
+          setShowMessagePackModal(true);
+          return;
+        }
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [
             {
@@ -756,6 +765,18 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           </View>
         </View>
       </Modal>
+      {/* Message Pack Modal */}
+      <MessagePackModal
+        visible={showMessagePackModal}
+        onDismiss={() => setShowMessagePackModal(false)}
+        currentBalance={user?.extraMessages || 0}
+        onUpgrade={() => setShowUpgradeModal(true)}
+      />
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onDismiss={() => setShowUpgradeModal(false)}
+      />
     </View>
   );
 };
