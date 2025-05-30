@@ -1,6 +1,5 @@
 import express from 'express';
 import {
-  clearDatabase,
   createUser,
   getMessageCosts,
   getUser,
@@ -10,7 +9,9 @@ import {
   getUserMessages,
   getUsers,
   linkAnonymousUser,
+  resetDb,
   resetUserMessageLimit,
+  testContext,
   updateUserPlan,
 } from '../controllers/adminController';
 import {Database} from '../db/types';
@@ -28,7 +29,20 @@ const createAdminRouter = (db: Database) => {
   router.get('/users/installation/:installationId', (req, res) =>
     getUserByInstallationId(req, res, db),
   );
-  router.post('/users', (req, res) => createUser(req, res, db));
+  router.post('/users', async (req, res) => {
+    const user = await createUser(db, {
+      id: req.body.id,
+      email: req.body.email,
+      name: req.body.name,
+      plan: req.body.plan,
+      installationId: req.body.installationId,
+    });
+    if (user) {
+      res.status(201).json(user);
+    } else {
+      res.status(400).json({error: 'Failed to create user'});
+    }
+  });
   router.put('/users/:userId/plan', (req, res) => updateUserPlan(req, res, db));
   router.post('/users/link', (req, res) => linkAnonymousUser(req, res, db));
   router.post('/users/:userId/reset-message-limit', (req, res) =>
@@ -48,7 +62,8 @@ const createAdminRouter = (db: Database) => {
   router.get('/users/:userId/info', (req, res) => getUserInfo(req, res, db));
 
   // Database management
-  router.post('/clear-database', (req, res) => clearDatabase(req, res, db));
+  router.post('/reset-db', (req, res) => resetDb(req, res, db));
+  router.post('/test-context', (req, res) => testContext(req, res, db));
 
   return router;
 };

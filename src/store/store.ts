@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fetchUserData} from '../services/api';
+import {ID} from '../types';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
 import {Match} from '../utils/matchUtils';
@@ -35,7 +36,7 @@ export interface Store {
   setMatches: (matches: Match[]) => void;
   addMatch: (match: Match) => void;
   updateMatch: (match: Match) => void;
-  removeMatch: (matchId: number) => void;
+  removeMatch: (matchId: ID) => void;
   loadMatches: () => Promise<void>;
 }
 

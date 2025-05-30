@@ -7,9 +7,11 @@ import {config} from './config/config';
 import {
   createUser,
   getUser,
+  getUserByInstallationId,
   linkAnonymousUser,
   updateUserPlan,
 } from './controllers/adminController';
+import {checkSchemaHealth} from './controllers/devController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
 import {authenticateUser} from './middleware/auth';
@@ -38,13 +40,51 @@ export const createApp = async () => {
     }),
   );
 
+  // Root path endpoint - API information and documentation
+  app.get('/', (req, res) => {
+    const apiInfo = {
+      name: 'Charmr API',
+      version: '1.0.0',
+      description: 'Backend API for the Charmr dating assistant application',
+      environment: config.server.environment,
+      endpoints: [
+        {method: 'GET', path: '/health', description: 'Health check endpoint'},
+        {
+          method: 'GET',
+          path: '/api/users/:userId',
+          description: 'Get user information',
+        },
+        {
+          method: 'PUT',
+          path: '/api/users/:userId/plan',
+          description: 'Update user subscription plan',
+        },
+        {
+          method: 'POST',
+          path: '/api/users/link',
+          description: 'Link anonymous user to registered user',
+        },
+        {method: 'POST', path: '/api/users', description: 'Create a new user'},
+        {
+          method: 'POST',
+          path: '/api/generate-reply',
+          description: 'Generate AI response for dating conversations',
+        },
+        {
+          method: 'POST',
+          path: '/api/support',
+          description: 'Submit a support request',
+        },
+      ],
+      timestamp: new Date().toISOString(),
+    };
+
+    res.status(200).json(apiInfo);
+  });
+
   // Health check endpoint
   app.get('/health', (req, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: config.server.environment,
-    });
+    res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
   });
 
   // Rate limiting
@@ -79,6 +119,11 @@ export const createApp = async () => {
   const replyController = await createReplyController(db);
 
   // Main application routes
+  app.get(
+    '/api/users/installation/:installationId',
+    authenticateUser,
+    (req, res) => getUserByInstallationId(req, res, db),
+  );
   app.get('/api/users/:userId', authenticateUser, (req, res) =>
     getUser(req, res, db),
   );
@@ -88,9 +133,20 @@ export const createApp = async () => {
   app.post('/api/users/link', authenticateUser, (req, res) =>
     linkAnonymousUser(req, res, db),
   );
-  app.post('/api/users', authenticateUser, (req, res) =>
-    createUser(req, res, db),
-  );
+  app.post('/api/users', authenticateUser, async (req, res) => {
+    const user = await createUser(db, {
+      id: req.body.id,
+      email: req.body.email,
+      name: req.body.name,
+      plan: req.body.plan,
+      installationId: req.body.installationId,
+    });
+    if (user) {
+      res.status(201).json(user);
+    } else {
+      res.status(400).json({error: 'Failed to create user'});
+    }
+  });
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
     logger.info('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
@@ -124,6 +180,10 @@ export const createApp = async () => {
   if (process.env.NODE_ENV !== 'production') {
     utilityRouter.get('/health', (req, res) => {
       res.json({status: 'ok', timestamp: new Date().toISOString()});
+    });
+
+    utilityRouter.get('/check-schema-health', (req, res) => {
+      return checkSchemaHealth(req, res, db);
     });
   }
 

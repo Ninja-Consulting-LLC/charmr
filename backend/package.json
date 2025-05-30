@@ -9,12 +9,17 @@
     "build": "tsc",
     "test": "jest",
     "test:match": "jest src/test/match.integration.test.ts",
-    "user:info": "ts-node src/scripts/getUserInfo.ts"
+    "user:info": "ts-node src/scripts/getUserInfo.ts",
+    "seed:match": "GOOGLE_APPLICATION_CREDENTIALS=service-account.json npx ts-node scripts/createTestMatch.ts",
+    "remove-admin": "ts-node scripts/removeAdmin.ts aOTEOQBFmxZhEuyWuXIbabygMF42",
+    "list-admins": "ts-node scripts/listAdmins.ts",
+    "add-admin": "ts-node scripts/setAdmin.ts aOTEOQBFmxZhEuyWuXIbabygMF42"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/firestore": "^7.1.0",
     "@google/generative-ai": "^0.2.1",
     "@types/helmet": "^4.0.0",
     "@types/sqlite3": "^3.1.11",
@@ -23,6 +28,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
     "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^12.7.0",
     "helmet": "^8.1.0",
     "morgan": "^1.10.0",
     "nodemailer": "^6.10.1",

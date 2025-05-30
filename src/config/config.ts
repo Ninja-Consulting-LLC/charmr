@@ -1,9 +1,27 @@
+import NetInfo from '@react-native-community/netinfo';
 import {Platform} from 'react-native';
 import Config from 'react-native-config';
 import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
 const getBaseUrl = () => {
+  // Debug logging for environment variables
+  logger.config.debug('Environment Variables Debug:', {
+    LOCAL_IP: Config.LOCAL_IP,
+    API_BASE_URL: Config.API_BASE_URL,
+    NODE_ENV: Config.NODE_ENV,
+    PLATFORM: Platform.OS,
+    VERSION: Platform.Version,
+    __DEV__: __DEV__,
+  });
+
+  // First check if API_BASE_URL is set
+  if (Config.API_BASE_URL) {
+    logger.config.debug('Using API_BASE_URL from env:', Config.API_BASE_URL);
+    return Config.API_BASE_URL;
+  }
+
+  // Fallback to localhost logic if API_BASE_URL is not set
   if (__DEV__) {
     // Development environment
     const localhost = Platform.select({
@@ -12,22 +30,36 @@ const getBaseUrl = () => {
       default: 'localhost',
     });
 
-    // Check if we're running on a physical device
-    const isPhysicalDevice = Platform.OS === 'ios' || Platform.OS === 'android';
-    if (isPhysicalDevice) {
-      // For physical devices, use the API_BASE_URL from env
-      return Config.API_BASE_URL;
-    }
-
+    logger.config.debug('Using localhost for API:', `http://${localhost}:3001`);
     return `http://${localhost}:3001`;
   }
 
-  // Production environment
-  return Config.API_BASE_URL || 'https://your-production-api.com'; // Replace with your actual production API URL
+  // Production environment fallback
+  logger.config.debug('Using production API URL');
+  return 'https://your-production-api.com';
+};
+
+// Helper to log device network information
+const logNetworkInfo = async () => {
+  if (__DEV__) {
+    try {
+      const state = await NetInfo.fetch();
+      logger.config.info('Network State:', {
+        type: state.type,
+        isConnected: state.isConnected,
+        isInternetReachable: state.isInternetReachable,
+        details: state.details,
+      });
+    } catch (error) {
+      logger.config.error('Error fetching network info:', error);
+    }
+  }
 };
 
 export const config = {
-  apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
+  // API baseUrl is the domain without path
+  // Some endpoints use /api/ prefix, but others (like /health) don't
+  apiBaseUrl: getBaseUrl(),
   googleWebClientId:
     '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
   revenueCatApiKey: 'appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -39,9 +71,12 @@ if (__DEV__) {
     LOCAL_IP: Config.LOCAL_IP,
     API_BASE_URL: Config.API_BASE_URL,
     NODE_ENV: Config.NODE_ENV,
+    PLATFORM: Platform.OS,
+    VERSION: Platform.Version,
     // Add any other environment variables you want to log
   });
   logger.config.info('App Config', config);
+  logNetworkInfo();
 }
 
 // Type for the config object

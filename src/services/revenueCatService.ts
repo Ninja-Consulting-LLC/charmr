@@ -10,6 +10,7 @@ import {config} from '../config/config';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
+import axiosInstance from './axiosInstance';
 import {updateUserPlan} from './userService';
 
 // Development configuration for testing in simulator
@@ -186,5 +187,28 @@ export const handlePurchase = async (productId: string) => {
   } catch (error) {
     logger.revenueCat.error('Error making purchase:', error);
     return false;
+  }
+};
+
+export const getSubscriptions = async () => {
+  try {
+    const response = await axiosInstance.get('/api/subscriptions');
+    return response.data;
+  } catch (error) {
+    logger.app.error('Failed to get subscriptions:', error);
+    throw error;
+  }
+};
+
+export const updateSubscription = async (subscriptionId: string, data: any) => {
+  try {
+    const response = await axiosInstance.put(
+      `/api/subscriptions/${subscriptionId}`,
+      data,
+    );
+    return response.data;
+  } catch (error) {
+    logger.app.error('Failed to update subscription:', error);
+    throw error;
   }
 };

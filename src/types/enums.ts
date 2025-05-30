@@ -1,12 +1,29 @@
 export enum SubscriptionTier {
-  FREE = 'free',
-  PRO = 'pro',
+  FREE = 'FREE',
+  PRO = 'PRO',
 }
 
 export enum MessageRole {
   USER = 'user',
   ASSISTANT = 'assistant',
   SYSTEM = 'system',
+}
+
+export enum MessageType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  SUMMARY = 'summary',
+}
+
+export enum MessageMode {
+  GENERATE = 'generate',
+  COACH = 'coach',
+}
+
+export enum MessageStyle {
+  FLIRTY = 'flirty',
+  SMOOTH = 'smooth',
+  FUNNY = 'funny',
 }
 
 export enum Environment {
@@ -25,7 +42,8 @@ export enum ErrorType {
 }
 
 export enum Platform {
-  IOS = 'ios',
-  ANDROID = 'android',
-  WEB = 'web',
+  TINDER = 'tinder',
+  BUMBLE = 'bumble',
+  HINGE = 'hinge',
+  OTHER = 'other',
 }

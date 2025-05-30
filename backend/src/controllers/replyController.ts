@@ -1,9 +1,13 @@
 import {Request, Response} from 'express';
+import {config} from '../config/config';
+import {getDatabase} from '../db';
+import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
-import {loadConversation} from '../utils/conversationUtils';
+import {appendConversation, loadConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 
 interface ChatGptImage {
@@ -48,16 +52,20 @@ A brief summary of the match's interests and conversation style based on the his
 Your suggested reply to the match
 </message>`;
 
-export const createReplyController = (db: Database) => {
+export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
   const openaiService = createOpenAIService();
   const geminiService = createGeminiService();
+  const messageRepository = getMessageRepository(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
     // 1. Validate prompt
-    if (!prompt || typeof prompt !== 'string' || prompt.trim() === '') {
+    if (
+      (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
+      (!images || images.length === 0)
+    ) {
       return res.status(400).json({error: 'Prompt is required.'});
     }
 
@@ -105,7 +113,7 @@ export const createReplyController = (db: Database) => {
 
       // 2. Check if match exists (for message errors test)
       if (matchId) {
-        const match = await db.getMatchById(matchId);
+        const match = await db.getMatchById(userId, matchId);
         if (!match) {
           return res.status(404).json({error: 'Match not found'});
         }
@@ -199,7 +207,52 @@ export const createReplyController = (db: Database) => {
         });
       }
 
-      // Increment message count after successful generation
+      // Save the message and its costs if not deleting after response
+      if (!req.body.deleteAfterResponse) {
+        const db = await getDatabase();
+        const timestamp = new Date().toISOString();
+
+        // Save the message and its costs
+        const savedMessage = await appendConversation(
+          userId,
+          matchId,
+          response.summary || '',
+          response.reply,
+          images,
+          prompt,
+        );
+
+        // Calculate costs
+        const costBreakdown = calculateCost(
+          req.body.model || config.openai.model,
+          {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: images?.length || 0,
+          },
+        );
+
+        // Save message cost
+        await db.saveMessageCost(savedMessage.id, {
+          model: req.body.model || config.openai.model,
+          promptTokens: response.usage?.prompt_tokens || 0,
+          completionTokens: response.usage?.completion_tokens || 0,
+          totalTokens: response.usage?.total_tokens || 0,
+          inputCost: costBreakdown.inputCost,
+          outputCost: costBreakdown.outputCost,
+          totalCost: costBreakdown.totalCost,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      logger.info('Reply generated successfully', {
+        userId,
+        matchId,
+        replyLength: response.reply.length,
+      });
+
+      // Increment message count after successful assistant reply
       const success = await messageLimitService.incrementMessageCount(userId);
       if (!success) {
         logger.warn('Failed to increment message count', {userId});
@@ -210,17 +263,11 @@ export const createReplyController = (db: Database) => {
         });
       }
 
-      // Messages are now saved in the AI service, no need to save again here
-      logger.info('Reply generated successfully', {
-        userId,
-        matchId,
-        replyLength: response.reply.length,
-      });
-
       // Get updated message limits
       const updatedLimits = await messageLimitService.getMessageLimits(userId);
 
       if (res.headersSent) return;
+
       return res.status(200).json({
         reply: response.reply,
         summary: response.summary,
@@ -229,22 +276,20 @@ export const createReplyController = (db: Database) => {
       });
     })();
 
-    // 3. Error handling
-    try {
-      await mainLogic;
-    } catch (error) {
-      logger.error('Error generating reply', {
+    // Handle any errors in the main logic
+    mainLogic.catch(error => {
+      logger.error('Error in generateReplyHandler', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
-        userId,
-        matchId,
       });
+
+      if (res.headersSent) return;
+
       res.status(500).json({
-        error: 'Failed to generate reply',
-        type: 'GENERATION_ERROR',
+        error: 'An unexpected error occurred',
+        type: 'UNKNOWN_ERROR',
       });
-      return;
-    }
+    });
   };
 
   return {

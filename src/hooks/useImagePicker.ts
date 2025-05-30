@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Linking, Platform} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import {useStore} from '../store';
 
@@ -29,18 +30,26 @@ export const useImagePicker = () => {
   const {user, setShowUpgradeModal} = useStore();
   const [images, setImages] = useState<SelectedImage[]>([]);
 
+  const openSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:');
+    } else {
+      Linking.openSettings();
+    }
+  };
+
   const openScreenshotPicker = async () => {
     try {
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
-        multiple: true,
+        multiple: false,
         cropping: false,
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
         smartAlbums: ['Screenshots'],
         defaultAlbum: 'Screenshots',
-        maxFiles: 10,
+        maxFiles: 1,
         selectedAssets: images.map(img => ({
           uri: img.path,
           type: img.mime || 'image/jpeg',
@@ -50,9 +59,28 @@ export const useImagePicker = () => {
 
       return Array.isArray(result) ? result : [result];
     } catch (error: any) {
-      if (error?.message !== 'User cancelled image selection') {
-        console.error('Error picking images:', error);
+      if (error?.message === 'User cancelled image selection') {
+        return null;
       }
+
+      // Handle permission errors
+      if (
+        error?.message?.includes('permission') ||
+        error?.message?.includes('Permission')
+      ) {
+        throw new Error('PERMISSION_DENIED');
+      }
+
+      // Handle case when there are no photos in the album
+      if (
+        error?.message?.includes('no photos') ||
+        error?.message?.includes('No photos found') ||
+        error?.message?.includes('No assets found')
+      ) {
+        return null;
+      }
+
+      console.error('Error picking images:', error);
       throw error;
     }
   };
@@ -60,6 +88,11 @@ export const useImagePicker = () => {
   const pickImages = async () => {
     try {
       const result = await openScreenshotPicker();
+
+      // If user cancelled, return early
+      if (!result) {
+        return;
+      }
 
       // Get currently selected image paths for comparison
       const existingPaths = new Set(images.map(img => img.path));
@@ -88,12 +121,13 @@ export const useImagePicker = () => {
         setImages(prev => [...prev, ...newImages]);
       }
     } catch (error: unknown) {
-      if (
-        error instanceof Error &&
-        error.message !== 'User cancelled image selection'
-      ) {
+      if (error instanceof Error) {
+        if (error.message === 'PERMISSION_DENIED') {
+          throw error;
+        }
         console.error('Error picking images:', error);
       }
+      throw error;
     }
   };
 
@@ -101,5 +135,6 @@ export const useImagePicker = () => {
     images,
     setImages,
     pickImages,
+    openSettings,
   };
 };

@@ -14,12 +14,12 @@ describe('Match Integration Tests', () => {
   beforeAll(async () => {
     db = await getDatabase();
     // Create test user
-    await db.createUser(
-      testUser.id,
-      testUser.email,
-      testUser.name,
-      testUser.plan,
-    );
+    await db.createUser({
+      id: testUser.id,
+      email: testUser.email,
+      name: testUser.name,
+      plan: testUser.plan,
+    });
   });
 
   afterAll(async () => {
@@ -71,9 +71,11 @@ describe('Match Integration Tests', () => {
   });
 
   it('should delete a match', async () => {
-    await db.deleteMatch(testUser.id, 'Sarah', 'tinder');
-    const matches = await db.getMatches(testUser.id, true);
-    expect(matches).toHaveLength(0);
+    const matches = await db.getMatches(testUser.id);
+    const matchId = matches[0].id.toString();
+    await db.deleteMatch(testUser.id, matchId);
+    const remainingMatches = await db.getMatches(testUser.id, true);
+    expect(remainingMatches).toHaveLength(0);
   });
 
   it('should handle multiple matches', async () => {
