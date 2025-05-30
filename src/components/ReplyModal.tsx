@@ -21,7 +21,6 @@ interface ReplyModalProps {
   onDeleteScreenshots: (value: boolean) => void;
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
-  isDatingCoachEnabled: boolean;
   onRegenerate: () => void;
 }
 
@@ -35,7 +34,6 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   onDeleteScreenshots,
   deleteScreenshots,
   hasScreenshots,
-  isDatingCoachEnabled,
   onRegenerate,
 }) => {
   return (
@@ -81,41 +79,39 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              {isDatingCoachEnabled && (
-                <View style={styles.modifySection}>
-                  <Tooltip
-                    title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
-                    enterTouchDelay={50}
-                    leaveTouchDelay={5000}
-                    theme={{
-                      colors: {
-                        onSurface: theme.colors.inverseOnSurface,
-                        surface: theme.colors.inverseSurface,
+              <View style={styles.modifySection}>
+                <Tooltip
+                  title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
+                  enterTouchDelay={50}
+                  leaveTouchDelay={5000}
+                  theme={{
+                    colors: {
+                      onSurface: theme.colors.inverseOnSurface,
+                      surface: theme.colors.inverseSurface,
+                    },
+                    fonts: {
+                      bodyMedium: {
+                        ...theme.fonts.bodyMedium,
+                        lineHeight: 24,
                       },
-                      fonts: {
-                        bodyMedium: {
-                          ...theme.fonts.bodyMedium,
-                          lineHeight: 24,
-                        },
-                      },
-                      roundness: 8,
-                    }}>
-                    <IconButton
-                      icon="information"
-                      size={20}
-                      style={styles.infoIcon}
-                      iconColor={theme.colors.onSurfaceVariant}
-                    />
-                  </Tooltip>
-                  <Pressable
-                    onPress={onModifyResponse}
-                    style={styles.modifyButton}>
-                    <Text variant="bodyMedium" style={styles.modifyText}>
-                      {MESSAGES.REPLY_MODAL_MODIFY}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
+                    },
+                    roundness: 8,
+                  }}>
+                  <IconButton
+                    icon="information"
+                    size={20}
+                    style={styles.infoIcon}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                </Tooltip>
+                <Pressable
+                  onPress={onModifyResponse}
+                  style={styles.modifyButton}>
+                  <Text variant="bodyMedium" style={styles.modifyText}>
+                    {MESSAGES.REPLY_MODAL_MODIFY}
+                  </Text>
+                </Pressable>
+              </View>
               <Pressable onPress={onRegenerate} style={styles.regenerateButton}>
                 <Text variant="bodyMedium" style={styles.regenerateText}>
                   Regenerate

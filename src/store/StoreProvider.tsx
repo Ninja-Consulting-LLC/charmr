@@ -45,8 +45,6 @@ interface StoreContextType {
   removeMatch: (matchId: string) => void;
   loadMatches: () => Promise<void>;
   // Dating Coach state
-  isDatingCoachEnabled: boolean;
-  setIsDatingCoachEnabled: (enabled: boolean) => void;
   selectedMatch: Match | null;
   setSelectedMatch: (match: Match | null) => void;
   deleteScreenshots: boolean;
@@ -88,7 +86,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   // Dating Coach state
-  const [isDatingCoachEnabled, setIsDatingCoachEnabled] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [deleteScreenshots, setDeleteScreenshots] = useState(true);
 
@@ -104,37 +101,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     handleGoogleLogin,
   } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
 
-  // Load dating coach preference on mount
-  useEffect(() => {
-    const loadDatingCoachPreference = async () => {
-      try {
-        const enabled = await AsyncStorage.getItem(
-          '@charmr/dating_coach_enabled',
-        );
-        setIsDatingCoachEnabled(enabled === 'true');
-      } catch (error) {
-        console.error('Error loading dating coach preference:', error);
-      }
-    };
-    loadDatingCoachPreference();
-  }, []);
-
-  // Save dating coach preference when changed
-  useEffect(() => {
-    const saveDatingCoachPreference = async () => {
-      try {
-        await AsyncStorage.setItem(
-          '@charmr/dating_coach_enabled',
-          isDatingCoachEnabled.toString(),
-        );
-      } catch (error) {
-        console.error('Error saving dating coach preference:', error);
-      }
-    };
-    saveDatingCoachPreference();
-  }, [isDatingCoachEnabled]);
-
-  // Set auth bypass in development mode
+  // Remove dating coach preference loading since we're not using a toggle anymore
   useEffect(() => {
     if (__DEV__ || process.env.NODE_ENV === 'development') {
       setAuthBypass(true);
@@ -370,8 +337,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       updateMatch,
       removeMatch,
       loadMatches,
-      isDatingCoachEnabled,
-      setIsDatingCoachEnabled,
       selectedMatch,
       setSelectedMatch,
       deleteScreenshots,
@@ -388,7 +353,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       isLoading,
       showUpgradeModal,
       matches,
-      isDatingCoachEnabled,
       selectedMatch,
       deleteScreenshots,
     ],
