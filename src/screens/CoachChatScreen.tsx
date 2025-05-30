@@ -462,6 +462,19 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         style={styles.safeArea}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={styles.promoContainer}
+          onPress={() => setShowUpgradeModal(true)}>
+          <Text style={styles.promoText}>
+            Upgrade to Pro to full chat history
+          </Text>
+          <IconButton
+            icon="chevron-right"
+            size={20}
+            iconColor="rgba(255, 255, 255, 0.8)"
+            style={styles.promoIcon}
+          />
+        </TouchableOpacity>
         {isLoadingMessages ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.surface} />
@@ -802,6 +815,27 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     height: 56, // Standard header height
+  },
+  promoContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  promoText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  promoIcon: {
+    margin: 0,
+    padding: 0,
   },
   gradientBackground: {
     position: 'absolute',
