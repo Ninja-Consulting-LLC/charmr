@@ -1,154 +1,179 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {API_BASE_URL} from '../config';
+import {config} from '../config/config';
+import {getAuthToken} from '../config/firebase';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
+import {getUserId} from './authService';
+import axiosInstance from './axiosInstance';
 
-const getUserId = async () => {
-  const userId = await AsyncStorage.getItem('userId');
-  if (!userId) {
-    throw new Error('User not authenticated');
-  }
-  return userId;
+// Helper to log request details
+const logRequest = (method: string, url: string, body: any = null) => {
+  logger.match.debug(`API Request: ${method} ${url}`, {
+    method,
+    url,
+    body,
+    apiBaseUrl: config.apiBaseUrl,
+  });
 };
 
-export const matchService = {
-  async getMatches(includeHidden: boolean = false): Promise<Match[]> {
+// Helper to get auth headers
+const getAuthHeaders = async () => {
+  try {
+    // Try to get Firebase token first
+    const token = await getAuthToken();
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  } catch (error) {
+    // If Firebase auth fails, use anonymous user ID
     const userId = await getUserId();
-    logger.match.debug('Getting matches', {userId, includeHidden});
+    return {
+      'X-Anonymous-User': userId,
+    };
+  }
+};
 
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches?includeHidden=${includeHidden}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      },
+export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
+  try {
+    const userId = await getUserId();
+    const {data} = await axiosInstance.get(`/api/users/${userId}/matches`, {
+      params: {includeHidden},
+    });
+    return data;
+  } catch (error) {
+    logger.app.error('Error loading matches:', error);
+    throw error;
+  }
+};
+
+export const updateMatch = async (match: Match): Promise<Match> => {
+  try {
+    const userId = await getUserId();
+    const {data} = await axiosInstance.put(
+      `/api/users/${userId}/matches/${match.id}`,
+      match,
     );
+    return data;
+  } catch (error) {
+    logger.app.error('Error updating match:', error);
+    throw error;
+  }
+};
 
-    if (!response.ok) {
-      const errorData = {
-        status: response.status,
-        statusText: response.statusText,
-      };
-      logger.match.error('Failed to fetch matches', errorData);
-      throw new Error('Failed to fetch matches');
+export const removeMatch = async (matchId: string): Promise<void> => {
+  try {
+    const userId = await getUserId();
+    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
+  } catch (error) {
+    logger.app.error('Error removing match:', error);
+    throw error;
+  }
+};
+
+export const deleteMatch = async (matchId: string): Promise<boolean> => {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      logger.match.error('No user ID found when deleting match');
+      return false;
     }
 
-    const matches = await response.json();
-    logger.match.debug('Received matches', {count: matches.length});
-    return matches;
-  },
+    logger.match.debug('Deleting match', {matchId});
+    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
+    logger.match.debug('Deleted match', {matchId});
+    return true;
+  } catch (error) {
+    logger.match.error('Error deleting match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      matchId,
+    });
+    return false;
+  }
+};
 
-  async addMatch(name: string, platform: string): Promise<Match> {
+export const hideMatch = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
     const userId = await getUserId();
-    const url = `${API_BASE_URL}/users/${userId}/matches`;
-    logger.match.debug('Adding match', {
+    if (!userId) {
+      logger.match.error('No user ID found when hiding match');
+      return false;
+    }
+
+    logger.match.debug('Hiding match', {name, platform});
+    await axiosInstance.put(`/api/users/${userId}/matches/hide`, {
       name,
       platform,
-      userId,
-      url,
-      apiBaseUrl: API_BASE_URL,
     });
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({name, platform}),
+    logger.match.debug('Hidden match', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error hiding match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
     });
+    return false;
+  }
+};
 
-    if (!response.ok) {
-      const errorData = {
-        status: response.status,
-        statusText: response.statusText,
-        name,
-        platform,
-        url,
-        apiBaseUrl: API_BASE_URL,
-      };
-      logger.match.error('Failed to add match', errorData);
-      throw new Error('Failed to add match');
+export const restoreMatch = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
+    const userId = await getUserId();
+    if (!userId) {
+      logger.match.error('No user ID found when restoring match');
+      return false;
     }
 
-    const match = await response.json();
-    logger.match.debug('Added match', {match});
-    return match;
-  },
-
-  async deleteMatch(name: string, platform: string): Promise<void> {
-    const userId = await getUserId();
-    const response = await fetch(`${API_BASE_URL}/users/${userId}/matches`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({name, platform}),
+    logger.match.debug('Restoring match', {name, platform});
+    await axiosInstance.put(`/api/users/${userId}/matches/restore`, {
+      name,
+      platform,
     });
+    logger.match.debug('Restored match', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error restoring match', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
+};
 
-    if (!response.ok) {
-      throw new Error('Failed to delete match');
-    }
-  },
-
-  async hideMatch(name: string, platform: string): Promise<void> {
+export const updateMatchLastUsed = async (
+  name: string,
+  platform: string,
+): Promise<boolean> => {
+  try {
     const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/hide`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to hide match');
+    if (!userId) {
+      logger.match.error('No user ID found when updating match last used');
+      return false;
     }
-  },
 
-  async restoreMatch(name: string, platform: string): Promise<void> {
-    const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/restore`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to restore match');
-    }
-  },
-
-  async updateMatchLastUsed(name: string, platform: string): Promise<void> {
-    const userId = await getUserId();
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/matches/last-used`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({name, platform}),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to update match last used');
-    }
-  },
+    logger.match.debug('Updating match last used', {name, platform});
+    await axiosInstance.put(`/api/users/${userId}/matches/last-used`, {
+      name,
+      platform,
+    });
+    logger.match.debug('Updated match last used', {name, platform});
+    return true;
+  } catch (error) {
+    logger.match.error('Error updating match last used', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name,
+      platform,
+    });
+    return false;
+  }
 };

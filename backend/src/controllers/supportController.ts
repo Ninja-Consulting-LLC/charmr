@@ -1,45 +1,60 @@
 import {Request, Response} from 'express';
-import {SupportRequest} from '../types/email';
+import {Database} from '../db/types';
+import logger from '../utils/logger';
 
-export const submitSupportRequest = async (req: Request, res: Response) => {
+export const createSupportTicket = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
   try {
-    console.log(
-      `[${new Date().toISOString()}] [Support] Received support request:`,
-      {
-        ...req.body,
-        headers: {
-          authorization: req.headers.authorization
-            ? 'Bearer [REDACTED]'
-            : 'none',
-          'x-auth-bypass': req.headers['x-auth-bypass'] || 'false',
-        },
-      },
-    );
+    const {userId, subject, message} = req.body;
 
-    const request: SupportRequest = req.body;
-    const supportEmailService = req.app.locals.supportEmailService;
-
-    if (!supportEmailService) {
-      console.error(
-        `[${new Date().toISOString()}] [Support] Support email service not initialized`,
-      );
-      throw new Error('Support email service not initialized');
+    if (!userId || !subject || !message) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+      });
     }
 
-    console.log(
-      `[${new Date().toISOString()}] [Support] Sending support request via email service`,
-    );
-    await supportEmailService.sendSupportRequest(request);
+    const ticket = await db.support.createTicket({
+      userId,
+      subject,
+      message,
+      status: 'open',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    console.log(
-      `[${new Date().toISOString()}] [Support] Support request submitted successfully`,
-    );
-    res.status(200).json({message: 'Support request submitted successfully'});
+    logger.info('Created support ticket', {
+      ticketId: ticket.id,
+      userId,
+      subject,
+    });
+
+    return res.status(201).json(ticket);
   } catch (error) {
-    console.error(
-      `[${new Date().toISOString()}] [Support] Error submitting support request:`,
-      error,
-    );
-    res.status(500).json({error: 'Failed to submit support request'});
+    logger.error('Failed to create support ticket:', error);
+    return res.status(500).json({
+      error: 'Failed to create support ticket',
+    });
+  }
+};
+
+export const getSupportTickets = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId} = req.params;
+
+    const tickets = await db.support.getTicketsByUserId(userId);
+
+    return res.json(tickets);
+  } catch (error) {
+    logger.error('Failed to get support tickets:', error);
+    return res.status(500).json({
+      error: 'Failed to get support tickets',
+    });
   }
 };

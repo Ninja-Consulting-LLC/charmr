@@ -14,7 +14,7 @@ describe('Match Domain', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let responseObject: any;
-  let matchId: string;
+  let matchId: string | undefined;
 
   beforeEach(async () => {
     db = await getDatabase();
@@ -42,22 +42,17 @@ describe('Match Domain', () => {
       }),
     };
 
-    // Create test user using controller
-    const createUserReq: Partial<Request> = {
-      body: {
-        id: 'test-user-123',
-        email: 'test@example.com',
-        name: 'Test User',
-        plan: SubscriptionTier.PRO,
-      },
-      headers: {},
-      cookies: {},
-    };
-    const createUserRes: Partial<Response> = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-    };
-    await createUser(createUserReq as Request, createUserRes as Response, db);
+    // Create test user
+    const user = await createUser(db, {
+      id: 'test-user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      plan: SubscriptionTier.PRO,
+    });
+
+    if (!user) {
+      throw new Error('Failed to create test user');
+    }
   });
 
   afterEach(async () => {
@@ -68,70 +63,93 @@ describe('Match Domain', () => {
 
   describe('Match Creation', () => {
     it('should create a new match successfully', async () => {
-      const addMatchReq = {
+      const match = await addMatch(db, {
+        userId: 'test-user-123',
+        name: 'Test Match',
+        platform: 'test-platform',
+      });
+
+      expect(match).toBeTruthy();
+      expect(match?.id).toBeTruthy();
+      matchId = match?.id.toString() || '';
+
+      // Update last used
+      const updateMatchReq = {
         ...mockRequest,
         body: {
-          name: 'Test Match',
-          platform: 'test-platform',
+          matchId,
         },
       } as Request;
 
-      await addMatch(addMatchReq, mockResponse as Response, db);
+      await updateMatchLastUsed(updateMatchReq, mockResponse as Response, db);
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(responseObject).toHaveProperty('id');
-      matchId = responseObject.id;
+      expect(responseObject).toHaveProperty(
+        'message',
+        'Match updated successfully',
+      );
+
+      // Verify update by getting matches
+      const getMatchesReq = {
+        ...mockRequest,
+        query: {includeHidden: 'true'},
+      } as Request;
+
+      await getMatches(getMatchesReq, mockResponse as Response, db);
+
+      expect(responseObject).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: matchId,
+            lastUsed: expect.any(String),
+          }),
+        ]),
+      );
     });
 
     it('should handle invalid match data', async () => {
-      const addMatchReq = {
-        ...mockRequest,
-        body: {
-          name: '',
-          platform: '',
-        },
-      } as Request;
+      const match = await addMatch(db, {
+        userId: 'test-user-123',
+        name: '',
+        platform: '',
+      });
 
-      await addMatch(addMatchReq, mockResponse as Response, db);
-
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(responseObject).toHaveProperty('error');
+      expect(match).toBeNull();
     });
 
     it('should prevent duplicate matches', async () => {
       // First match
-      const addMatchReq = {
-        ...mockRequest,
-        body: {
-          name: 'Test Match',
-          platform: 'test-platform',
-        },
-      } as Request;
+      const match = await addMatch(db, {
+        userId: 'test-user-123',
+        name: 'Test Match',
+        platform: 'test-platform',
+      });
 
-      await addMatch(addMatchReq, mockResponse as Response, db);
-      matchId = responseObject.id;
+      expect(match).toBeTruthy();
+      matchId = match?.id.toString() || '';
 
       // Try to create duplicate
-      await addMatch(addMatchReq, mockResponse as Response, db);
+      const duplicateMatch = await addMatch(db, {
+        userId: 'test-user-123',
+        name: 'Test Match',
+        platform: 'test-platform',
+      });
 
-      expect(mockResponse.status).toHaveBeenCalledWith(409);
-      expect(responseObject).toHaveProperty('error', 'Match already exists');
+      expect(duplicateMatch).toBeNull();
     });
   });
 
   describe('Match Status Updates', () => {
     it('should update match status correctly', async () => {
       // First create a match
-      const addMatchReq = {
-        ...mockRequest,
-        body: {
-          name: 'Test Match',
-          platform: 'test-platform',
-        },
-      } as Request;
+      const match = await addMatch(db, {
+        userId: 'test-user-123',
+        name: 'Test Match',
+        platform: 'test-platform',
+      });
 
-      await addMatch(addMatchReq, mockResponse as Response, db);
-      matchId = responseObject.id;
+      expect(match).toBeTruthy();
+      matchId = match?.id.toString() || '';
 
       // Update last used
       const updateMatchReq = {
@@ -185,16 +203,14 @@ describe('Match Domain', () => {
   describe('Match Interactions', () => {
     it('should process match interactions correctly', async () => {
       // First create a match
-      const addMatchReq = {
-        ...mockRequest,
-        body: {
-          name: 'Test Match',
-          platform: 'test-platform',
-        },
-      } as Request;
+      const match = await addMatch(db, {
+        userId: 'test-user-123',
+        name: 'Test Match',
+        platform: 'test-platform',
+      });
 
-      await addMatch(addMatchReq, mockResponse as Response, db);
-      matchId = responseObject.id;
+      expect(match).toBeTruthy();
+      matchId = match?.id.toString() || '';
 
       // Get matches
       const getMatchesReq = {
@@ -204,13 +220,13 @@ describe('Match Domain', () => {
 
       await getMatches(getMatchesReq, mockResponse as Response, db);
 
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(responseObject).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             id: matchId,
             name: 'Test Match',
             platform: 'test-platform',
-            userId: 'test-user-123',
           }),
         ]),
       );

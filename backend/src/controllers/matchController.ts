@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import {Database} from '../db/types';
+import {Database, Match} from '../db/types';
 import logger from '../utils/logger';
 
 export const getMatches = async (req: Request, res: Response, db: Database) => {
@@ -48,113 +48,26 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
   }
 };
 
-export const addMatch = async (req: Request, res: Response, db: Database) => {
+export const addMatch = async (
+  db: Database,
+  matchData: {
+    userId: string;
+    name: string;
+    platform: string;
+  },
+): Promise<Match | null> => {
   try {
-    const {userId} = req.params;
-    const {name, platform} = req.body;
-
-    logger.debug('Attempting to add match:', {
-      userId,
-      name,
-      platform,
-      params: req.params,
-      body: req.body,
-      headers: req.headers,
-    });
-
-    if (!name || !platform) {
-      logger.warn('Missing required fields for match:', {name, platform});
-      return res.status(400).json({error: 'Missing required fields'});
-    }
-
-    // First check if user exists
-    const user = await db.getUser(userId);
-    logger.debug('User lookup result:', {
-      userId,
-      userFound: !!user,
-      user: user
-        ? {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            installationId: user.installationId,
-          }
-        : null,
-    });
-
-    if (!user) {
-      logger.warn('User not found when adding match:', {
-        userId,
-        name,
-        platform,
-      });
-      return res.status(404).json({error: 'User not found'});
-    }
-
-    // Check if match already exists
-    const matches = await db.getMatches(userId);
-    const existingMatch = matches.find(
-      m => m.name === name && m.platform === platform,
+    return await db.addMatch(
+      matchData.userId,
+      matchData.name,
+      matchData.platform,
     );
-
-    logger.debug('Checking for existing match:', {
-      userId,
-      name,
-      platform,
-      existingMatchFound: !!existingMatch,
-      existingMatch: existingMatch
-        ? {
-            id: existingMatch.id,
-            name: existingMatch.name,
-            platform: existingMatch.platform,
-          }
-        : null,
-    });
-
-    if (existingMatch) {
-      logger.warn('Match already exists:', {
-        userId,
-        name,
-        platform,
-        matchId: existingMatch.id,
-      });
-      return res.status(409).json({error: 'Match already exists'});
-    }
-
-    // Create new match
-    try {
-      const match = await db.addMatch(userId, name, platform);
-      logger.info('Created new match:', {
-        userId,
-        name,
-        platform,
-        matchId: match.id,
-      });
-      res.status(201).json(match);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes('UNIQUE constraint failed')
-      ) {
-        logger.warn('Match already exists (constraint error):', {
-          userId,
-          name,
-          platform,
-          error: error.message,
-        });
-        return res.status(409).json({error: 'Match already exists'});
-      }
-      throw error;
-    }
   } catch (error) {
-    logger.error('Error creating match:', {
+    logger.error('Failed to add match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
     });
-    res.status(500).json({error: 'Failed to create match'});
+    return null;
   }
 };
 
@@ -206,8 +119,7 @@ export const deleteMatch = async (
   db: Database,
 ) => {
   try {
-    const {userId} = req.params;
-    const {matchId} = req.body;
+    const {userId, matchId} = req.params;
 
     if (!matchId) {
       return res.status(400).json({error: 'Missing required fields'});

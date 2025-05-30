@@ -1,29 +1,15 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import {config} from '../config/config';
+import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../config/firebase';
+import {MessageMode} from '../types/enums';
+import {GenerateReplyRequest, GenerateReplyResponse} from '../types/message';
 import {UserData} from '../types/user';
 import {logger} from '../utils/logger';
-
-interface GenerateReplyRequest {
-  prompt: string;
-  images: string[];
-  userId: string;
-  matchId: string;
-  skipRateLimiting?: boolean;
-}
+import axiosInstance from './axiosInstance';
 
 interface MessageLimit {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
-}
-
-interface GenerateReplyResponse {
-  reply: string;
-  error?: string;
-  type?: string;
-  limits?: MessageLimit;
 }
 
 interface SupportRequest {
@@ -37,48 +23,6 @@ interface SupportRequest {
   extraMessages: number;
 }
 
-// Create an axios instance with default config
-const api = axios.create({
-  baseURL: config.apiBaseUrl,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 120000, // 2 minute timeout for response generation
-});
-
-// Add interceptors for logging
-api.interceptors.request.use(request => {
-  logger.app.info(
-    `[API] Request: ${request.method?.toUpperCase()} ${request.url}`,
-    request.data || request.params,
-  );
-  return request;
-});
-
-api.interceptors.response.use(
-  response => {
-    logger.app.info(
-      `[API] Response: ${response.status} ${response.config.url}`,
-      response.data,
-    );
-    return response;
-  },
-  error => {
-    if (error.response) {
-      logger.app.error(
-        `[API] Error Response: ${error.response.status} ${error.config?.url}`,
-        error.response.data,
-      );
-    } else {
-      logger.app.error(
-        `[API] Network/Error: ${error.config?.url || 'unknown url'}`,
-        error.message,
-      );
-    }
-    return Promise.reject(error);
-  },
-);
-
 export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {
@@ -90,7 +34,7 @@ export const generateReply = async (
       matchId: request.matchId,
     });
 
-    const response = await api.post<GenerateReplyResponse>(
+    const response = await axiosInstance.post<GenerateReplyResponse>(
       '/api/generate-reply',
       request,
     );
@@ -120,6 +64,7 @@ export const generateReply = async (
         error: error.response.data.error || 'Failed to generate reply',
         type: error.response.data.type || 'GENERATION_ERROR',
         limits: error.response.data.limits,
+        mode: MessageMode.GENERATE,
       };
     }
 
@@ -130,6 +75,7 @@ export const generateReply = async (
           reply: '',
           error: 'Request timed out. Please try again.',
           type: 'TIMEOUT_ERROR',
+          mode: MessageMode.GENERATE,
         };
       }
       if (!error.response) {
@@ -137,6 +83,7 @@ export const generateReply = async (
           reply: '',
           error: 'Network error. Please check your connection and try again.',
           type: 'NETWORK_ERROR',
+          mode: MessageMode.GENERATE,
         };
       }
     }
@@ -146,20 +93,8 @@ export const generateReply = async (
       reply: '',
       error: 'An unexpected error occurred. Please try again.',
       type: 'UNKNOWN_ERROR',
+      mode: MessageMode.GENERATE,
     };
-  }
-};
-
-export const testContext = async (): Promise<void> => {
-  try {
-    logger.app.info(
-      'Testing context with URL:',
-      `${config.apiBaseUrl}/api/test-context`,
-    );
-    await api.post('/api/test-context');
-  } catch (error) {
-    logger.app.error('Error testing context:', error);
-    throw error;
   }
 };
 
@@ -179,60 +114,133 @@ export const submitSupportRequest = async (
     headers['X-Auth-Bypass'] = 'true';
   }
 
-  const response = await fetch(`${config.apiBaseUrl}/api/support`, {
-    method: 'POST',
+  const response = await axiosInstance.post('/api/support', request, {
     headers,
-    body: JSON.stringify(request),
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to submit support request');
-  }
-
-  return response.json();
-};
-
-export const clearDatabase = async () => {
-  try {
-    const response = await axios.post(
-      `${config.apiBaseUrl}/api/admin/clear-database`,
-      {},
-      {
-        headers: {
-          Authorization: 'Bearer dev-admin-token',
-        },
-      },
-    );
-
-    // Also clear AsyncStorage
-    await AsyncStorage.clear();
-
-    return response.data;
-  } catch (error) {
-    logger.app.error('Error clearing database:', error);
-    throw error;
-  }
+  return response.data;
 };
 
 export const fetchUserData = async (
   userId: string,
 ): Promise<UserData | null> => {
   try {
-    const response = await fetch(`${config.apiBaseUrl}/api/users/${userId}`, {
+    const response = await axiosInstance.get(`/api/users/${userId}`, {
       headers: {
-        'Content-Type': 'application/json',
         'X-Auth-Bypass': 'true', // For development only
       },
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch user data');
-    }
-
-    const data = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
     logger.app.error('Error fetching user data:', error);
     return null;
+  }
+};
+
+export const getNetworkInfo = async () => {
+  logger.app.info('Getting network information');
+
+  try {
+    const networkState = await NetInfo.fetch();
+
+    logger.app.info('Network state:', {
+      isConnected: networkState.isConnected,
+      isInternetReachable: networkState.isInternetReachable,
+      type: networkState.type,
+      details: networkState.details,
+    });
+
+    return {
+      isConnected: networkState.isConnected,
+      isInternetReachable: networkState.isInternetReachable,
+      type: networkState.type,
+      details: networkState.details,
+    };
+  } catch (error) {
+    logger.app.error('Error getting network info', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+};
+
+export const resetDb = async () => {
+  try {
+    const response = await axiosInstance.post(
+      '/api/admin/reset-db',
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${await getAuthToken()}`,
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    logger.app.error('Error resetting database:', error);
+    throw error;
+  }
+};
+
+export const testContext = async () => {
+  try {
+    const response = await axiosInstance.post(
+      '/api/admin/test-context',
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${await getAuthToken()}`,
+          'X-Auth-Bypass': 'true', // For development only
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    logger.app.error('Error testing context:', error);
+    throw error;
+  }
+};
+
+export const testApi = async () => {
+  try {
+    const response = await axiosInstance.get('/api/test');
+    return response.data;
+  } catch (error) {
+    logger.app.error('API test failed:', error);
+    throw error;
+  }
+};
+
+export const testAuth = async () => {
+  try {
+    const response = await axiosInstance.get('/api/auth/test');
+    return response.data;
+  } catch (error) {
+    logger.app.error('Auth test failed:', error);
+    throw error;
+  }
+};
+
+export const getConfig = async () => {
+  try {
+    const response = await axiosInstance.get('/api/config');
+    return response.data;
+  } catch (error) {
+    logger.app.error('Failed to get config:', error);
+    throw error;
+  }
+};
+
+export const updateConfig = async (config: any) => {
+  try {
+    const response = await axiosInstance.put('/api/config', config);
+    return response.data;
+  } catch (error) {
+    logger.app.error('Failed to update config:', error);
+    throw error;
   }
 };

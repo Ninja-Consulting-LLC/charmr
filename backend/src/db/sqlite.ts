@@ -4,10 +4,19 @@ import sqlite3 from 'sqlite3';
 import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
-import {Database, Match, MessageCost, User} from './types';
+import {
+  Database,
+  ID,
+  Match,
+  Message,
+  MessageCost,
+  SupportTicket,
+  User,
+} from './types';
 
 export const createSqliteDatabase = async (): Promise<Database> => {
-  const dbPath = path.join(process.cwd(), 'data', 'charmr.db');
+  const dbPath =
+    process.env.DB_PATH || path.join(process.cwd(), 'data', 'charmr.db');
   const db = await open({
     filename: dbPath,
     driver: sqlite3.Database,
@@ -33,10 +42,34 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       userId TEXT NOT NULL,
       matchId TEXT NOT NULL,
       role TEXT NOT NULL,
+      type TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      replyTo INTEGER,
       content TEXT NOT NULL,
       timestamp TEXT NOT NULL,
-      FOREIGN KEY (userId) REFERENCES users(id)
+      imageData TEXT,
+      FOREIGN KEY (replyTo) REFERENCES messages(id)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_messages_user_match ON messages(userId, matchId);
+    CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_messages_role ON messages(role);
+    CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type);
+    CREATE INDEX IF NOT EXISTS idx_messages_used ON messages(used);
+
+    CREATE TABLE IF NOT EXISTS screenshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT NOT NULL,
+      matchId TEXT NOT NULL,
+      imageData TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (matchId) REFERENCES matches(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_screenshots_user_match ON screenshots(userId, matchId);
+    CREATE INDEX IF NOT EXISTS idx_screenshots_timestamp ON screenshots(timestamp);
 
     CREATE TABLE IF NOT EXISTS message_costs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,42 +138,132 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    createUser: async (
-      userId: string,
-      email?: string,
-      name?: string,
-      plan: SubscriptionTier = SubscriptionTier.FREE,
-      installationId?: string,
-    ): Promise<User> => {
+    createUser: async (user: {
+      id: string;
+      email: string;
+      name: string;
+      plan?: SubscriptionTier;
+      installationId?: string;
+    }): Promise<User | null> => {
       try {
-        const user: User = {
-          id: userId,
-          email,
-          name,
-          plan,
-          dailyMessagesUsed: 0,
-          extraMessages: 0,
-          lastResetDate: new Date().toISOString().split('T')[0],
-          installationId,
-        };
+        await db.run('BEGIN TRANSACTION');
 
-        await db.run(
-          'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            user.id,
-            user.email,
-            user.name,
-            user.plan,
-            user.dailyMessagesUsed,
-            user.extraMessages,
-            user.lastResetDate,
+        // If installationId is provided, check if a user with this ID already exists
+        if (user.installationId) {
+          const existingUser = await db.get(
+            'SELECT * FROM users WHERE installationId = ?',
             user.installationId,
-          ],
-        );
+          );
+          if (existingUser) {
+            // If the existing user is anonymous (no email), link it to the new user
+            if (
+              !existingUser.email ||
+              existingUser.email === existingUser.installationId
+            ) {
+              logger.info('Linking anonymous user to registered user', {
+                anonymousUserId: existingUser.id,
+                registeredUserId: user.id,
+              });
 
-        return user;
+              try {
+                // Transfer all messages from anonymous to registered user
+                await db.run(
+                  'UPDATE messages SET userId = ? WHERE userId = ?',
+                  [user.id, existingUser.id],
+                );
+
+                // Transfer all matches from anonymous to registered user
+                await db.run('UPDATE matches SET userId = ? WHERE userId = ?', [
+                  user.id,
+                  existingUser.id,
+                ]);
+
+                // Transfer all screenshots from anonymous to registered user
+                await db.run(
+                  'UPDATE screenshots SET userId = ? WHERE userId = ?',
+                  [user.id, existingUser.id],
+                );
+
+                // Delete the anonymous user and create the new user
+                await db.run('DELETE FROM users WHERE id = ?', [
+                  existingUser.id,
+                ]);
+                await db.run(
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                  [
+                    user.id,
+                    user.email,
+                    user.name,
+                    user.plan || SubscriptionTier.FREE,
+                    existingUser.dailyMessagesUsed,
+                    existingUser.extraMessages,
+                    existingUser.lastResetDate,
+                    user.installationId,
+                  ],
+                );
+
+                const updatedUser = await db.get(
+                  'SELECT * FROM users WHERE id = ?',
+                  user.id,
+                );
+                await db.run('COMMIT');
+                return updatedUser;
+              } catch (error) {
+                await db.run('ROLLBACK');
+                logger.error('Failed to link anonymous user:', {
+                  error:
+                    error instanceof Error ? error.message : 'Unknown error',
+                  stack: error instanceof Error ? error.stack : undefined,
+                  anonymousUserId: existingUser.id,
+                  registeredUserId: user.id,
+                });
+                throw error;
+              }
+            } else {
+              // If the existing user is not anonymous, return it
+              logger.info('User with installationId already exists', {
+                installationId: user.installationId,
+              });
+              await db.run('COMMIT');
+              return existingUser;
+            }
+          }
+        }
+
+        // Create new user
+        try {
+          await db.run(
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              user.id,
+              user.email,
+              user.name,
+              user.plan || SubscriptionTier.FREE,
+              0,
+              0,
+              new Date().toISOString().split('T')[0],
+              user.installationId,
+            ],
+          );
+
+          const newUser = await db.get(
+            'SELECT * FROM users WHERE id = ?',
+            user.id,
+          );
+          await db.run('COMMIT');
+          return newUser;
+        } catch (error) {
+          await db.run('ROLLBACK');
+          logger.error('Failed to create new user:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: user.id,
+          });
+          throw error;
+        }
       } catch (error) {
-        logger.error('Failed to create user', {
+        await db.run('ROLLBACK');
+        logger.error('Failed to create user:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         });
@@ -283,30 +406,52 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       matchId: string,
       message: {
         role: 'user' | 'assistant' | 'system';
+        type?: 'text' | 'image' | 'summary';
+        mode?: 'generate' | 'coach';
+        used?: boolean;
+        replyTo?: number;
         content: string;
         timestamp: string;
+        imageData?: string;
       },
-    ): Promise<{
-      id: number;
-      userId: string;
-      matchId: string;
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: string;
-    }> => {
+    ): Promise<Message> => {
       try {
+        const defaultMessage = {
+          type: 'text' as const,
+          mode: 'generate' as const,
+          used: false,
+        };
+
+        const messageWithDefaults = {
+          ...defaultMessage,
+          ...message,
+        };
+
         const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, content, timestamp) VALUES (?, ?, ?, ?, ?)',
-          [userId, matchId, message.role, message.content, message.timestamp],
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            userId,
+            matchId,
+            messageWithDefaults.role,
+            messageWithDefaults.type,
+            messageWithDefaults.mode,
+            messageWithDefaults.used ? 1 : 0,
+            messageWithDefaults.replyTo || null,
+            messageWithDefaults.content,
+            messageWithDefaults.timestamp,
+            messageWithDefaults.imageData || null,
+          ],
         );
 
-        // Get the inserted message
         const insertedMessage = await db.get(
           'SELECT * FROM messages WHERE id = ?',
           [result.lastID],
         );
 
-        return insertedMessage;
+        return {
+          ...insertedMessage,
+          used: Boolean(insertedMessage.used),
+        };
       } catch (error) {
         logger.error('Failed to save message', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -319,30 +464,45 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     getMessages: async (
       userId: string,
       matchId?: string,
-    ): Promise<
-      Array<{
-        id: number;
-        userId: string;
-        matchId: string;
-        role: 'user' | 'assistant' | 'system';
-        content: string;
-        timestamp: string;
-      }>
-    > => {
+      pagination?: {
+        limit: number;
+        offset: number;
+      },
+    ): Promise<{
+      messages: Message[];
+      total: number;
+    }> => {
       try {
+        let query = 'SELECT * FROM messages WHERE userId = ?';
+        const params: any[] = [userId];
+
         if (matchId) {
-          const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? AND matchId = ? ORDER BY timestamp DESC',
-            [userId, matchId],
-          );
-          return messages;
-        } else {
-          const messages = await db.all(
-            'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp DESC',
-            [userId],
-          );
-          return messages;
+          query += ' AND matchId = ?';
+          params.push(matchId);
         }
+
+        query += ' ORDER BY timestamp DESC';
+
+        if (pagination) {
+          query += ' LIMIT ? OFFSET ?';
+          params.push(pagination.limit);
+          params.push(pagination.offset);
+        }
+
+        const messages = await db.all(query, params);
+        const total = await db.get(
+          'SELECT COUNT(*) as count FROM messages WHERE userId = ?' +
+            (matchId ? ' AND matchId = ?' : ''),
+          matchId ? [userId, matchId] : [userId],
+        );
+
+        return {
+          messages: messages.map(msg => ({
+            ...msg,
+            used: Boolean(msg.used),
+          })),
+          total: total.count,
+        };
       } catch (error) {
         logger.error('Failed to get messages', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -355,6 +515,18 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     all: async (sql: string, params: any[] = []): Promise<any[]> => {
       try {
         return await db.all(sql, params);
+      } catch (error) {
+        logger.error('Failed to execute query', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    get: async (sql: string, params: any[] = []): Promise<any> => {
+      try {
+        return await db.get(sql, params);
       } catch (error) {
         logger.error('Failed to execute query', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -378,8 +550,25 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     clearDatabase: async (): Promise<void> => {
       try {
-        await db.run('DELETE FROM messages');
-        await db.run('DELETE FROM users');
+        // Get all table names
+        const tables = await db.all(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+        );
+
+        // Disable foreign key constraints temporarily
+        await db.run('PRAGMA foreign_keys = OFF');
+
+        // Clear each table
+        for (const table of tables) {
+          await db.run(`DELETE FROM ${table.name}`);
+        }
+
+        // Reset autoincrement counters
+        await db.run('DELETE FROM sqlite_sequence');
+
+        // Re-enable foreign key constraints
+        await db.run('PRAGMA foreign_keys = ON');
+
         logger.info('Database cleared successfully');
       } catch (error) {
         logger.error('Failed to clear database', {
@@ -391,17 +580,21 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     },
 
     saveMessageCost: async (
-      messageId: number,
+      messageId: ID,
       cost: Omit<MessageCost, 'id' | 'messageId'>,
     ): Promise<MessageCost> => {
       try {
+        // Convert string ID to number for SQLite
+        const numericMessageId =
+          typeof messageId === 'string' ? parseInt(messageId, 10) : messageId;
+
         const result = await db.run(
           `INSERT INTO message_costs (
             messageId, model, promptTokens, completionTokens, totalTokens,
             inputCost, outputCost, totalCost, timestamp
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            messageId,
+            numericMessageId,
             cost.model,
             cost.promptTokens,
             cost.completionTokens,
@@ -415,7 +608,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
         return {
           id: result.lastID!,
-          messageId,
+          messageId: numericMessageId,
           ...cost,
         };
       } catch (error) {
@@ -596,16 +789,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    deleteMatch: async (
-      userId: string,
-      name: string,
-      platform: string,
-    ): Promise<void> => {
+    deleteMatch: async (userId: string, matchId: string): Promise<void> => {
       try {
-        await db.run(
-          'DELETE FROM matches WHERE userId = ? AND name = ? AND platform = ?',
-          [userId, name, platform],
-        );
+        await db.run('DELETE FROM matches WHERE id = ? AND userId = ?', [
+          matchId,
+          userId,
+        ]);
       } catch (error) {
         logger.error('Failed to delete match', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -659,20 +848,131 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    getMatchById: async (matchId: number | string) => {
+    getMatchById: async (userId: string, matchId: number | string) => {
       try {
-        const match = await db.get('SELECT * FROM matches WHERE id = ?', [
-          matchId,
-        ]);
+        const match = await db.get(
+          'SELECT * FROM matches WHERE id = ? AND userId = ?',
+          [matchId, userId],
+        );
         return match || null;
       } catch (error) {
         logger.error('Failed to get match by id', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
           matchId,
+          userId,
         });
         throw error;
       }
+    },
+
+    getConversationHistory: async (
+      userId: string,
+      matchId?: string,
+    ): Promise<{
+      messages: Message[];
+      total: number;
+    }> => {
+      try {
+        let query = 'SELECT * FROM messages WHERE userId = ?';
+        const params: any[] = [userId];
+
+        if (matchId) {
+          query += ' AND matchId = ?';
+          params.push(matchId);
+        }
+
+        query += ' ORDER BY timestamp DESC';
+
+        const messages = await db.all(query, params);
+        const total = await db.get(
+          'SELECT COUNT(*) as count FROM messages WHERE userId = ?' +
+            (matchId ? ' AND matchId = ?' : ''),
+          params,
+        );
+
+        return {
+          messages: messages.map(msg => ({
+            ...msg,
+            used: Boolean(msg.used),
+          })),
+          total: total.count,
+        };
+      } catch (error) {
+        logger.error('Failed to get conversation history', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    support: {
+      createTicket: async (
+        ticket: Omit<SupportTicket, 'id'>,
+      ): Promise<SupportTicket> => {
+        try {
+          const result = await db.run(
+            'INSERT INTO support_tickets (userId, subject, message, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+            [
+              ticket.userId,
+              ticket.subject,
+              ticket.message,
+              ticket.status,
+              ticket.createdAt.toISOString(),
+              ticket.updatedAt.toISOString(),
+            ],
+          );
+
+          const insertedTicket = await db.get(
+            'SELECT * FROM support_tickets WHERE id = ?',
+            [result.lastID],
+          );
+
+          return insertedTicket;
+        } catch (error) {
+          logger.error('Failed to create support ticket', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
+
+      getTicketsByUserId: async (userId: string): Promise<SupportTicket[]> => {
+        try {
+          const tickets = await db.all(
+            'SELECT * FROM support_tickets WHERE userId = ? ORDER BY createdAt DESC',
+            [userId],
+          );
+          return tickets;
+        } catch (error) {
+          logger.error('Failed to get tickets by user ID', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
+
+      updateTicketStatus: async (
+        ticketId: string,
+        status: SupportTicket['status'],
+      ): Promise<void> => {
+        try {
+          const now = new Date().toISOString();
+          await db.run(
+            'UPDATE support_tickets SET status = ?, updatedAt = ? WHERE id = ?',
+            [status, now, ticketId],
+          );
+        } catch (error) {
+          logger.error('Failed to update ticket status', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          throw error;
+        }
+      },
     },
   };
 };

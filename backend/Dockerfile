@@ -12,6 +12,7 @@ RUN npm install
 COPY src/ ./src/
 COPY tsconfig.json ./
 COPY .env* ./
+COPY service-account.json ./
 
 # Build the TypeScript code
 RUN npm run build

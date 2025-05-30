@@ -6,6 +6,7 @@ export const config = {
   server: {
     port: process.env.PORT || 3001,
     environment: process.env.NODE_ENV || 'development',
+    apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3001',
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
@@ -29,9 +30,6 @@ export const config = {
     cors: {
       origin: process.env.CORS_ORIGIN || '*',
     },
-  },
-  admin: {
-    token: process.env.ADMIN_TOKEN || 'dev-admin-token',
   },
   email: {
     host: process.env.EMAIL_HOST || 'mailhog',

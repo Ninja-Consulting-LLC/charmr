@@ -1,23 +1,17 @@
 import {NextFunction, Request, Response} from 'express';
 import {config} from '../config/config';
+import {firebaseAdmin} from '../config/firebase-admin';
 import logger from '../utils/logger';
 
-// Helper function to truncate image data
-const truncateImageData = (image: string): string => {
-  if (!image) return '';
-  // For base64 images, show first 20 chars and last 20 chars
-  if (image.startsWith('data:')) {
-    const base64Part = image.split(',')[1] || '';
-    return `data:image/...;base64,${base64Part.substring(
-      0,
-      20,
-    )}...${base64Part.substring(base64Part.length - 20)}`;
+// Helper to truncate image data for logging
+const truncateImageData = (image: any) => {
+  if (typeof image === 'string') {
+    return image.substring(0, 50) + '...';
   }
-  // For URLs, just show the first 50 chars
-  return image.substring(0, 50) + '...';
+  return image;
 };
 
-export const authenticateUser = (
+export const authenticateUser = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -38,28 +32,27 @@ export const authenticateUser = (
     baseUrl: req.baseUrl,
     headers: {
       authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'none',
-      'x-auth-bypass': req.headers['x-auth-bypass'] || 'false',
+      'x-anonymous-user': req.headers['x-anonymous-user'] || 'none',
       'content-type': req.headers['content-type'],
     },
     cookies: req.cookies,
     body: truncatedBody,
   });
 
-  // Skip auth in development or if auth bypass header is present
-  if (
-    config.server.environment === 'development' ||
-    req.headers['x-auth-bypass'] === 'true'
-  ) {
-    logger.debug('Auth bypassed', {
+  // Skip auth in development
+  if (config.server.environment === 'development') {
+    logger.debug('Auth bypassed in development', {
       environment: config.server.environment,
-      authBypass: req.headers['x-auth-bypass'],
     });
     return next();
   }
 
-  // Check for auth header in production
-  if (!req.headers.authorization) {
-    logger.warn('No auth header found', {
+  // Check for either Firebase token or anonymous user ID
+  const hasFirebaseToken = req.headers.authorization?.startsWith('Bearer ');
+  const hasAnonymousUser = req.headers['x-anonymous-user'];
+
+  if (!hasFirebaseToken && !hasAnonymousUser) {
+    logger.warn('No auth credentials found', {
       path: req.path,
       method: req.method,
       url: req.url,
@@ -67,11 +60,39 @@ export const authenticateUser = (
     return res.status(401).json({error: 'User not authenticated'});
   }
 
-  // TODO: Verify token with Firebase Admin SDK
-  logger.debug('Auth header present, proceeding', {
-    path: req.path,
-    method: req.method,
-    url: req.url,
-  });
+  // If using Firebase token, verify it
+  if (hasFirebaseToken) {
+    try {
+      const token = req.headers.authorization!.split(' ')[1];
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+
+      // Add the decoded token to the request for use in route handlers
+      req.user = decodedToken;
+
+      logger.debug('Firebase token verified', {
+        path: req.path,
+        method: req.method,
+        url: req.url,
+        uid: decodedToken.uid,
+      });
+    } catch (error) {
+      logger.warn('Invalid Firebase token', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        path: req.path,
+        method: req.method,
+        url: req.url,
+      });
+      return res.status(401).json({error: 'Invalid token'});
+    }
+  } else {
+    // If using anonymous user ID, verify it exists in the database
+    logger.debug('Anonymous user ID present, proceeding', {
+      path: req.path,
+      method: req.method,
+      url: req.url,
+      anonymousUserId: req.headers['x-anonymous-user'],
+    });
+  }
+
   next();
 };

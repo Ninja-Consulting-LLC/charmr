@@ -3,29 +3,13 @@ services:
     build: .
     ports:
       - '3001:3001'
-    environment:
-      - NODE_ENV=development
-      - PORT=3001
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL}
-      - OPENAI_SANDBOX_MODE=${OPENAI_SANDBOX_MODE:-false}
-      - MAX_TOKENS=${MAX_TOKENS:-1000}
-      - TEMPERATURE=${TEMPERATURE:-0.7}
-      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
-      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
-      - CORS_ORIGIN=${CORS_ORIGIN:-*}
-      - PRO_DAILY_MESSAGE_LIMIT=${PRO_DAILY_MESSAGE_LIMIT:-200}
-      - EMAIL_HOST=mailhog
-      - EMAIL_PORT=1025
-      - EMAIL_SECURE=false
-      - EMAIL_USER=test
-      - EMAIL_PASS=test
-      - EMAIL_DEFAULT_FROM=noreply@charmr.app
-      - EMAIL_DEFAULT_REPLY_TO=support@charmr.app
+    env_file:
+      - .env
     volumes:
       - ./src:/app/src
       - /app/node_modules
       - ./data:/app/data
+      - ./service-account.json:/app/service-account.json
     command: sh -c "npm run build && node dist/index.js"
     depends_on:
       - mailhog

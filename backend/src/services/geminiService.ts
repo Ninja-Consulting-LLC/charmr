@@ -1,10 +1,9 @@
 import {GoogleGenerativeAI} from '@google/generative-ai';
 import {config} from '../config/config';
 import {formatPromptWithContext} from '../config/prompts';
-import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {ErrorType, MessageMode} from '../types/enums';
-import {appendConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
 
@@ -69,31 +68,13 @@ export const createGeminiService = () => {
         throw new Error('Empty response from Gemini');
       }
 
-      // Save the message and its costs if not deleting after response
-      if (!request.deleteAfterResponse) {
-        const db = await getDatabase();
-        const timestamp = new Date().toISOString();
-
-        // Save the message and its costs
-        const savedMessage = await appendConversation(
-          request.userId,
-          request.matchId,
-          summary,
-          reply,
-        );
-
-        // Save the message cost (with zero values since Gemini doesn't provide token counts)
-        await db.saveMessageCost(savedMessage.id, {
-          model: config.gemini.model,
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0,
-          inputCost: 0,
-          outputCost: 0,
-          totalCost: 0,
-          timestamp,
-        });
-      }
+      // Calculate costs for the response
+      const costBreakdown = calculateCost(config.gemini.model, {
+        prompt_tokens: 0, // Gemini doesn't provide token counts
+        completion_tokens: 0,
+        total_tokens: 0,
+        image_count: request.images?.length || 0,
+      });
 
       return {
         reply,
@@ -101,6 +82,7 @@ export const createGeminiService = () => {
         usage: undefined,
         mode: request.mode || MessageMode.GENERATE,
         style: request.style,
+        cost: costBreakdown,
       };
     } catch (error) {
       logger.error('Gemini API error', {
