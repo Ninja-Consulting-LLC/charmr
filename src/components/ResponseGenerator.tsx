@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -9,9 +8,9 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import {Platform, ScrollView, StyleSheet, View} from 'react-native';
+import {Image, Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, IconButton, Snackbar, Switch, Text} from 'react-native-paper';
+import {Button, IconButton, Snackbar, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -87,8 +86,6 @@ const ResponseGenerator = forwardRef<
     addMatch: addMatchToStore,
     updateMatch,
     removeMatch,
-    isDatingCoachEnabled,
-    setIsDatingCoachEnabled,
     selectedMatch,
     setSelectedMatch,
     deleteScreenshots,
@@ -113,7 +110,6 @@ const ResponseGenerator = forwardRef<
       images,
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
-      isDatingCoachEnabled,
     });
 
   useImperativeHandle(ref, () => ({
@@ -124,19 +120,6 @@ const ResponseGenerator = forwardRef<
   useEffect(() => {
     loadMatches();
   }, [user?.plan]);
-
-  // Load dating coach preference on mount
-  useEffect(() => {
-    const loadDatingCoachPreference = async () => {
-      try {
-        const enabled = await AsyncStorage.getItem(DATING_COACH_ENABLED_KEY);
-        setIsDatingCoachEnabled(enabled === 'true');
-      } catch (error) {
-        console.error('Error loading dating coach preference:', error);
-      }
-    };
-    loadDatingCoachPreference();
-  }, []);
 
   // Handle modal visibility based on state changes
   useEffect(() => {
@@ -316,14 +299,6 @@ const ResponseGenerator = forwardRef<
     setDeleteScreenshots(value);
   };
 
-  // Save dating coach preference when changed
-  const handleDatingCoachToggle = async (value: boolean) => {
-    setIsDatingCoachEnabled(value);
-    if (!value) {
-      setSelectedMatch(null);
-    }
-  };
-
   const handleMatchSelect = (match: MatchType) => {
     setSelectedMatch(match);
     setShowMatchSelector(false);
@@ -340,85 +315,93 @@ const ResponseGenerator = forwardRef<
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
-          {/* Dating Coach Toggle */}
-          <View style={styles.datingCoachToggle}>
-            <Text variant="titleMedium" style={styles.datingCoachLabel}>
-              Dating Coach
-            </Text>
-            <Switch
-              value={isDatingCoachEnabled}
-              onValueChange={handleDatingCoachToggle}
-              color={theme.colors.secondary}
+          {/* Dating Coach Button */}
+          <Button
+            mode="contained"
+            onPress={() => {
+              if (selectedMatch) {
+                navigation.navigate('CoachChat', {match: selectedMatch});
+              } else {
+                setShowMatchSelector(true);
+              }
+            }}
+            icon={({size, color}) => (
+              <Image
+                source={require('../../assets/coach-avatar.png')}
+                style={[styles.coachAvatar, {width: size, height: size}]}
+              />
+            )}
+            style={styles.datingCoachButton}
+            textColor={theme.colors.surface}>
+            Try Our Dating Coach
+          </Button>
+          <IconButton
+            icon="auto-fix"
+            size={24}
+            iconColor={theme.colors.primary}
+            style={styles.magicWandIcon}
+          />
+
+          {/* Match Selection */}
+          <View style={styles.matchSection}>
+            <View style={styles.selectedMatchContainer}>
+              {selectedMatch ? (
+                <View style={styles.selectedMatchInfo}>
+                  <View style={styles.selectedMatchHeader}>
+                    <View>
+                      <Text
+                        variant="titleMedium"
+                        style={styles.selectedMatchName}>
+                        {selectedMatch.name}
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        style={styles.selectedMatchPlatform}>
+                        {selectedMatch.platform}
+                      </Text>
+                    </View>
+                    <View style={styles.matchActions}>
+                      <IconButton
+                        icon="pencil"
+                        size={20}
+                        onPress={() => setShowMatchSelector(true)}
+                        style={styles.actionButton}
+                      />
+                      <IconButton
+                        icon="close"
+                        size={20}
+                        onPress={() => setSelectedMatch(null)}
+                        style={styles.actionButton}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Image Selection */}
+          <View style={styles.imageSection}>
+            <ImageSelector
+              images={images}
+              onRemoveImage={removeImage}
+              onPickImages={handlePickImages}
+              userPlan={user?.plan}
             />
           </View>
 
-          {/* Match Selection - Only show when dating coach is enabled */}
-          {isDatingCoachEnabled && (
-            <View style={styles.matchSection}>
-              <View style={styles.selectedMatchContainer}>
-                {selectedMatch ? (
-                  <View style={styles.selectedMatchInfo}>
-                    <View style={styles.selectedMatchHeader}>
-                      <View>
-                        <Text
-                          variant="titleMedium"
-                          style={styles.selectedMatchName}>
-                          {selectedMatch.name}
-                        </Text>
-                        <Text
-                          variant="bodyMedium"
-                          style={styles.selectedMatchPlatform}>
-                          {selectedMatch.platform}
-                        </Text>
-                      </View>
-                      <View style={styles.matchActions}>
-                        <IconButton
-                          icon="pencil"
-                          size={20}
-                          onPress={() => setShowMatchSelector(true)}
-                          style={styles.actionButton}
-                        />
-                        <IconButton
-                          icon="close"
-                          size={20}
-                          onPress={() => setSelectedMatch(null)}
-                          style={styles.actionButton}
-                        />
-                      </View>
-                    </View>
-                  </View>
-                ) : (
-                  <Button
-                    mode="outlined"
-                    onPress={() => setShowMatchSelector(true)}
-                    icon="account"
-                    style={styles.matchButton}
-                    textColor={theme.colors.secondary}>
-                    Select Match
-                  </Button>
-                )}
-              </View>
-              <MatchSelectorModal
-                visible={showMatchSelector}
-                onDismiss={() => setShowMatchSelector(false)}
-                matches={matches}
-                selectedMatch={selectedMatch}
-                onSelectMatch={handleMatchSelect}
-                onAddMatch={handleAddMatchFromSelector}
-                onDeleteMatch={handleDeleteMatchById}
-                onHideMatch={handleHideMatch}
-                onRestoreMatch={handleRestoreMatch}
-                userPlan={user?.plan || SubscriptionTier.FREE}
-              />
-            </View>
-          )}
-
-          {/* Image Selection */}
-          <ImageSelector
-            images={images}
-            onRemoveImage={removeImage}
-            onPickImages={handlePickImages}
-            userPlan={user?.plan}
+          {/* Match Selector Modal */}
+          <MatchSelectorModal
+            visible={showMatchSelector}
+            onDismiss={() => setShowMatchSelector(false)}
+            matches={matches}
+            selectedMatch={selectedMatch}
+            onSelectMatch={handleMatchSelect}
+            onAddMatch={handleAddMatchFromSelector}
+            onDeleteMatch={handleDeleteMatchById}
+            onHideMatch={handleHideMatch}
+            onRestoreMatch={handleRestoreMatch}
+            userPlan={user?.plan || SubscriptionTier.FREE}
           />
         </ScrollView>
 
@@ -458,7 +441,6 @@ const ResponseGenerator = forwardRef<
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
         hasScreenshots={images.length > 0}
-        isDatingCoachEnabled={isDatingCoachEnabled}
         onRegenerate={handleGenerateNew}
       />
 
@@ -547,10 +529,6 @@ const styles = StyleSheet.create({
     color: theme.colors.onSurfaceVariant,
     textTransform: 'capitalize',
   },
-  matchButton: {
-    marginBottom: 8,
-    borderColor: theme.colors.secondary,
-  },
   selectedMatchHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -563,15 +541,19 @@ const styles = StyleSheet.create({
   actionButton: {
     margin: 0,
   },
-  datingCoachToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+  datingCoachButton: {
     marginTop: 16,
+    marginBottom: 8,
+    backgroundColor: theme.colors.secondary,
   },
-  datingCoachLabel: {
-    color: theme.colors.secondary,
+  coachAvatar: {
+    borderRadius: 12,
+  },
+  magicWandIcon: {
+    margin: 0,
+    position: 'absolute',
+    right: 16,
+    top: 16,
   },
   notesSection: {
     marginTop: 16,
@@ -597,6 +579,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderColor: theme.colors.secondary,
+  },
+  imageSection: {
+    marginBottom: 16,
   },
 });
 

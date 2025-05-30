@@ -13,7 +13,6 @@ interface UseResponseGeneratorProps {
   images: SelectedImage[];
   selectedMatch: Match | null;
   userPlan: SubscriptionTier;
-  isDatingCoachEnabled: boolean;
 }
 
 interface UseResponseGeneratorReturn {
@@ -29,7 +28,6 @@ export const useResponseGenerator = ({
   images,
   selectedMatch,
   userPlan,
-  isDatingCoachEnabled,
 }: UseResponseGeneratorProps): UseResponseGeneratorReturn => {
   const {userId, setUser} = useStore();
   const [response, setResponse] = useState<string | null>(null);
@@ -51,7 +49,6 @@ export const useResponseGenerator = ({
       promptLength: prompt?.length,
       imageCount: images?.length,
       selectedMatch: selectedMatch?.name,
-      isDatingCoachEnabled,
     });
 
     if (images.length === 0 && !prompt?.trim()) {
@@ -62,11 +59,7 @@ export const useResponseGenerator = ({
       return;
     }
 
-    if (
-      isDatingCoachEnabled &&
-      userPlan !== SubscriptionTier.FREE &&
-      !selectedMatch
-    ) {
+    if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
       logger.app.info('[ResponseGenerator] No match selected');
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
       setErrorType('SELECT_MATCH_REQUIRED');
@@ -105,10 +98,7 @@ export const useResponseGenerator = ({
         prompt: prompt?.trim() || '',
         images: base64Images,
         userId,
-        matchId:
-          isDatingCoachEnabled && selectedMatch
-            ? generateMatchId(selectedMatch)
-            : undefined,
+        matchId: selectedMatch ? generateMatchId(selectedMatch) : undefined,
         deleteAfterResponse: images.length > 0,
       });
 
