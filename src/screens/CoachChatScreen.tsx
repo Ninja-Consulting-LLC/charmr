@@ -152,7 +152,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           };
 
           setMessages(prevMessages => {
-            const messages = chatMessages.length > 0 ? chatMessages : [];
+            const messages =
+              chatMessages.length > 0 ? chatMessages : [welcomeMessage];
             return messages.reverse();
           });
         } else {
