@@ -132,23 +132,49 @@ export const useStoreState = (skipInitialization = false) => {
       // Check if there's an anonymous user with this installation ID
       let anonymousUser = null;
       try {
+        logger.auth.info(
+          '🔍 Searching for anonymous user with installation ID',
+          {
+            installationId,
+            firebaseUserId: firebaseUser.uid,
+          },
+        );
         anonymousUser = await userService.findUserByInstallationId(
           installationId,
         );
+        logger.auth.info('Anonymous user search result', {
+          found: !!anonymousUser,
+          anonymousUserId: anonymousUser?.id,
+          installationId,
+        });
       } catch (error) {
-        logger.auth.warn('Error finding anonymous user:', error);
+        logger.auth.warn('Error finding anonymous user:', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          installationId,
+        });
         // Continue with user creation if we can't find the anonymous user
       }
 
       if (anonymousUser) {
-        logger.auth.info('Found anonymous user, linking with registered user', {
-          anonymousUserId: anonymousUser.id,
-          registeredUserId: firebaseUser.uid,
-        });
+        logger.auth.info(
+          'Found anonymous user, attempting to link with registered user',
+          {
+            anonymousUserId: anonymousUser.id,
+            registeredUserId: firebaseUser.uid,
+            anonymousUserEmail: anonymousUser.email,
+            registeredUserEmail: firebaseUser.email,
+            installationId,
+          },
+        );
 
         try {
           await userService.linkUsers(anonymousUser.id, firebaseUser.uid);
-          logger.auth.info('Successfully linked anonymous user');
+          logger.auth.info('Successfully linked anonymous user', {
+            anonymousUserId: anonymousUser.id,
+            registeredUserId: firebaseUser.uid,
+            installationId,
+          });
 
           // Update local state with the linked user
           setUserId(firebaseUser.uid);
@@ -159,10 +185,18 @@ export const useStoreState = (skipInitialization = false) => {
             event: 'google_login_success',
             userId: firebaseUser.uid,
             email: firebaseUser.email,
+            wasAnonymous: true,
+            anonymousUserId: anonymousUser.id,
           });
           return;
         } catch (error) {
-          logger.auth.error('Failed to link anonymous user:', error);
+          logger.auth.error('Failed to link anonymous user:', {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+            anonymousUserId: anonymousUser.id,
+            registeredUserId: firebaseUser.uid,
+            installationId,
+          });
           // Continue with user creation if linking fails
         }
       }

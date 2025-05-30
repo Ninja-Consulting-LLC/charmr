@@ -41,42 +41,21 @@ const getAuthHeaders = async () => {
   }
 };
 
-// Request interceptor
+// Add request interceptor to add auth headers to all requests
 axiosInstance.interceptors.request.use(
-  async request => {
-    try {
-      const authHeaders = await getAuthHeaders();
-      const headers = new AxiosHeaders(request.headers);
+  async config => {
+    const headers = await getAuthHeaders();
+    const axiosHeaders = new AxiosHeaders(config.headers);
 
-      // Add auth headers
-      Object.entries(authHeaders).forEach(([key, value]) => {
-        headers.set(key, value);
-      });
+    // Add auth headers
+    Object.entries(headers).forEach(([key, value]) => {
+      axiosHeaders.set(key, value);
+    });
 
-      request.headers = headers;
-
-      // Log request details
-      logger.app.debug('API Request', {
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        data: request.data,
-      });
-
-      return request;
-    } catch (error) {
-      logger.app.error('API Request Error', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return Promise.reject(error);
-    }
+    config.headers = axiosHeaders;
+    return config;
   },
   error => {
-    logger.app.error('API Request Error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     return Promise.reject(error);
   },
 );
