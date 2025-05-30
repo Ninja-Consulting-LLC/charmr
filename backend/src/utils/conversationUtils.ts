@@ -100,13 +100,35 @@ export const appendConversation = async (
 
     // Save the assistant reply after user message(s)
     const replyTimestamp = new Date(baseTimestamp + 1).toISOString();
-    return await messageRepository.createMessage(userId, matchId, {
-      role: MessageRole.ASSISTANT,
-      type: MessageType.TEXT,
-      mode: MessageMode.GENERATE,
-      content: reply,
-      timestamp: replyTimestamp,
-    });
+    const assistantMessage = await messageRepository.createMessage(
+      userId,
+      matchId,
+      {
+        role: MessageRole.ASSISTANT,
+        type: MessageType.TEXT,
+        mode: MessageMode.GENERATE,
+        content: reply,
+        timestamp: replyTimestamp,
+      },
+    );
+
+    // Save the summary message after the assistant's reply
+    if (summary) {
+      const summaryTimestamp = new Date(baseTimestamp + 2).toISOString();
+      await messageRepository.createMessage(userId, matchId, {
+        role: MessageRole.SYSTEM,
+        type: MessageType.SUMMARY,
+        mode: MessageMode.GENERATE,
+        content: summary,
+        timestamp: summaryTimestamp,
+        replyTo:
+          typeof assistantMessage.id === 'string'
+            ? parseInt(assistantMessage.id, 10)
+            : assistantMessage.id,
+      });
+    }
+
+    return assistantMessage;
   } catch (error) {
     logger.error('Failed to append conversation', {
       error: error instanceof Error ? error.message : 'Unknown error',

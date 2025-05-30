@@ -1,23 +1,17 @@
 import {NextFunction, Request, Response} from 'express';
 import {config} from '../config/config';
+import {firebaseAdmin} from '../config/firebase-admin';
 import logger from '../utils/logger';
 
-// Helper function to truncate image data
-const truncateImageData = (image: string): string => {
-  if (!image) return '';
-  // For base64 images, show first 20 chars and last 20 chars
-  if (image.startsWith('data:')) {
-    const base64Part = image.split(',')[1] || '';
-    return `data:image/...;base64,${base64Part.substring(
-      0,
-      20,
-    )}...${base64Part.substring(base64Part.length - 20)}`;
+// Helper to truncate image data for logging
+const truncateImageData = (image: any) => {
+  if (typeof image === 'string') {
+    return image.substring(0, 50) + '...';
   }
-  // For URLs, just show the first 50 chars
-  return image.substring(0, 50) + '...';
+  return image;
 };
 
-export const authenticateUser = (
+export const authenticateUser = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -68,12 +62,28 @@ export const authenticateUser = (
 
   // If using Firebase token, verify it
   if (hasFirebaseToken) {
-    // TODO: Verify token with Firebase Admin SDK
-    logger.debug('Firebase token present, proceeding', {
-      path: req.path,
-      method: req.method,
-      url: req.url,
-    });
+    try {
+      const token = req.headers.authorization!.split(' ')[1];
+      const decodedToken = await firebaseAdmin.auth().verifyIdToken(token);
+
+      // Add the decoded token to the request for use in route handlers
+      req.user = decodedToken;
+
+      logger.debug('Firebase token verified', {
+        path: req.path,
+        method: req.method,
+        url: req.url,
+        uid: decodedToken.uid,
+      });
+    } catch (error) {
+      logger.warn('Invalid Firebase token', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        path: req.path,
+        method: req.method,
+        url: req.url,
+      });
+      return res.status(401).json({error: 'Invalid token'});
+    }
   } else {
     // If using anonymous user ID, verify it exists in the database
     logger.debug('Anonymous user ID present, proceeding', {
