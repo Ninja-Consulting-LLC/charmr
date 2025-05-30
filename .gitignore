@@ -90,3 +90,6 @@ backend/conversations
 AuthKey_39M7CMU6HN.p8
 SubscriptionKey_273386SD82.p8
 assets/pro_paywall.png
+
+# Firebase
+service-account.json
