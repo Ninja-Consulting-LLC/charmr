@@ -53,28 +53,14 @@ export const appendConversation = async (
     const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
-    // Fetch the latest user message timestamp for this match
-    const {messages} = await messageRepository.getMessagesByMatch(
-      userId,
-      matchId,
-    );
-    const latestUserMsg = messages
-      .filter((m: Message) => m.role === MessageRole.USER)
-      .sort(
-        (a: Message, b: Message) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      )[0];
-
-    // Use a timestamp just after the latest user message
-    let baseTimestamp = latestUserMsg
-      ? new Date(latestUserMsg.timestamp).getTime()
-      : Date.now();
+    // Start with current timestamp for this conversation set
+    let baseTimestamp = Date.now();
 
     // Save user message first (either text, images, or both)
     if (images && images.length > 0) {
       // Save screenshots with or without prompt
       for (let i = 0; i < images.length; i++) {
-        const timestamp = new Date(baseTimestamp + i + 1).toISOString();
+        const timestamp = new Date(baseTimestamp + i * 1000).toISOString();
         await messageRepository.createMessage(userId, matchId, {
           role: MessageRole.USER,
           type: MessageType.IMAGE,
@@ -84,10 +70,10 @@ export const appendConversation = async (
           imageData: images[i],
         });
       }
-      baseTimestamp += images.length;
+      baseTimestamp += images.length * 1000;
     } else if (prompt) {
       // Save regular text message
-      const timestamp = new Date(baseTimestamp + 1).toISOString();
+      const timestamp = new Date(baseTimestamp).toISOString();
       await messageRepository.createMessage(userId, matchId, {
         role: MessageRole.USER,
         type: MessageType.TEXT,
@@ -95,11 +81,11 @@ export const appendConversation = async (
         content: prompt,
         timestamp,
       });
-      baseTimestamp += 1;
+      baseTimestamp += 1000;
     }
 
     // Save the assistant reply after user message(s)
-    const replyTimestamp = new Date(baseTimestamp + 1).toISOString();
+    const replyTimestamp = new Date(baseTimestamp).toISOString();
     const assistantMessage = await messageRepository.createMessage(
       userId,
       matchId,
@@ -111,10 +97,11 @@ export const appendConversation = async (
         timestamp: replyTimestamp,
       },
     );
+    baseTimestamp += 1000;
 
     // Save the summary message after the assistant's reply
     if (summary) {
-      const summaryTimestamp = new Date(baseTimestamp + 2).toISOString();
+      const summaryTimestamp = new Date(baseTimestamp).toISOString();
       await messageRepository.createMessage(userId, matchId, {
         role: MessageRole.SYSTEM,
         type: MessageType.SUMMARY,
