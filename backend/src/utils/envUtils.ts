@@ -16,6 +16,7 @@ export const logEnvironmentVariables = () => {
     RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
     MAX_TOKENS: process.env.MAX_TOKENS,
     TEMPERATURE: process.env.TEMPERATURE,
+    ADMIN_TOKEN: process.env.ADMIN_TOKEN,
   };
 
   logger.info('Environment variables', envVars);

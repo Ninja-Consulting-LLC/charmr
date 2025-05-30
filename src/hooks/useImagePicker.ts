@@ -42,14 +42,14 @@ export const useImagePicker = () => {
     try {
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
-        multiple: true,
+        multiple: false,
         cropping: false,
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
         smartAlbums: ['Screenshots'],
         defaultAlbum: 'Screenshots',
-        maxFiles: 10,
+        maxFiles: 1,
         selectedAssets: images.map(img => ({
           uri: img.path,
           type: img.mime || 'image/jpeg',
@@ -69,6 +69,15 @@ export const useImagePicker = () => {
         error?.message?.includes('Permission')
       ) {
         throw new Error('PERMISSION_DENIED');
+      }
+
+      // Handle case when there are no photos in the album
+      if (
+        error?.message?.includes('no photos') ||
+        error?.message?.includes('No photos found') ||
+        error?.message?.includes('No assets found')
+      ) {
+        return null;
       }
 
       console.error('Error picking images:', error);

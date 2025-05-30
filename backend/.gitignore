@@ -9,3 +9,6 @@ dist/
 data/
 *.db
 charmr.db
+
+# Service Account
+service-account.json

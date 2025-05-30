@@ -1,4 +1,12 @@
-import {SubscriptionTier} from '../types/enums';
+import {
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
+} from '../types/enums';
+
+// Common type for IDs that can be either string or number
+export type ID = string | number;
 
 export interface MessageLimit {
   dailyMessagesUsed: number;
@@ -17,17 +25,22 @@ export interface User {
 }
 
 export interface Message {
-  id: number;
+  id: ID;
   userId: string;
   matchId: string;
-  role: 'user' | 'assistant' | 'system';
+  role: MessageRole;
+  type: MessageType;
+  mode: MessageMode;
+  used: boolean;
+  replyTo?: number;
   content: string;
   timestamp: string;
+  imageData?: string;
 }
 
 export interface MessageCost {
-  id: number;
-  messageId: number;
+  id: ID;
+  messageId: ID;
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -39,7 +52,7 @@ export interface MessageCost {
 }
 
 export interface Match {
-  id: number;
+  id: ID;
   userId: string;
   name: string;
   platform: string;
@@ -59,16 +72,27 @@ export interface SupportTicket {
   updatedAt: Date;
 }
 
+export interface MessageFilter {
+  role?: MessageRole;
+  type?: MessageType;
+  mode?: MessageMode;
+  used?: boolean;
+}
+
+export interface ConversationItem extends Message {
+  imageData?: string; // For messages with type 'image'
+}
+
 export interface Database {
   getUser: (userId: string) => Promise<User | null>;
   getUserByInstallationId: (installationId: string) => Promise<User | null>;
-  createUser: (
-    userId: string,
-    email?: string,
-    name?: string,
-    plan?: SubscriptionTier,
-    installationId?: string,
-  ) => Promise<User>;
+  createUser: (user: {
+    id: string;
+    email: string;
+    name: string;
+    plan?: SubscriptionTier;
+    installationId?: string;
+  }) => Promise<User | null>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
@@ -78,36 +102,32 @@ export interface Database {
     userId: string,
     matchId: string,
     message: {
-      role: 'user' | 'assistant' | 'system';
+      role: MessageRole;
+      type?: MessageType;
+      mode?: MessageMode;
+      used?: boolean;
+      replyTo?: number;
       content: string;
       timestamp: string;
     },
-  ) => Promise<{
-    id: number;
-    userId: string;
-    matchId: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: string;
-  }>;
+  ) => Promise<Message>;
   getMessages: (
     userId: string,
     matchId?: string,
-  ) => Promise<
-    Array<{
-      id: number;
-      userId: string;
-      matchId: string;
-      role: 'user' | 'assistant' | 'system';
-      content: string;
-      timestamp: string;
-    }>
-  >;
+    pagination?: {
+      limit: number;
+      offset: number;
+    },
+  ) => Promise<{
+    messages: Message[];
+    total: number;
+  }>;
+  get: (sql: string, params?: any[]) => Promise<any>;
   all: (sql: string, params?: any[]) => Promise<any[]>;
   run: (sql: string, params?: any[]) => Promise<any>;
   clearDatabase: () => Promise<void>;
   saveMessageCost: (
-    messageId: number,
+    messageId: ID,
     cost: Omit<MessageCost, 'id' | 'messageId'>,
   ) => Promise<MessageCost>;
   getMessageCosts: (
@@ -122,21 +142,19 @@ export interface Database {
   ) => Promise<{
     totalCost: number;
     totalTokens: number;
-    messageCount: number;
   }>;
   getMatches: (userId: string, includeHidden?: boolean) => Promise<Match[]>;
-  getMatchById: (matchId: number | string) => Promise<Match | null>;
+  getMatchById: (
+    userId: string,
+    matchId: number | string,
+  ) => Promise<Match | null>;
   addMatch: (userId: string, name: string, platform: string) => Promise<Match>;
   updateMatchLastUsed: (
     userId: string,
     name: string,
     platform: string,
   ) => Promise<void>;
-  deleteMatch: (
-    userId: string,
-    name: string,
-    platform: string,
-  ) => Promise<void>;
+  deleteMatch: (userId: string, matchId: string) => Promise<void>;
   hideMatch: (userId: string, name: string, platform: string) => Promise<void>;
   restoreMatch: (
     userId: string,
@@ -145,14 +163,12 @@ export interface Database {
   ) => Promise<void>;
   getConversationHistory: (
     userId: string,
-    matchId: string,
-  ) => Promise<
-    Array<{
-      role: string;
-      content: string;
-      timestamp: string;
-    }>
-  >;
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<{
+    messages: Message[];
+    total: number;
+  }>;
 
   // Support methods
   support: {

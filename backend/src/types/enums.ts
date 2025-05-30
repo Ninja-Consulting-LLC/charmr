@@ -9,6 +9,12 @@ export enum MessageRole {
   SYSTEM = 'system',
 }
 
+export enum MessageType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  SUMMARY = 'summary',
+}
+
 export enum Environment {
   DEVELOPMENT = 'development',
   PRODUCTION = 'production',

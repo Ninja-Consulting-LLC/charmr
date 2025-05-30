@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     padding: 20,
     margin: 20,
     borderRadius: 8,
-    zIndex: 1000,
+    zIndex: 2000,
   },
   overflowContainer: {},
   content: {

@@ -9,6 +9,7 @@ services:
       - ./src:/app/src
       - /app/node_modules
       - ./data:/app/data
+      - ./service-account.json:/app/service-account.json
     command: sh -c "npm run build && node dist/index.js"
     depends_on:
       - mailhog

@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios, {AxiosHeaders} from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
-import {getStore} from '../store/StoreProvider';
 import {logger} from '../utils/logger';
+import {getUserId} from './authService';
 
 // Create an axios instance with default config
 const axiosInstance = axios.create({
@@ -13,49 +13,54 @@ const axiosInstance = axios.create({
   timeout: 10000, // 10 seconds timeout
 });
 
-// Request interceptor
-axiosInstance.interceptors.request.use(
-  async request => {
-    try {
-      // Try to get Firebase token first
-      const token = await getAuthToken();
-      request.headers.Authorization = `Bearer ${token}`;
-      logger.app.debug('Using Firebase token for authentication');
-    } catch (error) {
-      logger.app.debug(
-        'Firebase token not available, falling back to installation ID',
-      );
-      // If Firebase auth fails, use installation ID as anonymous user ID
-      try {
-        const {getInstallationId} = getStore();
-        const userId = await getInstallationId();
-        request.headers['X-Anonymous-User'] = userId;
-        logger.app.debug('Using installation ID for authentication');
-      } catch (error) {
-        logger.app.error('No authentication method available');
-      }
+// Helper to get auth headers
+const getAuthHeaders = async () => {
+  try {
+    // Try to get Firebase token first
+    const token = await getAuthToken();
+    if (token) {
+      return {
+        Authorization: `Bearer ${token}`,
+      };
     }
+  } catch (error) {
+    logger.app.debug(
+      'Firebase token not available, falling back to installation ID',
+    );
+  }
 
-    // Log request details
-    logger.app.debug('API Request', {
-      method: request.method,
-      url: request.url,
-      headers: request.headers,
-      data: request.data,
+  // If Firebase auth fails, use installation ID as anonymous user ID
+  try {
+    const userId = await getUserId();
+    return {
+      'X-Anonymous-User': userId,
+    };
+  } catch (error) {
+    logger.app.error('No authentication method available');
+    return {};
+  }
+};
+
+// Add request interceptor to add auth headers to all requests
+axiosInstance.interceptors.request.use(
+  async config => {
+    const headers = await getAuthHeaders();
+    const axiosHeaders = new AxiosHeaders(config.headers);
+
+    // Add auth headers
+    Object.entries(headers).forEach(([key, value]) => {
+      axiosHeaders.set(key, value);
     });
 
-    return request;
+    config.headers = axiosHeaders;
+    return config;
   },
   error => {
-    logger.app.error('API Request Error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     return Promise.reject(error);
   },
 );
 
-// Response interceptor
+// Response interceptor with retry logic
 axiosInstance.interceptors.response.use(
   response => {
     // Log response details
@@ -67,7 +72,36 @@ axiosInstance.interceptors.response.use(
     });
     return response;
   },
-  error => {
+  async error => {
+    const originalRequest = error.config;
+
+    // If the error is a 401 and we haven't retried yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Get fresh auth headers
+        const authHeaders = await getAuthHeaders();
+        const headers = new AxiosHeaders(originalRequest.headers);
+
+        // Add auth headers
+        Object.entries(authHeaders).forEach(([key, value]) => {
+          headers.set(key, value);
+        });
+
+        originalRequest.headers = headers;
+
+        // Retry the request
+        return axiosInstance(originalRequest);
+      } catch (retryError) {
+        logger.app.error('Retry failed', {
+          error:
+            retryError instanceof Error ? retryError.message : 'Unknown error',
+          stack: retryError instanceof Error ? retryError.stack : undefined,
+        });
+      }
+    }
+
     // Log error details
     logger.app.error('API Response Error', {
       error: error instanceof Error ? error.message : 'Unknown error',

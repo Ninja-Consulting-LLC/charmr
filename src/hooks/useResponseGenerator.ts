@@ -1,10 +1,10 @@
 import {useState} from 'react';
 import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
-import * as userService from '../services/userService';
 import {useStore} from '../store';
-import {SelectedImage} from '../types';
 import {SubscriptionTier} from '../types/enums';
+import {SelectedImage} from '../types/image';
+import {User} from '../types/user';
 import {compressImages} from '../utils/imageCompression';
 import {logger} from '../utils/logger';
 import {generateMatchId, Match} from '../utils/matchUtils';
@@ -13,7 +13,7 @@ interface UseResponseGeneratorProps {
   images: SelectedImage[];
   selectedMatch: Match | null;
   userPlan: SubscriptionTier;
-  isDatingCoachEnabled: boolean;
+  onMessageLimitReached?: () => void;
 }
 
 interface UseResponseGeneratorReturn {
@@ -21,7 +21,7 @@ interface UseResponseGeneratorReturn {
   loading: boolean;
   error: string | null;
   errorType: string | null;
-  generateResponse: (prompt: string) => Promise<void>;
+  generateResponse: (prompt?: string) => Promise<void>;
   resetResponse: () => void;
 }
 
@@ -29,7 +29,7 @@ export const useResponseGenerator = ({
   images,
   selectedMatch,
   userPlan,
-  isDatingCoachEnabled,
+  onMessageLimitReached,
 }: UseResponseGeneratorProps): UseResponseGeneratorReturn => {
   const {userId, setUser} = useStore();
   const [response, setResponse] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export const useResponseGenerator = ({
     setErrorType(null);
   };
 
-  const generateResponse = async (prompt: string) => {
+  const generateResponse = async (prompt?: string) => {
     setLoading(true);
     resetResponse();
 
@@ -51,10 +51,9 @@ export const useResponseGenerator = ({
       promptLength: prompt?.length,
       imageCount: images?.length,
       selectedMatch: selectedMatch?.name,
-      isDatingCoachEnabled,
     });
 
-    if (images.length === 0 && !prompt.trim()) {
+    if (images.length === 0 && !prompt?.trim()) {
       logger.app.info('[ResponseGenerator] No images or prompt provided');
       setError(MESSAGES.NO_IMAGES);
       setErrorType('NO_IMAGES');
@@ -62,11 +61,7 @@ export const useResponseGenerator = ({
       return;
     }
 
-    if (
-      isDatingCoachEnabled &&
-      userPlan !== SubscriptionTier.FREE &&
-      !selectedMatch
-    ) {
+    if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
       logger.app.info('[ResponseGenerator] No match selected');
       setError(MESSAGES.SELECT_MATCH_REQUIRED);
       setErrorType('SELECT_MATCH_REQUIRED');
@@ -102,13 +97,11 @@ export const useResponseGenerator = ({
 
       logger.app.info('[ResponseGenerator] Calling generateReply API');
       const reply = await generateReply({
-        prompt: prompt.trim() || 'make it flirty',
+        prompt: prompt?.trim() || '',
         images: base64Images,
         userId,
-        matchId:
-          isDatingCoachEnabled && selectedMatch
-            ? generateMatchId(selectedMatch)
-            : undefined,
+        matchId: selectedMatch ? generateMatchId(selectedMatch) : undefined,
+        deleteAfterResponse: images.length > 0,
       });
 
       logger.app.info('[ResponseGenerator] Received API response:', {
@@ -122,16 +115,23 @@ export const useResponseGenerator = ({
           error: reply.error,
           type: reply.type,
         });
-        if (reply.type !== '404') {
+        if (reply.type === 'MESSAGE_LIMIT') {
+          onMessageLimitReached?.();
+          setError(null);
+          setErrorType(null);
+        } else if (reply.type !== '404') {
           setError(reply.error);
           setErrorType(reply.type || 'UNKNOWN');
         }
         setResponse(null);
         if (reply.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
+            extraMessages:
+              reply.limits?.extraMessages ?? prevUser.extraMessages,
+          }));
         }
       } else if (reply.reply) {
         logger.app.info('[ResponseGenerator] Setting response state:', {
@@ -141,10 +141,13 @@ export const useResponseGenerator = ({
         setError(null);
         setErrorType(null);
         if (reply.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
+            extraMessages:
+              reply.limits?.extraMessages ?? prevUser.extraMessages,
+          }));
         }
       }
     } catch (error: any) {
@@ -154,15 +157,24 @@ export const useResponseGenerator = ({
         stack: error.stack,
       });
       if (error.response?.data) {
-        if (error.response.status !== 404) {
+        if (error.response.data.type === 'MESSAGE_LIMIT') {
+          onMessageLimitReached?.();
+          setError(null);
+          setErrorType(null);
+        } else if (error.response.status !== 404) {
           setError(error.response.data.error);
           setErrorType(error.response.data.type || 'UNKNOWN');
         }
         if (error.response.data.limits) {
-          const userData = await userService.fetchUserData(userId);
-          if (userData) {
-            setUser(userData);
-          }
+          setUser((prevUser: User) => ({
+            ...prevUser,
+            dailyMessagesUsed:
+              error.response.data.limits?.dailyMessagesUsed ??
+              prevUser.dailyMessagesUsed,
+            extraMessages:
+              error.response.data.limits?.extraMessages ??
+              prevUser.extraMessages,
+          }));
         }
       } else {
         setError(error.message || MESSAGES.GENERATION_ERROR);
