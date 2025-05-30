@@ -69,7 +69,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const {userId, matches, user} = useStore();
+  const {userId, matches, user, setUser} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -378,6 +378,14 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           return;
         }
 
+        // Update user state with new message limits
+        if (response.limits) {
+          setUser({
+            dailyMessagesUsed: response.limits.dailyMessagesUsed,
+            extraMessages: response.limits.extraMessages,
+          });
+        }
+
         const aiResponse: IMessageWithImages = {
           _id: Date.now() + 1,
           text: response.reply || response.error || 'No reply',
@@ -417,7 +425,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         );
       }
     },
-    [images, setImages, selectedMode, userId, effectiveMatchId],
+    [images, setImages, selectedMode, userId, effectiveMatchId, setUser],
   );
 
   const handleCopyMessage = useCallback((text: string) => {
