@@ -71,6 +71,15 @@ export const useImagePicker = () => {
         throw new Error('PERMISSION_DENIED');
       }
 
+      // Handle case when there are no photos in the album
+      if (
+        error?.message?.includes('no photos') ||
+        error?.message?.includes('No photos found') ||
+        error?.message?.includes('No assets found')
+      ) {
+        return null;
+      }
+
       console.error('Error picking images:', error);
       throw error;
     }
