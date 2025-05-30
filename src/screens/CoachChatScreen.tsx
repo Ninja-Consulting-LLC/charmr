@@ -15,16 +15,29 @@ import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
 import {Button, IconButton, SegmentedButtons, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import MatchSelectorModal from '../components/MatchSelector';
 import TypingIndicator from '../components/TypingIndicator';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
+import {
+  addMatch as addMatchUtil,
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+} from '../services/matchService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {MessageMode, MessageRole, MessageType} from '../types/enums';
+import {
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
+} from '../types/enums';
 import {Message} from '../types/message';
 import {compressImages} from '../utils/imageCompression';
+import {Match} from '../utils/matchUtils';
 
 type CoachChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -56,10 +69,55 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     MessageMode.GENERATE,
   );
   const [showPermissionError, setShowPermissionError] = useState(false);
-  const {userId} = useStore();
+  const [showMatchSelector, setShowMatchSelector] = useState(false);
+  const {userId, matches, user} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
+
+  const handleAddMatchFromSelector = async (name: string, platform: string) => {
+    try {
+      const newMatch = await addMatchUtil(name, platform);
+      if (newMatch) {
+        navigation.setParams({match: newMatch});
+      }
+    } catch (error) {
+      console.error('Error adding match:', error);
+    }
+  };
+
+  const handleDeleteMatchById = async (matchId: string) => {
+    try {
+      const success = await deleteMatch(matchId);
+      if (success) {
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error('Error deleting match:', error);
+    }
+  };
+
+  const handleHideMatch = async (match: Match) => {
+    try {
+      const success = await hideMatch(match.name, match.platform);
+      if (success) {
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error('Error hiding match:', error);
+    }
+  };
+
+  const handleRestoreMatch = async (match: Match) => {
+    try {
+      const success = await restoreMatch(match.name, match.platform);
+      if (success) {
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error('Error restoring match:', error);
+    }
+  };
 
   // Use debug match ID if provided and enabled, otherwise use the match from route params
   const effectiveMatchId = useDebugMatch ? DEBUG_MATCH_ID : match.id;
@@ -231,6 +289,14 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           icon="arrow-left"
           size={24}
           onPress={() => navigation.goBack()}
+          iconColor={theme.colors.surface}
+        />
+      ),
+      headerRight: () => (
+        <IconButton
+          icon="pencil"
+          size={24}
+          onPress={() => setShowMatchSelector(true)}
           iconColor={theme.colors.surface}
         />
       ),
@@ -642,6 +708,22 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           />
         </View>
       </Modal>
+      {/* Match Selector Modal */}
+      <MatchSelectorModal
+        visible={showMatchSelector}
+        onDismiss={() => setShowMatchSelector(false)}
+        matches={matches}
+        selectedMatch={match}
+        onSelectMatch={newMatch => {
+          setShowMatchSelector(false);
+          navigation.setParams({match: newMatch});
+        }}
+        onAddMatch={handleAddMatchFromSelector}
+        onDeleteMatch={handleDeleteMatchById}
+        onHideMatch={handleHideMatch}
+        onRestoreMatch={handleRestoreMatch}
+        userPlan={user?.plan || SubscriptionTier.FREE}
+      />
       {/* Permission error modal */}
       <Modal
         visible={showPermissionError}

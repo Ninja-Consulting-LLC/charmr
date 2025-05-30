@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import {Image, Platform, ScrollView, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, IconButton, Snackbar, Text} from 'react-native-paper';
+import {Button, IconButton, Snackbar} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
@@ -315,16 +315,9 @@ const ResponseGenerator = forwardRef<
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}>
-          {/* Dating Coach Button */}
           <Button
             mode="contained"
-            onPress={() => {
-              if (selectedMatch) {
-                navigation.navigate('CoachChat', {match: selectedMatch});
-              } else {
-                setShowMatchSelector(true);
-              }
-            }}
+            onPress={() => setShowMatchSelector(true)}
             icon={({size, color}) => (
               <Image
                 source={require('../../assets/coach-avatar.png')}
@@ -341,44 +334,6 @@ const ResponseGenerator = forwardRef<
             iconColor={theme.colors.primary}
             style={styles.magicWandIcon}
           />
-
-          {/* Match Selection */}
-          <View style={styles.matchSection}>
-            <View style={styles.selectedMatchContainer}>
-              {selectedMatch ? (
-                <View style={styles.selectedMatchInfo}>
-                  <View style={styles.selectedMatchHeader}>
-                    <View>
-                      <Text
-                        variant="titleMedium"
-                        style={styles.selectedMatchName}>
-                        {selectedMatch.name}
-                      </Text>
-                      <Text
-                        variant="bodyMedium"
-                        style={styles.selectedMatchPlatform}>
-                        {selectedMatch.platform}
-                      </Text>
-                    </View>
-                    <View style={styles.matchActions}>
-                      <IconButton
-                        icon="pencil"
-                        size={20}
-                        onPress={() => setShowMatchSelector(true)}
-                        style={styles.actionButton}
-                      />
-                      <IconButton
-                        icon="close"
-                        size={20}
-                        onPress={() => setSelectedMatch(null)}
-                        style={styles.actionButton}
-                      />
-                    </View>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          </View>
 
           {/* Image Selection */}
           <View style={styles.imageSection}>
@@ -483,6 +438,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     flexGrow: 1,
+    alignItems: 'center',
   },
   matchSection: {
     paddingBottom: 16,
@@ -506,6 +462,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 8 : 16,
     paddingHorizontal: 16,
     gap: 8,
+    width: '100%',
   },
   generateButton: {
     backgroundColor: theme.colors.secondary,
@@ -545,6 +502,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     backgroundColor: theme.colors.secondary,
+    width: '100%',
   },
   coachAvatar: {
     borderRadius: 12,
@@ -582,6 +540,8 @@ const styles = StyleSheet.create({
   },
   imageSection: {
     marginBottom: 16,
+    width: '100%',
+    alignItems: 'center',
   },
 });
 
