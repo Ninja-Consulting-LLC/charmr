@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {
   Button,
@@ -22,24 +22,39 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
   onDismiss,
   onAdd,
 }) => {
-  const [name, setName] = React.useState('');
-  const [platform, setPlatform] = React.useState('');
-  const [platformError, setPlatformError] = React.useState('');
+  const [localName, setLocalName] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [platformError, setPlatformError] = useState('');
+  const nameRef = useRef(localName);
+
+  // Update the ref whenever localName changes
+  React.useEffect(() => {
+    nameRef.current = localName;
+  }, [localName]);
 
   const handleAdd = () => {
-    if (!name) return;
+    if (!nameRef.current) return;
 
     if (!platform) {
       setPlatformError('Please select a platform');
       return;
     }
 
-    onAdd(name, platform);
-    setName('');
+    onAdd(nameRef.current, platform);
+    setLocalName('');
     setPlatform('');
     setPlatformError('');
     onDismiss();
   };
+
+  // Reset local state when modal is closed
+  React.useEffect(() => {
+    if (!visible) {
+      setLocalName('');
+      setPlatform('');
+      setPlatformError('');
+    }
+  }, [visible]);
 
   return (
     <Portal>
@@ -64,8 +79,8 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
 
             <TextInput
               label="Name"
-              value={name}
-              onChangeText={setName}
+              value={localName}
+              onChangeText={setLocalName}
               style={styles.input}
             />
 
