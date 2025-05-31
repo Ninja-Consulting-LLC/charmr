@@ -1,5 +1,5 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Clipboard,
@@ -25,7 +25,6 @@ import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
-import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
@@ -76,12 +75,15 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
   const {userId, matches, user, setUser, setMatches} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
+  const [copiedMessageId, setCopiedMessageId] = useState<
+    string | number | null
+  >(null);
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
@@ -448,10 +450,14 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     [images, setImages, selectedMode, userId, effectiveMatchId, setUser],
   );
 
-  const handleCopyMessage = useCallback((text: string) => {
-    Clipboard.setString(text);
-    setShowSnackbar(true);
-  }, []);
+  const handleCopyMessage = useCallback(
+    (text: string, messageId: string | number) => {
+      Clipboard.setString(text);
+      console.log('Copying message with id:', messageId);
+      setShowCopiedSnackbar(true);
+    },
+    [],
+  );
 
   const handlePickImages = async () => {
     try {
@@ -549,12 +555,20 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               const shouldObscure =
                 user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
+              let showCopiedText = copiedMessageId === currentMessage?._id;
+              if (showCopiedText) {
+                console.log(
+                  'Rendering copied message text for id:',
+                  currentMessage?._id,
+                );
+              }
+
               return (
                 <TouchableOpacity
                   onPress={() =>
                     isCopyable &&
                     currentMessage?.text &&
-                    handleCopyMessage(currentMessage.text)
+                    handleCopyMessage(currentMessage.text, currentMessage._id)
                   }
                   activeOpacity={isCopyable ? 0.7 : 1}>
                   <View
@@ -740,6 +754,20 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                     )}
                   </View>
                 </View>
+                <Snackbar
+                  visible={showCopiedSnackbar}
+                  onDismiss={() => setShowCopiedSnackbar(false)}
+                  duration={2000}
+                  style={[
+                    styles.snackbar,
+                    {backgroundColor: 'rgba(0, 0, 0, 0.6)'},
+                  ]}
+                  action={{
+                    label: 'OK',
+                    onPress: () => setShowCopiedSnackbar(false),
+                  }}>
+                  Message copied!
+                </Snackbar>
               </View>
             )}
             messagesContainerStyle={[
@@ -844,18 +872,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
       />
-      {/* Add Snackbar */}
-      <Snackbar
-        visible={showSnackbar}
-        onDismiss={() => setShowSnackbar(false)}
-        action={{
-          label: 'Dismiss',
-          onPress: () => setShowSnackbar(false),
-        }}
-        style={{backgroundColor: 'rgba(49, 48, 51, 0.95)'}}
-        testID="copy-snackbar">
-        {copyMessage}
-      </Snackbar>
     </View>
   );
 };
@@ -1188,6 +1204,13 @@ const styles = StyleSheet.create({
   obscureIcon: {
     margin: 0,
     padding: 0,
+  },
+  snackbar: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    marginBottom: 8,
   },
 });
 
