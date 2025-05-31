@@ -50,13 +50,20 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
 
 export const addMatch = async (req: Request, res: Response, db: Database) => {
   try {
-    // In development mode, use the userId from params
+    // Get userId from either Firebase token or anonymous user header
     const userId =
       process.env.NODE_ENV === 'development'
         ? req.params.userId
-        : req.user?.uid;
+        : req.user?.uid || req.headers['x-anonymous-user'];
+
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
+    }
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
     }
 
     const {name, platform} = req.body;

@@ -9,7 +9,6 @@ import React, {
 import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
 import {useStoreState} from '../hooks/useStoreState';
 import * as authService from '../services/authService';
-import axiosInstance from '../services/axiosInstance';
 import * as matchService from '../services/matchService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
@@ -266,27 +265,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const addMatch = async (match: Match) => {
     try {
-      const userId = await authService.getUserId();
-      if (!userId) {
-        throw new Error('No user ID available');
+      const newMatch = await matchService.addMatch(match);
+      if (newMatch) {
+        setMatches(prev => [...prev, newMatch]);
       }
-      const {data} = await axiosInstance.post(
-        `/api/users/${userId}/matches`,
-        match,
-      );
-      setMatches(prevMatches => [...prevMatches, data]);
-      logger.app.info('Match Added', {
-        event: 'add_match',
-        matchId: data.id,
-        userId,
-      });
+      return newMatch;
     } catch (error) {
-      logger.app.error('Add Match Error', {
-        event: 'add_match_error',
-        userId,
-        error: error instanceof Error ? error.message : error,
-      });
-      throw error;
+      console.error('Error adding match:', error);
+      return null;
     }
   };
 

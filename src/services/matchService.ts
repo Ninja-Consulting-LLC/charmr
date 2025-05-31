@@ -1,5 +1,4 @@
 import {config} from '../config/config';
-import {getAuthToken} from '../config/firebase';
 import {ID} from '../types';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
@@ -16,21 +15,48 @@ const logRequest = (method: string, url: string, body: any = null) => {
   });
 };
 
-// Helper to get auth headers
-const getAuthHeaders = async () => {
+// Helper to verify user exists
+const verifyUser = async (userId: string): Promise<boolean> => {
   try {
-    // Try to get Firebase token first
-    const token = await getAuthToken();
-    return {
-      Authorization: `Bearer ${token}`,
-    };
+    const response = await axiosInstance.get(`/api/users/${userId}`);
+    return response.status === 200;
   } catch (error) {
-    // If Firebase auth fails, use anonymous user ID
-    const userId = await getUserId();
-    return {
-      'X-Anonymous-User': userId,
-    };
+    console.log(
+      '[AUTH] User verification failed:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
+    return false;
   }
+};
+
+// Helper to ensure user exists
+const ensureUserExists = async (userId: string): Promise<boolean> => {
+  try {
+    // First try to get the user
+    const response = await axiosInstance.get(`/api/users/${userId}`);
+    if (response.status === 200) {
+      console.log('[AUTH] User exists:', userId);
+      return true;
+    }
+  } catch (error) {
+    console.log('[AUTH] User does not exist, creating:', userId);
+    try {
+      // Create the user
+      const createResponse = await axiosInstance.post('/api/users', {
+        id: userId,
+        name: 'Anonymous User',
+        installationId: userId, // Use the same ID as installation ID for anonymous users
+      });
+      return createResponse.status === 201;
+    } catch (createError) {
+      console.log(
+        '[AUTH] Failed to create user:',
+        createError instanceof Error ? createError.message : 'Unknown error',
+      );
+      return false;
+    }
+  }
+  return false;
 };
 
 export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
@@ -183,5 +209,41 @@ export const updateMatchLastUsed = async (
       platform,
     });
     return false;
+  }
+};
+
+export const addMatch = async (
+  matchOrName: Match | string,
+  platform?: string,
+): Promise<Match | null> => {
+  try {
+    const matchData =
+      typeof matchOrName === 'string'
+        ? {name: matchOrName, platform}
+        : matchOrName;
+
+    const userId = await getUserId();
+    if (!userId) {
+      console.log('[AUTH] No user ID found when adding match');
+      return null;
+    }
+
+    // Ensure user exists first
+    const userExists = await ensureUserExists(userId);
+    if (!userExists) {
+      console.log('[AUTH] Failed to ensure user exists:', userId);
+      return null;
+    }
+
+    console.log('[AUTH] Adding match for user:', userId);
+    const response = await axiosInstance.post(
+      `/api/users/${userId}/matches`,
+      matchData,
+    );
+    console.log('[AUTH] Successfully added match');
+    return response.data;
+  } catch (error) {
+    console.error('Error adding match:', error);
+    return null;
   }
 };

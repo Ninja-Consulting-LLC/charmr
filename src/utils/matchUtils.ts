@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../services/axiosInstance';
+import {addMatch as addMatchService} from '../services/matchService';
 import {ID} from '../types';
 import {logger} from './logger';
 
@@ -66,29 +67,7 @@ export const addMatch = async (
   name: string,
   platform: string,
 ): Promise<Match | null> => {
-  try {
-    const userId = await AsyncStorage.getItem('userId');
-    if (!userId) {
-      logger.match.error('No user ID found when adding match');
-      return null;
-    }
-
-    logger.match.debug('Adding match', {name, platform});
-    const response = await axiosInstance.post(`/api/users/${userId}/matches`, {
-      name,
-      platform,
-    });
-    logger.match.debug('Added match', {match: response.data});
-    return response.data;
-  } catch (error) {
-    logger.match.error('Error adding match', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
-    });
-    return null;
-  }
+  return addMatchService(name, platform);
 };
 
 export const hideMatch = async (

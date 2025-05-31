@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getInstallations} from '@react-native-firebase/installations';
 import axios, {AxiosHeaders} from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
@@ -21,43 +22,93 @@ const getAuthHeaders = async () => {
     // Try to get Firebase token first
     const token = await getAuthToken();
     if (token) {
-      logger.app.debug('Using Firebase token for authentication');
+      console.log('[AUTH] Using Firebase token for authentication');
       return {
         Authorization: `Bearer ${token}`,
       };
     }
+    console.log('[AUTH] No Firebase token available');
   } catch (error) {
-    logger.app.debug('Firebase token not available, falling back to user ID');
+    console.log(
+      '[AUTH] Firebase token error:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
   }
 
   // If Firebase auth fails, try to get user ID
   try {
     const userId = await getUserId();
     if (userId) {
-      logger.app.debug('Using user ID for authentication', {userId});
+      console.log('[AUTH] Using user ID for authentication:', userId);
       // Store the user ID in AsyncStorage to ensure consistency
       await AsyncStorage.setItem('@charmr/userId', userId);
       return {
         'X-Anonymous-User': userId,
       };
     }
+    console.log('[AUTH] No user ID available from getUserId');
   } catch (error) {
-    logger.app.debug('No user ID available, falling back to installation ID');
+    console.log(
+      '[AUTH] getUserId error:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
   }
 
   // If all else fails, use installation ID directly
   try {
     const installationId = await installationService.getInstallationId();
-    logger.app.debug('Using installation ID for authentication', {
+    if (!installationId) {
+      console.log('[AUTH] No installation ID available');
+      throw new Error('No installation ID available');
+    }
+
+    console.log(
+      '[AUTH] Using installation ID for authentication:',
       installationId,
-    });
+    );
+
     // Store the installation ID as the user ID for consistency
     await AsyncStorage.setItem('@charmr/userId', installationId);
+
+    // Ensure we have a valid installation ID
+    if (installationId.length < 10) {
+      console.log('[AUTH] Invalid installation ID format:', installationId);
+      throw new Error('Invalid installation ID format');
+    }
+
     return {
       'X-Anonymous-User': installationId,
     };
   } catch (error) {
-    logger.app.error('No authentication method available');
+    console.log(
+      '[AUTH] Installation ID error:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
+
+    // If we get here, we have no valid authentication method
+    // Try to get a fresh installation ID as a last resort
+    try {
+      const freshInstallationId = await getInstallations().getId();
+      if (freshInstallationId) {
+        console.log(
+          '[AUTH] Using fresh installation ID as last resort:',
+          freshInstallationId,
+        );
+        await AsyncStorage.setItem('@charmr/userId', freshInstallationId);
+        return {
+          'X-Anonymous-User': freshInstallationId,
+        };
+      }
+    } catch (lastResortError) {
+      console.log(
+        '[AUTH] Failed to get fresh installation ID:',
+        lastResortError instanceof Error
+          ? lastResortError.message
+          : 'Unknown error',
+      );
+    }
+
+    console.log('[AUTH] No authentication method available');
     return {};
   }
 };
@@ -65,18 +116,39 @@ const getAuthHeaders = async () => {
 // Add request interceptor to add auth headers to all requests
 axiosInstance.interceptors.request.use(
   async config => {
-    const headers = await getAuthHeaders();
-    const axiosHeaders = new AxiosHeaders(config.headers);
+    try {
+      const headers = await getAuthHeaders();
+      console.log('[AUTH] Got auth headers:', headers);
 
-    // Add auth headers
-    Object.entries(headers).forEach(([key, value]) => {
-      axiosHeaders.set(key, value);
-    });
+      // Set headers directly on config
+      if (config.headers) {
+        Object.entries(headers).forEach(([key, value]) => {
+          if (typeof key === 'string' && typeof value === 'string') {
+            config.headers[key] = value;
+          }
+        });
+      }
 
-    config.headers = axiosHeaders;
-    return config;
+      console.log('[AUTH] Final request config:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+      });
+
+      return config;
+    } catch (error) {
+      console.log(
+        '[AUTH] Error in request interceptor:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+      return config;
+    }
   },
   error => {
+    console.log(
+      '[AUTH] Request interceptor error:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     return Promise.reject(error);
   },
 );

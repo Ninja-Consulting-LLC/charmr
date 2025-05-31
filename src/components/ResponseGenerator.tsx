@@ -140,7 +140,6 @@ const ResponseGenerator = forwardRef<
     try {
       const newMatch = await addMatchUtil(name, platform);
       if (newMatch) {
-        addMatchToStore(newMatch);
         await loadMatches(); // Reload matches to ensure UI is in sync
       }
     } catch (error) {
