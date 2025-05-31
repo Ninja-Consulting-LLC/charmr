@@ -17,7 +17,6 @@ export class FirestoreMatchRepository {
   async getMatches(userId: string): Promise<Match[]> {
     try {
       const snapshot = await this.getMatchesCollection(userId)
-        .where('hidden', '==', false)
         .orderBy('lastUsed', 'desc')
         .get();
 
@@ -60,10 +59,7 @@ export class FirestoreMatchRepository {
     }
   }
 
-  async addMatch(
-    userId: string,
-    match: Omit<Match, 'id'> & {id?: string},
-  ): Promise<Match> {
+  async addMatch(userId: string, match: Omit<Match, 'id'>): Promise<Match> {
     try {
       // First check if user exists
       const userDoc = await this.db.collection('users').doc(userId).get();
@@ -71,13 +67,7 @@ export class FirestoreMatchRepository {
         throw new Error(`User ${userId} does not exist`);
       }
 
-      let docRef;
-      if (match.id) {
-        docRef = this.getMatchesCollection(userId).doc(match.id);
-        await docRef.set(match);
-      } else {
-        docRef = await this.getMatchesCollection(userId).add(match);
-      }
+      const docRef = await this.getMatchesCollection(userId).add(match);
       const doc = await docRef.get();
       const data = doc.data() as Omit<Match, 'id'>;
       return {
@@ -124,15 +114,34 @@ export class FirestoreMatchRepository {
 
   async hideMatch(userId: string, matchId: ID): Promise<void> {
     try {
+      logger.info('Attempting to hide match in Firestore', {userId, matchId});
       const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
+
+      // Check if document exists before updating
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        logger.error('Match not found in Firestore', {userId, matchId});
+        throw new Error('Match not found');
+      }
+
+      logger.info('Found match in Firestore, updating hidden flag', {
+        userId,
+        matchId,
+        currentData: doc.data(),
+      });
+
       await docRef.update({
         hidden: true,
         updatedAt: new Date().toISOString(),
       });
+
+      logger.info('Successfully updated match in Firestore', {userId, matchId});
     } catch (error) {
       logger.error('Failed to hide match in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        matchId,
       });
       throw error;
     }
@@ -140,15 +149,40 @@ export class FirestoreMatchRepository {
 
   async restoreMatch(userId: string, matchId: ID): Promise<void> {
     try {
+      logger.info('Attempting to restore match in Firestore', {
+        userId,
+        matchId,
+      });
       const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
+
+      // Check if document exists before updating
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        logger.error('Match not found in Firestore', {userId, matchId});
+        throw new Error('Match not found');
+      }
+
+      logger.info('Found match in Firestore, updating hidden flag', {
+        userId,
+        matchId,
+        currentData: doc.data(),
+      });
+
       await docRef.update({
         hidden: false,
         updatedAt: new Date().toISOString(),
+      });
+
+      logger.info('Successfully restored match in Firestore', {
+        userId,
+        matchId,
       });
     } catch (error) {
       logger.error('Failed to restore match in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        matchId,
       });
       throw error;
     }

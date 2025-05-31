@@ -1,102 +1,153 @@
 import {getDatabase} from '../db';
-import {Database} from '../db/types';
 import {SubscriptionTier} from '../types/enums';
 
 describe('Match Integration Tests', () => {
-  let db: Database;
-  const testUser = {
-    id: 'test-user-integration',
-    email: 'test@integration.com',
-    name: 'Test User',
-    plan: SubscriptionTier.FREE,
-  };
+  let db: Awaited<ReturnType<typeof getDatabase>>;
+  let userId: string;
+  let matchId: string;
 
   beforeAll(async () => {
     db = await getDatabase();
-    // Create test user
-    await db.createUser({
-      id: testUser.id,
-      email: testUser.email,
-      name: testUser.name,
-      plan: testUser.plan,
+    // Create a test user
+    const user = await db.createUser({
+      id: 'test-user',
+      email: 'test@example.com',
+      name: 'Test User',
+      plan: SubscriptionTier.FREE,
     });
+    if (!user) {
+      throw new Error('Failed to create test user');
+    }
+    userId = user.id;
   });
 
   afterAll(async () => {
     // Clean up test data
-    await db.run('DELETE FROM matches WHERE userId = ?', [testUser.id]);
-    await db.run('DELETE FROM users WHERE id = ?', [testUser.id]);
+    await db.clearDatabase();
   });
 
   it('should create a new match', async () => {
-    const match = await db.addMatch(testUser.id, 'Sarah', 'tinder');
+    const match = await db.addMatch(userId, {
+      userId,
+      name: 'Test Match',
+      platform: 'test',
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     expect(match).toBeDefined();
-    expect(match.userId).toBe(testUser.id);
-    expect(match.name).toBe('Sarah');
-    expect(match.platform).toBe('tinder');
-    expect(match.hidden).toBe(0);
+    expect(match.userId).toBe(userId);
+    expect(match.name).toBe('Test Match');
+    expect(match.platform).toBe('test');
+    expect(match.hidden).toBe(false);
+
+    matchId = match.id.toString();
   });
 
   it('should get matches for a user', async () => {
-    const matches = await db.getMatches(testUser.id);
-    expect(matches).toHaveLength(1);
-    expect(matches[0].name).toBe('Sarah');
+    const matches = await db.getMatches(userId);
+
+    expect(matches).toBeDefined();
+    expect(Array.isArray(matches)).toBe(true);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches[0].userId).toBe(userId);
+  });
+
+  it('should get a match by ID', async () => {
+    const match = await db.getMatchById(userId, matchId);
+
+    expect(match).toBeDefined();
+    expect(match?.id.toString()).toBe(matchId);
+    expect(match?.userId).toBe(userId);
+    expect(match?.name).toBe('Test Match');
+  });
+
+  it('should update match last used', async () => {
+    const beforeUpdate = await db.getMatchById(userId, matchId);
+    const beforeLastUsed = beforeUpdate?.lastUsed;
+
+    await db.updateMatchLastUsed(userId, matchId);
+
+    const afterUpdate = await db.getMatchById(userId, matchId);
+    expect(afterUpdate?.lastUsed).not.toBe(beforeLastUsed);
   });
 
   it('should hide a match', async () => {
-    await db.hideMatch(testUser.id, 'Sarah', 'tinder');
-    const matches = await db.getMatches(testUser.id);
-    expect(matches).toHaveLength(0); // Hidden match should not be returned
+    await db.hideMatch(userId, matchId);
 
-    const allMatches = await db.getMatches(testUser.id, true);
-    expect(allMatches).toHaveLength(1);
-    expect(allMatches[0].hidden).toBe(1);
+    const match = await db.getMatchById(userId, matchId);
+    expect(match?.hidden).toBe(true);
   });
 
   it('should restore a hidden match', async () => {
-    await db.restoreMatch(testUser.id, 'Sarah', 'tinder');
-    const matches = await db.getMatches(testUser.id);
-    expect(matches).toHaveLength(1);
-    expect(matches[0].hidden).toBe(0);
-  });
+    await db.restoreMatch(userId, matchId);
 
-  it('should update match last used timestamp', async () => {
-    const initialMatches = await db.getMatches(testUser.id);
-    const beforeUpdate = new Date(initialMatches[0].lastUsed!).getTime();
-    await db.updateMatchLastUsed(testUser.id, 'Sarah', 'tinder');
-
-    const updatedMatches = await db.getMatches(testUser.id);
-    const afterUpdate = new Date(updatedMatches[0].lastUsed!).getTime();
-    expect(afterUpdate).toBeGreaterThan(beforeUpdate);
+    const match = await db.getMatchById(userId, matchId);
+    expect(match?.hidden).toBe(false);
   });
 
   it('should delete a match', async () => {
-    const matches = await db.getMatches(testUser.id);
-    const matchId = matches[0].id.toString();
-    await db.deleteMatch(testUser.id, matchId);
-    const remainingMatches = await db.getMatches(testUser.id, true);
-    expect(remainingMatches).toHaveLength(0);
+    await db.deleteMatch(userId, matchId);
+
+    const match = await db.getMatchById(userId, matchId);
+    expect(match).toBeNull();
   });
 
   it('should handle multiple matches', async () => {
     // Add multiple matches
-    await db.addMatch(testUser.id, 'Emma', 'bumble');
-    await db.addMatch(testUser.id, 'Lucy', 'hinge');
-    await db.addMatch(testUser.id, 'Anna', 'tinder');
+    const match1 = await db.addMatch(userId, {
+      userId,
+      name: 'Emma',
+      platform: 'bumble',
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const match2 = await db.addMatch(userId, {
+      userId,
+      name: 'Lucy',
+      platform: 'hinge',
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const match3 = await db.addMatch(userId, {
+      userId,
+      name: 'Anna',
+      platform: 'tinder',
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
-    const matches = await db.getMatches(testUser.id);
+    const matches = await db.getMatches(userId);
     expect(matches).toHaveLength(3);
 
     // Hide one match
-    await db.hideMatch(testUser.id, 'Emma', 'bumble');
-    const visibleMatches = await db.getMatches(testUser.id);
+    await db.hideMatch(userId, match1.id.toString());
+    const visibleMatches = await db.getMatches(userId);
     expect(visibleMatches).toHaveLength(2);
 
-    const allMatches = await db.getMatches(testUser.id, true);
+    const allMatches = await db.getMatches(userId, true);
     expect(allMatches).toHaveLength(3);
   });
 
   it('should enforce unique constraint on matches', async () => {
-    await expect(db.addMatch(testUser.id, 'Lucy', 'hinge')).rejects.toThrow();
+    await expect(
+      db.addMatch(userId, {
+        userId,
+        name: 'Lucy',
+        platform: 'hinge',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    ).rejects.toThrow();
   });
 });

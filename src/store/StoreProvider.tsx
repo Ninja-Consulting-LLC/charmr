@@ -285,6 +285,12 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
       await userService.linkAnonymousUser(userId, registeredUserId);
 
+      // Fetch the updated user profile after linking
+      const updatedUser = await userService.getUserProfile(registeredUserId);
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+
       // Update local state
       setUserId(registeredUserId);
       await AsyncStorage.setItem('userId', registeredUserId);

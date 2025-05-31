@@ -1,16 +1,17 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {Request, Response} from 'express';
-import {createUser} from '../controllers/adminController';
 import {
   addMatch,
+  deleteMatch,
   getMatches,
+  hideMatch,
+  restoreMatch,
   updateMatchLastUsed,
 } from '../controllers/matchController';
 import {getDatabase} from '../db';
-import {SubscriptionTier} from '../types/enums';
 
 describe('Match Domain', () => {
-  let db: any;
+  let db: Awaited<ReturnType<typeof getDatabase>>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let responseObject: any;
@@ -20,9 +21,7 @@ describe('Match Domain', () => {
     db = await getDatabase();
 
     // Clean up any existing test data first
-    await db.run('DELETE FROM messages WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM matches WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM users WHERE id = ?', 'test-user-123');
+    await db.clearDatabase();
 
     // Setup mock request
     mockRequest = {
@@ -43,35 +42,28 @@ describe('Match Domain', () => {
     };
 
     // Create test user
-    const user = await createUser(db, {
+    await db.createUser({
       id: 'test-user-123',
       email: 'test@example.com',
       name: 'Test User',
-      plan: SubscriptionTier.PRO,
     });
-
-    if (!user) {
-      throw new Error('Failed to create test user');
-    }
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await db.run('DELETE FROM matches WHERE userId = ?', 'test-user-123');
-    await db.run('DELETE FROM users WHERE id = ?', 'test-user-123');
+    await db.clearDatabase();
   });
 
   describe('Match Creation', () => {
     it('should create a new match successfully', async () => {
-      const match = await addMatch(db, {
-        userId: 'test-user-123',
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(responseObject).toMatchObject({
         name: 'Test Match',
         platform: 'test-platform',
       });
 
-      expect(match).toBeTruthy();
-      expect(match?.id).toBeTruthy();
-      matchId = match?.id.toString() || '';
+      matchId = responseObject.id;
 
       // Update last used
       const updateMatchReq = {
@@ -108,48 +100,35 @@ describe('Match Domain', () => {
     });
 
     it('should handle invalid match data', async () => {
-      const match = await addMatch(db, {
-        userId: 'test-user-123',
+      mockRequest.body = {
         name: '',
         platform: '',
-      });
+      };
 
-      expect(match).toBeNull();
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(responseObject).toHaveProperty('error');
     });
 
     it('should prevent duplicate matches', async () => {
       // First match
-      const match = await addMatch(db, {
-        userId: 'test-user-123',
-        name: 'Test Match',
-        platform: 'test-platform',
-      });
-
-      expect(match).toBeTruthy();
-      matchId = match?.id.toString() || '';
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      matchId = responseObject.id;
 
       // Try to create duplicate
-      const duplicateMatch = await addMatch(db, {
-        userId: 'test-user-123',
-        name: 'Test Match',
-        platform: 'test-platform',
-      });
-
-      expect(duplicateMatch).toBeNull();
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(responseObject).toHaveProperty('error');
     });
   });
 
   describe('Match Status Updates', () => {
     it('should update match status correctly', async () => {
       // First create a match
-      const match = await addMatch(db, {
-        userId: 'test-user-123',
-        name: 'Test Match',
-        platform: 'test-platform',
-      });
-
-      expect(match).toBeTruthy();
-      matchId = match?.id.toString() || '';
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      matchId = responseObject.id;
 
       // Update last used
       const updateMatchReq = {
@@ -203,14 +182,9 @@ describe('Match Domain', () => {
   describe('Match Interactions', () => {
     it('should process match interactions correctly', async () => {
       // First create a match
-      const match = await addMatch(db, {
-        userId: 'test-user-123',
-        name: 'Test Match',
-        platform: 'test-platform',
-      });
-
-      expect(match).toBeTruthy();
-      matchId = match?.id.toString() || '';
+      await addMatch(mockRequest as Request, mockResponse as Response, db);
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      matchId = responseObject.id;
 
       // Get matches
       const getMatchesReq = {
@@ -243,6 +217,249 @@ describe('Match Domain', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(responseObject).toHaveProperty('error', 'User not found');
+    });
+  });
+});
+
+describe('Match Controller', () => {
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let db: Awaited<ReturnType<typeof getDatabase>>;
+
+  beforeEach(async () => {
+    db = await getDatabase();
+    mockReq = {
+      params: {},
+      body: {},
+      user: {id: 'test-user'},
+    };
+    mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+  });
+
+  afterEach(async () => {
+    await db.clearDatabase();
+  });
+
+  describe('getMatches', () => {
+    it('should return 404 if user not found', async () => {
+      mockReq.params = {userId: 'non-existent'};
+      await getMatches(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
+    });
+
+    it('should return matches for a user', async () => {
+      // Create a test user
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      // Add a test match
+      const match = await db.addMatch('test-user', {
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockReq.params = {userId: 'test-user'};
+      await getMatches(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(200);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toEqual([match]);
+    });
+  });
+
+  describe('addMatch', () => {
+    it('should return 401 if not authenticated', async () => {
+      mockReq.user = undefined;
+      await addMatch(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'Unauthorized'});
+    });
+
+    it('should return 400 if name or platform is missing', async () => {
+      mockReq.body = {};
+      await addMatch(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: 'Name and platform are required',
+      });
+    });
+
+    it('should add a match successfully', async () => {
+      mockReq.body = {
+        name: 'Test Match',
+        platform: 'test',
+      };
+
+      await addMatch(mockReq as Request, mockRes as Response, db);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toMatchObject({
+        name: 'Test Match',
+        platform: 'test',
+      });
+    });
+  });
+
+  describe('updateMatchLastUsed', () => {
+    it('should return 404 if user not found', async () => {
+      mockReq.params = {userId: 'non-existent'};
+      mockReq.body = {matchId: '123'};
+      await updateMatchLastUsed(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
+    });
+
+    it('should update match last used successfully', async () => {
+      // Create a test user
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      // Add a test match
+      const match = await db.addMatch('test-user', {
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockReq.params = {userId: 'test-user'};
+      mockReq.body = {matchId: match.id.toString()};
+      await updateMatchLastUsed(mockReq as Request, mockRes as Response, db);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toEqual({
+        message: 'Match updated successfully',
+      });
+    });
+  });
+
+  describe('deleteMatch', () => {
+    it('should return 404 if user not found', async () => {
+      mockReq.params = {userId: 'non-existent', matchId: '123'};
+      await deleteMatch(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
+    });
+
+    it('should delete match successfully', async () => {
+      // Create a test user
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      // Add a test match
+      const match = await db.addMatch('test-user', {
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockReq.params = {
+        userId: 'test-user',
+        matchId: match.id.toString(),
+      };
+      await deleteMatch(mockReq as Request, mockRes as Response, db);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toEqual({
+        message: 'Match deleted successfully',
+      });
+    });
+  });
+
+  describe('hideMatch', () => {
+    it('should return 404 if user not found', async () => {
+      mockReq.params = {userId: 'non-existent'};
+      mockReq.body = {matchId: '123'};
+      await hideMatch(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
+    });
+
+    it('should hide match successfully', async () => {
+      // Create a test user
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      // Add a test match
+      const match = await db.addMatch('test-user', {
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockReq.params = {userId: 'test-user'};
+      mockReq.body = {matchId: match.id.toString()};
+      await hideMatch(mockReq as Request, mockRes as Response, db);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toEqual({
+        message: 'Match hidden successfully',
+      });
+    });
+  });
+
+  describe('restoreMatch', () => {
+    it('should return 404 if user not found', async () => {
+      mockReq.params = {userId: 'non-existent'};
+      mockReq.body = {matchId: '123'};
+      await restoreMatch(mockReq as Request, mockRes as Response, db);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
+    });
+
+    it('should restore match successfully', async () => {
+      // Create a test user
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+
+      // Add a test match
+      const match = await db.addMatch('test-user', {
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+        lastUsed: new Date().toISOString(),
+        hidden: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockReq.params = {userId: 'test-user'};
+      mockReq.body = {matchId: match.id.toString()};
+      await restoreMatch(mockReq as Request, mockRes as Response, db);
+      const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(responseData).toEqual({
+        message: 'Match restored successfully',
+      });
     });
   });
 });

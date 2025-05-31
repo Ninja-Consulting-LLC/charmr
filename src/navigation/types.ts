@@ -7,6 +7,8 @@ export type RootStackParamList = {
   Onboarding: undefined;
   DevMenu: undefined;
   Admin: undefined;
+  Terms: undefined;
+  Privacy: undefined;
   CoachChat: {
     match: Match;
     debugMatchId?: string;

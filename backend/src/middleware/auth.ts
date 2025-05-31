@@ -69,12 +69,24 @@ export const authenticateUser = async (
       // Add the decoded token to the request for use in route handlers
       req.user = decodedToken;
 
+      // If this is a linking request, allow both anonymous and Firebase auth
+      if (req.path === '/api/users/link' && req.method === 'POST') {
+        logger.debug('Linking request detected, allowing both auth methods', {
+          path: req.path,
+          method: req.method,
+          url: req.url,
+          uid: decodedToken.uid,
+        });
+        return next();
+      }
+
       logger.debug('Firebase token verified', {
         path: req.path,
         method: req.method,
         url: req.url,
         uid: decodedToken.uid,
       });
+      return next();
     } catch (error) {
       logger.warn('Invalid Firebase token', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -86,6 +98,28 @@ export const authenticateUser = async (
     }
   } else {
     // If using anonymous user ID, verify it exists in the database
+    // For linking requests, we need to verify the anonymous user exists
+    if (req.path === '/api/users/link' && req.method === 'POST') {
+      const anonymousUserId = req.body.anonymousUserId;
+      if (!anonymousUserId) {
+        logger.warn('Missing anonymous user ID for linking request', {
+          path: req.path,
+          method: req.method,
+          url: req.url,
+        });
+        return res
+          .status(401)
+          .json({error: 'Anonymous user ID required for linking'});
+      }
+      logger.debug('Anonymous user ID present for linking', {
+        path: req.path,
+        method: req.method,
+        url: req.url,
+        anonymousUserId,
+      });
+      return next();
+    }
+
     logger.debug('Anonymous user ID present, proceeding', {
       path: req.path,
       method: req.method,

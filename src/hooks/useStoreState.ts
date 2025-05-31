@@ -88,7 +88,15 @@ export const useStoreState = (skipInitialization = false) => {
 
   const handleGoogleLogin = async (firebaseUser: any) => {
     try {
-      logger.auth.info('🔐 Starting Google login process...');
+      logger.auth.info('🔐 Starting Google login process...', {
+        firebaseUser: {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          providerId: firebaseUser.providerId,
+          isAnonymous: firebaseUser.isAnonymous,
+        },
+      });
 
       // Get the installation ID directly from the service
       const installationId = await installationService.getInstallationId();
@@ -97,39 +105,12 @@ export const useStoreState = (skipInitialization = false) => {
       // Ensure we have a valid Firebase token before proceeding
       const token = await getAuthToken();
       if (!token) {
+        logger.auth.error('Failed to get Firebase token after login');
         throw new Error('Failed to get Firebase token after login');
       }
+      logger.auth.info('Successfully obtained Firebase token');
 
-      // First check if this Firebase user already exists in our backend
-      try {
-        const existingUser = await userService.getUserProfile(firebaseUser.uid);
-        if (existingUser) {
-          logger.auth.info('Found existing user, updating local state', {
-            userId: firebaseUser.uid,
-            email: firebaseUser.email,
-          });
-
-          // Update local state with the existing user
-          setUserId(firebaseUser.uid);
-          await AsyncStorage.setItem('userId', firebaseUser.uid);
-          setUser(existingUser);
-          setIsAuthenticated(true);
-          await AsyncStorage.setItem('isAuthenticated', 'true');
-          logger.app.info('Google Login Success', {
-            event: 'google_login_success',
-            userId: firebaseUser.uid,
-            email: firebaseUser.email,
-          });
-          return;
-        }
-      } catch (error) {
-        // If user not found, continue with the flow
-        logger.auth.info(
-          'No existing user found, continuing with creation/linking',
-        );
-      }
-
-      // Check if there's an anonymous user with this installation ID
+      // First, check if there's an anonymous user with this installation ID
       let anonymousUser = null;
       try {
         logger.auth.info(
@@ -145,6 +126,13 @@ export const useStoreState = (skipInitialization = false) => {
         logger.auth.info('Anonymous user search result', {
           found: !!anonymousUser,
           anonymousUserId: anonymousUser?.id,
+          anonymousUserData: anonymousUser
+            ? {
+                id: anonymousUser.id,
+                email: anonymousUser.email,
+                installationId: anonymousUser.installationId,
+              }
+            : null,
           installationId,
         });
       } catch (error) {
@@ -153,116 +141,145 @@ export const useStoreState = (skipInitialization = false) => {
           stack: error instanceof Error ? error.stack : undefined,
           installationId,
         });
-        // Continue with user creation if we can't find the anonymous user
       }
 
-      if (anonymousUser) {
-        logger.auth.info(
-          'Found anonymous user, attempting to link with registered user',
-          {
-            anonymousUserId: anonymousUser.id,
-            registeredUserId: firebaseUser.uid,
-            anonymousUserEmail: anonymousUser.email,
-            registeredUserEmail: firebaseUser.email,
-            installationId,
-          },
-        );
-
-        try {
-          await userService.linkUsers(anonymousUser.id, firebaseUser.uid);
-          logger.auth.info('Successfully linked anonymous user', {
-            anonymousUserId: anonymousUser.id,
-            registeredUserId: firebaseUser.uid,
-            installationId,
-          });
-
-          // Update local state with the linked user
-          setUserId(firebaseUser.uid);
-          await AsyncStorage.setItem('userId', firebaseUser.uid);
-          setIsAuthenticated(true);
-          await AsyncStorage.setItem('isAuthenticated', 'true');
-          logger.app.info('Google Login Success', {
-            event: 'google_login_success',
-            userId: firebaseUser.uid,
-            email: firebaseUser.email,
-            wasAnonymous: true,
-            anonymousUserId: anonymousUser.id,
-          });
-          return;
-        } catch (error) {
-          logger.auth.error('Failed to link anonymous user:', {
-            error: error instanceof Error ? error.message : error,
-            stack: error instanceof Error ? error.stack : undefined,
-            anonymousUserId: anonymousUser.id,
-            registeredUserId: firebaseUser.uid,
-            installationId,
-          });
-          // Continue with user creation if linking fails
-        }
-      }
-
-      // Create a new user in our backend with Firebase user info
-      logger.auth.info('👤 Creating new user...', {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        name: firebaseUser.displayName,
-      });
-
-      let newUser;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (retryCount < maxRetries) {
-        try {
-          newUser = await userService.createUser({
-            id: firebaseUser.uid,
-            email: firebaseUser.email || `${firebaseUser.uid}@example.com`,
-            name: firebaseUser.displayName || `User ${firebaseUser.uid}`,
-            installationId,
-          });
-          break;
-        } catch (error) {
-          retryCount++;
-          if (retryCount === maxRetries) {
-            throw error;
-          }
-          logger.auth.warn(`Retry ${retryCount} creating user...`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        }
-      }
-
-      if (!newUser) {
-        throw new Error('Failed to create user after retries');
-      }
-
-      // Verify the user was created by fetching their profile
-      try {
-        const verifiedUser = await userService.getUserProfile(firebaseUser.uid);
-        if (!verifiedUser) {
-          throw new Error('User creation verification failed');
-        }
-        newUser = verifiedUser;
-      } catch (error) {
-        logger.auth.error('Failed to verify user creation:', error);
-        throw new Error('Failed to verify user creation');
-      }
-
-      // Update local state with the new user
-      setUserId(firebaseUser.uid);
-      await AsyncStorage.setItem('userId', firebaseUser.uid);
-      setUser(newUser);
-      setIsAuthenticated(true);
-      await AsyncStorage.setItem('isAuthenticated', 'true');
-      logger.app.info('Google Login Success', {
-        event: 'google_login_success',
+      // Check if user exists in our backend
+      logger.auth.info('Checking if user exists in backend', {
         userId: firebaseUser.uid,
-        email: firebaseUser.email,
       });
+
+      let existingUser;
+      try {
+        existingUser = await userService.getUserProfile(firebaseUser.uid);
+      } catch (error: any) {
+        logger.app.error('API Response Error', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          response: error.response,
+        });
+        logger.app.error('Failed to get user profile:', error);
+      }
+
+      // If user exists, update local state
+      if (existingUser) {
+        logger.auth.info('Found existing user, updating local state', {
+          userId: firebaseUser.uid,
+          email: existingUser.email,
+          existingUserData: {
+            id: existingUser.id,
+            email: existingUser.email,
+            installationId: existingUser.installationId,
+          },
+        });
+
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('userId', firebaseUser.uid);
+        setUser(existingUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('isAuthenticated', 'true');
+        logger.app.info('Google Login Success', {
+          event: 'google_login_success',
+          userId: firebaseUser.uid,
+          email: firebaseUser.email,
+        });
+        return existingUser;
+      }
+
+      // If no existing user found, create one
+      if (!existingUser) {
+        logger.app.info('No existing user found, creating new user', {
+          firebaseUserId: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName,
+        });
+
+        // Create the registered user in our backend
+        const newUser = await userService.createUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: firebaseUser.displayName || 'User',
+          installationId,
+        });
+
+        logger.app.info('Created new registered user in backend', {
+          userId: newUser.id,
+          email: newUser.email,
+        });
+
+        // Now try to link if we found an anonymous user
+        if (anonymousUser && anonymousUser.id !== newUser.id) {
+          logger.app.info(
+            'Found anonymous user, attempting to link with newly created registered user',
+            {
+              anonymousUserId: anonymousUser.id,
+              registeredUserId: newUser.id,
+              anonymousUserEmail: anonymousUser.email,
+              registeredUserEmail: newUser.email,
+              installationId,
+              anonymousUserData: {
+                id: anonymousUser.id,
+                email: anonymousUser.email,
+                installationId: anonymousUser.installationId,
+              },
+            },
+          );
+
+          try {
+            // Link users in our backend
+            await userService.linkUsers(anonymousUser.id, newUser.id);
+            logger.app.info(
+              'Successfully linked anonymous user with newly created registered user in backend',
+              {
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+              },
+            );
+
+            // Fetch the updated user profile after linking
+            const updatedUser = await userService.getUserProfile(newUser.id);
+            if (updatedUser) {
+              setUser(updatedUser);
+            }
+          } catch (error) {
+            logger.app.error(
+              'Failed to link anonymous user with newly created registered user',
+              {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+                installationId,
+              },
+            );
+            throw new Error(
+              'Failed to link anonymous user with Google account. Please try again.',
+            );
+          }
+        }
+
+        // Update local state
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('userId', firebaseUser.uid);
+        setUser(newUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('isAuthenticated', 'true');
+
+        logger.app.info('Google Login Success', {
+          event: 'google_login_success',
+          userId: firebaseUser.uid,
+          email: firebaseUser.email,
+          wasAnonymous: !!anonymousUser,
+          anonymousUserId: anonymousUser?.id,
+        });
+
+        return newUser;
+      }
     } catch (error) {
       logger.app.error('Google Login Error', {
         event: 'google_login_error',
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
+        errorDetails: error,
       });
       throw error;
     }

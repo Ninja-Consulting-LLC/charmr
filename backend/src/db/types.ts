@@ -22,6 +22,8 @@ export interface User {
   extraMessages: number;
   lastResetDate: string;
   installationId?: string;
+  linkedFrom?: string;
+  linkedAt?: any;
 }
 
 export interface Message {
@@ -148,19 +150,11 @@ export interface Database {
     userId: string,
     matchId: number | string,
   ) => Promise<Match | null>;
-  addMatch: (userId: string, name: string, platform: string) => Promise<Match>;
-  updateMatchLastUsed: (
-    userId: string,
-    name: string,
-    platform: string,
-  ) => Promise<void>;
+  addMatch: (userId: string, match: Omit<Match, 'id'>) => Promise<Match>;
+  updateMatchLastUsed: (userId: string, matchId: string) => Promise<void>;
   deleteMatch: (userId: string, matchId: string) => Promise<void>;
-  hideMatch: (userId: string, name: string, platform: string) => Promise<void>;
-  restoreMatch: (
-    userId: string,
-    name: string,
-    platform: string,
-  ) => Promise<void>;
+  hideMatch: (userId: string, matchId: string) => Promise<void>;
+  restoreMatch: (userId: string, matchId: string) => Promise<void>;
   getConversationHistory: (
     userId: string,
     startDate?: string,
