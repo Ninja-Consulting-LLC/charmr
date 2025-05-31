@@ -206,7 +206,7 @@ struct StylePickerView: View {
                         controller.openUrl(url)
                     }
                 }) {
-                    Text("Take a screenshot & tap 'Open Charmr'")
+                    Text("Take a screenshot & tap 'Dating Coach'")
                         .foregroundColor(.white.opacity(0.7))
                 }
             }
@@ -231,7 +231,7 @@ struct CustomToolbar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Button("Open Charmr") {
+            Button("Dating Coach") {
                 if let url = URL(string: "charmr://open/screenshot") {
                     print("Opening app with URL:", url.absoluteString)
                     controller.openUrl(url)
