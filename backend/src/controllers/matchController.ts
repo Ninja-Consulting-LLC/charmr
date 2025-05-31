@@ -50,7 +50,11 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
 
 export const addMatch = async (req: Request, res: Response, db: Database) => {
   try {
-    const userId = req.user?.id;
+    // In development mode, use the userId from params
+    const userId =
+      process.env.NODE_ENV === 'development'
+        ? req.params.userId
+        : req.user?.uid;
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
     }
