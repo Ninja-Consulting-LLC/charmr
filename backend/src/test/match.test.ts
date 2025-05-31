@@ -9,6 +9,7 @@ import {
   updateMatchLastUsed,
 } from '../controllers/matchController';
 import {getDatabase} from '../db';
+import {SubscriptionTier} from '../types/enums';
 
 describe('Match Domain', () => {
   let db: Awaited<ReturnType<typeof getDatabase>>;
@@ -46,7 +47,76 @@ describe('Match Domain', () => {
       id: 'test-user-123',
       email: 'test@example.com',
       name: 'Test User',
+      plan: SubscriptionTier.FREE,
     });
+
+    // Create test match
+    const now = new Date().toISOString();
+    const matchData = {
+      userId: 'test-user-123',
+      name: 'Test Match',
+      platform: 'test-platform',
+      lastUsed: now,
+      hidden: false,
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const testMatch = await db.addMatch('test-user-123', matchData);
+
+    // Create another test match
+    const matchData2 = {
+      ...matchData,
+      name: 'Test Match 2',
+    };
+    const testMatch2 = await db.addMatch('test-user-123', matchData2);
+
+    // Create a hidden test match
+    const hiddenMatchData = {
+      ...matchData,
+      name: 'Hidden Match',
+      hidden: true,
+    };
+    const hiddenMatch = await db.addMatch('test-user-123', hiddenMatchData);
+
+    // Create test match for duplicate test
+    const duplicateMatchData = {
+      ...matchData,
+      name: 'Duplicate Match',
+    };
+    const duplicateMatch = await db.addMatch(
+      'test-user-123',
+      duplicateMatchData,
+    );
+
+    // Create test match for status update test
+    const statusMatchData = {
+      ...matchData,
+      name: 'Status Match',
+    };
+    const statusMatch = await db.addMatch('test-user-123', statusMatchData);
+
+    // Create test match for interaction test
+    const interactionMatchData = {
+      ...matchData,
+      name: 'Interaction Match',
+    };
+    const interactionMatch = await db.addMatch(
+      'test-user-123',
+      interactionMatchData,
+    );
+
+    // Create test match for hidden test
+    const hiddenTestMatchData = {
+      ...matchData,
+      name: 'Hidden Test Match',
+      hidden: true,
+    };
+    const hiddenTestMatch = await db.addMatch(
+      'test-user-123',
+      hiddenTestMatchData,
+    );
   });
 
   afterEach(async () => {
@@ -55,6 +125,17 @@ describe('Match Domain', () => {
 
   describe('Match Creation', () => {
     it('should create a new match successfully', async () => {
+      const now = new Date().toISOString();
+      mockRequest.body = {
+        name: 'Test Match',
+        platform: 'test-platform',
+        lastUsed: now,
+        hidden: false,
+        deleted: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       await addMatch(mockRequest as Request, mockResponse as Response, db);
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -103,6 +184,11 @@ describe('Match Domain', () => {
       mockRequest.body = {
         name: '',
         platform: '',
+        lastUsed: new Date().toISOString(),
+        hidden: false,
+        deleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       await addMatch(mockRequest as Request, mockResponse as Response, db);
@@ -111,6 +197,17 @@ describe('Match Domain', () => {
     });
 
     it('should prevent duplicate matches', async () => {
+      const now = new Date().toISOString();
+      mockRequest.body = {
+        name: 'Test Match',
+        platform: 'test-platform',
+        lastUsed: now,
+        hidden: false,
+        deleted: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+
       // First match
       await addMatch(mockRequest as Request, mockResponse as Response, db);
       expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -266,6 +363,7 @@ describe('Match Controller', () => {
         platform: 'test',
         lastUsed: new Date().toISOString(),
         hidden: false,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -334,6 +432,7 @@ describe('Match Controller', () => {
         platform: 'test',
         lastUsed: new Date().toISOString(),
         hidden: false,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -371,6 +470,7 @@ describe('Match Controller', () => {
         platform: 'test',
         lastUsed: new Date().toISOString(),
         hidden: false,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -411,6 +511,7 @@ describe('Match Controller', () => {
         platform: 'test',
         lastUsed: new Date().toISOString(),
         hidden: false,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -449,6 +550,7 @@ describe('Match Controller', () => {
         platform: 'test',
         lastUsed: new Date().toISOString(),
         hidden: true,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });

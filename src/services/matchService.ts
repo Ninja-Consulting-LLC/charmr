@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {config} from '../config/config';
 import {ID} from '../types';
 import {logger} from '../utils/logger';
@@ -61,11 +62,16 @@ const ensureUserExists = async (userId: string): Promise<boolean> => {
 
 export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
   try {
-    const userId = await getUserId();
+    const userId = await AsyncStorage.getItem('@charmr/userId');
+    if (!userId) {
+      logger.app.error('No user ID found when loading matches');
+      return [];
+    }
+
     logger.app.info('Loading matches for user', {
       userId,
       includeHidden,
-      apiBaseUrl: config.apiBaseUrl,
+      apiBaseUrl: axiosInstance.defaults.baseURL,
     });
 
     const {data} = await axiosInstance.get(`/api/users/${userId}/matches`, {
@@ -82,10 +88,8 @@ export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
     logger.app.error('Error loading matches:', {
       error: error?.message || 'Unknown error',
       stack: error?.stack,
-      response: error?.response?.data,
-      status: error?.response?.status,
     });
-    throw error;
+    return [];
   }
 };
 
@@ -121,12 +125,16 @@ export const deleteMatch = async (matchId: string): Promise<boolean> => {
       return false;
     }
 
-    logger.match.debug('Deleting match', {matchId});
-    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
-    logger.match.debug('Deleted match', {matchId});
+    logger.match.debug('Soft deleting match', {matchId});
+    // Update the match to set deleted flag instead of actually deleting
+    await axiosInstance.put(`/api/users/${userId}/matches/${matchId}`, {
+      deleted: true,
+      updatedAt: new Date().toISOString(),
+    });
+    logger.match.debug('Soft deleted match', {matchId});
     return true;
   } catch (error) {
-    logger.match.error('Error deleting match', {
+    logger.match.error('Error soft deleting match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       matchId,

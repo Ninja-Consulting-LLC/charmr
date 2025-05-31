@@ -33,6 +33,7 @@ describe('Match Integration Tests', () => {
       platform: 'test',
       lastUsed: new Date().toISOString(),
       hidden: false,
+      deleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -103,6 +104,7 @@ describe('Match Integration Tests', () => {
       platform: 'bumble',
       lastUsed: new Date().toISOString(),
       hidden: false,
+      deleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -112,6 +114,7 @@ describe('Match Integration Tests', () => {
       platform: 'hinge',
       lastUsed: new Date().toISOString(),
       hidden: false,
+      deleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -121,6 +124,7 @@ describe('Match Integration Tests', () => {
       platform: 'tinder',
       lastUsed: new Date().toISOString(),
       hidden: false,
+      deleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -145,6 +149,7 @@ describe('Match Integration Tests', () => {
         platform: 'hinge',
         lastUsed: new Date().toISOString(),
         hidden: false,
+        deleted: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }),

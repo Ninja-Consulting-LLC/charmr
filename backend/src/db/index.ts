@@ -130,8 +130,8 @@ export const getDatabase = async (): Promise<Database> => {
         },
 
         // Match operations
-        getMatches: async (userId: string) => {
-          return matchRepository!.getMatches(userId);
+        getMatches: async (userId: string, includeHidden?: boolean) => {
+          return matchRepository!.getMatches(userId, includeHidden);
         },
         getMatchById: async (userId: string, matchId: ID) => {
           return matchRepository!.getMatchById(userId, matchId);

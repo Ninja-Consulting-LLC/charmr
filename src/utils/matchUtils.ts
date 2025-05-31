@@ -6,12 +6,14 @@ import {logger} from './logger';
 
 export interface Match {
   id: ID;
+  userId: string;
   name: string;
   platform: string;
-  lastUsed?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  hidden?: boolean;
+  lastUsed: string;
+  hidden: boolean;
+  deleted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const getMatchKey = (match: Match): string => {
@@ -75,7 +77,7 @@ export const hideMatch = async (
   platform: string,
 ): Promise<boolean> => {
   try {
-    const userId = await AsyncStorage.getItem('userId');
+    const userId = await AsyncStorage.getItem('@charmr/userId');
     if (!userId) {
       logger.match.error('No user ID found when hiding match');
       return false;
@@ -104,7 +106,7 @@ export const restoreMatch = async (
   platform: string,
 ): Promise<boolean> => {
   try {
-    const userId = await AsyncStorage.getItem('userId');
+    const userId = await AsyncStorage.getItem('@charmr/userId');
     if (!userId) {
       logger.match.error('No user ID found when restoring match');
       return false;
@@ -132,7 +134,7 @@ export const updateMatchLastUsed = async (
   platform: string,
 ): Promise<boolean> => {
   try {
-    const userId = await AsyncStorage.getItem('userId');
+    const userId = await AsyncStorage.getItem('@charmr/userId');
     if (!userId) {
       logger.match.error('No user ID found when updating match last used');
       return false;

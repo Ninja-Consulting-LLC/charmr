@@ -213,7 +213,7 @@ const DevMenu = () => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('isAuthenticated');
+      await AsyncStorage.removeItem('@charmr/isAuthenticated');
       setShowDevMenu(false);
       navigation.navigate('Login');
     } catch (error) {
