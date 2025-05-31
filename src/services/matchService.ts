@@ -126,11 +126,8 @@ export const deleteMatch = async (matchId: string): Promise<boolean> => {
     }
 
     logger.match.debug('Soft deleting match', {matchId});
-    // Update the match to set deleted flag instead of actually deleting
-    await axiosInstance.put(`/api/users/${userId}/matches/${matchId}`, {
-      deleted: true,
-      updatedAt: new Date().toISOString(),
-    });
+    // Use DELETE endpoint for soft deletion
+    await axiosInstance.delete(`/api/users/${userId}/matches/${matchId}`);
     logger.match.debug('Soft deleted match', {matchId});
     return true;
   } catch (error) {
