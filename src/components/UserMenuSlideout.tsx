@@ -5,9 +5,10 @@ import {Animated, StyleSheet, View} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
+import {restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
-import {getMatches, Match, restoreMatch} from '../utils/matchUtils';
+import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import {cleanupStaleData} from '../utils/storeUtils';
 import HiddenMatchesModal from './HiddenMatchesModal';
@@ -80,7 +81,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   };
 
   const handleRestoreMatch = async (match: Match) => {
-    await restoreMatch(match.name, match.platform);
+    await restoreMatch(match.id);
     await loadHiddenMatches();
     onMatchesUpdated?.();
   };
