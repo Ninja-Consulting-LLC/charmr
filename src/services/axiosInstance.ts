@@ -1,8 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, {AxiosHeaders} from 'axios';
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
 import {logger} from '../utils/logger';
 import {getUserId} from './authService';
+import {installationService} from './installationService';
 
 // Create an axios instance with default config
 const axiosInstance = axios.create({
@@ -19,21 +21,40 @@ const getAuthHeaders = async () => {
     // Try to get Firebase token first
     const token = await getAuthToken();
     if (token) {
+      logger.app.debug('Using Firebase token for authentication');
       return {
         Authorization: `Bearer ${token}`,
       };
     }
   } catch (error) {
-    logger.app.debug(
-      'Firebase token not available, falling back to installation ID',
-    );
+    logger.app.debug('Firebase token not available, falling back to user ID');
   }
 
-  // If Firebase auth fails, use installation ID as anonymous user ID
+  // If Firebase auth fails, try to get user ID
   try {
     const userId = await getUserId();
+    if (userId) {
+      logger.app.debug('Using user ID for authentication', {userId});
+      // Store the user ID in AsyncStorage to ensure consistency
+      await AsyncStorage.setItem('@charmr/userId', userId);
+      return {
+        'X-Anonymous-User': userId,
+      };
+    }
+  } catch (error) {
+    logger.app.debug('No user ID available, falling back to installation ID');
+  }
+
+  // If all else fails, use installation ID directly
+  try {
+    const installationId = await installationService.getInstallationId();
+    logger.app.debug('Using installation ID for authentication', {
+      installationId,
+    });
+    // Store the installation ID as the user ID for consistency
+    await AsyncStorage.setItem('@charmr/userId', installationId);
     return {
-      'X-Anonymous-User': userId,
+      'X-Anonymous-User': installationId,
     };
   } catch (error) {
     logger.app.error('No authentication method available');

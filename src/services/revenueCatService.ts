@@ -29,15 +29,15 @@ const REVENUECAT_PROD_API_KEY = Platform.select({
 
 export const initializeRevenueCat = async () => {
   try {
-    const apiKey = __DEV__ ? REVENUECAT_DEV_API_KEY : REVENUECAT_PROD_API_KEY;
+    const apiKey = config.revenueCatApiKey;
     if (!apiKey) {
       throw new Error('RevenueCat API key not found');
     }
 
-    const config: PurchasesConfiguration = {
+    const purchasesConfig: PurchasesConfiguration = {
       apiKey,
     };
-    await Purchases.configure(config);
+    await Purchases.configure(purchasesConfig);
     logger.revenueCat.info('RevenueCat initialized successfully');
   } catch (error) {
     logger.revenueCat.error('Failed to initialize RevenueCat:', error);

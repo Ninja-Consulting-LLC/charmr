@@ -20,9 +20,9 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';
 import {StatusBar} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
-import Purchases from 'react-native-purchases';
 import {config} from './src/config/config';
 import AppNavigator from './src/navigation/AppNavigator';
+import {initializeRevenueCat} from './src/services/revenueCatService';
 import {StoreProvider} from './src/store/StoreProvider';
 import {theme} from './src/theme/theme';
 import {logger} from './src/utils/logger';
@@ -54,10 +54,7 @@ const App = () => {
 
         // RevenueCat
         logger.app.info('  💰 Initializing RevenueCat...');
-        await Purchases.configure({
-          apiKey: config.revenueCatApiKey,
-        });
-        logger.revenueCat.info('  ✅ RevenueCat initialized successfully');
+        await initializeRevenueCat();
 
         // ===== User State =====
         logger.app.info('\n👤 User State:');

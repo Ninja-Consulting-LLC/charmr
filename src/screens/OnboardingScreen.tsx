@@ -7,7 +7,6 @@ import {Button, Surface, Text} from 'react-native-paper';
 import LoginModal from '../components/LoginModal';
 import {RootStackParamList} from '../navigation/types';
 import {theme} from '../theme/theme';
-import {DevUtils} from '../utils/devUtils';
 
 type OnboardingScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -34,11 +33,8 @@ const OnboardingScreen = () => {
   const handleDone = async () => {
     try {
       await AsyncStorage.setItem('hasOnboarded', 'true');
-      if (DevUtils.shouldBypassAuth()) {
-        navigation.navigate('Home');
-      } else {
-        navigation.navigate('Login');
-      }
+      // Always navigate to Home after onboarding, whether skipped or completed
+      navigation.navigate('Home');
     } catch (error) {
       console.error('Error saving onboarding status:', error);
     }

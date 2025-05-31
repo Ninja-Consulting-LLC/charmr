@@ -6,7 +6,10 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
 import {useStoreState} from '../hooks/useStoreState';
+import * as authService from '../services/authService';
+import axiosInstance from '../services/axiosInstance';
 import * as matchService from '../services/matchService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
@@ -49,6 +52,7 @@ interface StoreContextType {
   setSelectedMatch: (match: Match | null) => void;
   deleteScreenshots: boolean;
   setDeleteScreenshots: (value: boolean) => void;
+  signOut: () => Promise<void>;
 }
 
 export const StoreContext = createContext<StoreContextType>(
@@ -118,18 +122,80 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         const storedIsAuthenticated = await AsyncStorage.getItem(
           'isAuthenticated',
         );
-        const storedUserId = await AsyncStorage.getItem('userId');
+        const storedUserId = await AsyncStorage.getItem('@charmr/userId');
 
         logger.app.info('🔍 Checking authentication state:');
         logger.app.info('  - Stored isAuthenticated:', storedIsAuthenticated);
         logger.app.info('  - Stored userId:', storedUserId);
 
+        // If we have stored credentials, verify they're still valid
         if (storedUserId && storedIsAuthenticated === 'true') {
-          setUserId(storedUserId);
-          setIsAuthenticated(true);
-          logger.app.info('✅ User is authenticated');
-        } else {
-          logger.app.info('❌ User is not authenticated');
+          try {
+            // First check if we have a valid Firebase token
+            const token = await getAuthToken();
+            if (!token) {
+              logger.app.info(
+                '❌ No Firebase token found, falling back to anonymous auth',
+              );
+              // Instead of clearing everything, just update auth state
+              setIsAuthenticated(true);
+              setUserId(storedUserId);
+              setIsLoading(false);
+              return;
+            }
+
+            // Verify the user ID is still valid
+            const currentUserId = await authService.getUserId();
+            if (currentUserId === storedUserId) {
+              setUserId(storedUserId);
+              setIsAuthenticated(true);
+              logger.app.info('✅ User is authenticated');
+            } else {
+              // Only clear auth-related data, not installation ID
+              await AsyncStorage.multiRemove([
+                'isAuthenticated',
+                '@charmr/userId',
+                '@charmr/user_data',
+                '@charmr/user_settings',
+                '@charmr/user_profile',
+                '@charmr/auth_token',
+                '@charmr/user',
+                '@charmr/isAuthenticated',
+                '@charmr/email',
+                '@charmr/name',
+                '@charmr/plan',
+                '@charmr/dailyMessagesUsed',
+                '@charmr/extraMessages',
+                '@charmr/lastResetDate',
+              ]);
+              logger.app.info(
+                '❌ Stored credentials are invalid, clearing them',
+              );
+              setIsAuthenticated(false);
+              setUserId('');
+            }
+          } catch (error) {
+            // If there's an error verifying the user, only clear auth data
+            await AsyncStorage.multiRemove([
+              'isAuthenticated',
+              '@charmr/userId',
+              '@charmr/user_data',
+              '@charmr/user_settings',
+              '@charmr/user_profile',
+              '@charmr/auth_token',
+              '@charmr/user',
+              '@charmr/isAuthenticated',
+              '@charmr/email',
+              '@charmr/name',
+              '@charmr/plan',
+              '@charmr/dailyMessagesUsed',
+              '@charmr/extraMessages',
+              '@charmr/lastResetDate',
+            ]);
+            logger.app.error('❌ Error verifying stored credentials:', error);
+            setIsAuthenticated(false);
+            setUserId('');
+          }
         }
 
         setIsLoading(false);
@@ -200,11 +266,18 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
   const addMatch = async (match: Match) => {
     try {
-      const newMatch = await matchService.addMatch(match);
-      setMatches(prevMatches => [...prevMatches, newMatch]);
+      const userId = await authService.getUserId();
+      if (!userId) {
+        throw new Error('No user ID available');
+      }
+      const {data} = await axiosInstance.post(
+        `/api/users/${userId}/matches`,
+        match,
+      );
+      setMatches(prevMatches => [...prevMatches, data]);
       logger.app.info('Match Added', {
         event: 'add_match',
-        matchId: newMatch.id,
+        matchId: data.id,
         userId,
       });
     } catch (error) {
@@ -313,6 +386,63 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
+  const signOut = async () => {
+    try {
+      // Clear all local state
+      setUserId('');
+      setUser({
+        id: '',
+        plan: SubscriptionTier.FREE,
+        dailyMessagesUsed: 0,
+        extraMessages: 0,
+        lastResetDate: new Date().toISOString(),
+        getDailyMessageLimit: () => 0,
+      });
+      setIsAuthenticated(false);
+      setMatches([]);
+      setSelectedMatch(null);
+
+      // Clear stored credentials except installation ID
+      await AsyncStorage.multiRemove([
+        'isAuthenticated',
+        'userId',
+        '@charmr/user_data',
+        '@charmr/user_settings',
+        '@charmr/user_profile',
+        '@charmr/auth_token',
+        '@charmr/user',
+        '@charmr/userId',
+        '@charmr/isAuthenticated',
+        '@charmr/email',
+        '@charmr/name',
+        '@charmr/plan',
+        '@charmr/dailyMessagesUsed',
+        '@charmr/extraMessages',
+        '@charmr/lastResetDate',
+      ]);
+
+      // Sign out from Firebase
+      await firebaseSignOut();
+
+      logger.app.info('Successfully signed out and cleared all data');
+    } catch (error) {
+      logger.app.error('Error during sign out:', error);
+      // Even if there's an error, we should still clear local state
+      setUserId('');
+      setUser({
+        id: '',
+        plan: SubscriptionTier.FREE,
+        dailyMessagesUsed: 0,
+        extraMessages: 0,
+        lastResetDate: new Date().toISOString(),
+        getDailyMessageLimit: () => 0,
+      });
+      setIsAuthenticated(false);
+      setMatches([]);
+      setSelectedMatch(null);
+    }
+  };
+
   const value = useMemo(
     () => ({
       showKeyboardModal,
@@ -347,6 +477,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setSelectedMatch,
       deleteScreenshots,
       setDeleteScreenshots,
+      signOut,
     }),
     [
       showKeyboardModal,

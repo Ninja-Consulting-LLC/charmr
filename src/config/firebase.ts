@@ -10,6 +10,7 @@ import {
   GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import {logger} from '../utils/logger';
 
 export const signInWithGoogle = async () => {
   try {
@@ -106,19 +107,33 @@ export const signInWithApple = async () => {
 export const signOut = async () => {
   try {
     const auth = getAuth();
-    await auth.signOut();
-    await GoogleSignin.signOut();
+    const user = auth.currentUser;
+
+    // Only attempt to sign out if there's a current user
+    if (user) {
+      await auth.signOut();
+      await GoogleSignin.signOut();
+      logger.app.info('Successfully signed out user');
+    } else {
+      logger.app.info('No user currently signed in, skipping sign out');
+    }
   } catch (error) {
-    console.error('Sign Out Error:', error);
+    // If the error is about no current user, we can ignore it
+    if (error instanceof Error && error.message.includes('no-current-user')) {
+      logger.app.info('No user currently signed in, skipping sign out');
+      return;
+    }
+    logger.app.error('Sign Out Error:', error);
     throw error;
   }
 };
 
-export const getAuthToken = async (): Promise<string> => {
+export const getAuthToken = async (): Promise<string | null> => {
   const auth = getAuth();
   const user = auth.currentUser;
   if (!user) {
-    throw new Error('User not authenticated');
+    logger.app.debug('No authenticated user found');
+    return null;
   }
   return user.getIdToken();
 };

@@ -60,11 +60,30 @@ export const useStoreState = (skipInitialization = false) => {
     if (!skipInitialization) {
       const initializeState = async () => {
         try {
-          const storedUserId = await AsyncStorage.getItem('userId');
+          const storedUserId = await AsyncStorage.getItem('@charmr/userId');
           const storedIsAuthenticated = await AsyncStorage.getItem(
             'isAuthenticated',
           );
+          const storedUser = await AsyncStorage.getItem('user');
 
+          // If we have stored user details but no auth state, restore the auth state
+          if (storedUser && (!storedUserId || !storedIsAuthenticated)) {
+            const userData = JSON.parse(storedUser);
+            if (userData.id) {
+              logger.app.info('Restoring auth state from stored user data', {
+                userId: userData.id,
+              });
+              setUserId(userData.id);
+              setIsAuthenticated(true);
+              setUserState(userData);
+              await AsyncStorage.setItem('@charmr/userId', userData.id);
+              await AsyncStorage.setItem('isAuthenticated', 'true');
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // Normal auth state initialization
           if (storedUserId && storedIsAuthenticated === 'true') {
             setUserId(storedUserId);
             setIsAuthenticated(true);
@@ -79,10 +98,14 @@ export const useStoreState = (skipInitialization = false) => {
           }
         } catch (error) {
           logger.auth.error('Error initializing state:', error);
+        } finally {
+          setIsLoading(false);
         }
       };
 
       initializeState();
+    } else {
+      setIsLoading(false);
     }
   }, [skipInitialization]);
 

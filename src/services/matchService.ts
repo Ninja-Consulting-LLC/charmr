@@ -36,12 +36,29 @@ const getAuthHeaders = async () => {
 export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
   try {
     const userId = await getUserId();
+    logger.app.info('Loading matches for user', {
+      userId,
+      includeHidden,
+      apiBaseUrl: config.apiBaseUrl,
+    });
+
     const {data} = await axiosInstance.get(`/api/users/${userId}/matches`, {
       params: {includeHidden},
     });
+
+    logger.app.info('Successfully loaded matches', {
+      userId,
+      matchCount: data?.length || 0,
+    });
+
     return data;
-  } catch (error) {
-    logger.app.error('Error loading matches:', error);
+  } catch (error: any) {
+    logger.app.error('Error loading matches:', {
+      error: error?.message || 'Unknown error',
+      stack: error?.stack,
+      response: error?.response?.data,
+      status: error?.response?.status,
+    });
     throw error;
   }
 };
