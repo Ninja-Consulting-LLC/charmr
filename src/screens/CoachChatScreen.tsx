@@ -722,36 +722,38 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       iconColor={theme.colors.surface}
                       accessibilityLabel="Add Screenshot"
                     />
-                    <TextInput
-                      style={styles.inputText}
-                      placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                      value={text}
-                      onChangeText={setText}
-                      placeholder="Type a message or upload screenshot(s)"
-                      multiline
-                    />
-                    {(text.trim().length > 0 || images.length > 0) && (
-                      <IconButton
-                        icon="send"
-                        size={28}
-                        onPress={() => {
-                          const message = {
-                            _id: Date.now(),
-                            text: text,
-                            createdAt: new Date(),
-                            user: {_id: 'user'},
-                            images:
-                              images.length > 0
-                                ? images.map(img => img.path)
-                                : undefined,
-                          };
-                          onSend([message]);
-                        }}
-                        style={styles.sendButton}
-                        iconColor={theme.colors.surface}
-                        accessibilityLabel="Send"
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.inputText}
+                        placeholderTextColor="rgba(255, 255, 255, 0.7)"
+                        value={text}
+                        onChangeText={setText}
+                        placeholder="Type a message or upload screenshot(s)"
+                        multiline
                       />
-                    )}
+                      {(text.trim().length > 0 || images.length > 0) && (
+                        <IconButton
+                          icon="send"
+                          size={28}
+                          onPress={() => {
+                            const message = {
+                              _id: Date.now(),
+                              text: text,
+                              createdAt: new Date(),
+                              user: {_id: 'user'},
+                              images:
+                                images.length > 0
+                                  ? images.map(img => img.path)
+                                  : undefined,
+                            };
+                            onSend([message]);
+                          }}
+                          style={styles.sendButton}
+                          iconColor={theme.colors.surface}
+                          accessibilityLabel="Send"
+                        />
+                      )}
+                    </View>
                   </View>
                 </View>
                 <Snackbar
@@ -1003,17 +1005,24 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
   },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
   inputText: {
     flex: 1,
     color: theme.colors.surface,
     fontSize: 16,
-    marginHorizontal: 8,
     maxHeight: 80,
     textAlignVertical: 'center',
     paddingTop: 8,
     paddingBottom: 8,
   },
   sendButton: {
+    margin: 0,
+    padding: 0,
     height: 44,
     width: 44,
   },
