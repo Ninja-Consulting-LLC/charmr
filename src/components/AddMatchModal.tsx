@@ -1,5 +1,10 @@
 import React, {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {
+  Keyboard,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import {
   Button,
   IconButton,
@@ -38,35 +43,39 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
         visible={visible}
         onDismiss={onDismiss}
         contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Add New Match</Text>
-          <IconButton icon="close" size={20} onPress={onDismiss} />
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View>
+            <View style={styles.header}>
+              <Text style={styles.title}>Add New Match</Text>
+              <IconButton icon="close" size={20} onPress={onDismiss} />
+            </View>
 
-        <View style={styles.content}>
-          <TextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            mode="outlined"
-          />
-          <TextInput
-            label="Platform"
-            value={platform}
-            onChangeText={setPlatform}
-            style={styles.input}
-            mode="outlined"
-          />
+            <View style={styles.content}>
+              <TextInput
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                mode="outlined"
+              />
+              <TextInput
+                label="Platform"
+                value={platform}
+                onChangeText={setPlatform}
+                style={styles.input}
+                mode="outlined"
+              />
 
-          <Button
-            mode="contained"
-            onPress={handleAdd}
-            disabled={!name.trim() || !platform.trim()}
-            style={styles.button}>
-            Add Match
-          </Button>
-        </View>
+              <Button
+                mode="contained"
+                onPress={handleAdd}
+                disabled={!name.trim() || !platform.trim()}
+                style={styles.button}>
+                Add Match
+              </Button>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </Portal>
   );
