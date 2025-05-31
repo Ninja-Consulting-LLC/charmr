@@ -60,9 +60,11 @@ const App = () => {
         logger.app.info('\n👤 User State:');
 
         // Authentication
-        const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
-        const userId = await AsyncStorage.getItem('userId');
-        const userData = await AsyncStorage.getItem('user');
+        const isAuthenticated = await AsyncStorage.getItem(
+          '@charmr/isAuthenticated',
+        );
+        const userId = await AsyncStorage.getItem('@charmr/userId');
+        const userData = await AsyncStorage.getItem('@charmr/user');
 
         const user = userData ? JSON.parse(userData) : null;
         const userDetails = user

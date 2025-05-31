@@ -8,9 +8,9 @@ export const CURRENT_BACKEND_VERSION = '1.0.0';
 
 export const cleanupStaleData = async (): Promise<void> => {
   try {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('user');
-    await AsyncStorage.removeItem('isAuthenticated');
+    await AsyncStorage.removeItem('@charmr/userId');
+    await AsyncStorage.removeItem('@charmr/user');
+    await AsyncStorage.removeItem('@charmr/isAuthenticated');
   } catch (error) {
     console.error('Error cleaning up stale data:', error);
   }

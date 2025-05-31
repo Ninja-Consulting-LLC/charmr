@@ -7,7 +7,7 @@ import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
 import {clearAuthData} from '../services/authService';
 import axiosInstance from '../services/axiosInstance';
-import {restoreMatch} from '../services/matchService';
+import {deleteMatch, restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
@@ -102,6 +102,16 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     await restoreMatch(match.id);
     await loadArchivedMatches();
     onMatchesUpdated?.();
+  };
+
+  const handleDeleteMatch = async (match: Match) => {
+    try {
+      await deleteMatch(String(match.id));
+      await loadArchivedMatches();
+      onMatchesUpdated?.();
+    } catch (error) {
+      console.error('Error deleting match:', error);
+    }
   };
 
   const handleOpenArchivedMatches = async () => {
@@ -273,6 +283,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         onDismiss={() => setShowArchivedMatchesModal(false)}
         hiddenMatches={archivedMatches}
         onRestoreMatch={handleRestoreMatch}
+        onDeleteMatch={handleDeleteMatch}
       />
     </>
   );

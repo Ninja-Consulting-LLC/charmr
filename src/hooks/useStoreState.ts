@@ -34,7 +34,7 @@ export const useStoreState = (skipInitialization = false) => {
       getDailyMessageLimit: () => getPlanLimits(newUser.plan || user.plan),
     };
     setUserState(updatedUser);
-    AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    AsyncStorage.setItem('@charmr/user', JSON.stringify(updatedUser));
   };
 
   // Check and reset daily message count
@@ -62,9 +62,9 @@ export const useStoreState = (skipInitialization = false) => {
         try {
           const storedUserId = await AsyncStorage.getItem('@charmr/userId');
           const storedIsAuthenticated = await AsyncStorage.getItem(
-            'isAuthenticated',
+            '@charmr/isAuthenticated',
           );
-          const storedUser = await AsyncStorage.getItem('user');
+          const storedUser = await AsyncStorage.getItem('@charmr/user');
 
           // If we have stored user details but no auth state, restore the auth state
           if (storedUser && (!storedUserId || !storedIsAuthenticated)) {
@@ -77,7 +77,7 @@ export const useStoreState = (skipInitialization = false) => {
               setIsAuthenticated(true);
               setUserState(userData);
               await AsyncStorage.setItem('@charmr/userId', userData.id);
-              await AsyncStorage.setItem('isAuthenticated', 'true');
+              await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
               setIsLoading(false);
               return;
             }
@@ -90,10 +90,8 @@ export const useStoreState = (skipInitialization = false) => {
 
             // Fetch the full user profile from backend
             const userProfile = await userService.getUserProfile(storedUserId);
-            console.log('Fetched user profile:', userProfile); // DEBUG LOG
             if (userProfile) {
               setUser(userProfile);
-              console.log('Set user to:', userProfile); // DEBUG LOG
             }
           }
         } catch (error) {
@@ -196,10 +194,10 @@ export const useStoreState = (skipInitialization = false) => {
         });
 
         setUserId(firebaseUser.uid);
-        await AsyncStorage.setItem('userId', firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
         setUser(existingUser);
         setIsAuthenticated(true);
-        await AsyncStorage.setItem('isAuthenticated', 'true');
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
         logger.app.info('Google Login Success', {
           event: 'google_login_success',
           userId: firebaseUser.uid,
@@ -282,10 +280,10 @@ export const useStoreState = (skipInitialization = false) => {
 
         // Update local state
         setUserId(firebaseUser.uid);
-        await AsyncStorage.setItem('userId', firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
         setUser(newUser);
         setIsAuthenticated(true);
-        await AsyncStorage.setItem('isAuthenticated', 'true');
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
 
         logger.app.info('Google Login Success', {
           event: 'google_login_success',

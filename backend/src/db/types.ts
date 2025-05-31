@@ -60,6 +60,7 @@ export interface Match {
   platform: string;
   lastUsed: string | null;
   hidden: boolean;
+  deleted: boolean;
   createdAt: string;
   updatedAt: string;
 }

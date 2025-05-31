@@ -49,6 +49,7 @@ describe('Reply Controller', () => {
       platform: 'test',
       lastUsed: new Date().toISOString(),
       hidden: false,
+      deleted: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
