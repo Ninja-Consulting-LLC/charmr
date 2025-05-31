@@ -6,10 +6,11 @@ import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
 import {clearAuthData} from '../services/authService';
+import axiosInstance from '../services/axiosInstance';
 import {restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
-import {getMatches, Match} from '../utils/matchUtils';
+import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import MessagePackModal from './MessagePackModal';
@@ -35,8 +36,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   console.log('UserMenuSlideout user:', user); // DEBUG LOG
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showHiddenMatchesModal, setShowHiddenMatchesModal] = useState(false);
-  const [hiddenMatches, setHiddenMatches] = useState<Match[]>([]);
+  const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
+    useState(false);
+  const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -74,21 +76,37 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     }
   }, [visible, slideAnim, fadeAnim]);
 
-  const loadHiddenMatches = async () => {
-    const allMatches = await getMatches(true);
-    const hidden = allMatches.filter(match => match.hidden);
-    setHiddenMatches(hidden);
+  const loadArchivedMatches = async () => {
+    if (!user.id) {
+      console.error('No user ID available');
+      return;
+    }
+    try {
+      const response = await axiosInstance.get(
+        `/api/users/${user.id}/matches`,
+        {
+          params: {includeHidden: true},
+        },
+      );
+      const matchesArray = Array.isArray(response.data)
+        ? response.data
+        : (Object.values(response.data) as Match[]);
+      const archived = matchesArray.filter((match: Match) => match.hidden);
+      setArchivedMatches(archived);
+    } catch (error) {
+      console.error('Error loading archived matches:', error);
+    }
   };
 
   const handleRestoreMatch = async (match: Match) => {
     await restoreMatch(match.id);
-    await loadHiddenMatches();
+    await loadArchivedMatches();
     onMatchesUpdated?.();
   };
 
-  const handleOpenHiddenMatches = async () => {
-    await loadHiddenMatches();
-    setShowHiddenMatchesModal(true);
+  const handleOpenArchivedMatches = async () => {
+    await loadArchivedMatches();
+    setShowArchivedMatchesModal(true);
   };
 
   const handleSignOut = async () => {
@@ -196,9 +214,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             <Divider />
             <List.Subheader>Matches</List.Subheader>
             <List.Item
-              title="Hidden Matches"
+              title="Archived Matches"
               left={props => <List.Icon {...props} icon="archive" />}
-              onPress={handleOpenHiddenMatches}
+              onPress={handleOpenArchivedMatches}
             />
             <Divider />
             <List.Subheader>Support</List.Subheader>
@@ -251,9 +269,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       />
 
       <HiddenMatchesModal
-        visible={showHiddenMatchesModal}
-        onDismiss={() => setShowHiddenMatchesModal(false)}
-        hiddenMatches={hiddenMatches}
+        visible={showArchivedMatchesModal}
+        onDismiss={() => setShowArchivedMatchesModal(false)}
+        hiddenMatches={archivedMatches}
         onRestoreMatch={handleRestoreMatch}
       />
     </>

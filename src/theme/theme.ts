@@ -28,6 +28,15 @@ export const theme = {
   animation: {
     scale: 1.0,
   },
+  // Add custom styles for components
+  components: {
+    ...MD3LightTheme.components,
+    Snackbar: {
+      style: {
+        backgroundColor: 'rgba(49, 48, 51, 0.95)', // Less transparent background
+      },
+    },
+  },
 };
 
 // Export the theme type for TypeScript

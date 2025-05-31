@@ -2,7 +2,7 @@ export interface GenerateReplyRequest {
   prompt: string;
   images?: string[];
   userId: string;
-  matchId: string;
+  matchId?: string;
   deleteAfterResponse?: boolean;
 }
 
