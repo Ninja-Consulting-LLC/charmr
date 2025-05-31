@@ -25,8 +25,8 @@ const createMatchRouter = (db: Database) => {
 
     // If using Firebase token, get user ID from token
     if (req.headers.authorization?.startsWith('Bearer ')) {
-      // TODO: In production, verify the Firebase token and extract the user ID
-      return req.params.userId;
+      // Use the verified user ID from the token
+      return req.user?.uid;
     }
     // If using anonymous user ID (installation ID), use that
     const anonymousUserId = req.headers['x-anonymous-user'] as string;

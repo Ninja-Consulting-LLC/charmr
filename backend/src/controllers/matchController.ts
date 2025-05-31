@@ -136,7 +136,10 @@ export const deleteMatch = async (
 ) => {
   try {
     const {matchId} = req.params;
-    const userId = req.user?.id;
+    const userId =
+      process.env.NODE_ENV === 'development'
+        ? req.params.userId
+        : req.user?.uid;
 
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
