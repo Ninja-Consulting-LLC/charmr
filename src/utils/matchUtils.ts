@@ -23,7 +23,8 @@ export const generateMatchId = (match: Match): string => {
 
 export const getMatches = async (includeHidden = false): Promise<Match[]> => {
   try {
-    const userId = await AsyncStorage.getItem('userId');
+    // Get user ID from AsyncStorage to ensure consistency
+    const userId = await AsyncStorage.getItem('@charmr/userId');
     if (!userId) {
       logger.match.debug('No user ID found, returning empty matches array');
       return [];

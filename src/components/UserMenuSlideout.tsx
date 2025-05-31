@@ -5,12 +5,12 @@ import {Animated, ScrollView, StyleSheet, View} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
+import {clearAuthData} from '../services/authService';
 import {restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
-import {cleanupStaleData} from '../utils/storeUtils';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
@@ -96,6 +96,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       // Sign out from Firebase
       await signOut();
 
+      // Clear all auth-related data
+      await clearAuthData();
+
       // Clear user data with correct plan limits
       setUser({
         id: '',
@@ -104,11 +107,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         extraMessages: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+        email: '',
+        name: '',
+        installationId: '',
       });
       setIsAuthenticated(false);
-
-      // Clean up any stored data
-      await cleanupStaleData();
 
       onDismiss();
       navigation.navigate('Login');

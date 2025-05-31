@@ -36,7 +36,7 @@ const getBaseUrl = () => {
 
   // Production environment fallback
   logger.config.debug('Using production API URL');
-  return 'https://your-production-api.com';
+  return 'https://ai-dating-keyboard.onrender.com';
 };
 
 // Helper to log device network information
@@ -62,7 +62,11 @@ export const config = {
   apiBaseUrl: getBaseUrl(),
   googleWebClientId:
     '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
-  revenueCatApiKey: 'appl_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  revenueCatApiKey: Platform.select({
+    ios: process.env.REVENUECAT_IOS_API_KEY || '',
+    android: process.env.REVENUECAT_ANDROID_API_KEY || '',
+    default: '',
+  }),
 } as const;
 
 // Log all config variables in development
