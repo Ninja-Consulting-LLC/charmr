@@ -18,9 +18,13 @@ const createMatchRouter = (db: Database) => {
 
   // Helper to get user ID from either Firebase token or anonymous user ID
   const getUserFromRequest = (req: express.Request) => {
+    // In development mode, just use the userId from params
+    if (process.env.NODE_ENV === 'development') {
+      return req.params.userId;
+    }
+
     // If using Firebase token, get user ID from token
     if (req.headers.authorization?.startsWith('Bearer ')) {
-      // For now, since we're in development, just use the userId from params
       // TODO: In production, verify the Firebase token and extract the user ID
       return req.params.userId;
     }
