@@ -69,7 +69,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const {userId, matches, user, setUser} = useStore();
+  const {userId, matches, user, setUser, setMatches} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -98,8 +98,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleHideMatch = async (match: Match) => {
     try {
-      const success = await hideMatch(match.name, match.platform);
+      const success = await hideMatch(match.id);
       if (success) {
+        // Update local state to reflect the hidden status
+        setMatches(
+          matches.map(m => (m.id === match.id ? {...m, hidden: true} : m)),
+        );
         navigation.goBack();
       }
     } catch (error) {
@@ -109,8 +113,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleRestoreMatch = async (match: Match) => {
     try {
-      const success = await restoreMatch(match.name, match.platform);
+      const success = await restoreMatch(match.id);
       if (success) {
+        // Update local state to reflect the restored status
+        setMatches(
+          matches.map(m => (m.id === match.id ? {...m, hidden: false} : m)),
+        );
         navigation.goBack();
       }
     } catch (error) {

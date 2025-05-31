@@ -742,24 +742,34 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     addMatch: async (
       userId: string,
-      name: string,
-      platform: string,
+      match: Omit<Match, 'id'>,
     ): Promise<Match> => {
       try {
-        const now = new Date().toISOString();
         const result = await db.run(
-          `INSERT INTO matches (userId, name, platform, lastUsed, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [userId, name, platform, now, now, now],
+          `INSERT INTO matches (userId, name, platform, lastUsed, hidden, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            userId,
+            match.name,
+            match.platform,
+            match.lastUsed,
+            match.hidden ? 1 : 0,
+            match.createdAt,
+            match.updatedAt,
+          ],
         );
-
-        const match = await db.get('SELECT * FROM matches WHERE id = ?', [
-          result.lastID,
-        ]);
-
-        return match;
+        return {
+          id: result.lastID!,
+          userId,
+          name: match.name,
+          platform: match.platform,
+          lastUsed: match.lastUsed,
+          hidden: match.hidden,
+          createdAt: match.createdAt,
+          updatedAt: match.updatedAt,
+        };
       } catch (error) {
-        logger.error('Failed to add match', {
+        logger.error('Failed to add match to SQLite', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         });
@@ -769,16 +779,15 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     updateMatchLastUsed: async (
       userId: string,
-      name: string,
-      platform: string,
+      matchId: string,
     ): Promise<void> => {
       try {
         const now = new Date().toISOString();
         await db.run(
           `UPDATE matches
            SET lastUsed = ?, updatedAt = ?
-           WHERE userId = ? AND name = ? AND platform = ?`,
-          [now, now, userId, name, platform],
+           WHERE id = ? AND userId = ?`,
+          [now, now, matchId, userId],
         );
       } catch (error) {
         logger.error('Failed to update match last used', {
@@ -804,18 +813,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    hideMatch: async (
-      userId: string,
-      name: string,
-      platform: string,
-    ): Promise<void> => {
+    hideMatch: async (userId: string, matchId: string): Promise<void> => {
       try {
         const now = new Date().toISOString();
         await db.run(
           `UPDATE matches
            SET hidden = 1, updatedAt = ?
-           WHERE userId = ? AND name = ? AND platform = ?`,
-          [now, userId, name, platform],
+           WHERE id = ? AND userId = ?`,
+          [now, matchId, userId],
         );
       } catch (error) {
         logger.error('Failed to hide match', {
@@ -826,18 +831,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
-    restoreMatch: async (
-      userId: string,
-      name: string,
-      platform: string,
-    ): Promise<void> => {
+    restoreMatch: async (userId: string, matchId: string): Promise<void> => {
       try {
         const now = new Date().toISOString();
         await db.run(
           `UPDATE matches
            SET hidden = 0, updatedAt = ?
-           WHERE userId = ? AND name = ? AND platform = ?`,
-          [now, userId, name, platform],
+           WHERE id = ? AND userId = ?`,
+          [now, matchId, userId],
         );
       } catch (error) {
         logger.error('Failed to restore match', {

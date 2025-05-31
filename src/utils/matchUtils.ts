@@ -130,19 +130,18 @@ export const restoreMatch = async (
       return false;
     }
 
-    logger.match.debug('Restoring match', {name, platform});
+    const matchId = `${platform}::${name}`;
+    logger.match.debug('Restoring match', {matchId});
     await axiosInstance.put(`/api/users/${userId}/matches/restore`, {
-      name,
-      platform,
+      matchId,
     });
-    logger.match.debug('Restored match', {name, platform});
+    logger.match.debug('Restored match', {matchId});
     return true;
   } catch (error) {
     logger.match.error('Error restoring match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
+      matchId: `${platform}::${name}`,
     });
     return false;
   }

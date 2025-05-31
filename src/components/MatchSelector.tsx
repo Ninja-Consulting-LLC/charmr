@@ -50,7 +50,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
 
   const handleConfirmDelete = () => {
     if (matchToDelete) {
-      onDeleteMatch(matchToDelete.id);
+      onDeleteMatch(String(matchToDelete.id));
       setDeleteDialogVisible(false);
       setMatchToDelete(null);
     }
@@ -113,24 +113,16 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                 left={props => (
                   <List.Icon
                     {...props}
-                    icon={match.hidden ? 'archive' : 'account'}
-                    color={
-                      match.hidden
-                        ? theme.colors.disabled
-                        : theme.colors.primary
-                    }
+                    icon="account"
+                    color={theme.colors.primary}
                   />
                 )}
                 right={props => (
                   <View style={styles.itemActions}>
                     <IconButton
                       {...props}
-                      icon={match.hidden ? 'restore' : 'dots-vertical'}
-                      onPress={() =>
-                        match.hidden
-                          ? onRestoreMatch(match)
-                          : handleDeletePress(match)
-                      }
+                      icon="dots-vertical"
+                      onPress={() => handleDeletePress(match)}
                     />
                     <Button
                       mode="contained"
@@ -143,11 +135,6 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                     </Button>
                   </View>
                 )}
-                style={[
-                  styles.matchItem,
-                  selectedMatch?.id === match.id && styles.selectedMatch,
-                  match.hidden && styles.hiddenMatch,
-                ]}
               />
             ))}
           </ScrollView>

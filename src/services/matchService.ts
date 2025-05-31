@@ -1,5 +1,6 @@
 import {config} from '../config/config';
 import {getAuthToken} from '../config/firebase';
+import {ID} from '../types';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
 import {getUserId} from './authService';
@@ -91,10 +92,7 @@ export const deleteMatch = async (matchId: string): Promise<boolean> => {
   }
 };
 
-export const hideMatch = async (
-  name: string,
-  platform: string,
-): Promise<boolean> => {
+export const hideMatch = async (matchId: ID): Promise<boolean> => {
   try {
     const userId = await getUserId();
     if (!userId) {
@@ -102,28 +100,23 @@ export const hideMatch = async (
       return false;
     }
 
-    logger.match.debug('Hiding match', {name, platform});
+    logger.match.debug('Hiding match', {matchId});
     await axiosInstance.put(`/api/users/${userId}/matches/hide`, {
-      name,
-      platform,
+      matchId: String(matchId),
     });
-    logger.match.debug('Hidden match', {name, platform});
+    logger.match.debug('Hidden match', {matchId});
     return true;
   } catch (error) {
     logger.match.error('Error hiding match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
+      matchId,
     });
     return false;
   }
 };
 
-export const restoreMatch = async (
-  name: string,
-  platform: string,
-): Promise<boolean> => {
+export const restoreMatch = async (matchId: ID): Promise<boolean> => {
   try {
     const userId = await getUserId();
     if (!userId) {
@@ -131,19 +124,17 @@ export const restoreMatch = async (
       return false;
     }
 
-    logger.match.debug('Restoring match', {name, platform});
+    logger.match.debug('Restoring match', {matchId});
     await axiosInstance.put(`/api/users/${userId}/matches/restore`, {
-      name,
-      platform,
+      matchId: String(matchId),
     });
-    logger.match.debug('Restored match', {name, platform});
+    logger.match.debug('Restored match', {matchId});
     return true;
   } catch (error) {
     logger.match.error('Error restoring match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
+      matchId,
     });
     return false;
   }
