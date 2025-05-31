@@ -133,6 +133,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         }
 
         console.log('Loading messages with offset:', offset);
+        console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
+        console.log('User object:', JSON.stringify(user, null, 2));
+
         const messagesResponse = await axiosInstance.get(
           `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
           {
@@ -208,11 +211,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             mode: MessageMode.COACH,
           };
 
+          console.log('Showing all messages');
           setMessages(prevMessages => {
-            const messages =
-              chatMessages.length > 0
-                ? [welcomeMessage, ...chatMessages]
-                : [welcomeMessage];
+            const messages = [welcomeMessage, ...chatMessages];
             return messages.reverse();
           });
         } else {
@@ -265,7 +266,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setIsLoadingMore(false);
       }
     },
-    [userId, effectiveMatchId, match.name],
+    [userId, effectiveMatchId, match.name, user?.plan],
   );
 
   const loadMoreMessages = useCallback(() => {
@@ -462,19 +463,21 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         style={styles.safeArea}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.headerSpacer} />
-        <TouchableOpacity
-          style={styles.promoContainer}
-          onPress={() => setShowUpgradeModal(true)}>
-          <Text style={styles.promoText}>
-            Upgrade to Pro to full chat history
-          </Text>
-          <IconButton
-            icon="chevron-right"
-            size={20}
-            iconColor="rgba(255, 255, 255, 0.8)"
-            style={styles.promoIcon}
-          />
-        </TouchableOpacity>
+        {user?.plan === SubscriptionTier.FREE && (
+          <TouchableOpacity
+            style={styles.promoContainer}
+            onPress={() => setShowUpgradeModal(true)}>
+            <Text style={styles.promoText}>
+              Upgrade to Pro to full chat history
+            </Text>
+            <IconButton
+              icon="chevron-right"
+              size={20}
+              iconColor="rgba(255, 255, 255, 0.8)"
+              style={styles.promoIcon}
+            />
+          </TouchableOpacity>
+        )}
         {isLoadingMessages ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.surface} />
@@ -521,6 +524,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               const isCopyable =
                 currentMessage?.user._id === 'coach' &&
                 currentMessage?.mode === MessageMode.GENERATE;
+
+              // Check if this message should be obscured for free users
+              const messageIndex = messages.findIndex(
+                m => m._id === currentMessage?._id,
+              );
+              const shouldObscure =
+                user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
               return (
                 <TouchableOpacity
@@ -576,6 +586,23 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                         />
                       )}
                     </View>
+                    {shouldObscure && (
+                      <View style={styles.obscureOverlay}>
+                        <LinearGradient
+                          colors={[
+                            `${theme.colors.primary}CC`,
+                            `${theme.colors.primary}FF`,
+                          ]}
+                          style={styles.obscureGradient}>
+                          <IconButton
+                            icon="lock"
+                            size={20}
+                            iconColor="rgba(255, 255, 255, 0.9)"
+                            style={styles.obscureIcon}
+                          />
+                        </LinearGradient>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -1114,6 +1141,24 @@ const styles = StyleSheet.create({
   },
   loadingIndicator: {
     padding: 10,
+  },
+  obscureOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  obscureGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  obscureIcon: {
+    margin: 0,
+    padding: 0,
   },
 });
 
