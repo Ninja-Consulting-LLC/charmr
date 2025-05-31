@@ -25,10 +25,7 @@ import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
-import {
-  addMatch as addMatchUtil,
-  Match as MatchType,
-} from '../utils/matchUtils';
+import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
@@ -90,6 +87,7 @@ const ResponseGenerator = forwardRef<
     setSelectedMatch,
     deleteScreenshots,
     setDeleteScreenshots,
+    setMatches,
   } = useStore();
   const {images, setImages, pickImages} = useImagePicker();
 
@@ -150,7 +148,7 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleDeleteMatch = async (match: MatchType) => {
+  const handleDeleteMatch = async (match: Match) => {
     try {
       const success = await deleteMatch(String(match.id));
       if (success) {
@@ -164,28 +162,37 @@ const ResponseGenerator = forwardRef<
     }
   };
 
-  const handleHideMatch = async (match: MatchType) => {
+  const handleHideMatch = async (match: Match) => {
     try {
-      const success = await hideMatch(match.name, match.platform);
+      const success = await hideMatch(match.id);
       if (success) {
-        updateMatch({...match, hidden: true});
-        if (selectedMatch?.id === match.id) {
-          setSelectedMatch(null);
-        }
+        // Update local state directly without making an API call
+        const updatedMatches = matches.map((m: Match) =>
+          m.id === match.id ? {...m, hidden: true} : m,
+        );
+        setMatches(updatedMatches);
       }
     } catch (error) {
-      console.error('Error hiding match:', error);
+      logger.match.error('Error hiding match', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        match,
+      });
     }
   };
 
-  const handleRestoreMatch = async (match: MatchType) => {
+  const handleRestoreMatch = async (match: Match) => {
     try {
-      const success = await restoreMatch(match.name, match.platform);
+      const success = await restoreMatch(match.id);
       if (success) {
         updateMatch({...match, hidden: false});
       }
     } catch (error) {
-      console.error('Error restoring match:', error);
+      logger.match.error('Error restoring match', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        match,
+      });
     }
   };
 
@@ -299,7 +306,7 @@ const ResponseGenerator = forwardRef<
     setDeleteScreenshots(value);
   };
 
-  const handleMatchSelect = (match: MatchType) => {
+  const handleMatchSelect = (match: Match) => {
     setSelectedMatch(match);
     setShowMatchSelector(false);
     navigation.navigate('CoachChat', {match});

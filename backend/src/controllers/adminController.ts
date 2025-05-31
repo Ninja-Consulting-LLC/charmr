@@ -290,12 +290,11 @@ export const linkAnonymousUser = async (
       installationId: installationId || registeredUser.installationId,
     });
 
-    // Delete the anonymous user
-    logger.info('Deleting anonymous user after successful transfer', {
+    // Skip deleting the anonymous user for now
+    logger.info('Skipping anonymous user deletion as requested', {
       anonymousUserId,
       registeredUserId,
     });
-    await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
 
     logger.info('Successfully linked anonymous user to registered user', {
       anonymousUserId,
@@ -303,6 +302,17 @@ export const linkAnonymousUser = async (
       installationId,
       transferredExtraMessages: newExtraMessages,
     });
+
+    // --- PATCH: Use Firestore linking if configured ---
+    if (databaseConfig.type === 'firestore') {
+      const {
+        FirestoreUserRepository,
+      } = require('../db/repositories/firestoreUserRepository');
+      const repo = new FirestoreUserRepository();
+      await repo.linkUsers(anonymousUserId, registeredUserId);
+      return res.json({message: 'User linked successfully (firestore)'});
+    }
+    // --- END PATCH ---
 
     res.json({message: 'User linked successfully'});
   } catch (error) {

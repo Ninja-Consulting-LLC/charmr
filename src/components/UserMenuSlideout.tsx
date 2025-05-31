@@ -1,13 +1,16 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, StyleSheet, View} from 'react-native';
+import {Animated, ScrollView, StyleSheet, View} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
+import {restoreMatch} from '../services/matchService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
-import {getMatches, Match, restoreMatch} from '../utils/matchUtils';
+import {getMatches, Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
+import {cleanupStaleData} from '../utils/storeUtils';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
@@ -78,7 +81,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   };
 
   const handleRestoreMatch = async (match: Match) => {
-    await restoreMatch(match.name, match.platform);
+    await restoreMatch(match.id);
     await loadHiddenMatches();
     onMatchesUpdated?.();
   };
@@ -89,18 +92,29 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   };
 
   const handleSignOut = async () => {
-    // Clear user data with correct plan limits
-    setUser({
-      id: '',
-      plan: SubscriptionTier.FREE,
-      dailyMessagesUsed: 0,
-      extraMessages: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
-      getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
-    });
-    setIsAuthenticated(false);
-    onDismiss();
-    navigation.navigate('Login');
+    try {
+      // Sign out from Firebase
+      await signOut();
+
+      // Clear user data with correct plan limits
+      setUser({
+        id: '',
+        plan: SubscriptionTier.FREE,
+        dailyMessagesUsed: 0,
+        extraMessages: 0,
+        lastResetDate: new Date().toISOString().split('T')[0],
+        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+      });
+      setIsAuthenticated(false);
+
+      // Clean up any stored data
+      await cleanupStaleData();
+
+      onDismiss();
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const handleUpgrade = (tier: SubscriptionTier) => {
@@ -135,6 +149,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           },
         ]}>
         <View style={styles.header}>
+          {isAuthenticated && (
+            <IconButton
+              icon="logout"
+              size={24}
+              onPress={handleSignOut}
+              style={styles.headerButton}
+            />
+          )}
           <IconButton
             icon="close"
             size={24}
@@ -142,72 +164,75 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             style={styles.closeButton}
           />
         </View>
-        <List.Section>
-          <List.Subheader>Account</List.Subheader>
-          <List.Item
-            title={user.name || 'Guest'}
-            description={`${user.email || ''}\nPlan: ${user.plan || ''}`}
-            left={props => <List.Icon {...props} icon="account" />}
-          />
-          <Divider />
-          <List.Subheader>Message Limits</List.Subheader>
-          <List.Item
-            title="Daily Messages"
-            description={`${
-              user.dailyMessagesUsed
-            }/${user.getDailyMessageLimit()} used`}
-            left={props => <List.Icon {...props} icon="message" />}
-          />
-          <List.Item
-            title="Extra Messages"
-            description={`${user.extraMessages} remaining`}
-            left={props => <List.Icon {...props} icon="gift" />}
-          />
-          <Divider />
-          <List.Subheader>Matches</List.Subheader>
-          <List.Item
-            title="Hidden Matches"
-            left={props => <List.Icon {...props} icon="archive" />}
-            onPress={handleOpenHiddenMatches}
-          />
-          <Divider />
-          <List.Subheader>Support</List.Subheader>
-          <List.Item
-            title="Contact Support"
-            left={props => <List.Icon {...props} icon="help-circle" />}
-            onPress={onOpenSupport}
-          />
-          <Divider />
-          <List.Subheader>Upgrade & Purchases</List.Subheader>
-          <List.Item
-            title="Buy Message Pack"
-            left={props => <List.Icon {...props} icon="gift" />}
-            onPress={() => setShowMessagePackModal(true)}
-          />
-          <List.Item
-            title="Upgrade Plan"
-            left={props => <List.Icon {...props} icon="star" />}
-            onPress={() => setShowUpgradeModal(true)}
-          />
-          <Divider />
-          <List.Item
-            title="Terms of Service"
-            left={props => <List.Icon {...props} icon="file-document" />}
-            onPress={() => navigation.navigate('Terms')}
-          />
-          <List.Item
-            title="Privacy Policy"
-            left={props => <List.Icon {...props} icon="shield-account" />}
-            onPress={() => navigation.navigate('Privacy')}
-          />
-          {isAuthenticated && (
+        <ScrollView style={styles.scrollView}>
+          <List.Section>
+            <List.Subheader>Account</List.Subheader>
             <List.Item
-              title="Sign Out"
-              left={props => <List.Icon {...props} icon="logout" />}
-              onPress={handleSignOut}
+              title={user.name || 'Guest'}
+              description={`${user.email || ''}\nPlan: ${user.plan || ''}`}
+              left={props => <List.Icon {...props} icon="account" />}
             />
-          )}
-        </List.Section>
+            <Divider />
+            <List.Subheader>Message Limits</List.Subheader>
+            <List.Item
+              title="Daily Messages"
+              description={
+                user.plan === SubscriptionTier.PRO
+                  ? 'Unlimited'
+                  : `${
+                      user.dailyMessagesUsed
+                    }/${user.getDailyMessageLimit()} used`
+              }
+              left={props => <List.Icon {...props} icon="message" />}
+            />
+            <List.Item
+              title="Extra Messages"
+              description={`${user.extraMessages} remaining`}
+              left={props => <List.Icon {...props} icon="gift" />}
+            />
+            <Divider />
+            <List.Subheader>Matches</List.Subheader>
+            <List.Item
+              title="Hidden Matches"
+              left={props => <List.Icon {...props} icon="archive" />}
+              onPress={handleOpenHiddenMatches}
+            />
+            <Divider />
+            <List.Subheader>Support</List.Subheader>
+            <List.Item
+              title="Contact Support"
+              left={props => <List.Icon {...props} icon="help-circle" />}
+              onPress={onOpenSupport}
+            />
+            <Divider />
+            <List.Subheader>Upgrade & Purchases</List.Subheader>
+            <List.Item
+              title="Buy Message Pack"
+              left={props => <List.Icon {...props} icon="gift" />}
+              onPress={() => setShowMessagePackModal(true)}
+            />
+            <List.Item
+              title="Upgrade Plan"
+              left={props => <List.Icon {...props} icon="star" />}
+              onPress={() => setShowUpgradeModal(true)}
+            />
+            <Divider />
+            <View style={styles.legalSection}>
+              <List.Item
+                title="Terms of Service"
+                left={props => <List.Icon {...props} icon="file-document" />}
+                onPress={() => navigation.navigate('Terms')}
+                titleStyle={styles.legalText}
+              />
+              <List.Item
+                title="Privacy Policy"
+                left={props => <List.Icon {...props} icon="shield-account" />}
+                onPress={() => navigation.navigate('Privacy')}
+                titleStyle={styles.legalText}
+              />
+            </View>
+          </List.Section>
+        </ScrollView>
       </Animated.View>
 
       <MessagePackModal
@@ -259,10 +284,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  headerButton: {
+    margin: 0,
   },
   closeButton: {
     margin: 0,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  legalSection: {
+    marginTop: 8,
+  },
+  legalText: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.6)',
   },
 });
 

@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import {Database, Match} from '../db/types';
+import {Database} from '../db/types';
 import logger from '../utils/logger';
 
 export const getMatches = async (req: Request, res: Response, db: Database) => {
@@ -48,26 +48,35 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
   }
 };
 
-export const addMatch = async (
-  db: Database,
-  matchData: {
-    userId: string;
-    name: string;
-    platform: string;
-  },
-): Promise<Match | null> => {
+export const addMatch = async (req: Request, res: Response, db: Database) => {
   try {
-    return await db.addMatch(
-      matchData.userId,
-      matchData.name,
-      matchData.platform,
-    );
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({error: 'Unauthorized'});
+    }
+
+    const {name, platform} = req.body;
+    if (!name || !platform) {
+      return res.status(400).json({error: 'Name and platform are required'});
+    }
+
+    const match = await db.addMatch(userId, {
+      userId,
+      name,
+      platform,
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.json(match);
   } catch (error) {
     logger.error('Failed to add match', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return null;
+    res.status(500).json({error: 'Failed to add match'});
   }
 };
 
@@ -91,15 +100,7 @@ export const updateMatchLastUsed = async (
     }
 
     // Update match last used
-    const result = await db.run(
-      'UPDATE matches SET lastUsed = ?, updatedAt = ? WHERE id = ? AND userId = ?',
-      [new Date().toISOString(), new Date().toISOString(), matchId, userId],
-    );
-
-    if (result.changes === 0) {
-      logger.warn('Match not found when updating last used', {userId, matchId});
-      return res.status(404).json({error: 'Match not found'});
-    }
+    await db.updateMatchLastUsed(userId, matchId);
 
     logger.info('Updated match last used:', {userId, matchId});
     res.json({message: 'Match updated successfully'});
@@ -165,10 +166,7 @@ export const hideMatch = async (req: Request, res: Response, db: Database) => {
     }
 
     // Hide match
-    await db.run(
-      'UPDATE matches SET hidden = ?, updatedAt = ? WHERE id = ? AND userId = ?',
-      [true, new Date().toISOString(), matchId, userId],
-    );
+    await db.hideMatch(userId, matchId);
 
     logger.info('Hidden match:', {userId, matchId});
     res.json({message: 'Match hidden successfully'});
@@ -192,7 +190,7 @@ export const restoreMatch = async (
     const {matchId} = req.body;
 
     if (!matchId) {
-      return res.status(400).json({error: 'Missing required fields'});
+      return res.status(400).json({error: 'Match ID is required'});
     }
 
     // First check if user exists
@@ -202,10 +200,7 @@ export const restoreMatch = async (
     }
 
     // Restore match
-    await db.run(
-      'UPDATE matches SET hidden = ?, updatedAt = ? WHERE id = ? AND userId = ?',
-      [false, new Date().toISOString(), matchId, userId],
-    );
+    await db.restoreMatch(userId, matchId);
 
     logger.info('Restored match:', {userId, matchId});
     res.json({message: 'Match restored successfully'});

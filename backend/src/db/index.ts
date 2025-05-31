@@ -32,16 +32,19 @@ let supportRepository: FirestoreSupportRepository | null = null;
 
 export const getDatabase = async (): Promise<Database> => {
   if (!db) {
+    logger.info('Initializing database', {type: databaseConfig.type});
     if (databaseConfig.type === 'firestore') {
       // For Firestore, we return a minimal Database interface implementation
       // that delegates to Firestore. This is needed because some parts of the
       // application expect a Database interface.
       const firestore = getFirestore();
+      logger.info('Firestore instance obtained, initializing repositories');
       userRepository = new FirestoreUserRepository();
       messageRepository = new FirestoreMessageRepository();
       matchRepository = new FirestoreMatchRepository();
       messageCostRepository = new FirestoreMessageCostRepository();
       supportRepository = new FirestoreSupportRepository();
+      logger.info('Firestore repositories initialized successfully');
 
       db = {
         // User operations
@@ -135,60 +138,27 @@ export const getDatabase = async (): Promise<Database> => {
         },
         addMatch: async (
           userId: string,
-          name: string,
-          platform: string,
+          match: Omit<Match, 'id'>,
         ): Promise<Match> => {
-          return matchRepository!.addMatch(userId, {
-            userId,
-            name,
-            platform,
-            lastUsed: new Date().toISOString(),
-            hidden: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
+          return matchRepository!.addMatch(userId, match);
         },
         updateMatchLastUsed: async (
           userId: string,
-          name: string,
-          platform: string,
+          matchId: string,
         ): Promise<void> => {
-          const matches = await matchRepository!.getMatches(userId);
-          const match = matches.find(
-            m => m.name === name && m.platform === platform,
-          );
-          if (match) {
-            return matchRepository!.updateMatchLastUsed(userId, match.id);
-          }
+          return matchRepository!.updateMatchLastUsed(userId, matchId);
         },
         deleteMatch: async (userId: string, matchId: string): Promise<void> => {
           return matchRepository!.deleteMatch(userId, matchId);
         },
-        hideMatch: async (
-          userId: string,
-          name: string,
-          platform: string,
-        ): Promise<void> => {
-          const matches = await matchRepository!.getMatches(userId);
-          const match = matches.find(
-            m => m.name === name && m.platform === platform,
-          );
-          if (match) {
-            return matchRepository!.hideMatch(userId, match.id);
-          }
+        hideMatch: async (userId: string, matchId: string): Promise<void> => {
+          return matchRepository!.hideMatch(userId, matchId);
         },
         restoreMatch: async (
           userId: string,
-          name: string,
-          platform: string,
+          matchId: string,
         ): Promise<void> => {
-          const matches = await matchRepository!.getMatches(userId);
-          const match = matches.find(
-            m => m.name === name && m.platform === platform,
-          );
-          if (match) {
-            return matchRepository!.restoreMatch(userId, match.id);
-          }
+          return matchRepository!.restoreMatch(userId, matchId);
         },
 
         // Support operations

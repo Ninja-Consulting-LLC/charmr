@@ -92,16 +92,7 @@ const createMatchRouter = (db: Database) => {
     if (userId !== req.params.userId) {
       return res.status(403).json({error: 'Unauthorized access to user data'});
     }
-    const match = await addMatch(db, {
-      userId: req.params.userId,
-      name: req.body.name,
-      platform: req.body.platform,
-    });
-    if (match) {
-      res.status(201).json(match);
-    } else {
-      res.status(400).json({error: 'Failed to create match'});
-    }
+    return addMatch(req, res, db);
   });
 
   // Update match last used

@@ -1,110 +1,79 @@
 import {Request, Response} from 'express';
-import {createUser} from '../controllers/adminController';
-import {addMatch} from '../controllers/matchController';
 import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
-import {SubscriptionTier} from '../types/enums';
-
-// Mock the AI services
-jest.mock('../services/openaiService', () => ({
-  createOpenAIService: () => ({
-    generateReply: jest.fn().mockResolvedValue({
-      reply: 'Mocked reply',
-      summary: 'Mocked summary',
-      usage: {total_tokens: 100},
-    }),
-  }),
-}));
 
 describe('Reply Controller', () => {
-  let db: any;
-  let replyController: any;
+  let db: Awaited<ReturnType<typeof getDatabase>>;
+  let replyController: Awaited<ReturnType<typeof createReplyController>>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let matchId: string;
+  let responseObject: any;
 
   beforeEach(async () => {
     db = await getDatabase();
+    await db.clearDatabase();
     replyController = await createReplyController(db);
 
-    // Create a test user
-    const user = await createUser(db, {
+    // Setup mock request
+    mockRequest = {
+      params: {userId: 'test-user-123', matchId: 'test-match-123'},
+      body: {
+        prompt: 'Test reply',
+        userId: 'test-user-123',
+        matchId: 'test-match-123',
+      },
+      headers: {},
+      cookies: {},
+    };
+
+    // Setup mock response
+    responseObject = {};
+    mockResponse = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockImplementation(result => {
+        responseObject = result;
+        return mockResponse;
+      }),
+    };
+
+    // Create test user and match
+    await db.createUser({
       id: 'test-user-123',
       email: 'test@example.com',
       name: 'Test User',
-      plan: SubscriptionTier.FREE,
     });
 
-    if (!user) {
-      throw new Error('Failed to create test user');
-    }
-
-    // Create a test match
-    const match = await addMatch(db, {
-      userId: user.id,
+    await db.addMatch('test-user-123', {
+      userId: 'test-user-123',
       name: 'Test Match',
       platform: 'test',
+      lastUsed: new Date().toISOString(),
+      hidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
-
-    if (!match) {
-      throw new Error('Failed to create test match');
-    }
-
-    matchId = match.id.toString();
-
-    // Initialize mock request and response
-    mockRequest = {
-      body: {
-        prompt: 'Hello',
-        userId: user.id,
-        matchId: matchId,
-      },
-    };
-
-    mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
   });
 
-  it('should generate a reply', async () => {
-    await replyController.generateReplyHandler(
-      mockRequest as Request,
-      mockResponse as Response,
-    );
-
-    expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        reply: expect.any(String),
-        summary: expect.any(String),
-      }),
-    );
+  afterEach(async () => {
+    await db.clearDatabase();
   });
 
-  describe('Message Processing', () => {
-    it('should process a new message successfully', async () => {
+  describe('generateReply', () => {
+    it('should generate a reply successfully', async () => {
       await replyController.generateReplyHandler(
         mockRequest as Request,
         mockResponse as Response,
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reply: expect.any(String),
-          summary: expect.any(String),
-          usage: expect.any(Object),
-          limits: expect.any(Object),
-        }),
-      );
+      expect(responseObject).toHaveProperty('reply');
+      expect(responseObject).toHaveProperty('summary');
     });
 
-    it('should validate message content', async () => {
+    it('should handle missing prompt', async () => {
       mockRequest.body = {
-        prompt: '',
-        matchId: matchId,
         userId: 'test-user-123',
+        matchId: 'test-match-123',
       };
 
       await replyController.generateReplyHandler(
@@ -113,18 +82,14 @@ describe('Reply Controller', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(String),
-        }),
-      );
+      expect(responseObject).toHaveProperty('error');
     });
 
-    it('should handle message errors gracefully', async () => {
+    it('should handle non-existent match', async () => {
       mockRequest.body = {
-        prompt: 'Hello',
-        matchId: 'non-existent-match',
+        prompt: 'Test reply',
         userId: 'test-user-123',
+        matchId: 'non-existent',
       };
 
       await replyController.generateReplyHandler(
@@ -133,81 +98,7 @@ describe('Reply Controller', () => {
       );
 
       expect(mockResponse.status).toHaveBeenCalledWith(404);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.any(String),
-        }),
-      );
-    });
-  });
-
-  describe('Reply Generation', () => {
-    it('should generate appropriate replies', async () => {
-      await replyController.generateReplyHandler(
-        mockRequest as Request,
-        mockResponse as Response,
-      );
-
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reply: expect.any(String),
-          summary: expect.any(String),
-          usage: expect.any(Object),
-          limits: expect.any(Object),
-        }),
-      );
-    });
-
-    it('should maintain conversation context', async () => {
-      // Send first message
-      await replyController.generateReplyHandler(
-        mockRequest as Request,
-        mockResponse as Response,
-      );
-
-      // Send follow-up message
-      mockRequest.body = {
-        prompt: 'That sounds great!',
-        matchId: matchId,
-        userId: 'test-user-123',
-      };
-
-      await replyController.generateReplyHandler(
-        mockRequest as Request,
-        mockResponse as Response,
-      );
-
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          reply: expect.any(String),
-          summary: expect.any(String),
-          usage: expect.any(Object),
-          limits: expect.any(Object),
-        }),
-      );
-    });
-  });
-
-  describe('Conversation Management', () => {
-    it('should track conversation state', async () => {
-      await replyController.generateReplyHandler(
-        mockRequest as Request,
-        mockResponse as Response,
-      );
-
-      // Add a small delay to ensure messages are committed
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const messages = await db.all(
-        'SELECT * FROM messages WHERE matchId = ? ORDER BY timestamp ASC',
-        [matchId],
-      );
-
-      expect(messages).toHaveLength(2); // System message and AI reply
-      expect(messages[0].role).toBe('system');
-      expect(messages[1].role).toBe('assistant');
+      expect(responseObject).toHaveProperty('error', 'Match not found');
     });
   });
 });

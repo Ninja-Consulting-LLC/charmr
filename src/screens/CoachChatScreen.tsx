@@ -69,7 +69,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const {userId, matches, user, setUser} = useStore();
+  const {userId, matches, user, setUser, setMatches} = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -98,8 +98,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleHideMatch = async (match: Match) => {
     try {
-      const success = await hideMatch(match.name, match.platform);
+      const success = await hideMatch(match.id);
       if (success) {
+        // Update local state to reflect the hidden status
+        setMatches(
+          matches.map(m => (m.id === match.id ? {...m, hidden: true} : m)),
+        );
         navigation.goBack();
       }
     } catch (error) {
@@ -109,8 +113,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleRestoreMatch = async (match: Match) => {
     try {
-      const success = await restoreMatch(match.name, match.platform);
+      const success = await restoreMatch(match.id);
       if (success) {
+        // Update local state to reflect the restored status
+        setMatches(
+          matches.map(m => (m.id === match.id ? {...m, hidden: false} : m)),
+        );
         navigation.goBack();
       }
     } catch (error) {
@@ -133,6 +141,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         }
 
         console.log('Loading messages with offset:', offset);
+        console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
+        console.log('User object:', JSON.stringify(user, null, 2));
+
         const messagesResponse = await axiosInstance.get(
           `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
           {
@@ -208,9 +219,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             mode: MessageMode.COACH,
           };
 
+          console.log('Showing all messages');
           setMessages(prevMessages => {
-            const messages =
-              chatMessages.length > 0 ? chatMessages : [welcomeMessage];
+            const messages = [welcomeMessage, ...chatMessages];
             return messages.reverse();
           });
         } else {
@@ -263,7 +274,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setIsLoadingMore(false);
       }
     },
-    [userId, effectiveMatchId, match.name],
+    [userId, effectiveMatchId, match.name, user?.plan],
   );
 
   const loadMoreMessages = useCallback(() => {
@@ -460,6 +471,21 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         style={styles.safeArea}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.headerSpacer} />
+        {user?.plan === SubscriptionTier.FREE && (
+          <TouchableOpacity
+            style={styles.promoContainer}
+            onPress={() => setShowUpgradeModal(true)}>
+            <Text style={styles.promoText}>
+              Upgrade to Pro to full chat history
+            </Text>
+            <IconButton
+              icon="chevron-right"
+              size={20}
+              iconColor="rgba(255, 255, 255, 0.8)"
+              style={styles.promoIcon}
+            />
+          </TouchableOpacity>
+        )}
         {isLoadingMessages ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.surface} />
@@ -506,6 +532,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               const isCopyable =
                 currentMessage?.user._id === 'coach' &&
                 currentMessage?.mode === MessageMode.GENERATE;
+
+              // Check if this message should be obscured for free users
+              const messageIndex = messages.findIndex(
+                m => m._id === currentMessage?._id,
+              );
+              const shouldObscure =
+                user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
               return (
                 <TouchableOpacity
@@ -561,6 +594,23 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                         />
                       )}
                     </View>
+                    {shouldObscure && (
+                      <View style={styles.obscureOverlay}>
+                        <LinearGradient
+                          colors={[
+                            `${theme.colors.primary}CC`,
+                            `${theme.colors.primary}FF`,
+                          ]}
+                          style={styles.obscureGradient}>
+                          <IconButton
+                            icon="lock"
+                            size={20}
+                            iconColor="rgba(255, 255, 255, 0.9)"
+                            style={styles.obscureIcon}
+                          />
+                        </LinearGradient>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -800,6 +850,27 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     height: 56, // Standard header height
+  },
+  promoContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  promoText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  promoIcon: {
+    margin: 0,
+    padding: 0,
   },
   gradientBackground: {
     position: 'absolute',
@@ -1078,6 +1149,24 @@ const styles = StyleSheet.create({
   },
   loadingIndicator: {
     padding: 10,
+  },
+  obscureOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  obscureGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  obscureIcon: {
+    margin: 0,
+    padding: 0,
   },
 });
 
