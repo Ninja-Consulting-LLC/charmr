@@ -18,9 +18,7 @@ export const MESSAGES = {
 
   // Reply Modal Messages
   REPLY_MODAL_TITLE: 'Generated Response',
-  REPLY_MODAL_MODIFY_HINT: "Not quite what you're looking for...modify prompt",
   REPLY_MODAL_DELETE_HINT: 'Delete screenshot(s) when done',
-  REPLY_MODAL_MODIFY: 'Modify',
   REPLY_MODAL_DONE: 'Done',
   REPLY_MODAL_COPY: 'Copy',
 } as const;

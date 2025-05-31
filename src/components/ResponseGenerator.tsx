@@ -292,11 +292,6 @@ const ResponseGenerator = forwardRef<
     handleSubmit();
   };
 
-  const handleModifyResponse = () => {
-    setShowReplyModal(false);
-    setShowSnackbar(false);
-  };
-
   const handlePickImages = async () => {
     await pickImages();
   };
@@ -396,7 +391,6 @@ const ResponseGenerator = forwardRef<
         reply={response || ''}
         onDone={handleDone}
         onCopy={handleCopyToClipboard}
-        onModifyResponse={handleModifyResponse}
         onDeleteScreenshots={handleDeleteScreenshotsToggle}
         deleteScreenshots={deleteScreenshots}
         hasScreenshots={images.length > 0}

@@ -98,18 +98,21 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
             <Text style={styles.title}>Select Match</Text>
             <IconButton
               icon="close"
-              size={20}
+              size={24}
               onPress={onDismiss}
               style={styles.closeButton}
             />
           </View>
-
           <ScrollView style={styles.scrollView}>
             {sortedMatches.map(match => (
               <List.Item
-                key={`${match.platform}::${match.name}`}
+                key={match.id}
                 title={match.name}
                 description={match.platform}
+                style={[
+                  styles.matchItem,
+                  selectedMatch?.id === match.id && styles.selectedMatch,
+                ]}
                 left={props => (
                   <List.Icon
                     {...props}
@@ -120,16 +123,14 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                 right={props => (
                   <View style={styles.itemActions}>
                     <IconButton
-                      {...props}
-                      icon="dots-vertical"
+                      icon="archive"
+                      size={20}
                       onPress={() => handleDeletePress(match)}
+                      style={styles.actionButton}
                     />
                     <Button
-                      mode="contained"
-                      onPress={() => {
-                        onSelectMatch(match);
-                        onDismiss();
-                      }}
+                      mode="text"
+                      onPress={() => onSelectMatch(match)}
                       style={styles.selectButton}>
                       Select
                     </Button>
@@ -138,33 +139,30 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
               />
             ))}
           </ScrollView>
-
           <View style={styles.footer}>
             <Button
               mode="contained"
               onPress={() => setShowAddMatchModal(true)}
-              icon="plus"
               style={styles.addButton}>
               Add New Match
             </Button>
           </View>
         </View>
-
-        <DeleteMatchDialog
-          visible={deleteDialogVisible}
-          onDismiss={() => setDeleteDialogVisible(false)}
-          match={matchToDelete}
-          onDelete={handleConfirmDelete}
-          onArchive={handleArchive}
-        />
       </Modal>
-      <Portal>
-        <AddMatchModal
-          visible={showAddMatchModal}
-          onDismiss={() => setShowAddMatchModal(false)}
-          onAdd={handleAddMatch}
-        />
-      </Portal>
+
+      <DeleteMatchDialog
+        visible={deleteDialogVisible}
+        onDismiss={() => setDeleteDialogVisible(false)}
+        onConfirm={handleConfirmDelete}
+        onArchive={handleArchive}
+        matchName={matchToDelete?.name || ''}
+      />
+
+      <AddMatchModal
+        visible={showAddMatchModal}
+        onDismiss={() => setShowAddMatchModal(false)}
+        onAddMatch={handleAddMatch}
+      />
     </Portal>
   );
 };
@@ -221,6 +219,9 @@ const styles = StyleSheet.create({
   },
   addButton: {
     width: '100%',
+  },
+  actionButton: {
+    marginRight: 8,
   },
 });
 

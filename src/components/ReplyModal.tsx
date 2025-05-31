@@ -1,13 +1,6 @@
 import React from 'react';
 import {Pressable, StyleSheet, View} from 'react-native';
-import {
-  IconButton,
-  Modal,
-  Portal,
-  Switch,
-  Text,
-  Tooltip,
-} from 'react-native-paper';
+import {IconButton, Modal, Portal, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
 
@@ -17,7 +10,6 @@ interface ReplyModalProps {
   reply: string;
   onDone: () => void;
   onCopy: () => void;
-  onModifyResponse: () => void;
   onDeleteScreenshots: (value: boolean) => void;
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
@@ -30,7 +22,6 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   reply,
   onDone,
   onCopy,
-  onModifyResponse,
   onDeleteScreenshots,
   deleteScreenshots,
   hasScreenshots,
@@ -79,39 +70,6 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              <View style={styles.modifySection}>
-                <Tooltip
-                  title={MESSAGES.REPLY_MODAL_MODIFY_HINT}
-                  enterTouchDelay={50}
-                  leaveTouchDelay={5000}
-                  theme={{
-                    colors: {
-                      onSurface: theme.colors.inverseOnSurface,
-                      surface: theme.colors.inverseSurface,
-                    },
-                    fonts: {
-                      bodyMedium: {
-                        ...theme.fonts.bodyMedium,
-                        lineHeight: 24,
-                      },
-                    },
-                    roundness: 8,
-                  }}>
-                  <IconButton
-                    icon="information"
-                    size={20}
-                    style={styles.infoIcon}
-                    iconColor={theme.colors.onSurfaceVariant}
-                  />
-                </Tooltip>
-                <Pressable
-                  onPress={onModifyResponse}
-                  style={styles.modifyButton}>
-                  <Text variant="bodyMedium" style={styles.modifyText}>
-                    {MESSAGES.REPLY_MODAL_MODIFY}
-                  </Text>
-                </Pressable>
-              </View>
               <Pressable onPress={onRegenerate} style={styles.regenerateButton}>
                 <Text variant="bodyMedium" style={styles.regenerateText}>
                   Regenerate
@@ -167,11 +125,6 @@ const styles = StyleSheet.create({
     margin: 0,
     opacity: 0.6,
   },
-  helperText: {
-    textAlign: 'center',
-    color: theme.colors.onSurfaceVariant,
-    marginBottom: 24,
-  },
   deleteSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -184,23 +137,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 12,
   },
-  modifySection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  modifyButton: {
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  modifyText: {
-    color: theme.colors.onSurfaceVariant,
-  },
-  infoIcon: {
-    margin: 0,
-    marginRight: 4,
-  },
   doneButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: 8,
@@ -209,10 +145,6 @@ const styles = StyleSheet.create({
   },
   doneText: {
     color: theme.colors.onPrimary,
-  },
-  tooltipText: {
-    color: theme.colors.inverseOnSurface,
-    fontSize: 14,
   },
   regenerateButton: {
     backgroundColor: theme.colors.surfaceVariant,

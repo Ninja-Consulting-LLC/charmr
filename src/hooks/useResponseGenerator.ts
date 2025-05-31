@@ -61,14 +61,6 @@ export const useResponseGenerator = ({
       return;
     }
 
-    if (userPlan !== SubscriptionTier.FREE && !selectedMatch) {
-      logger.app.info('[ResponseGenerator] No match selected');
-      setError(MESSAGES.SELECT_MATCH_REQUIRED);
-      setErrorType('SELECT_MATCH_REQUIRED');
-      setLoading(false);
-      return;
-    }
-
     try {
       logger.app.info('[ResponseGenerator] Converting images to base64');
       const base64Images = await Promise.all(

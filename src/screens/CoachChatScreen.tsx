@@ -13,12 +13,19 @@ import {
 } from 'react-native';
 import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {Button, IconButton, SegmentedButtons, Text} from 'react-native-paper';
+import {
+  Button,
+  IconButton,
+  SegmentedButtons,
+  Snackbar,
+  Text,
+} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
+import {MESSAGES} from '../constants/messages';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
@@ -73,6 +80,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [copyMessage, setCopyMessage] = useState(MESSAGES.MESSAGE_COPIED);
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
@@ -441,7 +450,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const handleCopyMessage = useCallback((text: string) => {
     Clipboard.setString(text);
-    // You might want to add a toast notification here
+    setShowSnackbar(true);
   }, []);
 
   const handlePickImages = async () => {
@@ -835,6 +844,18 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
       />
+      {/* Add Snackbar */}
+      <Snackbar
+        visible={showSnackbar}
+        onDismiss={() => setShowSnackbar(false)}
+        action={{
+          label: 'Dismiss',
+          onPress: () => setShowSnackbar(false),
+        }}
+        style={{backgroundColor: 'rgba(49, 48, 51, 0.95)'}}
+        testID="copy-snackbar">
+        {copyMessage}
+      </Snackbar>
     </View>
   );
 };
