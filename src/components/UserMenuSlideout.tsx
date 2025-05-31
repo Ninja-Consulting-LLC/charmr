@@ -176,9 +176,13 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             <List.Subheader>Message Limits</List.Subheader>
             <List.Item
               title="Daily Messages"
-              description={`${
-                user.dailyMessagesUsed
-              }/${user.getDailyMessageLimit()} used`}
+              description={
+                user.plan === SubscriptionTier.PRO
+                  ? 'Unlimited'
+                  : `${
+                      user.dailyMessagesUsed
+                    }/${user.getDailyMessageLimit()} used`
+              }
               left={props => <List.Icon {...props} icon="message" />}
             />
             <List.Item
