@@ -4,6 +4,7 @@ import Config from 'react-native-config';
 import {logger} from '../utils/logger';
 
 // For iOS simulator and Android emulator, localhost maps differently
+// TODO: this isn't actually used anywhere, remove eventually
 const getBaseUrl = () => {
   // Debug logging for environment variables
   logger.config.debug('Environment Variables Debug:', {
