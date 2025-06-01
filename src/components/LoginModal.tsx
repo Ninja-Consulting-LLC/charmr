@@ -83,7 +83,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.button, styles.appleButton]}
                 onPress={handleAppleLogin}>
                 <View style={styles.buttonContent}>
@@ -92,9 +92,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     Continue with Apple
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.button, styles.facebookButton]}
                 onPress={() => {}}>
                 <View style={styles.buttonContent}>
@@ -107,7 +107,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
                     Continue with Facebook
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
