@@ -94,11 +94,11 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       name TEXT NOT NULL,
       platform TEXT NOT NULL,
       lastUsed TEXT,
-      hidden BOOLEAN NOT NULL DEFAULT 0,
-      createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(userId, name, platform)
+      hidden INTEGER DEFAULT 0,
+      deleted INTEGER DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
     );
 
     CREATE INDEX IF NOT EXISTS idx_matches_user ON matches(userId);
@@ -721,6 +721,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         const query = `
           SELECT * FROM matches
           WHERE userId = ?
+          AND deleted = 0
           ${includeHidden ? '' : 'AND hidden = 0'}
           ORDER BY lastUsed DESC NULLS LAST
         `;
@@ -746,14 +747,15 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     ): Promise<Match> => {
       try {
         const result = await db.run(
-          `INSERT INTO matches (userId, name, platform, lastUsed, hidden, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO matches (userId, name, platform, lastUsed, hidden, deleted, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             match.name,
             match.platform,
             match.lastUsed,
             match.hidden ? 1 : 0,
+            0, // deleted = false
             match.createdAt,
             match.updatedAt,
           ],
@@ -765,6 +767,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           platform: match.platform,
           lastUsed: match.lastUsed,
           hidden: match.hidden,
+          deleted: false,
           createdAt: match.createdAt,
           updatedAt: match.updatedAt,
         };
@@ -800,10 +803,13 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     deleteMatch: async (userId: string, matchId: string): Promise<void> => {
       try {
-        await db.run('DELETE FROM matches WHERE id = ? AND userId = ?', [
-          matchId,
-          userId,
-        ]);
+        const now = new Date().toISOString();
+        await db.run(
+          `UPDATE matches
+           SET deleted = 1, updatedAt = ?
+           WHERE id = ? AND userId = ?`,
+          [now, matchId, userId],
+        );
       } catch (error) {
         logger.error('Failed to delete match', {
           error: error instanceof Error ? error.message : 'Unknown error',

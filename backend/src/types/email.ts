@@ -36,4 +36,5 @@ export interface SupportRequest {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
+  name?: string;
 }

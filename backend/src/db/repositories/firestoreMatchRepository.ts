@@ -14,19 +14,35 @@ export class FirestoreMatchRepository {
     return this.db.collection('users').doc(userId).collection('matches');
   }
 
-  async getMatches(userId: string): Promise<Match[]> {
+  async getMatches(
+    userId: string,
+    includeHidden: boolean = false,
+  ): Promise<Match[]> {
     try {
-      const snapshot = await this.getMatchesCollection(userId)
-        .orderBy('lastUsed', 'desc')
-        .get();
+      let query = this.getMatchesCollection(userId).where(
+        'deleted',
+        '==',
+        false,
+      );
 
-      return snapshot.docs.map(doc => {
-        const data = doc.data() as Omit<Match, 'id'>;
-        return {
-          id: doc.id,
-          ...data,
-        };
-      }) as Match[];
+      if (!includeHidden) {
+        query = query.where('hidden', '==', false);
+      }
+
+      const snapshot = await query.get();
+      const matches = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Match[];
+
+      const hiddenMatchesCount = matches.filter(match => match.hidden).length;
+      logger.debug('Firestore query result:', {
+        matchesCount: matches.length,
+        hiddenMatchesCount,
+        includeHidden,
+      });
+
+      return matches;
     } catch (error) {
       logger.error('Failed to get matches from Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -61,18 +77,15 @@ export class FirestoreMatchRepository {
 
   async addMatch(userId: string, match: Omit<Match, 'id'>): Promise<Match> {
     try {
-      // First check if user exists
-      const userDoc = await this.db.collection('users').doc(userId).get();
-      if (!userDoc.exists) {
-        throw new Error(`User ${userId} does not exist`);
-      }
-
-      const docRef = await this.getMatchesCollection(userId).add(match);
-      const doc = await docRef.get();
-      const data = doc.data() as Omit<Match, 'id'>;
+      const docRef = this.getMatchesCollection(userId).doc();
+      const matchData = {
+        ...match,
+        deleted: false,
+      };
+      await docRef.set(matchData);
       return {
-        id: doc.id,
-        ...data,
+        id: docRef.id,
+        ...matchData,
       } as Match;
     } catch (error) {
       logger.error('Failed to add match to Firestore', {
@@ -102,7 +115,10 @@ export class FirestoreMatchRepository {
   async deleteMatch(userId: string, matchId: ID): Promise<void> {
     try {
       const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
-      await docRef.delete();
+      await docRef.update({
+        deleted: true,
+        updatedAt: new Date().toISOString(),
+      });
     } catch (error) {
       logger.error('Failed to delete match from Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',

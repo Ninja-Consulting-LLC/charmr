@@ -119,13 +119,16 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
         // Check authentication state
         const storedIsAuthenticated = await AsyncStorage.getItem(
-          'isAuthenticated',
+          '@charmr/isAuthenticated',
         );
         const storedUserId = await AsyncStorage.getItem('@charmr/userId');
+        const storedUser = await AsyncStorage.getItem('@charmr/user');
 
-        logger.app.info('🔍 Checking authentication state:');
-        logger.app.info('  - Stored isAuthenticated:', storedIsAuthenticated);
-        logger.app.info('  - Stored userId:', storedUserId);
+        logger.app.info('🔍 Checking authentication state:', {
+          isAuthenticated: storedIsAuthenticated,
+          userId: storedUserId,
+          hasUserData: !!storedUser,
+        });
 
         // If we have stored credentials, verify they're still valid
         if (storedUserId && storedIsAuthenticated === 'true') {
@@ -134,13 +137,17 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             const token = await getAuthToken();
             if (!token) {
               logger.app.info(
-                '❌ No Firebase token found, falling back to anonymous auth',
+                '❌ No Firebase token found, falling back to stored user data',
               );
-              // Instead of clearing everything, just update auth state
-              setIsAuthenticated(true);
-              setUserId(storedUserId);
-              setIsLoading(false);
-              return;
+              // If we have stored user data, use it
+              if (storedUser) {
+                const userData = JSON.parse(storedUser);
+                setUserId(storedUserId);
+                setUser(userData);
+                setIsAuthenticated(true);
+                setIsLoading(false);
+                return;
+              }
             }
 
             // Verify the user ID is still valid
@@ -148,18 +155,20 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             if (currentUserId === storedUserId) {
               setUserId(storedUserId);
               setIsAuthenticated(true);
+              if (storedUser) {
+                setUser(JSON.parse(storedUser));
+              }
               logger.app.info('✅ User is authenticated');
             } else {
-              // Only clear auth-related data, not installation ID
+              // Only clear auth-related data
               await AsyncStorage.multiRemove([
-                'isAuthenticated',
+                '@charmr/isAuthenticated',
                 '@charmr/userId',
+                '@charmr/user',
                 '@charmr/user_data',
                 '@charmr/user_settings',
                 '@charmr/user_profile',
                 '@charmr/auth_token',
-                '@charmr/user',
-                '@charmr/isAuthenticated',
                 '@charmr/email',
                 '@charmr/name',
                 '@charmr/plan',
@@ -176,14 +185,13 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           } catch (error) {
             // If there's an error verifying the user, only clear auth data
             await AsyncStorage.multiRemove([
-              'isAuthenticated',
+              '@charmr/isAuthenticated',
               '@charmr/userId',
+              '@charmr/user',
               '@charmr/user_data',
               '@charmr/user_settings',
               '@charmr/user_profile',
               '@charmr/auth_token',
-              '@charmr/user',
-              '@charmr/isAuthenticated',
               '@charmr/email',
               '@charmr/name',
               '@charmr/plan',
@@ -199,7 +207,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
         setIsLoading(false);
       } catch (error) {
-        logger.app.error('❌ Error initializing app:', error);
+        logger.app.error('Error during app initialization:', error);
         setIsLoading(false);
       }
     };
@@ -323,9 +331,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       const newUser = await userService.createAnonymousUser();
       setUser(newUser);
       setUserId(newUser.id);
-      await AsyncStorage.setItem('userId', newUser.id);
+      await AsyncStorage.setItem('@charmr/userId', newUser.id);
       setIsAuthenticated(true);
-      await AsyncStorage.setItem('isAuthenticated', 'true');
+      await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
       return newUser;
     } catch (error) {
       logger.app.error('Error creating new user', {
@@ -352,9 +360,9 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
       // Update local state
       setUserId(registeredUserId);
-      await AsyncStorage.setItem('userId', registeredUserId);
+      await AsyncStorage.setItem('@charmr/userId', registeredUserId);
       setIsAuthenticated(true);
-      await AsyncStorage.setItem('isAuthenticated', 'true');
+      await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
 
       logger.app.info('Anonymous User Linked', {
         event: 'link_anonymous_user',
@@ -390,15 +398,13 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
       // Clear stored credentials except installation ID
       await AsyncStorage.multiRemove([
-        'isAuthenticated',
-        'userId',
+        '@charmr/isAuthenticated',
+        '@charmr/userId',
         '@charmr/user_data',
         '@charmr/user_settings',
         '@charmr/user_profile',
         '@charmr/auth_token',
         '@charmr/user',
-        '@charmr/userId',
-        '@charmr/isAuthenticated',
         '@charmr/email',
         '@charmr/name',
         '@charmr/plan',

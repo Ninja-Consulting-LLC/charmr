@@ -80,9 +80,9 @@ export const defaultStore: Store = {
 // Store utility functions
 export const cleanupStaleData = async () => {
   try {
-    await AsyncStorage.removeItem('userId');
-    await AsyncStorage.removeItem('user');
-    await AsyncStorage.removeItem('isAuthenticated');
+    await AsyncStorage.removeItem('@charmr/userId');
+    await AsyncStorage.removeItem('@charmr/user');
+    await AsyncStorage.removeItem('@charmr/isAuthenticated');
   } catch (error) {
     console.error('Error cleaning up stale data:', error);
   }
