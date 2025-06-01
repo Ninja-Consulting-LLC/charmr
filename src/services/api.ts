@@ -21,6 +21,7 @@ interface SupportRequest {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
+  name?: string;
 }
 
 export const generateReply = async (

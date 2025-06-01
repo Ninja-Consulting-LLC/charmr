@@ -93,7 +93,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
     try {
       await submitSupportRequest(
         {
-          userId: userId || 'dev-user',
+          userId: userId,
           email,
           phone,
           message,
@@ -101,6 +101,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           dailyMessagesUsed: user.dailyMessagesUsed,
           dailyMessageLimit: user.dailyMessageLimit,
           extraMessages: user.extraMessages,
+          name: user.name,
         },
         authBypass,
       );

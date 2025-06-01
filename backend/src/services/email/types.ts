@@ -17,6 +17,7 @@ export interface SupportRequest {
   dailyMessagesUsed: number;
   dailyMessageLimit: number;
   extraMessages: number;
+  name?: string;
 }
 
 export interface EmailService {
