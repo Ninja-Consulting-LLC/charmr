@@ -23,6 +23,13 @@ export const createEmailService = (config: EmailConfig): EmailService => {
     ...(config.auth && {auth: config.auth}),
   };
 
+  logger.info('Email transporter configuration', {
+    host: transporterConfig.host,
+    port: transporterConfig.port,
+    secure: transporterConfig.secure,
+    hasAuth: !!transporterConfig.auth,
+  });
+
   const transporter = nodemailer.createTransport(transporterConfig);
 
   // Verify transporter configuration
@@ -97,6 +104,18 @@ ${request.message}
           replyTo: request.email,
         });
         logger.info('Support request email sent successfully');
+
+        // Send confirmation email to the user
+        await emailService.sendEmail({
+          to: request.email,
+          subject: 'Charmr Support: We received your message',
+          text: `${
+            request.name ? `Hi ${request.name},` : 'Hi there,'
+          }\n\nWe have received your support request and will get back to you as soon as possible.\n\nThank you for reaching out to Charmr Support!`,
+        });
+        logger.info(
+          `Support request confirmation email sent to user ${request.email}`,
+        );
       } catch (error) {
         logger.error('Failed to send support request email', {
           error: error instanceof Error ? error.message : 'Unknown error',

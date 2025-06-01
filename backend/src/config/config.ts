@@ -35,8 +35,10 @@ export const config = {
     host: process.env.EMAIL_HOST || 'mailhog',
     port: parseInt(process.env.EMAIL_PORT || '1025', 10),
     secure: process.env.EMAIL_SECURE === 'true',
-    user: process.env.EMAIL_USER || 'test',
-    pass: process.env.EMAIL_PASS || 'test',
+    auth: {
+      user: process.env.EMAIL_USER || 'test',
+      pass: process.env.EMAIL_PASS || 'test',
+    },
     defaultFrom: process.env.EMAIL_DEFAULT_FROM || 'noreply@example.invalid',
     defaultReplyTo: process.env.EMAIL_DEFAULT_REPLY_TO || 'support@example.invalid',
   },
@@ -46,6 +48,7 @@ export const config = {
       10,
     ),
   },
+  supportEmail: process.env.SUPPORT_EMAIL || 'support@example.invalid',
 } as const;
 
 // Validate required environment variables
