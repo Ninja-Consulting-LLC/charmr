@@ -1,5 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {Modal, StyleSheet, View} from 'react-native';
+import {
+  Keyboard,
+  Modal,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import {
   Button,
   IconButton,
@@ -87,7 +93,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
     try {
       await submitSupportRequest(
         {
-          userId: userId || 'dev-user',
+          userId: userId,
           email,
           phone,
           message,
@@ -95,6 +101,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           dailyMessagesUsed: user.dailyMessagesUsed,
           dailyMessageLimit: user.dailyMessageLimit,
           extraMessages: user.extraMessages,
+          name: user.name,
         },
         authBypass,
       );
@@ -131,99 +138,102 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
         transparent
         animationType="fade"
         onRequestClose={onDismiss}>
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              {backgroundColor: theme.colors.surface},
-            ]}>
-            <View style={styles.header}>
-              <Text variant="headlineSmall">
-                {isSuccess ? 'Message Sent' : 'Contact Support'}
-              </Text>
-              <IconButton icon="close" onPress={onDismiss} />
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                {backgroundColor: theme.colors.surface},
+              ]}>
+              <View style={styles.header}>
+                <Text variant="headlineSmall">
+                  {isSuccess ? 'Message Sent' : 'Contact Support'}
+                </Text>
+                <IconButton icon="close" onPress={onDismiss} />
+              </View>
 
-            <View style={styles.content}>
-              {isSuccess ? (
-                <View style={styles.successContainer}>
-                  <Text variant="bodyLarge" style={styles.successMessage}>
-                    Your support request has been sent successfully. We'll get
-                    back to you soon!
-                  </Text>
-                  <Button
-                    mode="contained"
-                    onPress={onDismiss}
-                    style={styles.button}>
-                    Close
-                  </Button>
-                </View>
-              ) : (
-                <>
-                  {error && (
-                    <View style={styles.errorContainer}>
-                      <Text style={[styles.error, {color: theme.colors.error}]}>
-                        {error}
-                      </Text>
-                      {error.includes('register') && (
-                        <Button
-                          mode="text"
-                          onPress={handleRegisterPress}
-                          style={styles.registerButton}>
-                          Register Now
-                        </Button>
-                      )}
-                    </View>
-                  )}
+              <View style={styles.content}>
+                {isSuccess ? (
+                  <View style={styles.successContainer}>
+                    <Text variant="bodyLarge" style={styles.successMessage}>
+                      Your support request has been sent successfully. We'll get
+                      back to you soon!
+                    </Text>
+                    <Button
+                      mode="contained"
+                      onPress={onDismiss}
+                      style={styles.button}>
+                      Close
+                    </Button>
+                  </View>
+                ) : (
+                  <>
+                    {error && (
+                      <View style={styles.errorContainer}>
+                        <Text
+                          style={[styles.error, {color: theme.colors.error}]}>
+                          {error}
+                        </Text>
+                        {error.includes('register') && (
+                          <Button
+                            mode="text"
+                            onPress={handleRegisterPress}
+                            style={styles.registerButton}>
+                            Register Now
+                          </Button>
+                        )}
+                      </View>
+                    )}
 
-                  <TextInput
-                    label="Email *"
-                    value={email}
-                    onChangeText={setEmail}
-                    mode="outlined"
-                    style={styles.input}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    disabled={!!user.email}
-                    testID="email-input"
-                  />
+                    <TextInput
+                      label="Email *"
+                      value={email}
+                      onChangeText={setEmail}
+                      mode="outlined"
+                      style={styles.input}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      disabled={!!user.email}
+                      testID="email-input"
+                    />
 
-                  <TextInput
-                    label="Phone (optional)"
-                    value={phone}
-                    onChangeText={setPhone}
-                    mode="outlined"
-                    style={styles.input}
-                    keyboardType="phone-pad"
-                    testID="phone-input"
-                  />
+                    <TextInput
+                      label="Phone (optional)"
+                      value={phone}
+                      onChangeText={setPhone}
+                      mode="outlined"
+                      style={styles.input}
+                      keyboardType="phone-pad"
+                      testID="phone-input"
+                    />
 
-                  <TextInput
-                    label="Message *"
-                    value={message}
-                    onChangeText={setMessage}
-                    mode="outlined"
-                    style={styles.messageInput}
-                    multiline
-                    numberOfLines={6}
-                    textAlignVertical="top"
-                    testID="message-input"
-                  />
+                    <TextInput
+                      label="Message *"
+                      value={message}
+                      onChangeText={setMessage}
+                      mode="outlined"
+                      style={styles.messageInput}
+                      multiline
+                      numberOfLines={6}
+                      textAlignVertical="top"
+                      testID="message-input"
+                    />
 
-                  <Button
-                    mode="contained"
-                    onPress={handleSubmit}
-                    style={styles.button}
-                    loading={isSubmitting}
-                    disabled={isSubmitting || !email || !message}
-                    testID="send-message-button">
-                    Send Message
-                  </Button>
-                </>
-              )}
+                    <Button
+                      mode="contained"
+                      onPress={handleSubmit}
+                      style={styles.button}
+                      loading={isSubmitting}
+                      disabled={isSubmitting || !email || !message}
+                      testID="send-message-button">
+                      Send Message
+                    </Button>
+                  </>
+                )}
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       <LoginModal

@@ -1,5 +1,10 @@
 import React, {useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {
+  Keyboard,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import {
   Button,
   IconButton,
@@ -16,6 +21,8 @@ interface AddMatchModalProps {
   onAddMatch: (name: string, platform: string) => void;
 }
 
+const PLATFORMS = ['hinge', 'tinder', 'bumble', 'other'];
+
 const AddMatchModal: React.FC<AddMatchModalProps> = ({
   visible,
   onDismiss,
@@ -23,13 +30,34 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState('');
+  const [otherPlatform, setOtherPlatform] = useState('');
+  const [platformError, setPlatformError] = useState('');
 
   const handleAdd = () => {
-    if (name.trim() && platform.trim()) {
-      onAddMatch(name.trim(), platform.trim());
-      setName('');
-      setPlatform('');
+    if (!name.trim()) {
+      return;
     }
+    if (!platform) {
+      setPlatformError('Please select a platform');
+      return;
+    }
+    if (platform === 'other' && !otherPlatform.trim()) {
+      setPlatformError('Please enter platform name');
+      return;
+    }
+    onAddMatch(
+      name.trim(),
+      platform === 'other' ? otherPlatform.trim() : platform,
+    );
+    setName('');
+    setPlatform('');
+    setOtherPlatform('');
+    setPlatformError('');
+  };
+
+  const handlePlatformSelect = (selectedPlatform: string) => {
+    setPlatform(selectedPlatform);
+    setPlatformError('');
   };
 
   return (
@@ -38,35 +66,63 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
         visible={visible}
         onDismiss={onDismiss}
         contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Add New Match</Text>
-          <IconButton icon="close" size={20} onPress={onDismiss} />
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View>
+            <View style={styles.header}>
+              <Text style={styles.title}>Add New Match</Text>
+              <IconButton icon="close" size={20} onPress={onDismiss} />
+            </View>
 
-        <View style={styles.content}>
-          <TextInput
-            label="Name"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            mode="outlined"
-          />
-          <TextInput
-            label="Platform"
-            value={platform}
-            onChangeText={setPlatform}
-            style={styles.input}
-            mode="outlined"
-          />
+            <View style={styles.content}>
+              <TextInput
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+                mode="outlined"
+              />
 
-          <Button
-            mode="contained"
-            onPress={handleAdd}
-            disabled={!name.trim() || !platform.trim()}
-            style={styles.button}>
-            Add Match
-          </Button>
-        </View>
+              <Text style={styles.platformLabel}>Platform</Text>
+              <View style={styles.platformButtons}>
+                {PLATFORMS.map(p => (
+                  <Button
+                    key={p}
+                    mode={platform === p ? 'contained' : 'outlined'}
+                    onPress={() => handlePlatformSelect(p)}
+                    style={styles.platformButton}
+                    testID={`platform-${p}-button`}>
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </Button>
+                ))}
+              </View>
+
+              {platform === 'other' && (
+                <TextInput
+                  label="Enter Platform Name"
+                  value={otherPlatform}
+                  onChangeText={setOtherPlatform}
+                  style={styles.input}
+                  mode="outlined"
+                />
+              )}
+
+              {platformError ? (
+                <Text style={styles.errorText} testID="platform-error">
+                  {platformError}
+                </Text>
+              ) : null}
+
+              <Button
+                mode="contained"
+                onPress={handleAdd}
+                disabled={!name.trim()}
+                style={styles.button}
+                testID="add-button">
+                Add Match
+              </Button>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </Portal>
   );
@@ -94,6 +150,25 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: 'transparent',
+  },
+  platformLabel: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  platformButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  platformButton: {
+    width: '48%',
+    paddingHorizontal: 0,
+    marginVertical: 4,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 12,
   },
   button: {
     marginTop: 8,

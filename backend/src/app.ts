@@ -112,7 +112,7 @@ export const createApp = async () => {
   const emailService = createEmailService(config.email);
   const supportEmailService = createSupportEmailService(
     emailService,
-    config.email.defaultFrom,
+    config.supportEmail,
   );
 
   // Initialize controllers
@@ -153,6 +153,7 @@ export const createApp = async () => {
   });
 
   app.post('/api/support', authenticateUser, async (req, res) => {
+    console.log('RAW SUPPORT REQUEST BODY:', req.body);
     logger.info('Route instantiated: POST /api/support');
     try {
       const supportRequest: SupportRequest = req.body;

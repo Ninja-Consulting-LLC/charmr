@@ -71,17 +71,21 @@ export const addMatch = async (req: Request, res: Response, db: Database) => {
       return res.status(400).json({error: 'Name and platform are required'});
     }
 
-    const match = await db.addMatch(userId, {
+    const now = new Date().toISOString();
+    const matchData = {
       userId,
       name,
       platform,
-      lastUsed: new Date().toISOString(),
+      lastUsed: now,
       hidden: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-    res.json(match);
+    const createdMatch = await db.addMatch(userId, matchData);
+
+    res.status(201).json(createdMatch);
   } catch (error) {
     logger.error('Failed to add match', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -131,31 +135,24 @@ export const deleteMatch = async (
   db: Database,
 ) => {
   try {
-    const {userId, matchId} = req.params;
+    const {matchId} = req.params;
+    const userId =
+      process.env.NODE_ENV === 'development'
+        ? req.params.userId
+        : req.user?.uid;
 
-    if (!matchId) {
-      return res.status(400).json({error: 'Missing required fields'});
+    if (!userId) {
+      return res.status(401).json({error: 'Unauthorized'});
     }
 
-    // First check if user exists
-    const user = await db.getUser(userId);
-    if (!user) {
-      return res.status(404).json({error: 'User not found'});
-    }
+    // Soft delete the match
+    await db.deleteMatch(userId, matchId);
 
-    // Delete match
-    await db.run('DELETE FROM matches WHERE id = ? AND userId = ?', [
-      matchId,
-      userId,
-    ]);
-
-    logger.info('Deleted match:', {userId, matchId});
-    res.json({message: 'Match deleted successfully'});
+    res.status(200).json({message: 'Match deleted successfully'});
   } catch (error) {
     logger.error('Error deleting match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId: req.params.userId,
     });
     res.status(500).json({error: 'Failed to delete match'});
   }

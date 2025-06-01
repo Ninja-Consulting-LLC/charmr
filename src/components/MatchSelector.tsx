@@ -12,7 +12,7 @@ import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
 import AddMatchModal from './AddMatchModal';
-import DeleteMatchDialog from './DeleteMatchDialog';
+import ArchiveMatchDialog from './ArchiveMatchDialog';
 
 interface MatchSelectorModalProps {
   visible: boolean;
@@ -39,28 +39,22 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
   onRestoreMatch,
   userPlan,
 }) => {
-  const [deleteDialogVisible, setDeleteDialogVisible] = React.useState(false);
-  const [matchToDelete, setMatchToDelete] = React.useState<Match | null>(null);
+  const [archiveDialogVisible, setArchiveDialogVisible] = React.useState(false);
+  const [matchToArchive, setMatchToArchive] = React.useState<Match | null>(
+    null,
+  );
   const [showAddMatchModal, setShowAddMatchModal] = React.useState(false);
 
-  const handleDeletePress = (match: Match) => {
-    setMatchToDelete(match);
-    setDeleteDialogVisible(true);
+  const handleArchivePress = (match: Match) => {
+    setMatchToArchive(match);
+    setArchiveDialogVisible(true);
   };
 
-  const handleConfirmDelete = () => {
-    if (matchToDelete) {
-      onDeleteMatch(String(matchToDelete.id));
-      setDeleteDialogVisible(false);
-      setMatchToDelete(null);
-    }
-  };
-
-  const handleArchive = () => {
-    if (matchToDelete) {
-      onHideMatch(matchToDelete);
-      setDeleteDialogVisible(false);
-      setMatchToDelete(null);
+  const handleConfirmArchive = () => {
+    if (matchToArchive) {
+      onHideMatch(matchToArchive);
+      setArchiveDialogVisible(false);
+      setMatchToArchive(null);
     }
   };
 
@@ -125,7 +119,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                     <IconButton
                       icon="archive"
                       size={20}
-                      onPress={() => handleDeletePress(match)}
+                      onPress={() => handleArchivePress(match)}
                       style={styles.actionButton}
                     />
                     <Button
@@ -150,12 +144,11 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
         </View>
       </Modal>
 
-      <DeleteMatchDialog
-        visible={deleteDialogVisible}
-        onDismiss={() => setDeleteDialogVisible(false)}
-        onConfirm={handleConfirmDelete}
-        onArchive={handleArchive}
-        matchName={matchToDelete?.name || ''}
+      <ArchiveMatchDialog
+        visible={archiveDialogVisible}
+        onDismiss={() => setArchiveDialogVisible(false)}
+        onArchive={handleConfirmArchive}
+        matchName={matchToArchive?.name || ''}
       />
 
       <AddMatchModal
@@ -209,6 +202,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  actionButton: {
+    marginRight: 8,
+  },
   selectButton: {
     marginLeft: 8,
   },
@@ -219,9 +215,6 @@ const styles = StyleSheet.create({
   },
   addButton: {
     width: '100%',
-  },
-  actionButton: {
-    marginRight: 8,
   },
 });
 
