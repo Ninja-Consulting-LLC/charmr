@@ -2,12 +2,7 @@ import OpenAI from 'openai';
 import {config} from '../config/config';
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {
-  ErrorType,
-  MessageMode,
-  MessageStyle,
-  SubscriptionTier,
-} from '../types/enums';
+import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
 import {loadConversation, Message} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -70,10 +65,7 @@ export const createOpenAIService = () => {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: getSystemPrompt(
-            request.mode || MessageMode.GENERATE,
-            request.style,
-          ),
+          content: getSystemPrompt(request.mode || MessageMode.GENERATE),
         },
         {
           role: 'user',
@@ -211,7 +203,7 @@ export const createOpenAIService = () => {
   };
 };
 
-function getSystemPrompt(mode: MessageMode, style?: MessageStyle): string {
+function getSystemPrompt(mode: MessageMode): string {
   const generatePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
 
 Guidelines:
@@ -221,12 +213,6 @@ Guidelines:
 4. Keep responses concise but engaging
 5. Avoid being overly aggressive or inappropriate
 6. Use the conversation history to maintain context and build rapport
-
-${
-  style
-    ? `Tone: Write in a ${style} style that is engaging and appropriate.`
-    : ''
-}
 
 Respond in the following JSON format:
 {
