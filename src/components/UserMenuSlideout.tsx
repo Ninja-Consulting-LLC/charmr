@@ -13,7 +13,6 @@ import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import HiddenMatchesModal from './HiddenMatchesModal';
-import MessagePackModal from './MessagePackModal';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -216,11 +215,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               }
               left={props => <List.Icon {...props} icon="message" />}
             />
-            <List.Item
+            {/* <List.Item
               title="Extra Messages"
               description={`${user.extraMessages} remaining`}
               left={props => <List.Icon {...props} icon="gift" />}
-            />
+            /> */}
             <Divider />
             <List.Subheader>Matches</List.Subheader>
             <List.Item
@@ -237,11 +236,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             />
             <Divider />
             <List.Subheader>Upgrade & Purchases</List.Subheader>
-            <List.Item
+            {/* <List.Item
               title="Buy Message Pack"
               left={props => <List.Icon {...props} icon="gift" />}
               onPress={() => setShowMessagePackModal(true)}
-            />
+            /> */}
             <List.Item
               title="Upgrade Plan"
               left={props => <List.Icon {...props} icon="star" />}
@@ -266,11 +265,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         </ScrollView>
       </Animated.View>
 
-      <MessagePackModal
+      {/* <MessagePackModal
         visible={showMessagePackModal}
         onDismiss={() => setShowMessagePackModal(false)}
         currentBalance={user.extraMessages}
-      />
+      /> */}
 
       <UpgradeModal
         visible={showUpgradeModal}
