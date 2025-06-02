@@ -1,6 +1,6 @@
 export const MESSAGES = {
   RATE_LIMIT:
-    "You've reached your daily message limit. Purchase more messages to continue.",
+    "You've reached your daily 5 message limit on the free plan . Upgrade your plan to continue or wait for tomorrow.",
   SCREENSHOT_LIMIT:
     'You can add multiple screenshots to help generate better responses.',
   NO_IMAGES:
