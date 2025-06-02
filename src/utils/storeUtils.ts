@@ -34,10 +34,12 @@ export const createDefaultUser = (): User => ({
   dailyMessagesUsed: 0,
   extraMessages: 0,
   lastResetDate: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
   getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
 });
 
 export const shouldResetDailyCount = (lastResetDate: string): boolean => {
-  const today = new Date().toISOString().split('T')[0];
-  return lastResetDate !== today;
+  const userDate = new Date(lastResetDate);
+  const todayDate = new Date();
+  return userDate.toDateString() !== todayDate.toDateString();
 };
