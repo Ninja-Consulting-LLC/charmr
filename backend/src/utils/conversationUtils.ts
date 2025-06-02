@@ -48,6 +48,7 @@ export const appendConversation = async (
   reply: string,
   images?: string[],
   prompt?: string,
+  mode: MessageMode = MessageMode.GENERATE,
 ): Promise<Message> => {
   try {
     const db = await getDatabase();
@@ -64,7 +65,7 @@ export const appendConversation = async (
         await messageRepository.createMessage(userId, matchId, {
           role: MessageRole.USER,
           type: MessageType.IMAGE,
-          mode: MessageMode.GENERATE,
+          mode: mode,
           content: prompt || '',
           timestamp,
           imageData: images[i],
@@ -77,7 +78,7 @@ export const appendConversation = async (
       await messageRepository.createMessage(userId, matchId, {
         role: MessageRole.USER,
         type: MessageType.TEXT,
-        mode: MessageMode.GENERATE,
+        mode: mode,
         content: prompt,
         timestamp,
       });
@@ -92,20 +93,20 @@ export const appendConversation = async (
       {
         role: MessageRole.ASSISTANT,
         type: MessageType.TEXT,
-        mode: MessageMode.GENERATE,
+        mode: mode,
         content: reply,
         timestamp: replyTimestamp,
       },
     );
     baseTimestamp += 1000;
 
-    // Save the summary message after the assistant's reply
+    // Save the summary if provided
     if (summary) {
       const summaryTimestamp = new Date(baseTimestamp).toISOString();
       await messageRepository.createMessage(userId, matchId, {
         role: MessageRole.SYSTEM,
         type: MessageType.SUMMARY,
-        mode: MessageMode.GENERATE,
+        mode: mode,
         content: summary,
         timestamp: summaryTimestamp,
         replyTo:
@@ -120,8 +121,6 @@ export const appendConversation = async (
     logger.error('Failed to append conversation', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      userId,
-      matchId,
     });
     throw error;
   }

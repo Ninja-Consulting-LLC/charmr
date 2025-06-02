@@ -24,6 +24,7 @@ export interface User {
   installationId?: string;
   linkedFrom?: string;
   linkedAt?: any;
+  createdAt: string;
 }
 
 export interface Message {

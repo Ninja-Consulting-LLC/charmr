@@ -13,16 +13,11 @@ import {
 } from 'react-native';
 import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  Button,
-  IconButton,
-  SegmentedButtons,
-  Snackbar,
-  Text,
-} from 'react-native-paper';
+import {IconButton, SegmentedButtons, Snackbar, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
+import PhotoAccessBanner from '../components/PhotoAccessBanner';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -71,12 +66,16 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [selectedMode, setSelectedMode] = useState<MessageMode>(
     MessageMode.GENERATE,
   );
+  const [lastUsedMode, setLastUsedMode] = useState<MessageMode>(
+    MessageMode.GENERATE,
+  );
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
-  const {userId, matches, user, setUser, setMatches} = useStore();
+  const {userId, matches, user, setUser, setMatches, setSelectedMatch} =
+    useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -84,6 +83,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     string | number | null
   >(null);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear match selection when navigating back
+  useEffect(() => {
+    return () => {
+      setSelectedMatch(null);
+    };
+  }, [setSelectedMatch]);
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
@@ -338,6 +344,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const onSend = useCallback(
     async (newMessages: IMessageWithImages[] = []) => {
+      // Store the current mode before sending
+      setLastUsedMode(selectedMode);
+
       // Attach images and mode to the message
       const messageWithImages: IMessageWithImages[] = newMessages.map(msg => ({
         ...msg,
@@ -392,11 +401,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           images: base64Images,
           userId,
           matchId: String(effectiveMatchId),
+          mode: selectedMode,
         });
         setIsTyping(false);
 
         if (response.type === 'MESSAGE_LIMIT') {
-          setShowMessagePackModal(true);
+          setShowUpgradeModal(true);
           return;
         }
 
@@ -423,10 +433,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
         );
+
+        // Restore the last used mode after sending
+        setSelectedMode(lastUsedMode);
       } catch (err: any) {
         setIsTyping(false);
         if (err.response?.data?.type === 'MESSAGE_LIMIT') {
-          setShowMessagePackModal(true);
+          setShowUpgradeModal(true);
           return;
         }
         setMessages(previousMessages =>
@@ -445,9 +458,19 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             },
           ]),
         );
+        // Restore the last used mode even if there's an error
+        setSelectedMode(lastUsedMode);
       }
     },
-    [images, setImages, selectedMode, userId, effectiveMatchId, setUser],
+    [
+      images,
+      setImages,
+      selectedMode,
+      userId,
+      effectiveMatchId,
+      setUser,
+      lastUsedMode,
+    ],
   );
 
   const handleCopyMessage = useCallback(
@@ -486,6 +509,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         style={styles.safeArea}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.headerSpacer} />
+        <PhotoAccessBanner
+          visible={showPermissionError}
+          onDismiss={() => setShowPermissionError(false)}
+          onOpenSettings={openSettings}
+          topOffset={75} // Standard header height
+        />
         {user?.plan === SubscriptionTier.FREE && (
           <TouchableOpacity
             style={styles.promoContainer}
@@ -555,6 +584,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               const shouldObscure =
                 user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
+              // Add a visual indicator for coach messages
+              const isCoachMessage = currentMessage?.mode === MessageMode.COACH;
+
               let showCopiedText = copiedMessageId === currentMessage?._id;
               if (showCopiedText) {
                 console.log(
@@ -577,6 +609,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       currentMessage?.user._id === 'user'
                         ? styles.userBubble
                         : styles.coachBubble,
+                      isCoachMessage && styles.coachMessageBubble,
                     ]}>
                     {currentMessage?.type === MessageType.IMAGE &&
                       currentMessage?.images &&
@@ -605,6 +638,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                           currentMessage?.user._id === 'user'
                             ? styles.userBubbleText
                             : styles.coachBubbleText,
+                          isCoachMessage && styles.coachMessageText,
                         ]}>
                         {currentMessage?.text}
                       </Text>
@@ -830,38 +864,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         onRestoreMatch={handleRestoreMatch}
         userPlan={user?.plan || SubscriptionTier.FREE}
       />
-      {/* Permission error modal */}
-      <Modal
-        visible={showPermissionError}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPermissionError(false)}>
-        <View style={styles.permissionModal}>
-          <View style={styles.permissionContent}>
-            <Text style={styles.permissionTitle}>Photo Access Required</Text>
-            <Text style={styles.permissionText}>
-              Please grant photo access to add screenshots
-            </Text>
-            <View style={styles.permissionButtons}>
-              <Button
-                mode="outlined"
-                onPress={() => setShowPermissionError(false)}
-                style={styles.permissionButton}>
-                Cancel
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => {
-                  openSettings();
-                  setShowPermissionError(false);
-                }}
-                style={styles.permissionButton}>
-                Open Settings
-              </Button>
-            </View>
-          </View>
-        </View>
-      </Modal>
       {/* Message Pack Modal */}
       <MessagePackModal
         visible={showMessagePackModal}
@@ -873,6 +875,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
+        showRateLimitMessage={
+          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
+        }
       />
     </View>
   );
@@ -1220,6 +1225,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     marginBottom: 8,
+  },
+  coachMessageBubble: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  coachMessageText: {
+    fontStyle: 'italic',
   },
 });
 

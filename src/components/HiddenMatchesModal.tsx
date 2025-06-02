@@ -50,14 +50,11 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
         onDismiss={onDismiss}
         contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Hidden Matches</Text>
+          <Text style={styles.title}>Archived Matches</Text>
           <IconButton icon="close" size={20} onPress={onDismiss} />
         </View>
 
         <ScrollView style={styles.content}>
-          <Text style={{color: 'red', textAlign: 'center'}}>
-            Hidden matches: {hiddenMatches.length}
-          </Text>
           {hiddenMatches.length > 0 ? (
             hiddenMatches.map(match => (
               <List.Item

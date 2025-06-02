@@ -74,8 +74,9 @@ export class FirestoreUserRepository {
         plan: user.plan || SubscriptionTier.FREE,
         dailyMessagesUsed: 0,
         extraMessages: 0,
-        lastResetDate: new Date().toISOString().split('T')[0],
+        lastResetDate: new Date().toISOString(),
         installationId: user.installationId || null,
+        createdAt: new Date().toISOString(),
       };
 
       const docRef = this.db.collection(this.usersCollection).doc(user.id);
@@ -126,10 +127,11 @@ export class FirestoreUserRepository {
 
   async resetDailyMessageCounts(): Promise<void> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString();
+      const todayDate = new Date(today);
       const snapshot = await this.db
         .collection(this.usersCollection)
-        .where('lastResetDate', '!=', today)
+        .where('lastResetDate', '<', todayDate.toDateString())
         .get();
 
       const batch = this.db.batch();

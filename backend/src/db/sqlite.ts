@@ -32,7 +32,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       dailyMessagesUsed INTEGER NOT NULL,
       extraMessages INTEGER NOT NULL,
       lastResetDate TEXT NOT NULL,
-      installationId TEXT UNIQUE
+      installationId TEXT UNIQUE,
+      createdAt TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
@@ -189,7 +190,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   existingUser.id,
                 ]);
                 await db.run(
-                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                   [
                     user.id,
                     user.email,
@@ -199,6 +200,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                     existingUser.extraMessages,
                     existingUser.lastResetDate,
                     user.installationId,
+                    new Date().toISOString(),
                   ],
                 );
 
@@ -233,7 +235,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         // Create new user
         try {
           await db.run(
-            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               user.id,
               user.email,
@@ -241,8 +243,9 @@ export const createSqliteDatabase = async (): Promise<Database> => {
               user.plan || SubscriptionTier.FREE,
               0,
               0,
-              new Date().toISOString().split('T')[0],
+              new Date().toISOString(),
               user.installationId,
+              new Date().toISOString(),
             ],
           );
 
@@ -294,7 +297,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     incrementMessageCount: async (userId: string): Promise<boolean> => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString();
         const user = await db.get('SELECT * FROM users WHERE id = ?', userId);
 
         if (!user) {
@@ -305,7 +308,9 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         }
 
         // Reset daily count if it's a new day
-        if (user.lastResetDate !== today) {
+        const userDate = new Date(user.lastResetDate);
+        const todayDate = new Date(today);
+        if (userDate.toDateString() !== todayDate.toDateString()) {
           await db.run(
             'UPDATE users SET dailyMessagesUsed = 1, lastResetDate = ? WHERE id = ?',
             [today, userId],
@@ -356,9 +361,10 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     resetDailyMessageCounts: async (): Promise<void> => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString();
+        const todayDate = new Date(today);
         await db.run(
-          'UPDATE users SET dailyMessagesUsed = 0, lastResetDate = ? WHERE lastResetDate != ?',
+          'UPDATE users SET dailyMessagesUsed = 0, lastResetDate = ? WHERE date(lastResetDate) != date(?)',
           [today, today],
         );
       } catch (error) {
