@@ -6,6 +6,7 @@ import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
+import {MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -204,6 +205,7 @@ export const createReplyController = async (db: Database) => {
           response.reply,
           images,
           prompt,
+          req.body.mode || MessageMode.GENERATE,
         );
 
         // Calculate costs
