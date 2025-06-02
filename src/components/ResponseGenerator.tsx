@@ -374,11 +374,14 @@ const ResponseGenerator = forwardRef<
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
           <Button
-            mode="contained"
+            mode={loading || images.length === 0 ? 'outlined' : 'contained'}
             onPress={handleSubmit}
             loading={loading}
             disabled={loading || images.length === 0}
-            style={styles.generateButton}
+            style={[
+              styles.generateButton,
+              (loading || images.length === 0) && styles.generateButtonDisabled,
+            ]}
             testID="submit-button">
             Generate Response
           </Button>
@@ -473,6 +476,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
+  },
+  generateButtonDisabled: {
+    borderColor: theme.colors.surfaceVariant,
+    backgroundColor: 'transparent',
+    opacity: 0.6,
   },
   selectedMatchContainer: {
     marginBottom: 16,
