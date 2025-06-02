@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {MESSAGES} from '../constants/messages';
 import {generateReply} from '../services/api';
 import {useStore} from '../store';
-import {SubscriptionTier} from '../types/enums';
+import {MessageMode, SubscriptionTier} from '../types/enums';
 import {SelectedImage} from '../types/image';
 import {User} from '../types/user';
 import {compressImages} from '../utils/imageCompression';
@@ -14,6 +14,7 @@ interface UseResponseGeneratorProps {
   selectedMatch: Match | null;
   userPlan: SubscriptionTier;
   onMessageLimitReached?: () => void;
+  mode: MessageMode;
 }
 
 interface UseResponseGeneratorReturn {
@@ -30,6 +31,7 @@ export const useResponseGenerator = ({
   selectedMatch,
   userPlan,
   onMessageLimitReached,
+  mode,
 }: UseResponseGeneratorProps): UseResponseGeneratorReturn => {
   const {userId, setUser} = useStore();
   const [response, setResponse] = useState<string | null>(null);
@@ -94,6 +96,7 @@ export const useResponseGenerator = ({
         userId,
         matchId: selectedMatch ? generateMatchId(selectedMatch) : undefined,
         deleteAfterResponse: images.length > 0,
+        mode,
       });
 
       logger.app.info('[ResponseGenerator] Received API response:', {

@@ -66,6 +66,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [selectedMode, setSelectedMode] = useState<MessageMode>(
     MessageMode.GENERATE,
   );
+  const [lastUsedMode, setLastUsedMode] = useState<MessageMode>(
+    MessageMode.GENERATE,
+  );
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showMatchSelector, setShowMatchSelector] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
@@ -341,6 +344,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
   const onSend = useCallback(
     async (newMessages: IMessageWithImages[] = []) => {
+      // Store the current mode before sending
+      setLastUsedMode(selectedMode);
+
       // Attach images and mode to the message
       const messageWithImages: IMessageWithImages[] = newMessages.map(msg => ({
         ...msg,
@@ -395,6 +401,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           images: base64Images,
           userId,
           matchId: String(effectiveMatchId),
+          mode: selectedMode,
         });
         setIsTyping(false);
 
@@ -564,6 +571,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               const shouldObscure =
                 user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
+              // Add a visual indicator for coach messages
+              const isCoachMessage = currentMessage?.mode === MessageMode.COACH;
+
               let showCopiedText = copiedMessageId === currentMessage?._id;
               if (showCopiedText) {
                 console.log(
@@ -586,6 +596,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       currentMessage?.user._id === 'user'
                         ? styles.userBubble
                         : styles.coachBubble,
+                      isCoachMessage && styles.coachMessageBubble,
                     ]}>
                     {currentMessage?.type === MessageType.IMAGE &&
                       currentMessage?.images &&
@@ -614,6 +625,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                           currentMessage?.user._id === 'user'
                             ? styles.userBubbleText
                             : styles.coachBubbleText,
+                          isCoachMessage && styles.coachMessageText,
                         ]}>
                         {currentMessage?.text}
                       </Text>
@@ -1197,6 +1209,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     marginBottom: 8,
+  },
+  coachMessageBubble: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  coachMessageText: {
+    fontStyle: 'italic',
   },
 });
 

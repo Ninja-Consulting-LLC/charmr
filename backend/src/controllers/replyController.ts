@@ -61,6 +61,7 @@ export const createReplyController = async (db: Database) => {
         imageCount: images?.length,
         sandboxMode: process.env.NODE_ENV !== 'production',
         images: images?.map(truncateImageData),
+        mode: req.body.mode,
       });
 
       let messageLimits = null;
@@ -155,6 +156,7 @@ export const createReplyController = async (db: Database) => {
               matchId,
               deleteAfterResponse: false,
               model: req.body.model,
+              mode: req.body.mode,
             })
           : await geminiService.generateReply({
               prompt,
@@ -162,6 +164,7 @@ export const createReplyController = async (db: Database) => {
               userId,
               matchId,
               deleteAfterResponse: false,
+              mode: req.body.mode,
             });
 
       logger.debug('AI service response', {
