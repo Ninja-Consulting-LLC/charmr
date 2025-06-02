@@ -433,6 +433,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setMessages(previousMessages =>
           GiftedChat.append(previousMessages, [aiResponse]),
         );
+
+        // Restore the last used mode after sending
+        setSelectedMode(lastUsedMode);
       } catch (err: any) {
         setIsTyping(false);
         if (err.response?.data?.type === 'MESSAGE_LIMIT') {
@@ -455,9 +458,19 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             },
           ]),
         );
+        // Restore the last used mode even if there's an error
+        setSelectedMode(lastUsedMode);
       }
     },
-    [images, setImages, selectedMode, userId, effectiveMatchId, setUser],
+    [
+      images,
+      setImages,
+      selectedMode,
+      userId,
+      effectiveMatchId,
+      setUser,
+      lastUsedMode,
+    ],
   );
 
   const handleCopyMessage = useCallback(
