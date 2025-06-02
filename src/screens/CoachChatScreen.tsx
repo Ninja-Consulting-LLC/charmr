@@ -71,7 +71,8 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
-  const {userId, matches, user, setUser, setMatches} = useStore();
+  const {userId, matches, user, setUser, setMatches, setSelectedMatch} =
+    useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -79,6 +80,13 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     string | number | null
   >(null);
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear match selection when navigating back
+  useEffect(() => {
+    return () => {
+      setSelectedMatch(null);
+    };
+  }, [setSelectedMatch]);
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
