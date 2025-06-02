@@ -23,7 +23,7 @@ import {
 } from '../services/matchService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
+import {MessageMode, SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
 import ImageSelector from './ImageSelector';
@@ -112,6 +112,7 @@ const ResponseGenerator = forwardRef<
       images,
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
+      mode: MessageMode.GENERATE,
     });
 
   useImperativeHandle(ref, () => ({
@@ -126,7 +127,8 @@ const ResponseGenerator = forwardRef<
   // Handle modal visibility based on state changes
   useEffect(() => {
     if (errorType === 'MESSAGE_LIMIT') {
-      setShowMessagePackModal(true);
+      setShowUpgradeModal(true);
+      setShowMessagePackModal(false);
       setShowReplyModal(false);
     } else if (response) {
       setShowReplyModal(true);
@@ -391,7 +393,9 @@ const ResponseGenerator = forwardRef<
           setShowScreenshotUpgrade(false);
         }}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={isRateLimited}
+        showRateLimitMessage={
+          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
+        }
         showScreenshotMessage={showScreenshotUpgrade}
       />
 
