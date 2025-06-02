@@ -21,17 +21,23 @@ import LoginModal from './LoginModal';
 interface SupportContactModalProps {
   visible: boolean;
   onDismiss: () => void;
+  mode?: 'feedback' | 'support';
 }
 
 const SupportContactModal: React.FC<SupportContactModalProps> = ({
   visible,
   onDismiss,
+  mode = 'support',
 }) => {
   const theme = useTheme();
   const {user, userId, authBypass} = useStore();
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
   const [email, setEmail] = useState(
-    isDevelopment ? 'ninjaconsultingllc@gmail.com' : user.email || '',
+    isDevelopment
+      ? 'ninjaconsultingllc@gmail.com'
+      : userId
+      ? user.email || ''
+      : '',
   );
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(
@@ -46,10 +52,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
 
   // Update email when user state changes (only if not in dev mode)
   useEffect(() => {
-    if (user.email && !isDevelopment) {
+    if (userId && user.email && !isDevelopment) {
       setEmail(user.email);
     }
-  }, [user.email]);
+  }, [user.email, userId]);
 
   // Reset form state when modal becomes visible
   useEffect(() => {
@@ -64,10 +70,14 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           : '',
       );
       setEmail(
-        isDevelopment ? 'ninjaconsultingllc@gmail.com' : user.email || '',
+        isDevelopment
+          ? 'ninjaconsultingllc@gmail.com'
+          : userId
+          ? user.email || ''
+          : '',
       );
     }
-  }, [visible, user.email]);
+  }, [visible, user.email, userId]);
 
   const handleSubmit = async () => {
     if (!email) {
@@ -147,7 +157,11 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
               ]}>
               <View style={styles.header}>
                 <Text variant="headlineSmall">
-                  {isSuccess ? 'Message Sent' : 'Contact Support'}
+                  {isSuccess
+                    ? 'Message Sent'
+                    : mode === 'feedback'
+                    ? 'Provide Feedback'
+                    : 'Contact Support'}
                 </Text>
                 <IconButton icon="close" onPress={onDismiss} />
               </View>
@@ -156,8 +170,9 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
                 {isSuccess ? (
                   <View style={styles.successContainer}>
                     <Text variant="bodyLarge" style={styles.successMessage}>
-                      Your support request has been sent successfully. We'll get
-                      back to you soon!
+                      Your{' '}
+                      {mode === 'feedback' ? 'feedback' : 'support request'} has
+                      been sent successfully. We'll get back to you soon!
                     </Text>
                     <Button
                       mode="contained"

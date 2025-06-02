@@ -3,6 +3,7 @@ import React, {useRef, useState} from 'react';
 import {View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import DevMenu from '../components/DevMenu';
+import FeedbackFab from '../components/FeedbackFab';
 import Header from '../components/Header';
 import ResponseGenerator from '../components/ResponseGenerator';
 import SupportContactModal from '../components/SupportContactModal';
@@ -17,10 +18,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const {setShowDevMenu, showDevMenu} = useStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportModalMode, setSupportModalMode] = useState<
+    'feedback' | 'support'
+  >('support');
   const responseGeneratorRef = useRef<{loadMatches: () => Promise<void>}>(null);
 
   const handleMatchesUpdated = () => {
     responseGeneratorRef.current?.loadMatches();
+  };
+
+  const handleOpenFeedback = () => {
+    setSupportModalMode('feedback');
+    setShowSupportModal(true);
   };
 
   return (
@@ -37,12 +46,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
               ref={responseGeneratorRef}
               navigation={navigation}
             />
+            <FeedbackFab onPress={handleOpenFeedback} />
           </View>
           {__DEV__ && showDevMenu && <DevMenu />}
           <UserMenuSlideout
             visible={showUserMenu}
             onDismiss={() => setShowUserMenu(false)}
-            onOpenSupport={() => setShowSupportModal(true)}
+            onOpenSupport={() => {
+              setSupportModalMode('support');
+              setShowSupportModal(true);
+            }}
             onMatchesUpdated={handleMatchesUpdated}
           />
         </View>
@@ -50,6 +63,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
       <SupportContactModal
         visible={showSupportModal}
         onDismiss={() => setShowSupportModal(false)}
+        mode={supportModalMode}
       />
     </>
   );
