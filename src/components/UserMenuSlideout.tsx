@@ -186,7 +186,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.planText, {color: theme.colors.surface}]}>
-              Hi {user.name}
+              Account Settings
             </Text>
           </View>
           <View style={styles.headerRight}>

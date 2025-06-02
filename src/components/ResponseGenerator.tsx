@@ -316,6 +316,23 @@ const ResponseGenerator = forwardRef<
     removeMatch(matchId);
   };
 
+  const handleUpdateMatch = async (
+    matchId: string,
+    name: string,
+    platform: string,
+  ) => {
+    try {
+      await updateMatch({
+        ...matches.find(m => String(m.id) === matchId)!,
+        name,
+        platform,
+      });
+      await loadMatches(); // Reload matches to ensure UI is in sync
+    } catch (error) {
+      console.error('Error updating match:', error);
+    }
+  };
+
   return (
     <View style={styles.container} testID="response-generator-container">
       <PhotoAccessBanner
@@ -367,6 +384,7 @@ const ResponseGenerator = forwardRef<
             onDeleteMatch={handleDeleteMatchById}
             onHideMatch={handleHideMatch}
             onRestoreMatch={handleRestoreMatch}
+            onUpdateMatch={handleUpdateMatch}
             userPlan={user?.plan || SubscriptionTier.FREE}
           />
         </View>

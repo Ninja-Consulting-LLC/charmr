@@ -11,7 +11,7 @@ import {
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
-import AddMatchModal from './AddMatchModal';
+import AddEditMatchModal from './AddEditMatchModal';
 import ArchiveMatchDialog from './ArchiveMatchDialog';
 
 interface MatchSelectorModalProps {
@@ -24,6 +24,11 @@ interface MatchSelectorModalProps {
   onDeleteMatch: (matchId: string) => void;
   onHideMatch: (match: Match) => void;
   onRestoreMatch: (match: Match) => void;
+  onUpdateMatch: (
+    matchId: string,
+    name: string,
+    platform: string,
+  ) => Promise<void>;
   userPlan: SubscriptionTier;
 }
 
@@ -37,6 +42,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
   onDeleteMatch,
   onHideMatch,
   onRestoreMatch,
+  onUpdateMatch,
   userPlan,
 }) => {
   const [archiveDialogVisible, setArchiveDialogVisible] = React.useState(false);
@@ -44,10 +50,16 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
     null,
   );
   const [showAddMatchModal, setShowAddMatchModal] = React.useState(false);
+  const [matchToEdit, setMatchToEdit] = React.useState<Match | null>(null);
 
   const handleArchivePress = (match: Match) => {
     setMatchToArchive(match);
     setArchiveDialogVisible(true);
+  };
+
+  const handleEditPress = (match: Match) => {
+    setMatchToEdit(match);
+    setShowAddMatchModal(true);
   };
 
   const handleConfirmArchive = () => {
@@ -59,7 +71,12 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
   };
 
   const handleAddMatch = async (name: string, platform: string) => {
-    await onAddMatch(name, platform);
+    if (matchToEdit) {
+      await onUpdateMatch(String(matchToEdit.id), name, platform);
+      setMatchToEdit(null);
+    } else {
+      await onAddMatch(name, platform);
+    }
     setShowAddMatchModal(false);
   };
 
@@ -117,6 +134,12 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                 right={props => (
                   <View style={styles.itemActions}>
                     <IconButton
+                      icon="pencil"
+                      size={20}
+                      onPress={() => handleEditPress(match)}
+                      style={styles.actionButton}
+                    />
+                    <IconButton
                       icon="archive"
                       size={20}
                       onPress={() => handleArchivePress(match)}
@@ -151,10 +174,22 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
         matchName={matchToArchive?.name || ''}
       />
 
-      <AddMatchModal
+      <AddEditMatchModal
         visible={showAddMatchModal}
-        onDismiss={() => setShowAddMatchModal(false)}
+        onDismiss={() => {
+          setShowAddMatchModal(false);
+          setMatchToEdit(null);
+        }}
         onAddMatch={handleAddMatch}
+        isEditing={!!matchToEdit}
+        initialName={matchToEdit?.name}
+        initialPlatform={matchToEdit?.platform}
+        onUpdateMatch={
+          matchToEdit
+            ? async (name: string, platform: string) =>
+                await onUpdateMatch(String(matchToEdit.id), name, platform)
+            : undefined
+        }
       />
     </Portal>
   );

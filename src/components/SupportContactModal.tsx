@@ -33,10 +33,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
   const {user, userId, authBypass} = useStore();
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
   const [email, setEmail] = useState(
-    isDevelopment
+    userId && user.email
+      ? user.email
+      : isDevelopment
       ? 'ninjaconsultingllc@gmail.com'
-      : userId
-      ? user.email || ''
       : '',
   );
   const [phone, setPhone] = useState('');
@@ -52,8 +52,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
 
   // Update email when user state changes (only if not in dev mode)
   useEffect(() => {
-    if (userId && user.email && !isDevelopment) {
-      setEmail(user.email);
+    if (userId && !isDevelopment) {
+      if (user.email) {
+        setEmail(user.email);
+      }
     }
   }, [user.email, userId]);
 
@@ -70,10 +72,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           : '',
       );
       setEmail(
-        isDevelopment
+        userId && user.email
+          ? user.email
+          : isDevelopment
           ? 'ninjaconsultingllc@gmail.com'
-          : userId
-          ? user.email || ''
           : '',
       );
     }
@@ -208,7 +210,11 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
                       style={styles.input}
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      disabled={!!user.email}
+                      disabled={
+                        userId !== '' &&
+                        user.email !== undefined &&
+                        user.email !== ''
+                      }
                       testID="email-input"
                     />
 
