@@ -2,12 +2,7 @@ import OpenAI from 'openai';
 import {config} from '../config/config';
 import {getDatabase} from '../db';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
-import {
-  ErrorType,
-  MessageMode,
-  MessageStyle,
-  SubscriptionTier,
-} from '../types/enums';
+import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
 import {loadConversation, Message} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -70,10 +65,7 @@ export const createOpenAIService = () => {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: getSystemPrompt(
-            request.mode || MessageMode.GENERATE,
-            request.style,
-          ),
+          content: getSystemPrompt(request.mode || MessageMode.GENERATE),
         },
         {
           role: 'user',
@@ -118,12 +110,25 @@ export const createOpenAIService = () => {
         temperature: config.openai.temperature,
       });
 
+      // Log the full prompt
+      logger.info('OpenAI API full prompt', {
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+      });
+
       const response = await openai.chat.completions.create({
         model: request.model || config.openai.model,
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
         response_format: {type: 'json_object'},
+      });
+
+      // Log the full response
+      logger.info('OpenAI API full response', {
+        response: response,
       });
 
       const text = response.choices[0]?.message?.content || '';
@@ -211,22 +216,20 @@ export const createOpenAIService = () => {
   };
 };
 
-function getSystemPrompt(mode: MessageMode, style?: MessageStyle): string {
+function getSystemPrompt(mode: MessageMode): string {
   const generatePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
 
 Guidelines:
-1. Keep responses natural and conversational
+1. Avoid being over-stylized, keep it natural and conversational
 2. Match the tone and style requested by the user
 3. Show genuine interest in the match's interests and experiences
 4. Keep responses concise but engaging
 5. Avoid being overly aggressive or inappropriate
 6. Use the conversation history to maintain context and build rapport
-
-${
-  style
-    ? `Tone: Write in a ${style} style that is engaging and appropriate.`
-    : ''
-}
+7. Do not use em dashes (—) in your responses
+8. You don't need to address every single thing you see in a screenshot
+9. Don't be boring
+10. If you see a previous messages or summaries in your prompt, no need to say hi to the match at the beginning of the response
 
 Respond in the following JSON format:
 {
@@ -236,6 +239,12 @@ Respond in the following JSON format:
 
   const coachPrompt = `You are a dating coach providing analysis and feedback. Consider the conversation history and context when providing insights.
 
+Focus on:
+- Communication patterns and effectiveness
+- Areas for improvement
+- Positive aspects to maintain
+- Specific suggestions for better engagement
+
 Guidelines:
 1. Be constructive and specific in your feedback
 2. Focus on communication patterns and effectiveness
@@ -243,6 +252,8 @@ Guidelines:
 4. Provide actionable suggestions
 5. Maintain a supportive and professional tone
 6. Consider emotional intelligence and awareness
+7. Don't use em dashes (—) in your responses
+8. Your answer will appear in a chat window so keep it short and to the point
 
 Respond in the following JSON format:
 {
@@ -251,13 +262,8 @@ Respond in the following JSON format:
 }`;
 
   const modeSpecificPrompts = {
-    [MessageMode.GENERATE]: `Your task is to help users craft engaging and appropriate responses to their matches. ${generatePrompt}`,
-    [MessageMode.COACH]: `Your task is to analyze the conversation like a dating coach and provide constructive advice. Focus on:
-- Communication patterns and effectiveness
-- Areas for improvement
-- Positive aspects to maintain
-- Specific suggestions for better engagement
-${coachPrompt}`,
+    [MessageMode.GENERATE]: generatePrompt,
+    [MessageMode.COACH]: coachPrompt,
   };
 
   return modeSpecificPrompts[mode];

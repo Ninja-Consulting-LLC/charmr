@@ -6,6 +6,7 @@ import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
+import {MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
@@ -32,25 +33,6 @@ const truncateImageData = (image: string): string => {
   // For URLs, just show the first 50 chars
   return image.substring(0, 50) + '...';
 };
-
-// Dating coach instructions
-const DATING_COACH_INSTRUCTIONS = `You are a helpful dating assistant. Your task is to help users craft engaging and appropriate responses to their matches. Consider the conversation history and context when generating responses.
-
-Guidelines:
-1. Keep responses natural and conversational
-2. Match the tone and style requested by the user
-3. Show genuine interest in the match's interests and experiences
-4. Keep responses concise but engaging
-5. Avoid being overly aggressive or inappropriate
-6. Use the conversation history to maintain context and build rapport
-
-Format your response as follows:
-<summary>
-A brief summary of the match's interests and conversation style based on the history
-</summary>
-<message>
-Your suggested reply to the match
-</message>`;
 
 export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
@@ -80,6 +62,7 @@ export const createReplyController = async (db: Database) => {
         imageCount: images?.length,
         sandboxMode: process.env.NODE_ENV !== 'production',
         images: images?.map(truncateImageData),
+        mode: req.body.mode,
       });
 
       let messageLimits = null;
@@ -174,6 +157,7 @@ export const createReplyController = async (db: Database) => {
               matchId,
               deleteAfterResponse: false,
               model: req.body.model,
+              mode: req.body.mode,
             })
           : await geminiService.generateReply({
               prompt,
@@ -181,6 +165,7 @@ export const createReplyController = async (db: Database) => {
               userId,
               matchId,
               deleteAfterResponse: false,
+              mode: req.body.mode,
             });
 
       logger.debug('AI service response', {
@@ -220,6 +205,7 @@ export const createReplyController = async (db: Database) => {
           response.reply,
           images,
           prompt,
+          req.body.mode || MessageMode.GENERATE,
         );
 
         // Calculate costs

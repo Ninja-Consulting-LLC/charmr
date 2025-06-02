@@ -106,7 +106,7 @@ export const resetUserMessageLimit = async (
     // Reset the user's message count
     await db.updateUser(userId, {
       dailyMessagesUsed: 0,
-      lastResetDate: new Date().toISOString().split('T')[0],
+      lastResetDate: new Date().toISOString(),
     });
 
     // Fetch the updated user data to ensure consistency

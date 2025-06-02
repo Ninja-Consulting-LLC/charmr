@@ -6,6 +6,7 @@ import {
   View,
 } from 'react-native';
 import {
+  ActivityIndicator,
   Button,
   IconButton,
   Modal,
@@ -18,7 +19,7 @@ import {theme} from '../theme/theme';
 interface AddMatchModalProps {
   visible: boolean;
   onDismiss: () => void;
-  onAddMatch: (name: string, platform: string) => void;
+  onAddMatch: (name: string, platform: string) => Promise<void>;
 }
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble', 'other'];
@@ -32,8 +33,9 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
   const [platform, setPlatform] = useState('');
   const [otherPlatform, setOtherPlatform] = useState('');
   const [platformError, setPlatformError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name.trim()) {
       return;
     }
@@ -45,14 +47,20 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
       setPlatformError('Please enter platform name');
       return;
     }
-    onAddMatch(
-      name.trim(),
-      platform === 'other' ? otherPlatform.trim() : platform,
-    );
-    setName('');
-    setPlatform('');
-    setOtherPlatform('');
-    setPlatformError('');
+
+    setIsLoading(true);
+    try {
+      await onAddMatch(
+        name.trim(),
+        platform === 'other' ? otherPlatform.trim() : platform,
+      );
+      setName('');
+      setPlatform('');
+      setOtherPlatform('');
+      setPlatformError('');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePlatformSelect = (selectedPlatform: string) => {
@@ -80,6 +88,7 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                 onChangeText={setName}
                 style={styles.input}
                 mode="outlined"
+                disabled={isLoading}
               />
 
               <Text style={styles.platformLabel}>Platform</Text>
@@ -90,7 +99,8 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                     mode={platform === p ? 'contained' : 'outlined'}
                     onPress={() => handlePlatformSelect(p)}
                     style={styles.platformButton}
-                    testID={`platform-${p}-button`}>
+                    testID={`platform-${p}-button`}
+                    disabled={isLoading}>
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </Button>
                 ))}
@@ -103,6 +113,7 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                   onChangeText={setOtherPlatform}
                   style={styles.input}
                   mode="outlined"
+                  disabled={isLoading}
                 />
               )}
 
@@ -115,10 +126,14 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
               <Button
                 mode="contained"
                 onPress={handleAdd}
-                disabled={!name.trim()}
+                disabled={!name.trim() || isLoading}
                 style={styles.button}
                 testID="add-button">
-                Add Match
+                {isLoading ? (
+                  <ActivityIndicator color={theme.colors.onPrimary} />
+                ) : (
+                  'Add Match'
+                )}
               </Button>
             </View>
           </View>

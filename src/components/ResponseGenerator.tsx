@@ -23,12 +23,14 @@ import {
 } from '../services/matchService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
+import {MessageMode, SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
+import PermissionHelpModal from './PermissionHelpModal';
+import PhotoAccessBanner from './PhotoAccessBanner';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -89,7 +91,7 @@ const ResponseGenerator = forwardRef<
     setDeleteScreenshots,
     setMatches,
   } = useStore();
-  const {images, setImages, pickImages} = useImagePicker();
+  const {images, setImages, pickImages, openSettings} = useImagePicker();
 
   // State
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -101,6 +103,8 @@ const ResponseGenerator = forwardRef<
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [showPermissionError, setShowPermissionError] = useState(false);
+  const [showPermissionHelp, setShowPermissionHelp] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -108,6 +112,7 @@ const ResponseGenerator = forwardRef<
       images,
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
+      mode: MessageMode.GENERATE,
     });
 
   useImperativeHandle(ref, () => ({
@@ -122,7 +127,8 @@ const ResponseGenerator = forwardRef<
   // Handle modal visibility based on state changes
   useEffect(() => {
     if (errorType === 'MESSAGE_LIMIT') {
-      setShowMessagePackModal(true);
+      setShowUpgradeModal(true);
+      setShowMessagePackModal(false);
       setShowReplyModal(false);
     } else if (response) {
       setShowReplyModal(true);
@@ -312,6 +318,11 @@ const ResponseGenerator = forwardRef<
 
   return (
     <View style={styles.container} testID="response-generator-container">
+      <PhotoAccessBanner
+        visible={showPermissionError}
+        onDismiss={() => setShowPermissionError(false)}
+        onOpenSettings={openSettings}
+      />
       <View style={styles.contentContainer}>
         <View style={styles.mainContent}>
           <Button
@@ -341,6 +352,7 @@ const ResponseGenerator = forwardRef<
               onRemoveImage={removeImage}
               onPickImages={handlePickImages}
               userPlan={user?.plan}
+              onPermissionError={() => setShowPermissionError(true)}
             />
           </View>
 
@@ -362,11 +374,14 @@ const ResponseGenerator = forwardRef<
         {/* Generate Button */}
         <View style={styles.buttonContainer}>
           <Button
-            mode="contained"
+            mode={loading || images.length === 0 ? 'outlined' : 'contained'}
             onPress={handleSubmit}
             loading={loading}
             disabled={loading || images.length === 0}
-            style={styles.generateButton}
+            style={[
+              styles.generateButton,
+              (loading || images.length === 0) && styles.generateButtonDisabled,
+            ]}
             testID="submit-button">
             Generate Response
           </Button>
@@ -381,7 +396,9 @@ const ResponseGenerator = forwardRef<
           setShowScreenshotUpgrade(false);
         }}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={isRateLimited}
+        showRateLimitMessage={
+          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
+        }
         showScreenshotMessage={showScreenshotUpgrade}
       />
 
@@ -409,6 +426,11 @@ const ResponseGenerator = forwardRef<
         }
       />
 
+      <PermissionHelpModal
+        visible={showPermissionHelp}
+        onDismiss={() => setShowPermissionHelp(false)}
+      />
+
       <Snackbar
         visible={showSnackbar && !showMessagePackModal}
         onDismiss={() => setShowSnackbar(false)}
@@ -426,6 +448,14 @@ const ResponseGenerator = forwardRef<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   contentContainer: {
     flex: 1,
@@ -446,6 +476,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
+  },
+  generateButtonDisabled: {
+    borderColor: theme.colors.surfaceVariant,
+    backgroundColor: 'transparent',
+    opacity: 0.6,
   },
   selectedMatchContainer: {
     marginBottom: 16,

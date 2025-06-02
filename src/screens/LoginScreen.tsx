@@ -32,14 +32,7 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleGetStarted = async () => {
-    try {
-      const newUser = await createNewUser();
-      // Only navigate after user is fully created
-      navigation.navigate('Onboarding');
-    } catch (error) {
-      console.error('Error creating user:', error);
-      // Handle error appropriately
-    }
+    navigation.navigate('Onboarding');
   };
 
   return (
@@ -114,19 +107,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     padding: 20,
+    paddingTop: 0,
+    paddingBottom: 40,
   },
   logoSection: {
+    flex: 1,
     alignItems: 'center',
-    marginTop: SCREEN_HEIGHT * 0.15,
+    justifyContent: 'center',
+    marginTop: SCREEN_HEIGHT * 0.02,
   },
   logo: {
-    width: 400,
-    height: 400,
-    marginBottom: 20,
+    width: Math.min(SCREEN_WIDTH * 0.8, 400),
+    height: Math.min(SCREEN_WIDTH * 0.8, 400),
   },
   bottomSection: {
-    gap: 16,
-    marginBottom: 40,
+    gap: 12,
     paddingHorizontal: 20,
   },
   getStartedButton: {
@@ -166,7 +161,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     fontSize: 13,
-    marginTop: 16,
+    paddingTop: 20,
   },
   linkText: {
     color: theme.colors.surface,
