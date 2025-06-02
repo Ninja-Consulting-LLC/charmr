@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {Image, Pressable, View, useWindowDimensions} from 'react-native';
-import {Button, Icon, Text} from 'react-native-paper';
+import {Icon, Text} from 'react-native-paper';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
@@ -11,6 +11,7 @@ interface ImageSelectorProps {
   onRemoveImage: (index: number) => void;
   onPickImages: () => void;
   userPlan?: SubscriptionTier;
+  onPermissionError?: () => void;
 }
 
 const ImageSelector: React.FC<ImageSelectorProps> = ({
@@ -18,18 +19,22 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   onRemoveImage,
   onPickImages,
   userPlan,
+  onPermissionError,
 }) => {
-  const [showPermissionError, setShowPermissionError] = useState(false);
   const {openSettings} = useImagePicker();
   const {height: windowHeight, width: windowWidth} = useWindowDimensions();
 
+  const maxWidth = 200;
+  const baseWidth = windowWidth * 0.5;
+  const width = Math.min(baseWidth, maxWidth);
+  const height = width * (16 / 9);
+
   const handlePickImages = async () => {
     try {
-      setShowPermissionError(false);
       await onPickImages();
     } catch (error) {
       if (error instanceof Error && error.message === 'PERMISSION_DENIED') {
-        setShowPermissionError(true);
+        onPermissionError?.();
       }
     }
   };
@@ -58,8 +63,8 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       alignItems: 'center',
     },
     image: {
-      width: windowWidth * 0.75,
-      height: windowWidth * 0.75 * (16 / 9),
+      width: width,
+      height: height,
       borderRadius: 20,
       objectFit: 'cover',
     },
@@ -83,8 +88,8 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       elevation: 4,
     },
     addImageButton: {
-      width: windowWidth * 0.75,
-      height: windowWidth * 0.75 * (16 / 9),
+      width: width,
+      height: height,
       borderRadius: 24,
       borderWidth: 2,
       borderStyle: 'dashed',
@@ -107,21 +112,6 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       fontSize: 22,
       textAlign: 'center',
       color: theme.colors.secondary,
-    },
-    permissionError: {
-      marginTop: 12,
-      padding: 12,
-      backgroundColor: theme.colors.errorContainer,
-      borderRadius: 8,
-      alignItems: 'center',
-    },
-    permissionErrorText: {
-      color: theme.colors.error,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    settingsButton: {
-      backgroundColor: theme.colors.error,
     },
   } as const;
 
@@ -157,19 +147,6 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
           </Pressable>
         )}
       </View>
-      {showPermissionError && (
-        <View style={styles.permissionError}>
-          <Text style={styles.permissionErrorText}>
-            Please grant photo access to add screenshots
-          </Text>
-          <Button
-            mode="contained"
-            onPress={openSettings}
-            style={styles.settingsButton}>
-            Open Settings
-          </Button>
-        </View>
-      )}
     </View>
   );
 };

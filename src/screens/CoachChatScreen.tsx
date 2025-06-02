@@ -13,16 +13,11 @@ import {
 } from 'react-native';
 import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  Button,
-  IconButton,
-  SegmentedButtons,
-  Snackbar,
-  Text,
-} from 'react-native-paper';
+import {IconButton, SegmentedButtons, Snackbar, Text} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
+import PhotoAccessBanner from '../components/PhotoAccessBanner';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
 import {useImagePicker} from '../hooks/useImagePicker';
@@ -486,6 +481,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         style={styles.safeArea}
         edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.headerSpacer} />
+        <PhotoAccessBanner
+          visible={showPermissionError}
+          onDismiss={() => setShowPermissionError(false)}
+          onOpenSettings={openSettings}
+          topOffset={75} // Standard header height
+        />
         {user?.plan === SubscriptionTier.FREE && (
           <TouchableOpacity
             style={styles.promoContainer}
@@ -830,38 +831,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         onRestoreMatch={handleRestoreMatch}
         userPlan={user?.plan || SubscriptionTier.FREE}
       />
-      {/* Permission error modal */}
-      <Modal
-        visible={showPermissionError}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPermissionError(false)}>
-        <View style={styles.permissionModal}>
-          <View style={styles.permissionContent}>
-            <Text style={styles.permissionTitle}>Photo Access Required</Text>
-            <Text style={styles.permissionText}>
-              Please grant photo access to add screenshots
-            </Text>
-            <View style={styles.permissionButtons}>
-              <Button
-                mode="outlined"
-                onPress={() => setShowPermissionError(false)}
-                style={styles.permissionButton}>
-                Cancel
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => {
-                  openSettings();
-                  setShowPermissionError(false);
-                }}
-                style={styles.permissionButton}>
-                Open Settings
-              </Button>
-            </View>
-          </View>
-        </View>
-      </Modal>
       {/* Message Pack Modal */}
       <MessagePackModal
         visible={showMessagePackModal}

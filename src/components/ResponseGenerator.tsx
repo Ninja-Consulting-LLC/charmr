@@ -29,6 +29,8 @@ import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
 import ImageSelector from './ImageSelector';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
+import PermissionHelpModal from './PermissionHelpModal';
+import PhotoAccessBanner from './PhotoAccessBanner';
 import ReplyModal from './ReplyModal';
 import UpgradeModal from './UpgradeModal';
 
@@ -89,7 +91,7 @@ const ResponseGenerator = forwardRef<
     setDeleteScreenshots,
     setMatches,
   } = useStore();
-  const {images, setImages, pickImages} = useImagePicker();
+  const {images, setImages, pickImages, openSettings} = useImagePicker();
 
   // State
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -101,6 +103,8 @@ const ResponseGenerator = forwardRef<
   const [showScreenshotUpgrade, setShowScreenshotUpgrade] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
+  const [showPermissionError, setShowPermissionError] = useState(false);
+  const [showPermissionHelp, setShowPermissionHelp] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -312,6 +316,11 @@ const ResponseGenerator = forwardRef<
 
   return (
     <View style={styles.container} testID="response-generator-container">
+      <PhotoAccessBanner
+        visible={showPermissionError}
+        onDismiss={() => setShowPermissionError(false)}
+        onOpenSettings={openSettings}
+      />
       <View style={styles.contentContainer}>
         <View style={styles.mainContent}>
           <Button
@@ -341,6 +350,7 @@ const ResponseGenerator = forwardRef<
               onRemoveImage={removeImage}
               onPickImages={handlePickImages}
               userPlan={user?.plan}
+              onPermissionError={() => setShowPermissionError(true)}
             />
           </View>
 
@@ -409,6 +419,11 @@ const ResponseGenerator = forwardRef<
         }
       />
 
+      <PermissionHelpModal
+        visible={showPermissionHelp}
+        onDismiss={() => setShowPermissionHelp(false)}
+      />
+
       <Snackbar
         visible={showSnackbar && !showMessagePackModal}
         onDismiss={() => setShowSnackbar(false)}
@@ -426,6 +441,14 @@ const ResponseGenerator = forwardRef<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  bannerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   contentContainer: {
     flex: 1,
