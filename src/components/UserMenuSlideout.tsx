@@ -215,24 +215,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 titleStyle={{color: theme.colors.surface}}
                 descriptionStyle={{color: theme.colors.surface}}
               />
-            ) : (
-              <List.Item
-                title="Register"
-                description="Register to save your conversations"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="login"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() => {
-                  setShowLoginModal(true);
-                }}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
-              />
-            )}
+            ) : null}
             <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Daily Messages"
@@ -254,6 +237,20 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               descriptionStyle={{color: theme.colors.surface}}
             />
             <Divider style={{backgroundColor: theme.colors.surface}} />
+            {!user.email || user.email === user.installationId ? (
+              <List.Item
+                title="Register"
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="login"
+                    color={theme.colors.surface}
+                  />
+                )}
+                onPress={() => setShowLoginModal(true)}
+                titleStyle={{color: theme.colors.surface}}
+              />
+            ) : null}
             <List.Item
               title="Archived Matches"
               left={props => (
@@ -445,6 +442,36 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 14,
     color: 'rgba(0, 0, 0, 0.6)',
+  },
+  listItemContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  listItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  listItemTextContainer: {
+    marginLeft: 32,
+    flex: 1,
+  },
+  listItemTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  listItemDescription: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  registerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  registerText: {
+    fontSize: 16,
+    marginLeft: 32,
   },
 });
 
