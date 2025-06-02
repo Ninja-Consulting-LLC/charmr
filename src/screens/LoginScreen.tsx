@@ -32,14 +32,7 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const handleGetStarted = async () => {
-    try {
-      const newUser = await createNewUser();
-      // Only navigate after user is fully created
-      navigation.navigate('Onboarding');
-    } catch (error) {
-      console.error('Error creating user:', error);
-      // Handle error appropriately
-    }
+    navigation.navigate('Onboarding');
   };
 
   return (
