@@ -1,7 +1,7 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, ScrollView, StyleSheet, View} from 'react-native';
+import {Animated, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
@@ -13,6 +13,8 @@ import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
 import HiddenMatchesModal from './HiddenMatchesModal';
+import LoginModal from './LoginModal';
+import SubscriptionSlideout from './SubscriptionSlideout';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -36,6 +38,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
+    useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSubscriptionSlideout, setShowSubscriptionSlideout] =
     useState(false);
   const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -174,36 +179,62 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         style={[
           styles.drawer,
           {
-            backgroundColor: theme.colors.surface,
+            backgroundColor: theme.colors.primary,
             transform: [{translateX: slideAnim}],
           },
         ]}>
         <View style={styles.header}>
-          {isAuthenticated && (
+          <View style={styles.headerLeft}>
+            <Text style={[styles.planText, {color: theme.colors.surface}]}>
+              Hi {user.name}
+            </Text>
+          </View>
+          <View style={styles.headerRight}>
             <IconButton
-              icon="logout"
+              icon="close"
               size={24}
-              onPress={handleSignOut}
-              style={styles.headerButton}
+              onPress={onDismiss}
+              style={styles.closeButton}
+              iconColor={theme.colors.surface}
             />
-          )}
-          <IconButton
-            icon="close"
-            size={24}
-            onPress={onDismiss}
-            style={styles.closeButton}
-          />
+          </View>
         </View>
         <ScrollView style={styles.scrollView}>
           <List.Section>
-            <List.Subheader>Account</List.Subheader>
-            <List.Item
-              title={user.name || 'Guest'}
-              description={`${user.email || ''}\nPlan: ${user.plan || ''}`}
-              left={props => <List.Icon {...props} icon="account" />}
-            />
-            <Divider />
-            <List.Subheader>Message Limits</List.Subheader>
+            {user.email && user.email !== user.installationId ? (
+              <List.Item
+                title={user.name || 'Guest'}
+                description={user.email}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="account"
+                    color={theme.colors.surface}
+                  />
+                )}
+                titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
+              />
+            ) : (
+              <List.Item
+                title="Register"
+                description="Register to save your conversations"
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="login"
+                    color={theme.colors.surface}
+                  />
+                )}
+                onPress={() => {
+                  onDismiss();
+                  setShowLoginModal(true);
+                }}
+                titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
+              />
+            )}
+            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Daily Messages"
               description={
@@ -213,54 +244,116 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                       user.dailyMessagesUsed
                     }/${user.getDailyMessageLimit()} used`
               }
-              left={props => <List.Icon {...props} icon="message" />}
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="message"
+                  color={theme.colors.surface}
+                />
+              )}
+              titleStyle={{color: theme.colors.surface}}
+              descriptionStyle={{color: theme.colors.surface}}
             />
-            {/* <List.Item
-              title="Extra Messages"
-              description={`${user.extraMessages} remaining`}
-              left={props => <List.Icon {...props} icon="gift" />}
-            /> */}
-            <Divider />
-            <List.Subheader>Matches</List.Subheader>
+            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Archived Matches"
-              left={props => <List.Icon {...props} icon="archive" />}
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="archive"
+                  color={theme.colors.surface}
+                />
+              )}
               onPress={handleOpenArchivedMatches}
+              titleStyle={{color: theme.colors.surface}}
             />
-            <Divider />
-            <List.Subheader>Support</List.Subheader>
+            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Contact Support"
-              left={props => <List.Icon {...props} icon="help-circle" />}
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="help-circle"
+                  color={theme.colors.surface}
+                />
+              )}
               onPress={onOpenSupport}
+              titleStyle={{color: theme.colors.surface}}
             />
-            <Divider />
-            <List.Subheader>Upgrade & Purchases</List.Subheader>
-            {/* <List.Item
-              title="Buy Message Pack"
-              left={props => <List.Icon {...props} icon="gift" />}
-              onPress={() => setShowMessagePackModal(true)}
-            /> */}
+            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
-              title="Upgrade Plan"
-              left={props => <List.Icon {...props} icon="star" />}
-              onPress={() => setShowUpgradeModal(true)}
+              title="Manage Subscription"
+              left={props => (
+                <List.Icon {...props} icon="cog" color={theme.colors.surface} />
+              )}
+              right={props => (
+                <List.Icon
+                  {...props}
+                  icon="chevron-right"
+                  color={theme.colors.surface}
+                />
+              )}
+              onPress={() => setShowSubscriptionSlideout(true)}
+              titleStyle={{color: theme.colors.surface}}
             />
-            <Divider />
+            {user.plan !== SubscriptionTier.PRO && (
+              <List.Item
+                title="Upgrade Plan"
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="star"
+                    color={theme.colors.surface}
+                  />
+                )}
+                onPress={() => setShowUpgradeModal(true)}
+                titleStyle={{color: theme.colors.surface}}
+              />
+            )}
+            <Divider style={{backgroundColor: theme.colors.surface}} />
             <View style={styles.legalSection}>
               <List.Item
                 title="Terms of Service"
-                left={props => <List.Icon {...props} icon="file-document" />}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="file-document"
+                    color={theme.colors.surface}
+                  />
+                )}
                 onPress={() => navigation.navigate('Terms')}
-                titleStyle={styles.legalText}
+                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
               <List.Item
                 title="Privacy Policy"
-                left={props => <List.Icon {...props} icon="shield-account" />}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="shield-account"
+                    color={theme.colors.surface}
+                  />
+                )}
                 onPress={() => navigation.navigate('Privacy')}
-                titleStyle={styles.legalText}
+                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
             </View>
+            {isAuthenticated && (
+              <>
+                <Divider style={{backgroundColor: theme.colors.surface}} />
+                <List.Item
+                  title="Logout"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="logout"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={handleSignOut}
+                  titleStyle={{color: theme.colors.surface}}
+                />
+              </>
+            )}
           </List.Section>
         </ScrollView>
       </Animated.View>
@@ -284,6 +377,20 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         onRestoreMatch={handleRestoreMatch}
         onDeleteMatch={handleDeleteMatch}
       />
+
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+          navigation.navigate('Home');
+        }}
+      />
+
+      <SubscriptionSlideout
+        visible={showSubscriptionSlideout}
+        onDismiss={() => setShowSubscriptionSlideout(false)}
+      />
     </>
   );
 };
@@ -303,28 +410,32 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: -2,
-      height: 0,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  headerLeft: {
+    flex: 1,
+    paddingLeft: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerButton: {
     margin: 0,
   },
   closeButton: {
     margin: 0,
+  },
+  planText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
