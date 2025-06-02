@@ -227,7 +227,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                   />
                 )}
                 onPress={() => {
-                  onDismiss();
                   setShowLoginModal(true);
                 }}
                 titleStyle={{color: theme.colors.surface}}
