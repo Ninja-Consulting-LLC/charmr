@@ -45,6 +45,8 @@ const OnboardingScreen = () => {
   const handleShowHelp = () => {
     if (currentStep === 1) {
       setHelpGifSource(require('../../assets/grant-keyboard-access.gif'));
+    } else if (currentStep === 2) {
+      setHelpGifSource(require('../../assets/charmr-keyboard-tutorial.gif'));
     } else {
       setHelpGifSource(require('../../assets/grant-photo-access.gif'));
     }
@@ -210,7 +212,9 @@ const OnboardingScreen = () => {
           contentContainerStyle={styles.helpModal}>
           <View style={styles.helpContent}>
             <Text variant="headlineSmall" style={styles.helpTitle}>
-              How to Enable Keyboard
+              {currentStep === 2
+                ? 'Charmr Keyboard Tutorial'
+                : 'How to Enable Keyboard'}
             </Text>
             <View style={styles.gifContainer}>
               <Image

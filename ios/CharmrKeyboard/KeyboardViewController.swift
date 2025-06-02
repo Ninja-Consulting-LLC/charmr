@@ -232,14 +232,14 @@ struct CustomToolbar: View {
     var body: some View {
         HStack(spacing: 8) {
             Button("Dating Coach") {
-                if let url = URL(string: "charmr://open/screenshot") {
+                if let url = URL(string: "charmr://open/homescreen") {
                     print("Opening app with URL:", url.absoluteString)
                     controller.openUrl(url)
                 }
             }
             .buttonStyle(OutlineButtonStyle())
 
-            Button(hasGeneratedOpener ? "Regenerate" : "Generate Opener") {
+            Button(hasGeneratedOpener ? "Regenerate" : "Create Opener") {
                 isCustomKeyboard = true
                 if hasGeneratedOpener {
                     // Regenerate: Clear existing text first
