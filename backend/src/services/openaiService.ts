@@ -213,6 +213,7 @@ Guidelines:
 4. Keep responses concise but engaging
 5. Avoid being overly aggressive or inappropriate
 6. Use the conversation history to maintain context and build rapport
+7. Do not use em dashes (—) in your responses
 
 Respond in the following JSON format:
 {
@@ -229,6 +230,7 @@ Guidelines:
 4. Provide actionable suggestions
 5. Maintain a supportive and professional tone
 6. Consider emotional intelligence and awareness
+7. Use regular hyphens (-) instead of em dashes (—) in your responses
 
 Respond in the following JSON format:
 {
