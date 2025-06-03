@@ -1,3 +1,4 @@
+import {PromptVariant} from '../../types';
 import {MessageMode, MessageRole, MessageType} from '../../types/enums';
 import logger from '../../utils/logger';
 import {ConversationItem, Database, ID, Message, MessageFilter} from '../types';
@@ -15,6 +16,7 @@ export interface MessageRepository {
       content: string;
       timestamp: string;
       imageData?: string;
+      promptVariant?: PromptVariant;
     },
   ): Promise<Message>;
 
@@ -61,11 +63,12 @@ export class SQLiteMessageRepository implements MessageRepository {
       content: string;
       timestamp: string;
       imageData?: string;
+      promptVariant?: PromptVariant;
     },
   ): Promise<Message> {
     try {
       const result = await this.db.run(
-        'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           userId,
           matchId || null,
@@ -77,6 +80,7 @@ export class SQLiteMessageRepository implements MessageRepository {
           message.content,
           message.timestamp,
           message.imageData || null,
+          message.promptVariant || null,
         ],
       );
 
