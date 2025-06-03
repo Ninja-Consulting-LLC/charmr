@@ -125,14 +125,17 @@ export const createOpenAIService = () => {
             typeof msg.content === 'string'
               ? msg.content
               : Array.isArray(msg.content)
-              ? msg.content.map(item =>
-                  item.type === 'image_url'
-                    ? {
-                        type: 'image_url',
-                        url: item.image_url.url.substring(0, 50) + '...',
-                      }
-                    : item,
-                )
+              ? msg.content.map(item => {
+                  if (item.type === 'text') return item;
+                  if (item.type === 'image_url') {
+                    return {
+                      type: 'image_url',
+                      url: item.image_url.url.substring(0, 50) + '...',
+                      detail: item.image_url.detail,
+                    };
+                  }
+                  return item;
+                })
               : 'Unknown content type',
         })),
         conversationHistory: conversationHistory.map(msg => ({
