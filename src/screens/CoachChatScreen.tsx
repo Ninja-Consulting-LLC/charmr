@@ -626,7 +626,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 user?.plan === SubscriptionTier.FREE && messageIndex >= 5;
 
               // Add a visual indicator for coach messages
-              const isCoachMessage = currentMessage?.mode === MessageMode.COACH;
+              const isCoachMessage =
+                currentMessage?.user._id === 'coach' &&
+                currentMessage?.mode === MessageMode.COACH;
 
               let showCopiedText = copiedMessageId === currentMessage?._id;
               if (showCopiedText) {
