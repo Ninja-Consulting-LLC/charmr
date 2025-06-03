@@ -105,6 +105,7 @@ const ResponseGenerator = forwardRef<
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+  const [prompt, setPrompt] = useState('');
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -267,7 +268,7 @@ const ResponseGenerator = forwardRef<
     }
 
     try {
-      await generateResponse();
+      await generateResponse(prompt);
     } catch (error) {
       console.error('Error generating response:', error);
       setShowSnackbar(true);
@@ -294,8 +295,8 @@ const ResponseGenerator = forwardRef<
   };
 
   const handleGenerateNew = () => {
-    resetResponse();
-    handleSubmit();
+    setShowReplyModal(false);
+    generateResponse(response || '', true);
   };
 
   const handlePickImages = async () => {

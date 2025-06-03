@@ -5,7 +5,7 @@ import {ConversationItem, Database, ID, Message, MessageFilter} from '../types';
 export interface MessageRepository {
   createMessage(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     message: {
       role: MessageRole;
       type?: MessageType;
@@ -20,7 +20,7 @@ export interface MessageRepository {
 
   getMessagesByMatch(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     filter?: MessageFilter,
     pagination?: {
       limit: number;
@@ -33,7 +33,7 @@ export interface MessageRepository {
 
   getConversationTimeline(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     pagination?: {
       limit: number;
       offset: number;
@@ -51,7 +51,7 @@ export class SQLiteMessageRepository implements MessageRepository {
 
   async createMessage(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     message: {
       role: MessageRole;
       type?: MessageType;
@@ -68,7 +68,7 @@ export class SQLiteMessageRepository implements MessageRepository {
         'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           userId,
-          matchId,
+          matchId || null,
           message.role,
           message.type || MessageType.TEXT,
           message.mode || MessageMode.GENERATE,
@@ -97,7 +97,7 @@ export class SQLiteMessageRepository implements MessageRepository {
 
   async getMessagesByMatch(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     filter?: MessageFilter,
     pagination?: {
       limit: number;
@@ -109,7 +109,7 @@ export class SQLiteMessageRepository implements MessageRepository {
   }> {
     try {
       let query = 'SELECT * FROM messages WHERE userId = ? AND matchId = ?';
-      const params: any[] = [userId, matchId];
+      const params: any[] = [userId, matchId || null];
 
       if (filter) {
         if (filter.role) {
@@ -141,7 +141,7 @@ export class SQLiteMessageRepository implements MessageRepository {
       const messages = await this.db.all(query, params);
       const total = await this.db.get(
         'SELECT COUNT(*) FROM messages WHERE userId = ? AND matchId = ?',
-        [userId, matchId],
+        [userId, matchId || null],
       );
 
       return {
@@ -159,7 +159,7 @@ export class SQLiteMessageRepository implements MessageRepository {
 
   async getConversationTimeline(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     pagination?: {
       limit: number;
       offset: number;

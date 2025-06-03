@@ -30,7 +30,7 @@ export interface User {
 export interface Message {
   id: ID;
   userId: string;
-  matchId: string;
+  matchId?: string;
   role: MessageRole;
   type: MessageType;
   mode: MessageMode;

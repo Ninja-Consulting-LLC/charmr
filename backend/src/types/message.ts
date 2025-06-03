@@ -3,7 +3,6 @@ export interface GenerateReplyRequest {
   images?: string[];
   userId: string;
   matchId?: string;
-  deleteAfterResponse?: boolean;
 }
 
 export interface GenerateReplyResponse {
