@@ -4,6 +4,7 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 import {firebaseAdmin} from '../../config/firebase-admin';
+import {PromptVariant} from '../../types';
 import {MessageMode, MessageRole, MessageType} from '../../types/enums';
 import logger from '../../utils/logger';
 import {ConversationItem, ID, Message, MessageFilter} from '../types';
@@ -16,8 +17,7 @@ export class FirestoreMessageRepository implements MessageRepository {
     this.db = firebaseAdmin.firestore();
   }
 
-  private getMessagesCollection(userId: string, matchId: string | undefined) {
-    // Always use 'no_match' as the document ID when matchId is undefined
+  private getMessagesCollection(userId: string, matchId?: string) {
     const effectiveMatchId = matchId || 'no_match';
     return this.db
       .collection('users')
@@ -39,6 +39,7 @@ export class FirestoreMessageRepository implements MessageRepository {
       content: string;
       timestamp: string;
       imageData?: string;
+      promptVariant?: PromptVariant;
     },
   ): Promise<Message> {
     try {
@@ -83,6 +84,7 @@ export class FirestoreMessageRepository implements MessageRepository {
         content: message.content,
         timestamp: message.timestamp,
         imageData: message.imageData || null,
+        promptVariant: message.promptVariant || null,
       };
 
       const messagesCollection = this.getMessagesCollection(userId, matchId);

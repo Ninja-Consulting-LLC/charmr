@@ -207,6 +207,7 @@ export const createReplyController = async (db: Database) => {
           images,
           prompt,
           req.body.mode || MessageMode.GENERATE,
+          response.promptVariant,
         );
 
         // Calculate costs

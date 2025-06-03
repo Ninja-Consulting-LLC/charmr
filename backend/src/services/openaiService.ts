@@ -1,7 +1,12 @@
 import OpenAI from 'openai';
 import {config} from '../config/config';
+import {formatPrompt, getPromptConfig} from '../config/prompts';
 import {getDatabase} from '../db';
-import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
+import {
+  GenerateReplyRequest,
+  GenerateReplyResponse,
+  PromptVariant,
+} from '../types';
 import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
 import {loadConversation, Message} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
@@ -58,6 +63,10 @@ export const createOpenAIService = () => {
 
       const model = selectModel(request);
 
+      // Determine which variant to use
+      const variant =
+        request.promptVariant || getPromptVariantForUser(request.userId);
+
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
@@ -67,6 +76,7 @@ export const createOpenAIService = () => {
             hasText,
             request.regenerate,
             request.regenerate ? request.prompt : undefined,
+            variant,
           ),
         },
       ];
@@ -114,6 +124,7 @@ export const createOpenAIService = () => {
         hasText,
         previousMessage: request.regenerate ? request.prompt : undefined,
         systemPrompt: messages[0].content,
+        promptVariant: variant,
       });
 
       // Add detailed logging of full context
@@ -144,6 +155,55 @@ export const createOpenAIService = () => {
         })),
       });
 
+      // Log request context
+      logger.info('OpenAI request context:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model,
+        mode: request.mode || MessageMode.GENERATE,
+        hasImages: request.images?.length > 0,
+        hasText: Boolean(request.prompt),
+        regenerate: request.regenerate,
+        promptVariant: variant,
+      });
+
+      // Log system prompt
+      logger.info('OpenAI system prompt:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        systemPrompt: messages[0].content,
+        promptVariant: variant,
+      });
+
+      // Log conversation history
+      if (contextMessage) {
+        logger.info('OpenAI conversation history:', {
+          userId: request.userId,
+          matchId: request.matchId,
+          conversationHistory: conversationHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        });
+      }
+
+      // Log user input
+      if (hasText) {
+        logger.info('OpenAI user input:', {
+          userId: request.userId,
+          matchId: request.matchId,
+          prompt: request.prompt,
+        });
+      }
+
+      if (hasImages) {
+        logger.info('OpenAI image input:', {
+          userId: request.userId,
+          matchId: request.matchId,
+          imageCount: request.images?.length,
+        });
+      }
+
       const response = await openai.chat.completions.create({
         model,
         messages,
@@ -154,6 +214,25 @@ export const createOpenAIService = () => {
 
       const text = response.choices[0]?.message?.content || '';
       if (!text) throw new Error('Empty response from OpenAI');
+
+      // Log raw response
+      logger.info('OpenAI raw response:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model,
+        rawResponse: {
+          id: response.id,
+          model: response.model,
+          usage: response.usage,
+          choices: response.choices.map(choice => ({
+            index: choice.index,
+            message: choice.message,
+            finish_reason: choice.finish_reason,
+          })),
+        },
+        rawText: text,
+        promptVariant: variant,
+      });
 
       let parsedResponse;
       try {
@@ -168,6 +247,16 @@ export const createOpenAIService = () => {
 
       const {summary, message: reply} = parsedResponse;
 
+      // Log processed response
+      logger.info('OpenAI processed response:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model,
+        summary,
+        reply,
+        promptVariant: variant,
+      });
+
       return {
         reply,
         summary,
@@ -180,6 +269,7 @@ export const createOpenAIService = () => {
           total_tokens: response.usage?.total_tokens || 0,
           image_count: request.images?.length || 0,
         }),
+        promptVariant: variant,
       };
     } catch (error: any) {
       logger.error('OpenAI API error', {error});
@@ -204,6 +294,16 @@ function selectModel(request: GenerateReplyRequest): string {
   return config.openai.model;
 }
 
+// Helper function to get prompt variant for a user
+function getPromptVariantForUser(userId: string): PromptVariant {
+  // First try to use the environment variable
+  if (config.prompt.variant) {
+    return config.prompt.variant;
+  }
+  // Fallback to random assignment for A/B testing
+  return Math.random() < 0.5 ? 'A' : 'B';
+}
+
 // 💡 Prompt selection logic
 function getSystemPrompt(
   mode: MessageMode,
@@ -211,84 +311,8 @@ function getSystemPrompt(
   hasText: boolean,
   regenerate?: boolean,
   previousMessage?: string,
+  variant?: PromptVariant,
 ): string {
-  const imageOnlyPrompt = `This is a dating app screenshot. The user is replying to the match. If this is the first message, craft a great opener. Otherwise, keep the thread going naturally.${
-    regenerate && previousMessage
-      ? `\n\nGenerate a new message that is different from this previous message:\n${previousMessage}`
-      : ''
-  }
-
-Guidelines:
-1. Keep it natural and conversational
-2. Focus on one or two things, not everything
-3. No em dashes (—)
-4. Short and charming
-5. Don't be boring${
-    regenerate
-      ? '\n6. Make sure your response is different from the previous message'
-      : ''
-  }
-
-Respond in this JSON format:
-{
-  "summary": "Summary of what you see in the screenshot",
-  "message": "Your crafted response"
-}`;
-
-  const generatePrompt = `You are a helpful AI dating coach. Generate a message for the user based on the conversation history and prompt.
-
-Guidelines:
-1. Match the user's desired tone (flirty, sincere, etc.)
-2. Use prior context to maintain flow
-3. No em dashes (—), keep it short and clever
-4. Don't overanalyze — pick one or two hooks max${
-    regenerate && previousMessage
-      ? '\n5. Generate a new message that is different from this previous message:\n' +
-        previousMessage
-      : ''
-  }
-
-Respond in this JSON format:
-{
-  "summary": "Conversation summary",
-  "message": "Your suggested message"
-}`;
-
-  const coachPrompt = `You're a dating coach. Provide feedback to the user about their chat.
-
-Guidelines:
-1. Focus on tone, clarity, and engagement
-2. Call out what's working and what isn't
-3. Keep advice short and actionable
-
-Respond in this JSON format:
-{
-  "summary": "Brief feedback summary",
-  "message": "Your coaching feedback"
-}`;
-
-  logger.debug('getSystemPrompt called with', {
-    mode,
-    hasImages,
-    hasText,
-    regenerate,
-    previousMessage,
-    useImagePrompt: hasImages && (regenerate || !hasText),
-    selectedPrompt:
-      mode === MessageMode.COACH
-        ? 'coachPrompt'
-        : hasImages && (regenerate || !hasText)
-        ? 'imageOnlyPrompt'
-        : 'generatePrompt',
-    promptLength:
-      mode === MessageMode.COACH
-        ? coachPrompt.length
-        : hasImages && (regenerate || !hasText)
-        ? imageOnlyPrompt.length
-        : generatePrompt.length,
-  });
-
-  if (mode === MessageMode.COACH) return coachPrompt;
-  if (hasImages && (regenerate || !hasText)) return imageOnlyPrompt;
-  return generatePrompt;
+  const config = getPromptConfig(mode, hasImages, hasText, variant || 'A');
+  return formatPrompt(config, regenerate, previousMessage);
 }
