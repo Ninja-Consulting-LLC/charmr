@@ -30,7 +30,7 @@ export interface User {
 export interface Message {
   id: ID;
   userId: string;
-  matchId: string;
+  matchId?: string;
   role: MessageRole;
   type: MessageType;
   mode: MessageMode;
@@ -153,6 +153,11 @@ export interface Database {
     matchId: number | string,
   ) => Promise<Match | null>;
   addMatch: (userId: string, match: Omit<Match, 'id'>) => Promise<Match>;
+  updateMatch: (
+    userId: string,
+    matchId: string,
+    updates: Partial<Match>,
+  ) => Promise<void>;
   updateMatchLastUsed: (userId: string, matchId: string) => Promise<void>;
   deleteMatch: (userId: string, matchId: string) => Promise<void>;
   hideMatch: (userId: string, matchId: string) => Promise<void>;

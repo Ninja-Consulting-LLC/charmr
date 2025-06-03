@@ -105,6 +105,7 @@ const ResponseGenerator = forwardRef<
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+  const [prompt, setPrompt] = useState('');
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -267,7 +268,7 @@ const ResponseGenerator = forwardRef<
     }
 
     try {
-      await generateResponse();
+      await generateResponse(prompt);
     } catch (error) {
       console.error('Error generating response:', error);
       setShowSnackbar(true);
@@ -294,8 +295,8 @@ const ResponseGenerator = forwardRef<
   };
 
   const handleGenerateNew = () => {
-    resetResponse();
-    handleSubmit();
+    setShowReplyModal(false);
+    generateResponse(response || '', true);
   };
 
   const handlePickImages = async () => {
@@ -314,6 +315,23 @@ const ResponseGenerator = forwardRef<
 
   const handleDeleteMatchById = (matchId: string) => {
     removeMatch(matchId);
+  };
+
+  const handleUpdateMatch = async (
+    matchId: string,
+    name: string,
+    platform: string,
+  ) => {
+    try {
+      await updateMatch({
+        ...matches.find(m => String(m.id) === matchId)!,
+        name,
+        platform,
+      });
+      await loadMatches(); // Reload matches to ensure UI is in sync
+    } catch (error) {
+      console.error('Error updating match:', error);
+    }
   };
 
   return (
@@ -367,6 +385,7 @@ const ResponseGenerator = forwardRef<
             onDeleteMatch={handleDeleteMatchById}
             onHideMatch={handleHideMatch}
             onRestoreMatch={handleRestoreMatch}
+            onUpdateMatch={handleUpdateMatch}
             userPlan={user?.plan || SubscriptionTier.FREE}
           />
         </View>

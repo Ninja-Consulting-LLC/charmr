@@ -4,13 +4,14 @@ export interface GenerateReplyRequest {
   prompt: string;
   images: string[];
   userId: string;
-  matchId: string;
-  deleteAfterResponse: boolean;
+  matchId?: string; // Only used in coach mode, not needed for direct reply generation
   skipRateLimiting?: boolean;
   context?: string;
   model?: string;
   mode?: MessageMode;
   style?: MessageStyle;
+  regenerate?: boolean; // Flag to indicate if this is a regeneration request
+  previousMessage?: string; // The previous message to avoid repeating when regenerating
 }
 
 export interface GenerateReplyResponse {

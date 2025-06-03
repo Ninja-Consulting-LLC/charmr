@@ -221,3 +221,50 @@ export const restoreMatch = async (
     res.status(500).json({error: 'Failed to restore match'});
   }
 };
+
+export const updateMatch = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId, matchId} = req.params;
+    const {name, platform} = req.body;
+
+    if (!matchId) {
+      return res.status(400).json({error: 'Match ID is required'});
+    }
+
+    if (!name && !platform) {
+      return res
+        .status(400)
+        .json({error: 'At least one field to update is required'});
+    }
+
+    // First check if user exists
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
+    }
+
+    // Check if match exists
+    const match = await db.getMatchById(userId, matchId);
+    if (!match) {
+      return res.status(404).json({error: 'Match not found'});
+    }
+
+    // Update match
+    await db.updateMatch(userId, matchId, {name, platform});
+
+    logger.info('Updated match:', {userId, matchId, updates: {name, platform}});
+    res.json({message: 'Match updated successfully'});
+  } catch (error) {
+    logger.error('Error updating match:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.params.userId,
+      matchId: req.params.matchId,
+    });
+    res.status(500).json({error: 'Failed to update match'});
+  }
+};

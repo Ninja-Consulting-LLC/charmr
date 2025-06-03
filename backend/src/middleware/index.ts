@@ -106,11 +106,6 @@ export const createRequestValidator =
       req.body.images = [];
     }
 
-    // Set default value for deleteAfterResponse if not provided
-    if (req.body.deleteAfterResponse === undefined) {
-      req.body.deleteAfterResponse = false;
-    }
-
     // Set default empty prompt if not provided
     if (req.body.prompt === undefined) {
       req.body.prompt = '';

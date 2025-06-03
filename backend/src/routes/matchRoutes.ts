@@ -5,6 +5,7 @@ import {
   getMatches,
   hideMatch,
   restoreMatch,
+  updateMatch,
   updateMatchLastUsed,
 } from '../controllers/matchController';
 import {getMessageRepository} from '../db/repositories';
@@ -133,6 +134,15 @@ const createMatchRouter = (db: Database) => {
       return res.status(403).json({error: 'Unauthorized access to user data'});
     }
     return restoreMatch(req, res, db);
+  });
+
+  // Update a match
+  router.put('/users/:userId/matches/:matchId', (req, res) => {
+    const userId = getUserFromRequest(req);
+    if (userId !== req.params.userId) {
+      return res.status(403).json({error: 'Unauthorized access to user data'});
+    }
+    return updateMatch(req, res, db);
   });
 
   // Debug endpoint: get full conversation for a user/match

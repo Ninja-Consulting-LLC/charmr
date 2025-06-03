@@ -861,6 +861,46 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
+    updateMatch: async (
+      userId: string,
+      matchId: string,
+      updates: Partial<Match>,
+    ): Promise<void> => {
+      try {
+        const now = new Date().toISOString();
+        const allowedFields = ['name', 'platform'];
+        const updateFields = Object.entries(updates)
+          .filter(([key]) => allowedFields.includes(key))
+          .map(([key]) => `${key} = ?`);
+
+        if (updateFields.length === 0) {
+          return;
+        }
+
+        const values = [
+          ...Object.entries(updates)
+            .filter(([key]) => allowedFields.includes(key))
+            .map(([, value]) => value),
+          now,
+          matchId,
+          userId,
+        ];
+
+        await db.run(
+          `UPDATE matches
+           SET ${updateFields.join(', ')}, updatedAt = ?
+           WHERE id = ? AND userId = ?`,
+          values,
+        );
+      } catch (error) {
+        logger.error('Failed to update match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
     getMatchById: async (userId: string, matchId: number | string) => {
       try {
         const match = await db.get(
@@ -881,35 +921,36 @@ export const createSqliteDatabase = async (): Promise<Database> => {
 
     getConversationHistory: async (
       userId: string,
-      matchId?: string,
+      startDate?: string,
+      endDate?: string,
     ): Promise<{
       messages: Message[];
       total: number;
     }> => {
       try {
-        let query = 'SELECT * FROM messages WHERE userId = ?';
-        const params: any[] = [userId];
-
-        if (matchId) {
-          query += ' AND matchId = ?';
-          params.push(matchId);
-        }
-
-        query += ' ORDER BY timestamp DESC';
-
-        const messages = await db.all(query, params);
-        const total = await db.get(
-          'SELECT COUNT(*) as count FROM messages WHERE userId = ?' +
-            (matchId ? ' AND matchId = ?' : ''),
-          params,
+        // Get all messages for the user
+        const messages = await db.all(
+          'SELECT * FROM messages WHERE userId = ? ORDER BY timestamp DESC',
+          [userId],
         );
 
+        // Filter messages by date range if provided
+        const filteredMessages = messages.filter(msg => {
+          if (startDate && new Date(msg.timestamp) < new Date(startDate)) {
+            return false;
+          }
+          if (endDate && new Date(msg.timestamp) > new Date(endDate)) {
+            return false;
+          }
+          return true;
+        });
+
         return {
-          messages: messages.map(msg => ({
+          messages: filteredMessages.map(msg => ({
             ...msg,
             used: Boolean(msg.used),
           })),
-          total: total.count,
+          total: filteredMessages.length,
         };
       } catch (error) {
         logger.error('Failed to get conversation history', {

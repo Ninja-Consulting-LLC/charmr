@@ -12,7 +12,7 @@ export interface MessageLimit {
 export interface Message {
   id: number;
   userId: string;
-  matchId: string;
+  matchId?: string; // Optional for direct replies
   role: MessageRole;
   type: MessageType;
   mode: MessageMode;

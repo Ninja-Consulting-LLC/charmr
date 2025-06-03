@@ -11,29 +11,50 @@ import {
   IconButton,
   Modal,
   Portal,
+  Snackbar,
   Text,
   TextInput,
 } from 'react-native-paper';
 import {theme} from '../theme/theme';
 
-interface AddMatchModalProps {
+interface AddEditMatchModalProps {
   visible: boolean;
   onDismiss: () => void;
   onAddMatch: (name: string, platform: string) => Promise<void>;
+  isEditing?: boolean;
+  initialName?: string;
+  initialPlatform?: string;
+  onUpdateMatch?: (name: string, platform: string) => Promise<void>;
 }
 
 const PLATFORMS = ['hinge', 'tinder', 'bumble', 'other'];
 
-const AddMatchModal: React.FC<AddMatchModalProps> = ({
+const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
   visible,
   onDismiss,
   onAddMatch,
+  isEditing = false,
+  initialName = '',
+  initialPlatform = '',
+  onUpdateMatch,
 }) => {
-  const [name, setName] = useState('');
-  const [platform, setPlatform] = useState('');
-  const [otherPlatform, setOtherPlatform] = useState('');
+  const [name, setName] = useState(initialName);
+  const [platform, setPlatform] = useState(initialPlatform);
+  const [otherPlatform, setOtherPlatform] = useState(
+    initialPlatform === 'other' ? initialPlatform : '',
+  );
   const [platformError, setPlatformError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSnackbar, setShowSnackbar] = useState(false);
+
+  // Reset form when modal opens/closes
+  React.useEffect(() => {
+    if (visible) {
+      setName(initialName);
+      setPlatform(initialPlatform);
+      setOtherPlatform(initialPlatform === 'other' ? initialPlatform : '');
+    }
+  }, [visible, initialName, initialPlatform]);
 
   const handleAdd = async () => {
     if (!name.trim()) {
@@ -50,10 +71,19 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
 
     setIsLoading(true);
     try {
-      await onAddMatch(
-        name.trim(),
-        platform === 'other' ? otherPlatform.trim() : platform,
-      );
+      if (isEditing && onUpdateMatch) {
+        await onUpdateMatch(
+          name.trim(),
+          platform === 'other' ? otherPlatform.trim() : platform,
+        );
+        setShowSnackbar(true);
+        onDismiss();
+      } else {
+        await onAddMatch(
+          name.trim(),
+          platform === 'other' ? otherPlatform.trim() : platform,
+        );
+      }
       setName('');
       setPlatform('');
       setOtherPlatform('');
@@ -77,7 +107,9 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View>
             <View style={styles.header}>
-              <Text style={styles.title}>Add New Match</Text>
+              <Text style={styles.title}>
+                {isEditing ? 'Edit Match' : 'Add New Match'}
+              </Text>
               <IconButton icon="close" size={20} onPress={onDismiss} />
             </View>
 
@@ -131,6 +163,8 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
                 testID="add-button">
                 {isLoading ? (
                   <ActivityIndicator color={theme.colors.onPrimary} />
+                ) : isEditing ? (
+                  'Update Match'
                 ) : (
                   'Add Match'
                 )}
@@ -139,6 +173,18 @@ const AddMatchModal: React.FC<AddMatchModalProps> = ({
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <Snackbar
+        visible={showSnackbar}
+        onDismiss={() => setShowSnackbar(false)}
+        duration={2000}
+        style={[styles.snackbar, {backgroundColor: 'rgba(0, 0, 0, 0.6)'}]}
+        action={{
+          label: 'OK',
+          onPress: () => setShowSnackbar(false),
+        }}>
+        Match updated successfully!
+      </Snackbar>
     </Portal>
   );
 };
@@ -188,6 +234,13 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 8,
   },
+  snackbar: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    marginBottom: 8,
+  },
 });
 
-export default AddMatchModal;
+export default AddEditMatchModal;

@@ -55,14 +55,13 @@ export const createReplyController = async (db: Database) => {
     const mainLogic = (async () => {
       logger.debug('Generating reply - request payload', {
         userId,
-        matchId,
         hasImages: images?.length > 0,
-        skipRateLimiting,
         prompt,
         imageCount: images?.length,
-        sandboxMode: process.env.NODE_ENV !== 'production',
+        sandboxMode: config.openai.sandboxMode,
         images: images?.map(truncateImageData),
         mode: req.body.mode,
+        regenerate: req.body.regenerate,
       });
 
       let messageLimits = null;
@@ -155,17 +154,19 @@ export const createReplyController = async (db: Database) => {
               images: images || [],
               userId,
               matchId,
-              deleteAfterResponse: false,
               model: req.body.model,
               mode: req.body.mode,
+              regenerate: req.body.regenerate,
+              previousMessage: req.body.regenerate ? prompt : undefined,
             })
           : await geminiService.generateReply({
               prompt,
               images: [],
               userId,
               matchId,
-              deleteAfterResponse: false,
               mode: req.body.mode,
+              regenerate: req.body.regenerate,
+              previousMessage: req.body.regenerate ? prompt : undefined,
             });
 
       logger.debug('AI service response', {
