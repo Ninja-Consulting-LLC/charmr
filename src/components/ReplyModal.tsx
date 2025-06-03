@@ -3,6 +3,7 @@ import {Pressable, StyleSheet, View} from 'react-native';
 import {IconButton, Modal, Portal, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
+import TypingIndicator from './TypingIndicator';
 
 interface ReplyModalProps {
   visible: boolean;
@@ -14,6 +15,7 @@ interface ReplyModalProps {
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
   onRegenerate: () => void;
+  loading?: boolean;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
@@ -26,6 +28,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   deleteScreenshots,
   hasScreenshots,
   onRegenerate,
+  loading = false,
 }) => {
   return (
     <Portal>
@@ -44,19 +47,27 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
             {/* Reply Text */}
             <Pressable onPress={onCopy} style={styles.replyContainer}>
-              <Text variant="bodyLarge" style={styles.replyText}>
-                {reply}
-              </Text>
-              <IconButton
-                icon="content-copy"
-                size={20}
-                style={styles.copyIcon}
-                onPress={onCopy}
-              />
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <TypingIndicator />
+                </View>
+              ) : (
+                <>
+                  <Text variant="bodyLarge" style={styles.replyText}>
+                    {reply}
+                  </Text>
+                  <IconButton
+                    icon="content-copy"
+                    size={20}
+                    style={styles.copyIcon}
+                    onPress={onCopy}
+                  />
+                </>
+              )}
             </Pressable>
 
             {/* Delete Switch - Only show if screenshots were selected */}
-            {hasScreenshots && (
+            {hasScreenshots && !loading && (
               <View style={styles.deleteSection}>
                 <Text variant="bodyMedium">
                   {MESSAGES.REPLY_MODAL_DELETE_HINT}
@@ -70,11 +81,15 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtons}>
-              <Pressable onPress={onRegenerate} style={styles.regenerateButton}>
-                <Text variant="bodyMedium" style={styles.regenerateText}>
-                  Regenerate
-                </Text>
-              </Pressable>
+              {!loading && (
+                <Pressable
+                  onPress={onRegenerate}
+                  style={styles.regenerateButton}>
+                  <Text variant="bodyMedium" style={styles.regenerateText}>
+                    Regenerate
+                  </Text>
+                </Pressable>
+              )}
               <Pressable onPress={onDone} style={styles.doneButton}>
                 <Text variant="bodyMedium" style={styles.doneText}>
                   {MESSAGES.REPLY_MODAL_DONE}
@@ -116,6 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 24,
+    minHeight: 100,
   },
   replyText: {
     flex: 1,
@@ -154,6 +170,11 @@ const styles = StyleSheet.create({
   },
   regenerateText: {
     color: theme.colors.onSurfaceVariant,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
