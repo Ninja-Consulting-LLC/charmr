@@ -122,7 +122,18 @@ export const createOpenAIService = () => {
         messages: messages.map(msg => ({
           role: msg.role,
           content:
-            typeof msg.content === 'string' ? msg.content : 'Image content',
+            typeof msg.content === 'string'
+              ? msg.content
+              : Array.isArray(msg.content)
+              ? msg.content.map(item =>
+                  item.type === 'image_url'
+                    ? {
+                        type: 'image_url',
+                        url: item.image_url.url.substring(0, 50) + '...',
+                      }
+                    : item,
+                )
+              : 'Unknown content type',
         })),
         conversationHistory: conversationHistory.map(msg => ({
           role: msg.role,
