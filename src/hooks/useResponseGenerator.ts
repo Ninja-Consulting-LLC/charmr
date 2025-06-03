@@ -7,7 +7,7 @@ import {SelectedImage} from '../types/image';
 import {User} from '../types/user';
 import {compressImages} from '../utils/imageCompression';
 import {logger} from '../utils/logger';
-import {generateMatchId, Match} from '../utils/matchUtils';
+import {Match} from '../utils/matchUtils';
 
 interface UseResponseGeneratorProps {
   images: SelectedImage[];
@@ -22,7 +22,7 @@ interface UseResponseGeneratorReturn {
   loading: boolean;
   error: string | null;
   errorType: string | null;
-  generateResponse: (prompt?: string) => Promise<void>;
+  generateResponse: (prompt?: string, regenerate?: boolean) => Promise<void>;
   resetResponse: () => void;
 }
 
@@ -45,7 +45,7 @@ export const useResponseGenerator = ({
     setErrorType(null);
   };
 
-  const generateResponse = async (prompt?: string) => {
+  const generateResponse = async (prompt?: string, regenerate?: boolean) => {
     setLoading(true);
     resetResponse();
 
@@ -53,6 +53,8 @@ export const useResponseGenerator = ({
       promptLength: prompt?.length,
       imageCount: images?.length,
       selectedMatch: selectedMatch?.name,
+      regenerate,
+      prompt: regenerate ? prompt : undefined,
     });
 
     if (images.length === 0 && !prompt?.trim()) {
@@ -94,9 +96,8 @@ export const useResponseGenerator = ({
         prompt: prompt?.trim() || '',
         images: base64Images,
         userId,
-        matchId: selectedMatch ? generateMatchId(selectedMatch) : undefined,
-        deleteAfterResponse: images.length > 0,
         mode,
+        regenerate,
       });
 
       logger.app.info('[ResponseGenerator] Received API response:', {

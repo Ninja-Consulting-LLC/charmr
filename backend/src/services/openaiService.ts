@@ -15,27 +15,20 @@ export const createOpenAIService = () => {
 
   const openai = config.openai.sandboxMode
     ? null
-    : new OpenAI({
-        apiKey: config.openai.apiKey,
-      });
+    : new OpenAI({apiKey: config.openai.apiKey});
 
   const sandboxService = createSandboxService();
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
-    // Use sandbox service if in sandbox mode
     if (config.openai.sandboxMode) {
       return sandboxService.generateReply(request);
     }
 
-    // Ensure OpenAI client is initialized
-    if (!openai) {
-      throw new Error('OpenAI client not initialized');
-    }
+    if (!openai) throw new Error('OpenAI client not initialized');
 
     try {
-      // Load conversation history for context
       const db = await getDatabase();
       const user = await db.getUser(request.userId);
       const conversationHistory = request.matchId
@@ -46,120 +39,96 @@ export const createOpenAIService = () => {
           )
         : [];
 
-      // Extract previous messages for context
       const previousAssistantMessages = conversationHistory
         .filter((msg: Message) => msg.role === 'assistant')
-        .map((msg: Message) => msg.content)
+        .map((msg, i) => `Assistant ${i + 1}: ${msg.content}`)
         .join('\n');
 
       const previousSummaries = conversationHistory
         .filter((msg: Message) => msg.role === 'system')
-        .map((msg: Message) => msg.content)
+        .map((msg, i) => `Summary ${i + 1}: ${msg.content}`)
         .join('\n');
 
-      const contextMessage =
-        previousAssistantMessages || previousSummaries
-          ? `Here is the conversation history for context:\n\nPrevious Summaries:\n${previousSummaries}\n\nPrevious Messages:\n${previousAssistantMessages}`
-          : '';
+      const contextMessage = [previousSummaries, previousAssistantMessages]
+        .filter(Boolean)
+        .join('\n\n');
+
+      const hasImages = request.images?.length > 0;
+      const hasText = Boolean(request.prompt);
+
+      const model = selectModel(request);
 
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: getSystemPrompt(request.mode || MessageMode.GENERATE),
-        },
-        {
-          role: 'user',
-          content: request.prompt,
+          content: getSystemPrompt(
+            request.mode || MessageMode.GENERATE,
+            hasImages,
+            hasText,
+            request.regenerate,
+            request.regenerate ? request.prompt : undefined,
+          ),
         },
       ];
+
+      if (hasText) {
+        messages.push({role: 'user', content: request.prompt!});
+      }
 
       if (contextMessage) {
         messages.push({
           role: 'system',
-          content: contextMessage,
+          content: `Conversation history:\n${contextMessage}`,
         });
       }
 
-      if (request.images?.length) {
+      if (hasImages) {
         messages.push({
           role: 'user',
           content: [
-            {type: 'text', text: 'Here are the images to consider:'},
+            {type: 'text', text: 'Here are the screenshots to consider:'},
             ...request.images.map(img => ({
               type: 'image_url' as const,
               image_url: {url: img, detail: 'low' as const},
             })),
-          ] as OpenAI.Chat.ChatCompletionContentPart[],
+          ],
         });
       }
 
       logger.debug('OpenAI API request payload', {
         userId: request.userId,
-        matchId: request.matchId,
-        model: request.model || config.openai.model,
+        model,
         messageCount: messages.length,
-        messages: messages.map(msg => ({
-          role: msg.role,
-          contentLength:
-            typeof msg.content === 'string' ? msg.content.length : 'complex',
-          hasImages:
-            Array.isArray(msg.content) &&
-            msg.content.some(c => c.type === 'image_url'),
-        })),
-        maxTokens: config.openai.maxTokens,
-        temperature: config.openai.temperature,
-      });
-
-      // Log the full prompt
-      logger.info('OpenAI API full prompt', {
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        regenerate: request.regenerate,
+        hasImages,
+        hasText,
+        previousMessage: request.regenerate ? request.prompt : undefined,
+        systemPrompt: messages[0].content,
       });
 
       const response = await openai.chat.completions.create({
-        model: request.model || config.openai.model,
+        model,
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
         response_format: {type: 'json_object'},
       });
 
-      // Log the full response
-      logger.info('OpenAI API full response', {
-        response: response,
-      });
-
       const text = response.choices[0]?.message?.content || '';
-      if (!text) {
-        throw new Error('Empty response from OpenAI');
-      }
+      if (!text) throw new Error('Empty response from OpenAI');
 
-      // Parse the JSON response
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(text);
       } catch (error) {
-        logger.error('Failed to parse OpenAI response as JSON', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+        logger.error('Failed to parse OpenAI response', {
+          error,
           response: text,
         });
-        throw new Error('Invalid response format from OpenAI');
+        throw new Error('Invalid response format');
       }
 
       const {summary, message: reply} = parsedResponse;
-
-      // Calculate costs for the response
-      const costBreakdown = calculateCost(
-        request.model || config.openai.model,
-        {
-          prompt_tokens: response.usage?.prompt_tokens || 0,
-          completion_tokens: response.usage?.completion_tokens || 0,
-          total_tokens: response.usage?.total_tokens || 0,
-          image_count: request.images?.length || 0,
-        },
-      );
 
       return {
         reply,
@@ -167,40 +136,15 @@ export const createOpenAIService = () => {
         usage: response.usage,
         mode: request.mode || MessageMode.GENERATE,
         style: request.style,
-        cost: costBreakdown,
+        cost: calculateCost(model, {
+          prompt_tokens: response.usage?.prompt_tokens || 0,
+          completion_tokens: response.usage?.completion_tokens || 0,
+          total_tokens: response.usage?.total_tokens || 0,
+          image_count: request.images?.length || 0,
+        }),
       };
     } catch (error: any) {
-      logger.error('OpenAI API error', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        type: error instanceof Error ? error.name : 'unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes('quota')) {
-          return {
-            reply: '',
-            error:
-              'The AI service is currently unavailable due to quota limits. Please try again later.',
-            type: ErrorType.QUOTA_EXCEEDED,
-            mode: request.mode || MessageMode.GENERATE,
-            style: request.style,
-          };
-        }
-
-        if (error.message.includes('rate limit')) {
-          return {
-            reply: '',
-            error:
-              'The AI service is currently busy. Please try again in a few moments.',
-            type: ErrorType.RATE_LIMIT,
-            mode: request.mode || MessageMode.GENERATE,
-            style: request.style,
-          };
-        }
-      }
-
+      logger.error('OpenAI API error', {error});
       return {
         reply: '',
         error: 'Failed to generate reply',
@@ -211,60 +155,85 @@ export const createOpenAIService = () => {
     }
   };
 
-  return {
-    generateReply,
-  };
+  return {generateReply};
 };
 
-function getSystemPrompt(mode: MessageMode): string {
-  const generatePrompt = `You are a helpful dating coach. Consider the conversation history and context when generating responses.
+// 💡 Model selection logic
+function selectModel(request: GenerateReplyRequest): string {
+  const isImageOnly = request.images?.length && !request.prompt;
+  if (isImageOnly) return config.openai.model; // vision support
+  if (request.mode === MessageMode.COACH) return 'gpt-4o-mini'; // cost-optimized
+  return config.openai.model;
+}
+
+// 💡 Prompt selection logic
+function getSystemPrompt(
+  mode: MessageMode,
+  hasImages: boolean,
+  hasText: boolean,
+  regenerate?: boolean,
+  previousMessage?: string,
+): string {
+  logger.debug('getSystemPrompt called with', {
+    mode,
+    hasImages,
+    hasText,
+    regenerate,
+    previousMessage,
+    useImagePrompt: hasImages && (regenerate || !hasText),
+  });
+
+  const imageOnlyPrompt = `This is a dating app screenshot. The user is replying to the match. If this is the first message, craft a great opener. Otherwise, keep the thread going naturally.${
+    regenerate && previousMessage
+      ? `\n\nGenerate a new message that is different from this previous message:\n${previousMessage}`
+      : ''
+  }
 
 Guidelines:
-1. Avoid being over-stylized, keep it natural and conversational
-2. Match the tone and style requested by the user
-3. Show genuine interest in the match's interests and experiences
-4. Keep responses concise but engaging
-5. Avoid being overly aggressive or inappropriate
-6. Use the conversation history to maintain context and build rapport
-7. Do not use em dashes (—) in your responses
-8. You don't need to address every single thing you see in a screenshot
-9. Don't be boring
-10. If you see a previous messages or summaries in your prompt, no need to say hi to the match at the beginning of the response
+1. Keep it natural and conversational
+2. Focus on one or two things, not everything
+3. No em dashes (—)
+4. Short and charming
+5. Don't be boring${
+    regenerate
+      ? '\n6. Make sure your response is different from the previous message'
+      : ''
+  }
 
-Respond in the following JSON format:
+Respond in this JSON format:
 {
-  "summary": "A brief summary of the match's interests and conversation style based on the history",
-  "message": "Your response"
+  "summary": "Summary of what you see in the screenshot",
+  "message": "Your crafted response"
 }`;
 
-  const coachPrompt = `You are a dating coach providing analysis and feedback. Consider the conversation history and context when providing insights.
-
-Focus on:
-- Communication patterns and effectiveness
-- Areas for improvement
-- Positive aspects to maintain
-- Specific suggestions for better engagement
+  const generatePrompt = `You are a helpful AI dating coach. Generate a message for the user based on the conversation history and prompt.
 
 Guidelines:
-1. Be constructive and specific in your feedback
-2. Focus on communication patterns and effectiveness
-3. Identify both strengths and areas for improvement
-4. Provide actionable suggestions
-5. Maintain a supportive and professional tone
-6. Consider emotional intelligence and awareness
-7. Don't use em dashes (—) in your responses
-8. Your answer will appear in a chat window so keep it short and to the point
+1. Match the user's desired tone (flirty, sincere, etc.)
+2. Use prior context to maintain flow
+3. No em dashes (—), keep it short and clever
+4. Don't overanalyze — pick one or two hooks max
 
-Respond in the following JSON format:
+Respond in this JSON format:
 {
-  "summary": "A brief analysis of the conversation dynamics and patterns",
-  "message": "Your detailed feedback and suggestions"
+  "summary": "Conversation summary",
+  "message": "Your suggested message"
 }`;
 
-  const modeSpecificPrompts = {
-    [MessageMode.GENERATE]: generatePrompt,
-    [MessageMode.COACH]: coachPrompt,
-  };
+  const coachPrompt = `You're a dating coach. Provide feedback to the user about their chat.
 
-  return modeSpecificPrompts[mode];
+Guidelines:
+1. Focus on tone, clarity, and engagement
+2. Call out what's working and what isn't
+3. Keep advice short and actionable
+
+Respond in this JSON format:
+{
+  "summary": "Brief feedback summary",
+  "message": "Your coaching feedback"
+}`;
+
+  if (mode === MessageMode.COACH) return coachPrompt;
+  if (hasImages && (regenerate || !hasText)) return imageOnlyPrompt;
+  return generatePrompt;
 }
