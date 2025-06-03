@@ -82,11 +82,12 @@ const promptConfigs: PromptConfig = {
   coach: {
     A: {
       basePrompt:
-        'You are a helpful AI dating coach. Provide feedback to the user about their chat.',
+        'You are a helpful AI dating coach. Provide feedback and advice about the conversation.',
       guidelines: [
-        'Focus on tone, clarity, and engagement',
-        "Call out what's working and what isn't",
-        'Keep advice short and actionable',
+        'Keep your responses laconic - short, crisp, and to the point',
+        'Use paragraphs only, with no headings, bullet points, or formatting',
+        'Avoid overly verbose or redundant statements',
+        'Maintain a conversational and insightful tone suitable for a dating coach, but without fluff or generic advice',
       ],
       responseFormat: {
         summary: 'Detailed feedback summary',
@@ -99,8 +100,14 @@ const promptConfigs: PromptConfig = {
       ],
     },
     B: {
-      basePrompt: '',
-      guidelines: [],
+      basePrompt:
+        'You are a helpful AI dating coach. Provide feedback and advice about the conversation.',
+      guidelines: [
+        'Keep your responses laconic - short, crisp, and to the point',
+        'Use paragraphs only, with no headings, bullet points, or formatting',
+        'Avoid overly verbose or redundant statements',
+        'Maintain a conversational and insightful tone suitable for a dating coach, but without fluff or generic advice',
+      ],
       responseFormat: {
         summary: 'Brief feedback summary',
         message: 'Your coaching feedback',
@@ -157,7 +164,10 @@ export function formatPrompt(
         .join('\n')}`
     : '';
 
-  const responseFormat = `\n\nRespond in this JSON format:
+  // For COACH mode, don't include JSON response format
+  const responseFormat = config.basePrompt.includes('dating coach')
+    ? ''
+    : `\n\nRespond in this JSON format:
 {
   "summary": "${config.responseFormat.summary}",
   "message": "${config.responseFormat.message}"

@@ -15,6 +15,7 @@ export const config = {
     sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
     maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '4096', 10),
     temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+    maxCoachMessages: parseInt(process.env.MAX_COACH_MESSAGES || '10', 10),
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
