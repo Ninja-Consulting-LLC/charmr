@@ -71,6 +71,16 @@ export const createOpenAIService = () => {
         },
       ];
 
+      logger.debug('System prompt generated', {
+        userId: request.userId,
+        mode: request.mode || MessageMode.GENERATE,
+        hasImages,
+        hasText,
+        regenerate: request.regenerate,
+        previousMessage: request.regenerate ? request.prompt : undefined,
+        systemPrompt: messages[0].content,
+      });
+
       if (hasText) {
         messages.push({role: 'user', content: request.prompt!});
       }
@@ -104,6 +114,20 @@ export const createOpenAIService = () => {
         hasText,
         previousMessage: request.regenerate ? request.prompt : undefined,
         systemPrompt: messages[0].content,
+      });
+
+      // Add detailed logging of full context
+      logger.debug('Full context being sent to OpenAI', {
+        userId: request.userId,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content:
+            typeof msg.content === 'string' ? msg.content : 'Image content',
+        })),
+        conversationHistory: conversationHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
       });
 
       const response = await openai.chat.completions.create({
@@ -174,15 +198,6 @@ function getSystemPrompt(
   regenerate?: boolean,
   previousMessage?: string,
 ): string {
-  logger.debug('getSystemPrompt called with', {
-    mode,
-    hasImages,
-    hasText,
-    regenerate,
-    previousMessage,
-    useImagePrompt: hasImages && (regenerate || !hasText),
-  });
-
   const imageOnlyPrompt = `This is a dating app screenshot. The user is replying to the match. If this is the first message, craft a great opener. Otherwise, keep the thread going naturally.${
     regenerate && previousMessage
       ? `\n\nGenerate a new message that is different from this previous message:\n${previousMessage}`
@@ -212,7 +227,12 @@ Guidelines:
 1. Match the user's desired tone (flirty, sincere, etc.)
 2. Use prior context to maintain flow
 3. No em dashes (—), keep it short and clever
-4. Don't overanalyze — pick one or two hooks max
+4. Don't overanalyze — pick one or two hooks max${
+    regenerate && previousMessage
+      ? '\n5. Generate a new message that is different from this previous message:\n' +
+        previousMessage
+      : ''
+  }
 
 Respond in this JSON format:
 {
@@ -232,6 +252,27 @@ Respond in this JSON format:
   "summary": "Brief feedback summary",
   "message": "Your coaching feedback"
 }`;
+
+  logger.debug('getSystemPrompt called with', {
+    mode,
+    hasImages,
+    hasText,
+    regenerate,
+    previousMessage,
+    useImagePrompt: hasImages && (regenerate || !hasText),
+    selectedPrompt:
+      mode === MessageMode.COACH
+        ? 'coachPrompt'
+        : hasImages && (regenerate || !hasText)
+        ? 'imageOnlyPrompt'
+        : 'generatePrompt',
+    promptLength:
+      mode === MessageMode.COACH
+        ? coachPrompt.length
+        : hasImages && (regenerate || !hasText)
+        ? imageOnlyPrompt.length
+        : generatePrompt.length,
+  });
 
   if (mode === MessageMode.COACH) return coachPrompt;
   if (hasImages && (regenerate || !hasText)) return imageOnlyPrompt;
