@@ -87,7 +87,14 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
               />
             ))
           ) : (
-            <Text style={styles.emptyText}>No hidden matches</Text>
+            <View style={styles.emptyContainer}>
+              <IconButton
+                icon="archive-off"
+                size={48}
+                iconColor={theme.colors.disabled}
+              />
+              <Text style={styles.emptyText}>No hidden matches</Text>
+            </View>
           )}
         </ScrollView>
       </Modal>
@@ -135,6 +142,12 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: theme.colors.disabled,
+    marginTop: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 24,
   },
   itemActions: {
