@@ -16,18 +16,20 @@ export class FirestoreMessageRepository implements MessageRepository {
     this.db = firebaseAdmin.firestore();
   }
 
-  private getMessagesCollection(userId: string, matchId: string) {
+  private getMessagesCollection(userId: string, matchId: string | undefined) {
+    // Always use 'no_match' as the document ID when matchId is undefined
+    const effectiveMatchId = matchId || 'no_match';
     return this.db
       .collection('users')
       .doc(userId)
       .collection('matches')
-      .doc(matchId)
+      .doc(effectiveMatchId)
       .collection('messages');
   }
 
   async createMessage(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     message: {
       role: MessageRole;
       type?: MessageType;
@@ -46,15 +48,30 @@ export class FirestoreMessageRepository implements MessageRepository {
         throw new Error(`User ${userId} does not exist`);
       }
 
-      // Then check if match exists
+      // For no_match, ensure the document exists
+      const effectiveMatchId = matchId || 'no_match';
       const matchDoc = await this.db
         .collection('users')
         .doc(userId)
         .collection('matches')
-        .doc(matchId)
+        .doc(effectiveMatchId)
         .get();
+
       if (!matchDoc.exists) {
-        throw new Error(`Match ${matchId} does not exist for user ${userId}`);
+        await this.db
+          .collection('users')
+          .doc(userId)
+          .collection('matches')
+          .doc(effectiveMatchId)
+          .set({
+            name: 'No Match',
+            platform: 'direct',
+            lastUsed: new Date().toISOString(),
+            hidden: false,
+            deleted: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
       }
 
       const messageData = {
@@ -87,7 +104,7 @@ export class FirestoreMessageRepository implements MessageRepository {
 
   async getMessagesByMatch(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     filter?: MessageFilter,
     pagination?: {
       limit: number;
@@ -167,7 +184,7 @@ export class FirestoreMessageRepository implements MessageRepository {
 
   async getConversationTimeline(
     userId: string,
-    matchId: string,
+    matchId: string | undefined,
     pagination?: {
       limit: number;
       offset: number;
@@ -177,12 +194,8 @@ export class FirestoreMessageRepository implements MessageRepository {
     total: number;
   }> {
     try {
-      const {messages, total} = await this.getMessagesByMatch(
-        userId,
-        matchId,
-        undefined,
-        pagination,
-      );
+      // Get all messages
+      const {messages} = await this.getMessagesByMatch(userId, matchId);
 
       // Sort by timestamp
       const sortedMessages = messages.sort(
@@ -190,12 +203,17 @@ export class FirestoreMessageRepository implements MessageRepository {
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
 
+      // Apply pagination
+      const start = pagination?.offset || 0;
+      const end = pagination?.limit ? start + pagination.limit : undefined;
+      const paginatedMessages = sortedMessages.slice(start, end);
+
       return {
-        items: sortedMessages,
-        total,
+        items: paginatedMessages,
+        total: sortedMessages.length,
       };
     } catch (error) {
-      logger.error('Failed to get conversation timeline from Firestore', {
+      logger.error('Failed to get conversation timeline', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });

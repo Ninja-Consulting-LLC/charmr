@@ -197,8 +197,65 @@ export class FirestoreMatchRepository {
       logger.error('Failed to restore match in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  async updateMatch(
+    userId: string,
+    matchId: ID,
+    updates: Partial<Match>,
+  ): Promise<void> {
+    try {
+      logger.info('Attempting to update match in Firestore', {
         userId,
         matchId,
+        updates,
+      });
+      const docRef = this.getMatchesCollection(userId).doc(matchId.toString());
+
+      // Check if document exists before updating
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        logger.error('Match not found in Firestore', {userId, matchId});
+        throw new Error('Match not found');
+      }
+
+      // Only allow updating name and platform
+      const allowedFields = ['name', 'platform'];
+      const filteredUpdates = Object.entries(updates)
+        .filter(([key]) => allowedFields.includes(key))
+        .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});
+
+      if (Object.keys(filteredUpdates).length === 0) {
+        return;
+      }
+
+      logger.info('Found match in Firestore, updating fields', {
+        userId,
+        matchId,
+        currentData: doc.data(),
+        updates: filteredUpdates,
+      });
+
+      await docRef.update({
+        ...filteredUpdates,
+        updatedAt: new Date().toISOString(),
+      });
+
+      logger.info('Successfully updated match in Firestore', {
+        userId,
+        matchId,
+        updates: filteredUpdates,
+      });
+    } catch (error) {
+      logger.error('Failed to update match in Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        matchId,
+        updates,
       });
       throw error;
     }

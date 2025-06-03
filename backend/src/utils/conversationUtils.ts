@@ -13,7 +13,7 @@ export type {Message} from '../db/types';
 
 export const loadConversation = async (
   userId: string,
-  matchId: string,
+  matchId: string | undefined,
   userPlan: SubscriptionTier,
 ): Promise<Message[]> => {
   try {
@@ -43,7 +43,7 @@ export const loadConversation = async (
 
 export const appendConversation = async (
   userId: string,
-  matchId: string,
+  matchId: string | undefined,
   summary: string,
   reply: string,
   images?: string[],

@@ -19,7 +19,6 @@ export const generateReply = async (
       images: [],
       userId: 'system',
       matchId: 'direct',
-      deleteAfterResponse: false,
       skipRateLimiting: true,
     };
 
