@@ -20,6 +20,7 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';
 import {StatusBar} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
+import {SplashScreen} from './src/components/SplashScreen';
 import {config} from './src/config/config';
 import AppNavigator from './src/navigation/AppNavigator';
 import {initializeRevenueCat} from './src/services/revenueCatService';
@@ -109,7 +110,7 @@ const App = () => {
   }, []); // Empty dependency array ensures this runs only once
 
   if (!isReady) {
-    return null; // Or a loading screen
+    return <SplashScreen />;
   }
 
   return (
