@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Modal, Portal, Text} from 'react-native-paper';
-import {signInWithApple, signInWithGoogle} from '../config/firebase';
+import {signInWithGoogle} from '../config/firebase';
 import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
 
@@ -32,27 +32,21 @@ const AccountLinkingModal: React.FC<AccountLinkingModalProps> = ({
     }
   };
 
-  const handleAppleLogin = async () => {
-    try {
-      await signInWithApple();
-      onLinkSuccess?.();
-    } catch (error) {
-      console.error('Apple login error:', error);
-    }
-  };
-
   const getProviderName = (method: string) => {
     switch (method) {
       case 'google.com':
         return 'Google';
-      case 'apple.com':
-        return 'Apple';
-      case 'password':
-        return 'Email/Password';
+      case 'facebook.com':
+        return 'Facebook';
       default:
         return method;
     }
   };
+
+  // Filter out methods that aren't Google or Facebook
+  const filteredMethods = availableMethods.filter(
+    method => method === 'google.com' || method === 'facebook.com',
+  );
 
   return (
     <Portal>
@@ -70,11 +64,11 @@ const AccountLinkingModal: React.FC<AccountLinkingModalProps> = ({
 
           <Text variant="bodyLarge" style={styles.message}>
             An account already exists with the email {email}. Please sign in
-            with one of the following methods to link your Facebook account:
+            with one of the following methods to link your account:
           </Text>
 
           <View style={styles.buttonContainer}>
-            {availableMethods.includes('google.com') && (
+            {filteredMethods.includes('google.com') && (
               <Button
                 mode="contained"
                 onPress={handleGoogleSignIn}
@@ -84,26 +78,16 @@ const AccountLinkingModal: React.FC<AccountLinkingModalProps> = ({
               </Button>
             )}
 
-            {availableMethods.includes('apple.com') && (
-              <Button
-                mode="contained"
-                onPress={handleAppleLogin}
-                style={styles.button}
-                icon="apple">
-                Continue with Apple
-              </Button>
-            )}
-
-            {availableMethods.includes('password') && (
+            {filteredMethods.includes('facebook.com') && (
               <Button
                 mode="contained"
                 onPress={() => {
-                  // TODO: Implement email/password sign in
-                  console.log('Email/password sign in not implemented yet');
+                  // Facebook linking is handled in the parent component
+                  onLinkSuccess?.();
                 }}
-                style={styles.button}
-                icon="email">
-                Sign in with Email
+                style={[styles.button, styles.facebookButton]}
+                icon="facebook">
+                Continue with Facebook
               </Button>
             )}
           </View>
@@ -140,6 +124,9 @@ const styles = StyleSheet.create({
   },
   button: {
     marginVertical: 4,
+  },
+  facebookButton: {
+    backgroundColor: '#1877F2',
   },
   cancelButton: {
     marginTop: 8,

@@ -1,11 +1,8 @@
-import {appleAuth} from '@invertase/react-native-apple-authentication';
 import {
-  AppleAuthProvider,
   FacebookAuthProvider,
   getAuth,
   GoogleAuthProvider,
   signInWithCredential,
-  updateProfile,
 } from '@react-native-firebase/auth';
 import {
   GoogleSignin,
@@ -48,65 +45,11 @@ export const signInWithGoogle = async () => {
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
       console.log('User cancelled the sign in flow');
     } else if (error.code === statusCodes.IN_PROGRESS) {
-      console.log('Sign in already in progress');
+      console.log('Sign in is already in progress');
     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
       console.log('Play services not available');
     }
     console.error('Error in Google sign in:', error);
-    throw error;
-  }
-};
-
-export const signInWithApple = async () => {
-  try {
-    // Check if Apple Sign In is available on the device
-    const isAvailable = await appleAuth.isSupported;
-    if (!isAvailable) {
-      throw new Error('Apple Sign In is not available on this device');
-    }
-
-    // Start the Apple sign-in flow
-    const appleAuthResponse = await appleAuth.performRequest({
-      requestedOperation: appleAuth.Operation.LOGIN,
-      // Note: According to the FAQ, FULL_NAME should come first in the array
-      requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
-    });
-
-    // Ensure Apple returned a user identityToken
-    if (!appleAuthResponse.identityToken) {
-      throw new Error('Apple Sign-In failed - no identify token returned');
-    }
-
-    // Create a Firebase credential from the response
-    const {identityToken, nonce} = appleAuthResponse;
-    const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
-
-    // Sign in with the credential
-    const auth = getAuth();
-    const userCredential = await signInWithCredential(auth, appleCredential);
-
-    // If this is a new user, we might want to update their display name
-    if (
-      userCredential.additionalUserInfo?.isNewUser &&
-      appleAuthResponse.fullName
-    ) {
-      const {givenName, familyName} = appleAuthResponse.fullName;
-      const displayName = `${givenName || ''} ${familyName || ''}`.trim();
-      if (displayName) {
-        await updateProfile(userCredential.user, {displayName});
-      }
-    }
-
-    return userCredential;
-  } catch (error: any) {
-    // Handle specific error cases
-    if (
-      error.code === 'auth/cancelled-popup-request' ||
-      error.code === 'auth/popup-closed-by-user'
-    ) {
-      throw new Error('Sign in was cancelled');
-    }
-    console.error('Apple Sign-In Error:', error);
     throw error;
   }
 };
@@ -126,45 +69,30 @@ export const signInWithFacebook = async () => {
       'public_profile',
       'email',
     ]);
-    console.log('Facebook login result:', result);
-    logger.app.info('Facebook login result', {result});
 
     if (result.isCancelled) {
       console.log('User cancelled the login process');
-      logger.app.info('User cancelled the login process');
       throw new Error('User cancelled the login process');
     }
 
-    // Once signed in, get the users AccessToken
+    // Get access token
     const data = await AccessToken.getCurrentAccessToken();
-    console.log('Facebook access token data:', data);
-    logger.app.info('Facebook access token data', {data});
-
     if (!data) {
-      console.log('Something went wrong obtaining access token');
-      logger.app.error('Something went wrong obtaining access token');
-      throw new Error('Something went wrong obtaining access token');
+      throw new Error('No Facebook access token available');
     }
 
-    // Create a Firebase credential with the AccessToken
+    // Create a Firebase credential with the access token
     const facebookCredential = FacebookAuthProvider.credential(
       data.accessToken,
     );
-    console.log('Created Facebook credential');
-    logger.app.info('Created Facebook credential');
 
-    // Sign-in the user with the credential
+    // Sign in with the credential
     const auth = getAuth();
     const userCredential = await signInWithCredential(auth, facebookCredential);
-    console.log('Successfully signed in with Facebook');
-    logger.app.info('Successfully signed in with Facebook', {
-      user: userCredential.user,
-    });
 
     return userCredential;
   } catch (error) {
-    console.error('Facebook sign in error:', error);
-    logger.app.error('Facebook sign in error', {error});
+    console.error('Facebook login error:', error);
     throw error;
   }
 };

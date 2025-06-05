@@ -14,11 +14,7 @@ import {
 import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {
-  signInWithApple,
-  signInWithFacebookLimited,
-  signInWithGoogle,
-} from '../config/firebase';
+import {signInWithFacebookLimited, signInWithGoogle} from '../config/firebase';
 import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
 import AccountLinkingModal from './AccountLinkingModal';
@@ -107,15 +103,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (error) {
       console.error('Google login error:', error);
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    try {
-      await signInWithApple();
-      onLoginSuccess?.();
-    } catch (error) {
-      console.error('Apple login error:', error);
     }
   };
 
@@ -228,17 +215,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.button, styles.appleButton]}
-                  onPress={handleAppleLogin}>
-                  <View style={styles.buttonContent}>
-                    <Icon name="apple" size={20} color={theme.colors.surface} />
-                    <Text style={styles.appleButtonText}>
-                      Continue with Apple
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={[styles.button, styles.facebookButton]}
                   onPress={handleFacebookLogin}
                   testID="facebook-login-button">
@@ -293,14 +269,15 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    minHeight: 280,
+    minHeight: 240,
     paddingTop: 24,
+    paddingBottom: 24,
     borderRadius: 16,
   },
   buttonContainer: {
     paddingHorizontal: 16,
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   button: {
     height: 44,
@@ -346,7 +323,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: '100%',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
