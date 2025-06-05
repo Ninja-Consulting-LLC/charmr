@@ -21,6 +21,10 @@ target 'Charmr' do
   pod 'Firebase/Auth'
   pod 'GoogleSignIn'
 
+  # Facebook SDK
+  pod 'FBSDKCoreKit'
+  pod 'FBSDKLoginKit'
+
   # Environment variables
   pod 'react-native-config', :path => '../node_modules/react-native-config'
 

@@ -3,7 +3,8 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import FirebaseCore
-import GoogleSignIn // ✅ required for proper redirect handling
+import GoogleSignIn
+import FBSDKCoreKit
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -18,6 +19,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     // ✅ Initialize Firebase
     FirebaseApp.configure()
+
+    // Initialize Facebook SDK
+    FBSDKCoreKit.ApplicationDelegate.shared.application(
+      application,
+      didFinishLaunchingWithOptions: launchOptions
+    )
 
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
@@ -40,8 +47,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   // ✅ Handles OAuth redirect from Safari/Chrome to your app
   @available(iOS 9.0, *)
   func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    print("Handling URL: \(url)")
+
     // 🔥 Handle Google Sign-In redirect
     if GIDSignIn.sharedInstance.handle(url) {
+      print("Handled by Google Sign-In")
+      return true
+    }
+
+    // Handle Facebook URL scheme
+    if FBSDKCoreKit.ApplicationDelegate.shared.application(
+      app,
+      open: url,
+      sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String,
+      annotation: options[UIApplication.OpenURLOptionsKey.annotation]
+    ) {
+      print("Handled by Facebook SDK")
       return true
     }
 

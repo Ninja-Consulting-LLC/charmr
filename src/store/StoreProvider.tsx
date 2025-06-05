@@ -251,17 +251,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   const loadMatches = async () => {
     try {
       if (!userId) {
-        logger.match.debug('No user ID available, skipping match load');
         return;
       }
 
       const loadedMatches = await matchService.loadMatches(true);
       setMatches(loadedMatches);
-      logger.app.info('Matches Loaded', {
-        event: 'load_matches',
-        userId,
-        matchCount: loadedMatches.length,
-      });
     } catch (error) {
       logger.app.error('Load Matches Error', {
         event: 'load_matches_error',

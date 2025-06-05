@@ -117,38 +117,24 @@ const getAuthHeaders = async () => {
 axiosInstance.interceptors.request.use(
   async config => {
     try {
-      const headers = await getAuthHeaders();
-      console.log('[AUTH] Got auth headers:', headers);
-
-      // Set headers directly on config
-      if (config.headers) {
-        Object.entries(headers).forEach(([key, value]) => {
-          if (typeof key === 'string' && typeof value === 'string') {
-            config.headers[key] = value;
-          }
-        });
+      // Try to get Firebase token first
+      const token = await getAuthToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        return config;
       }
 
-      console.log('[AUTH] Final request config:', {
-        url: config.url,
-        method: config.method,
-        headers: config.headers,
-      });
-
+      // Fall back to user ID if no token
+      const userId = await AsyncStorage.getItem('@charmr/userId');
+      if (userId) {
+        config.headers['X-Anonymous-User'] = userId;
+      }
       return config;
     } catch (error) {
-      console.log(
-        '[AUTH] Error in request interceptor:',
-        error instanceof Error ? error.message : 'Unknown error',
-      );
       return config;
     }
   },
   error => {
-    console.log(
-      '[AUTH] Request interceptor error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
     return Promise.reject(error);
   },
 );
@@ -156,13 +142,6 @@ axiosInstance.interceptors.request.use(
 // Response interceptor with retry logic
 axiosInstance.interceptors.response.use(
   response => {
-    // Log response details
-    logger.app.debug('API Response', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      data: response.data,
-    });
     return response;
   },
   async error => {

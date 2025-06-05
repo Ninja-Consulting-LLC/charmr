@@ -34,7 +34,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
-  console.log('UserMenuSlideout user:', user); // DEBUG LOG
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
@@ -222,9 +221,10 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               description={
                 user.plan === SubscriptionTier.PRO
                   ? 'Unlimited'
-                  : `${
-                      user.dailyMessagesUsed
-                    }/${user.getDailyMessageLimit()} used`
+                  : `${user.dailyMessagesUsed}/${(
+                      user.getDailyMessageLimit ||
+                      (() => getPlanLimits(user.plan))
+                    )()} used`
               }
               left={props => (
                 <List.Icon

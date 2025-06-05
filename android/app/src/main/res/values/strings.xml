@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Charmr</string>
+    <string name="facebook_app_id">512728425163946</string>
+    <string name="facebook_client_token">c3cbdb800534d3b92eaba7f6d9c1e25a</string>
 </resources>

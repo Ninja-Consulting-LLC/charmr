@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:86028540367:android:c4f127d218f11e3007daba",
         "android_client_info": {
-          "package_name": "com.ninjadating.aidatingkeyboard"
+          "package_name": "com.ninjadating.charmr"
         }
       },
       "oauth_client": [
@@ -34,7 +34,7 @@
               "client_id": "86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.ninjadating.aidatingkeyboard"
+                "bundle_id": "com.ninjadating.charmr"
               }
             }
           ]
