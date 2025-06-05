@@ -64,23 +64,11 @@ export const loadMatches = async (includeHidden = true): Promise<Match[]> => {
   try {
     const userId = await AsyncStorage.getItem('@charmr/userId');
     if (!userId) {
-      logger.app.error('No user ID found when loading matches');
       return [];
     }
 
-    logger.app.info('Loading matches for user', {
-      userId,
-      includeHidden,
-      apiBaseUrl: axiosInstance.defaults.baseURL,
-    });
-
     const {data} = await axiosInstance.get(`/api/users/${userId}/matches`, {
       params: {includeHidden},
-    });
-
-    logger.app.info('Successfully loaded matches', {
-      userId,
-      matchCount: data?.length || 0,
     });
 
     return data;

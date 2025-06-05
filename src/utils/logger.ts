@@ -65,12 +65,56 @@ type LoggerType = {
   error: (message: string, data?: any) => void;
 };
 
-// Create category-specific loggers
+// Helper function to create a logger with specific settings
+const createLogger = (
+  category: string,
+  settings: {debug: boolean; info: boolean; warn: boolean; error: boolean},
+) => {
+  const logger = log.extend(category) as LoggerType;
+  return {
+    debug: settings.debug ? logger.debug : () => {},
+    info: settings.info ? logger.info : () => {},
+    warn: settings.warn ? logger.warn : () => {},
+    error: settings.error ? logger.error : () => {},
+  };
+};
+
+// Create loggers for different parts of the app
 export const logger = {
-  match: log.extend('match') as LoggerType,
-  auth: log.extend('auth') as LoggerType,
-  deepLink: log.extend('deepLink') as LoggerType,
-  app: log.extend('app') as LoggerType,
-  revenueCat: log.extend('revenueCat') as LoggerType,
-  config: log.extend('config') as LoggerType,
-} as const;
+  app: createLogger('app', {
+    debug: process.env.NODE_ENV === 'development',
+    info: true,
+    warn: true,
+    error: true,
+  }),
+  auth: createLogger('auth', {
+    debug: false,
+    info: true,
+    warn: true,
+    error: true,
+  }),
+  match: createLogger('match', {
+    debug: false,
+    info: true,
+    warn: true,
+    error: true,
+  }),
+  deepLink: createLogger('deepLink', {
+    debug: false,
+    info: false,
+    warn: true,
+    error: true,
+  }),
+  config: createLogger('config', {
+    debug: false,
+    info: true,
+    warn: true,
+    error: true,
+  }),
+  revenueCat: createLogger('revenueCat', {
+    debug: false,
+    info: true,
+    warn: true,
+    error: true,
+  }),
+};

@@ -47,6 +47,7 @@
     "react": "19.0.0",
     "react-native": "^0.79.1",
     "react-native-config": "^1.5.5",
+    "react-native-fbsdk-next": "^12.1.0",
     "react-native-gifted-chat": "^2.8.1",
     "react-native-image-crop-picker": "^0.42.0",
     "react-native-keyboard-controller": "^1.17.1",
@@ -58,6 +59,7 @@
     "react-native-reanimated": "^3.17.4",
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "^4.10.0",
+    "react-native-sha256": "^1.4.10",
     "react-native-vector-icons": "^10.2.0",
     "regenerator-runtime": "^0.14.1"
   },

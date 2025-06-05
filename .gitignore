@@ -93,7 +93,4 @@ assets/pro_paywall.png
 
 # Firebase
 service-account.json
-assets/screenshots/charmr_keyboard.PNG
-assets/screenshots/chat_screen.PNG
-assets/screenshots/home_screen.PNG
-assets/screenshots/login_screen.PNG
+assets/screenshots/*

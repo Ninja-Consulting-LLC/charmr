@@ -1,4 +1,8 @@
-import React from 'react';
+import auth, {
+  FacebookAuthProvider,
+  GoogleAuthProvider,
+} from '@react-native-firebase/auth';
+import React, {useState} from 'react';
 import {
   Dimensions,
   Modal,
@@ -7,11 +11,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {signInWithApple, signInWithGoogle} from '../config/firebase';
+import {
+  signInWithApple,
+  signInWithFacebookLimited,
+  signInWithGoogle,
+} from '../config/firebase';
 import {useStore} from '../store/StoreProvider';
 import {theme} from '../theme/theme';
+import AccountLinkingModal from './AccountLinkingModal';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const MODAL_WIDTH = Math.min(SCREEN_WIDTH - 48, 280);
@@ -28,12 +38,73 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onLoginSuccess,
 }) => {
   const {handleGoogleLogin} = useStore();
+  const [showAccountLinking, setShowAccountLinking] = useState(false);
+  const [linkingData, setLinkingData] = useState<{
+    email: string;
+    methods: string[];
+  } | null>(null);
 
   const handleGoogleSignIn = async () => {
     try {
+      console.log('Starting Google sign in process...');
       const userCredential = await signInWithGoogle();
-      await handleGoogleLogin(userCredential.user);
-      onLoginSuccess?.();
+      console.log('Got Google user credential:', userCredential.user.uid);
+
+      // If we're in account linking mode, link the accounts
+      if (showAccountLinking) {
+        console.log('In account linking mode, starting linking process...');
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+          console.error('No current user found for linking');
+          throw new Error('No current user found for linking');
+        }
+
+        // Create a new Google credential
+        const googleCredential = GoogleAuthProvider.credential(
+          userCredential.user.getIdToken(),
+        );
+        console.log('Created Google credential for linking');
+
+        // Link the Google credential to the current user
+        await currentUser.linkWithCredential(googleCredential);
+        console.log('Successfully linked Google credential');
+
+        // Now try to link Facebook credentials
+        try {
+          console.log('Starting Facebook credential linking...');
+          const facebookResult = await LoginManager.logInWithPermissions([
+            'public_profile',
+            'email',
+          ]);
+
+          if (facebookResult.isCancelled) {
+            console.log('User cancelled Facebook login during linking');
+            return;
+          }
+
+          const data = await AccessToken.getCurrentAccessToken();
+          if (!data) {
+            throw new Error('No Facebook access token available');
+          }
+
+          console.log('Got Facebook access token, creating credential...');
+          const facebookCredential = FacebookAuthProvider.credential(
+            data.accessToken,
+          );
+
+          await currentUser.linkWithCredential(facebookCredential);
+          console.log('Successfully linked Facebook credential');
+        } catch (error) {
+          console.error('Error linking Facebook credentials:', error);
+        }
+
+        await handleGoogleLogin(userCredential.user);
+        handleLinkSuccess();
+      } else {
+        // Normal sign in flow
+        await handleGoogleLogin(userCredential.user);
+        onLoginSuccess?.();
+      }
     } catch (error) {
       console.error('Google login error:', error);
     }
@@ -48,75 +119,163 @@ const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  const handleFacebookLogin = () => {
-    // Placeholder for Facebook login
-    console.log('Facebook login clicked');
+  const handleFacebookLogin = async () => {
+    try {
+      const userCredential = await signInWithFacebookLimited();
+      await handleGoogleLogin(userCredential.user);
+      onLoginSuccess?.();
+    } catch (error: any) {
+      console.log('Facebook login error details:', {
+        code: error.code,
+        message: error.message,
+        email: error.email,
+        signInMethods: error.signInMethods,
+      });
+
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // Extract email and sign-in methods from the error
+        const email = error.email || 'your email';
+        const methods = error.signInMethods || [
+          'google.com',
+          'apple.com',
+          'password',
+        ];
+
+        console.log('Setting linking data:', {email, methods});
+        setLinkingData({email, methods});
+        setShowAccountLinking(true);
+        return;
+      }
+      console.error('Facebook login error:', error);
+    }
+  };
+
+  const handleLinkSuccess = async () => {
+    try {
+      console.log('Starting account linking process...');
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        console.error('No current user found for linking');
+        return;
+      }
+
+      // Try to link Facebook credentials
+      try {
+        console.log('Starting Facebook credential linking...');
+        const facebookResult = await LoginManager.logInWithPermissions([
+          'public_profile',
+          'email',
+        ]);
+
+        if (facebookResult.isCancelled) {
+          console.log('User cancelled Facebook login during linking');
+          return;
+        }
+
+        const data = await AccessToken.getCurrentAccessToken();
+        if (!data) {
+          throw new Error('No Facebook access token available');
+        }
+
+        console.log('Got Facebook access token, creating credential...');
+        const facebookCredential = FacebookAuthProvider.credential(
+          data.accessToken,
+        );
+
+        await currentUser.linkWithCredential(facebookCredential);
+        console.log('Successfully linked Facebook credential');
+      } catch (error) {
+        console.error('Error linking Facebook credentials:', error);
+      }
+
+      setShowAccountLinking(false);
+      setLinkingData(null);
+      onLoginSuccess?.();
+    } catch (error) {
+      console.error('Error in handleLinkSuccess:', error);
+    }
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalWrapper}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primaryContainer]}
-            style={styles.modalContent}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.googleButton]}
-                onPress={handleGoogleSignIn}
-                testID="google-login-button">
-                <View style={styles.buttonContent}>
-                  <Icon
-                    name="google"
-                    size={20}
-                    color={theme.colors.onSurface}
-                  />
-                  <Text style={styles.googleButtonText}>
-                    Continue with Google
-                  </Text>
-                </View>
-              </TouchableOpacity>
+    <>
+      <Modal
+        visible={visible && !showAccountLinking}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalWrapper}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.primaryContainer]}
+              style={styles.modalContent}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.button, styles.googleButton]}
+                  onPress={handleGoogleSignIn}
+                  testID="google-login-button">
+                  <View style={styles.buttonContent}>
+                    <Icon
+                      name="google"
+                      size={20}
+                      color={theme.colors.onSurface}
+                    />
+                    <Text style={styles.googleButtonText}>
+                      Continue with Google
+                    </Text>
+                  </View>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.button, styles.appleButton]}
-                onPress={handleAppleLogin}>
-                <View style={styles.buttonContent}>
-                  <Icon name="apple" size={20} color={theme.colors.surface} />
-                  <Text style={styles.appleButtonText}>
-                    Continue with Apple
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.appleButton]}
+                  onPress={handleAppleLogin}>
+                  <View style={styles.buttonContent}>
+                    <Icon name="apple" size={20} color={theme.colors.surface} />
+                    <Text style={styles.appleButtonText}>
+                      Continue with Apple
+                    </Text>
+                  </View>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.button, styles.facebookButton]}
-                onPress={() => {}}>
-                <View style={styles.buttonContent}>
-                  <Icon
-                    name="facebook"
-                    size={20}
-                    color={theme.colors.surface}
-                  />
-                  <Text style={styles.facebookButtonText}>
-                    Continue with Facebook
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={[styles.button, styles.facebookButton]}
+                  onPress={handleFacebookLogin}
+                  testID="facebook-login-button">
+                  <View style={styles.buttonContent}>
+                    <Icon
+                      name="facebook"
+                      size={20}
+                      color={theme.colors.surface}
+                    />
+                    <Text style={styles.facebookButtonText}>
+                      Continue with Facebook
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
 
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      {linkingData && (
+        <AccountLinkingModal
+          visible={showAccountLinking}
+          onDismiss={() => {
+            setShowAccountLinking(false);
+            setLinkingData(null);
+          }}
+          onLinkSuccess={handleLinkSuccess}
+          availableMethods={linkingData.methods}
+          email={linkingData.email}
+        />
+      )}
+    </>
   );
 };
 
@@ -192,7 +351,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   closeButtonText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.colors.surface,
     fontSize: 15,
     fontWeight: '500',
   },

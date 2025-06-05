@@ -268,6 +268,7 @@ const ResponseGenerator = forwardRef<
     }
 
     try {
+      setShowReplyModal(true);
       await generateResponse(prompt);
     } catch (error) {
       console.error('Error generating response:', error);
@@ -295,7 +296,6 @@ const ResponseGenerator = forwardRef<
   };
 
   const handleGenerateNew = () => {
-    setShowReplyModal(false);
     generateResponse(response || '', true);
   };
 
@@ -394,14 +394,9 @@ const ResponseGenerator = forwardRef<
         {images.length > 0 && (
           <View style={styles.buttonContainer}>
             <Button
-              mode={loading ? 'outlined' : 'contained'}
+              mode="contained"
               onPress={handleSubmit}
-              loading={loading}
-              disabled={loading}
-              style={[
-                styles.generateButton,
-                loading && styles.generateButtonDisabled,
-              ]}
+              style={styles.generateButton}
               testID="submit-button">
               Generate Response
             </Button>
@@ -433,6 +428,7 @@ const ResponseGenerator = forwardRef<
         deleteScreenshots={deleteScreenshots}
         hasScreenshots={images.length > 0}
         onRegenerate={handleGenerateNew}
+        isLoading={loading}
       />
 
       <MessagePackModal
@@ -578,6 +574,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 24,
+  },
+  typingContainer: {
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

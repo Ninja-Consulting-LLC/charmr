@@ -29,11 +29,18 @@
 			<array>
 				<string>com.googleusercontent.apps.86028540367-p6l58a0nt6rjp0uk90umjmpdfmh92d3n</string>
 				<string>charmr</string>
+				<string>fb512728425163946</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>FacebookAppID</key>
+	<string>512728425163946</string>
+	<key>FacebookClientToken</key>
+	<string>c3cbdb800534d3b92eaba7f6d9c1e25a</string>
+	<key>FacebookDisplayName</key>
+	<string>Charmr</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>googlechromes</string>
@@ -43,6 +50,10 @@
 		<string>google</string>
 		<string>googleauth</string>
 		<string>googlesignin</string>
+		<string>fbapi</string>
+		<string>fb-messenger-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
@@ -101,5 +112,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>FacebookAutoInitEnabled</key>
+	<true/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized ads to you.</string>
 </dict>
 </plist>

@@ -3,6 +3,7 @@ import {Pressable, StyleSheet, View} from 'react-native';
 import {IconButton, Modal, Portal, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
+import TypingIndicator from './TypingIndicator';
 
 interface ReplyModalProps {
   visible: boolean;
@@ -14,6 +15,7 @@ interface ReplyModalProps {
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
   onRegenerate: () => void;
+  isLoading?: boolean;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
@@ -26,6 +28,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   deleteScreenshots,
   hasScreenshots,
   onRegenerate,
+  isLoading = false,
 }) => {
   return (
     <Portal>
@@ -35,28 +38,29 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         contentContainerStyle={styles.modalContainer}>
         <View style={styles.overflowContainer}>
           <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.header}>
-              <Text variant="titleMedium" style={styles.title}>
-                {MESSAGES.REPLY_MODAL_TITLE}
-              </Text>
+            {/* Reply Text or Typing Indicator */}
+            <View style={styles.replyContainer}>
+              {isLoading ? (
+                <View style={styles.typingContainer}>
+                  <TypingIndicator />
+                </View>
+              ) : (
+                <>
+                  <Text variant="bodyLarge" style={styles.replyText}>
+                    {reply}
+                  </Text>
+                  <IconButton
+                    icon="content-copy"
+                    size={20}
+                    style={styles.copyIcon}
+                    onPress={onCopy}
+                  />
+                </>
+              )}
             </View>
 
-            {/* Reply Text */}
-            <Pressable onPress={onCopy} style={styles.replyContainer}>
-              <Text variant="bodyLarge" style={styles.replyText}>
-                {reply}
-              </Text>
-              <IconButton
-                icon="content-copy"
-                size={20}
-                style={styles.copyIcon}
-                onPress={onCopy}
-              />
-            </Pressable>
-
             {/* Delete Switch - Only show if screenshots were selected */}
-            {hasScreenshots && (
+            {hasScreenshots && !isLoading && (
               <View style={styles.deleteSection}>
                 <Text variant="bodyMedium">
                   {MESSAGES.REPLY_MODAL_DELETE_HINT}
@@ -69,18 +73,22 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
             )}
 
             {/* Action Buttons */}
-            <View style={styles.actionButtons}>
-              <Pressable onPress={onRegenerate} style={styles.regenerateButton}>
-                <Text variant="bodyMedium" style={styles.regenerateText}>
-                  Regenerate
-                </Text>
-              </Pressable>
-              <Pressable onPress={onDone} style={styles.doneButton}>
-                <Text variant="bodyMedium" style={styles.doneText}>
-                  {MESSAGES.REPLY_MODAL_DONE}
-                </Text>
-              </Pressable>
-            </View>
+            {!isLoading && (
+              <View style={styles.actionButtons}>
+                <Pressable
+                  onPress={onRegenerate}
+                  style={styles.regenerateButton}>
+                  <Text variant="bodyMedium" style={styles.regenerateText}>
+                    Regenerate
+                  </Text>
+                </Pressable>
+                <Pressable onPress={onDone} style={styles.doneButton}>
+                  <Text variant="bodyMedium" style={styles.doneText}>
+                    {MESSAGES.REPLY_MODAL_DONE}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -100,15 +108,6 @@ const styles = StyleSheet.create({
   modalContent: {
     padding: 20,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    color: theme.colors.onSurface,
-  },
   replyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -116,6 +115,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 24,
+    minHeight: 60,
+  },
+  typingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   replyText: {
     flex: 1,

@@ -10,7 +10,21 @@ PODS:
     - React-Core
   - DoubleConversion (1.1.6)
   - fast_float (6.1.4)
+  - FBAEMKit (16.3.1):
+    - FBSDKCoreKit_Basics (= 16.3.1)
   - FBLazyVector (0.79.2)
+  - FBSDKCoreKit (16.3.1):
+    - FBAEMKit (= 16.3.1)
+    - FBSDKCoreKit_Basics (= 16.3.1)
+  - FBSDKCoreKit_Basics (16.3.1)
+  - FBSDKGamingServicesKit (16.3.1):
+    - FBSDKCoreKit (= 16.3.1)
+    - FBSDKCoreKit_Basics (= 16.3.1)
+    - FBSDKShareKit (= 16.3.1)
+  - FBSDKLoginKit (16.3.1):
+    - FBSDKCoreKit (= 16.3.1)
+  - FBSDKShareKit (16.3.1):
+    - FBSDKCoreKit (= 16.3.1)
   - Firebase/Auth (11.11.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 11.11.0)
@@ -1436,6 +1450,21 @@ PODS:
     - react-native-config/App (= 1.5.5)
   - react-native-config/App (1.5.5):
     - React-Core
+  - react-native-fbsdk-next (12.2.0):
+    - React-Core
+    - react-native-fbsdk-next/Core (= 12.2.0)
+    - react-native-fbsdk-next/Login (= 12.2.0)
+    - react-native-fbsdk-next/Share (= 12.2.0)
+  - react-native-fbsdk-next/Core (12.2.0):
+    - FBSDKCoreKit (~> 16.3.1)
+    - React-Core
+  - react-native-fbsdk-next/Login (12.2.0):
+    - FBSDKLoginKit (~> 16.3.1)
+    - React-Core
+  - react-native-fbsdk-next/Share (12.2.0):
+    - FBSDKGamingServicesKit (~> 16.3.1)
+    - FBSDKShareKit (~> 16.3.1)
+    - React-Core
   - react-native-image-resizer (3.0.11):
     - DoubleConversion
     - glog
@@ -2184,6 +2213,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNSha256 (1.4.10):
+    - React-Core
   - RNVectorIcons (10.2.0):
     - DoubleConversion
     - glog
@@ -2218,6 +2249,8 @@ DEPENDENCIES:
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
+  - FBSDKCoreKit
+  - FBSDKLoginKit
   - Firebase/Auth
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
@@ -2259,6 +2292,7 @@ DEPENDENCIES:
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
   - react-native-config (from `../node_modules/react-native-config`)
+  - react-native-fbsdk-next (from `../node_modules/react-native-fbsdk-next`)
   - "react-native-image-resizer (from `../node_modules/@bam.tech/react-native-image-resizer`)"
   - react-native-keyboard-controller (from `../node_modules/react-native-keyboard-controller`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
@@ -2305,12 +2339,19 @@ DEPENDENCIES:
   - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - RNSha256 (from `../node_modules/react-native-sha256`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
   trunk:
     - AppAuth
+    - FBAEMKit
+    - FBSDKCoreKit
+    - FBSDKCoreKit_Basics
+    - FBSDKGamingServicesKit
+    - FBSDKLoginKit
+    - FBSDKShareKit
     - Firebase
     - FirebaseAppCheckInterop
     - FirebaseAuth
@@ -2415,6 +2456,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-camera-roll/camera-roll"
   react-native-config:
     :path: "../node_modules/react-native-config"
+  react-native-fbsdk-next:
+    :path: "../node_modules/react-native-fbsdk-next"
   react-native-image-resizer:
     :path: "../node_modules/@bam.tech/react-native-image-resizer"
   react-native-keyboard-controller:
@@ -2507,6 +2550,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  RNSha256:
+    :path: "../node_modules/react-native-sha256"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   Yoga:
@@ -2518,7 +2563,13 @@ SPEC CHECKSUMS:
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
+  FBAEMKit: 6c7b5eb77c96861bb59e040842c6e55bf39512ce
   FBLazyVector: 84b955f7b4da8b895faf5946f73748267347c975
+  FBSDKCoreKit: 5e4dd478947ab1bcc887e8cfadeae0727af1a942
+  FBSDKCoreKit_Basics: cd7b5f5d1e8868c26706917919d058999ca672c3
+  FBSDKGamingServicesKit: fb0dcf086e8ca51f5a0074908edb783dba286af0
+  FBSDKLoginKit: 572cca0bc6c90067ef197187697cb3b584310c52
+  FBSDKShareKit: d9269157b4e9620f0bc1a461c5ead35a65cede9a
   Firebase: 6a8f201c61eda24e98f1ce2b44b1b9c2caf525cc
   FirebaseAppCheckInterop: 73b173e5ec45192e2d522ad43f526a82ad10b852
   FirebaseAuth: 783fa4cc0420b0f6eed580721b12d4f0a5306746
@@ -2570,6 +2621,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: 444c5701aece79629bb73bd9e7ad8937ae65238c
   react-native-cameraroll: 23d28040c32ca8b20661e0c41b56ab041779244b
   react-native-config: 644074ab88db883fcfaa584f03520ec29589d7df
+  react-native-fbsdk-next: ddf303a27fa0a9598639a6f421036f6b9f0483c3
   react-native-image-resizer: 3c20ef5cc4428f95d5ffd6cdeaa6eb261821d636
   react-native-keyboard-controller: 9ec7ee23328c30251a399cffd8b54324a00343bf
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
@@ -2618,11 +2670,12 @@ SPEC CHECKSUMS:
   RNPurchases: 44561894fbf72dbf21c3c82533951bd075e8fa96
   RNReanimated: a3f55346df73f35c38bf0b446294d3d0b1ac8cf9
   RNScreens: a25b818417609cbd805474dffd2d28b229704cfc
+  RNSha256: 4d35f112e967f58273d625a19376f4eafc72bd5c
   RNVectorIcons: fe9afebb925c9ce70f441b611d679e402ecb3f6e
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   TOCropViewController: 80b8985ad794298fb69d3341de183f33d1853654
   Yoga: 50518ade05048235d91a78b803336dbb5b159d5d
 
-PODFILE CHECKSUM: d9d5e8200160986d9cab4928622aca7f16f87e63
+PODFILE CHECKSUM: fa2bd4b8377998aa1eebbd243f01b6659ef39cdb
 
 COCOAPODS: 1.16.2

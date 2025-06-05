@@ -18,7 +18,7 @@ globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';
-import {StatusBar} from 'react-native';
+import {Platform, StatusBar} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
 import {SplashScreen} from './src/components/SplashScreen';
 import {config} from './src/config/config';
@@ -46,6 +46,21 @@ const App = () => {
 
         // ===== Service Configuration =====
         logger.app.info('\n🔧 Service Configuration:');
+
+        // Facebook SDK
+        try {
+          // Initialize Facebook SDK
+          if (Platform.OS === 'ios') {
+            logger.app.info('  🔐 Configurirng Facebook SDK...');
+            // Settings.initializeSDK();
+            // Settings.setAppID('512728425163946');
+            // Settings.setClientToken('c3cbdb800534d3b92eaba7f6d9c1e25a');
+            logger.app.info('  Facebook SDK initialized successfully');
+          }
+        } catch (error) {
+          logger.app.error('  Failed to initialize Facebook SDK:', error);
+          throw error; // Re-throw to prevent app from continuing with uninitialized SDK
+        }
 
         // Google Sign-In
         logger.app.info('  🔐 Configuring Google Sign-In...');
