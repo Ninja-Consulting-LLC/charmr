@@ -391,20 +391,22 @@ const ResponseGenerator = forwardRef<
         </View>
 
         {/* Generate Button */}
-        <View style={styles.buttonContainer}>
-          <Button
-            mode={loading || images.length === 0 ? 'outlined' : 'contained'}
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading || images.length === 0}
-            style={[
-              styles.generateButton,
-              (loading || images.length === 0) && styles.generateButtonDisabled,
-            ]}
-            testID="submit-button">
-            Generate Response
-          </Button>
-        </View>
+        {images.length > 0 && (
+          <View style={styles.buttonContainer}>
+            <Button
+              mode={loading ? 'outlined' : 'contained'}
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={loading}
+              style={[
+                styles.generateButton,
+                loading && styles.generateButtonDisabled,
+              ]}
+              testID="submit-button">
+              Generate Response
+            </Button>
+          </View>
+        )}
       </View>
 
       {/* Modals */}

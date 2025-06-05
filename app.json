@@ -1,4 +1,23 @@
 {
   "name": "Charmr",
-  "displayName": "Charmr"
+  "displayName": "Charmr",
+  "splash": {
+    "image": "./assets/logo.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#7E22CE"
+  },
+  "android": {
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7E22CE"
+    }
+  },
+  "ios": {
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#7E22CE"
+    }
+  }
 }
