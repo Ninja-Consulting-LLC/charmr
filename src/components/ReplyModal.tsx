@@ -38,10 +38,10 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         contentContainerStyle={styles.modalContainer}>
         <View style={styles.overflowContainer}>
           <View style={styles.modalContent}>
-            {/* Reply Text or Typing Indicator */}
-            <View style={styles.replyContainer}>
+            {/* Reply Text */}
+            <Pressable onPress={onCopy} style={styles.replyContainer}>
               {loading ? (
-                <View style={styles.typingContainer}>
+                <View style={styles.loadingContainer}>
                   <TypingIndicator />
                 </View>
               ) : (
@@ -57,7 +57,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                   />
                 </>
               )}
-            </View>
+            </Pressable>
 
             {/* Delete Switch - Only show if screenshots were selected */}
             {hasScreenshots && !loading && (
@@ -117,11 +117,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     minHeight: 100,
   },
-  typingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   replyText: {
     flex: 1,
     marginRight: 8,
@@ -159,6 +154,11 @@ const styles = StyleSheet.create({
   },
   regenerateText: {
     color: theme.colors.onSurfaceVariant,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
