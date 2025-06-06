@@ -446,8 +446,7 @@ const ResponseGenerator = forwardRef<
             <Button
               mode="contained"
               onPress={handleSubmit}
-              style={styles.generateButton}
-              testID="submit-button">
+              style={styles.generateButton}>
               Generate Response
             </Button>
           )}
