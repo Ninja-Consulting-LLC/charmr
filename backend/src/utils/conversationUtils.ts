@@ -144,8 +144,8 @@ export const appendConversation = async (
       ? await summaryService.getMatchSummary(userId, matchId)
       : undefined;
 
-    // Save the summary if provided
-    if (summary) {
+    // Save the summary if provided and not in COACH mode
+    if (summary && mode !== MessageMode.COACH) {
       const summaryTimestamp = new Date(baseTimestamp).toISOString();
       const summaryMessage = await messageRepository.createMessage(
         userId,

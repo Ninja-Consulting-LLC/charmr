@@ -44,19 +44,37 @@ export const createOpenAIService = () => {
           )
         : [];
 
-      const previousAssistantMessages = conversationHistory
-        .filter((msg: Message) => msg.role === 'assistant')
-        .map((msg, i) => `Assistant ${i + 1}: ${msg.content}`)
-        .join('\n');
+      // For COACH mode, limit conversation history and only include user/assistant messages
+      let contextMessage = '';
+      if (request.mode === MessageMode.COACH) {
+        const recentMessages = conversationHistory
+          .filter(
+            (msg: Message) => msg.role === 'user' || msg.role === 'assistant',
+          )
+          .slice(-config.openai.maxCoachMessages);
 
-      const previousSummaries = conversationHistory
-        .filter((msg: Message) => msg.role === 'system')
-        .map((msg, i) => `Summary ${i + 1}: ${msg.content}`)
-        .join('\n');
+        contextMessage = recentMessages
+          .map(
+            (msg: Message) =>
+              `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`,
+          )
+          .join('\n\n');
+      } else {
+        // For other modes, keep existing behavior
+        const previousAssistantMessages = conversationHistory
+          .filter((msg: Message) => msg.role === 'assistant')
+          .map((msg, i) => `Assistant ${i + 1}: ${msg.content}`)
+          .join('\n');
 
-      const contextMessage = [previousSummaries, previousAssistantMessages]
-        .filter(Boolean)
-        .join('\n\n');
+        const previousSummaries = conversationHistory
+          .filter((msg: Message) => msg.role === 'system')
+          .map((msg, i) => `Summary ${i + 1}: ${msg.content}`)
+          .join('\n');
+
+        contextMessage = [previousSummaries, previousAssistantMessages]
+          .filter(Boolean)
+          .join('\n\n');
+      }
 
       const hasImages = request.images?.length > 0;
       const hasText = Boolean(request.prompt);
@@ -99,7 +117,7 @@ export const createOpenAIService = () => {
       if (contextMessage) {
         messages.push({
           role: 'system',
-          content: `Conversation history:\n${contextMessage}`,
+          content: `Here is the previous conversation for context:\n${contextMessage}`,
         });
       }
 
@@ -210,7 +228,10 @@ export const createOpenAIService = () => {
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
-        response_format: {type: 'json_object'},
+        response_format:
+          request.mode === MessageMode.COACH
+            ? undefined
+            : {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';
@@ -235,6 +256,25 @@ export const createOpenAIService = () => {
         promptVariant: variant,
       });
 
+      // For COACH mode, return the raw response without JSON parsing
+      if (request.mode === MessageMode.COACH) {
+        return {
+          reply: text,
+          summary: undefined,
+          usage: response.usage,
+          mode: MessageMode.COACH,
+          style: request.style,
+          cost: calculateCost(model, {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: request.images?.length || 0,
+          }),
+          promptVariant: variant,
+        };
+      }
+
+      // For other modes, parse the JSON response
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(text);
