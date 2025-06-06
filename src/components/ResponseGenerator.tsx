@@ -478,7 +478,7 @@ const ResponseGenerator = forwardRef<
         deleteScreenshots={deleteScreenshots}
         hasScreenshots={images.length > 0}
         onRegenerate={handleGenerateNew}
-        isLoading={loading}
+        loading={loading}
       />
 
       <MessagePackModal
