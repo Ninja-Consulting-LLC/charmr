@@ -211,11 +211,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         // Filter out system/summary messages and deduplicate by id
         const seenIds = new Set();
         const chatMessages: IMessageWithImages[] = messagesData
-          .filter(
-            (msg: Message) =>
-              msg.role !== MessageRole.SYSTEM &&
-              msg.type !== MessageType.SUMMARY,
-          )
+          .filter((msg: Message) => msg.role !== MessageRole.SYSTEM)
           .filter((msg: Message) => {
             if (seenIds.has(msg.id)) return false;
             seenIds.add(msg.id);
