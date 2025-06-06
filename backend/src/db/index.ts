@@ -89,6 +89,9 @@ export const getDatabase = async (): Promise<Database> => {
         ): Promise<void> => {
           return userRepository!.updateUserPlan(userId, plan);
         },
+        getUsersWithDeviceToken: async (): Promise<User[]> => {
+          return userRepository!.getUsersWithDeviceToken();
+        },
 
         // Message operations
         saveMessage: async (

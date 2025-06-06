@@ -19,10 +19,14 @@ import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import createAdminRouter from './routes/adminRoutes';
 import matchRoutes from './routes/matchRoutes';
-import pushNotificationRoutes from './routes/pushNotificationRoutes';
+import createPushNotificationRouter from './routes/pushNotificationRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
-import {startPushNotificationTasks} from './tasks/pushNotificationTasks';
+import {
+  createNotificationService,
+  NOTIFICATION_CONFIGS,
+  NotificationType,
+} from './services/notificationService';
 import logger, {stream} from './utils/logger';
 
 export const createApp = async () => {
@@ -117,6 +121,24 @@ export const createApp = async () => {
     config.supportEmail,
   );
 
+  // Initialize notification service
+  const notificationService = createNotificationService(db);
+
+  // Schedule notification checks for each type
+  Object.keys(NOTIFICATION_CONFIGS).forEach(notificationType => {
+    setInterval(() => {
+      notificationService
+        .checkAndSendNotifications(notificationType as NotificationType)
+        .catch(error => {
+          logger.error('Failed to run notification check', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            notificationType,
+          });
+        });
+    }, NOTIFICATION_CONFIGS[notificationType as NotificationType].checkInterval);
+  });
+
   // Initialize controllers
   const replyController = await createReplyController(db);
 
@@ -131,6 +153,37 @@ export const createApp = async () => {
   );
   app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
     updateUserPlan(req, res, db),
+  );
+  app.put(
+    '/api/users/:userId/device-token',
+    authenticateUser,
+    async (req, res) => {
+      try {
+        const {deviceToken} = req.body;
+        if (!deviceToken) {
+          return res.status(400).json({error: 'Device token is required'});
+        }
+
+        await db.updateUser(req.params.userId, {deviceToken});
+        logger.info('Updated device token for user', {
+          userId: req.params.userId,
+          deviceToken,
+          timestamp: new Date().toISOString(),
+        });
+
+        res.json({success: true});
+      } catch (error) {
+        logger.error('Failed to update device token', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId: req.params.userId,
+        });
+        res.status(500).json({
+          error: 'Failed to update device token',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    },
   );
   app.post('/api/users/link', authenticateUser, (req, res) =>
     linkAnonymousUser(req, res, db),
@@ -177,7 +230,7 @@ export const createApp = async () => {
   app.use('/api', matchRoutes(db));
 
   // Mount push notification routes
-  app.use('/api/push-notifications', pushNotificationRoutes);
+  app.use('/api/push-notifications', createPushNotificationRouter(db));
 
   // Create utility router for testing/development endpoints
   const utilityRouter = express.Router();
@@ -205,9 +258,6 @@ export const createApp = async () => {
     });
 
   logger.info('Available routes:', {routes});
-
-  // Start push notification tasks
-  startPushNotificationTasks();
 
   // Error handling middleware
   app.use(
