@@ -72,31 +72,19 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
 
   const handleAddMatch = async (name: string, platform: string) => {
     if (matchToEdit) {
+      console.log('[DEBUG] MatchSelectorModal onUpdateMatch', {
+        id: matchToEdit.id,
+        name,
+        platform,
+      });
       await onUpdateMatch(String(matchToEdit.id), name, platform);
       setMatchToEdit(null);
     } else {
+      console.log('[DEBUG] MatchSelectorModal onAddMatch', {name, platform});
       await onAddMatch(name, platform);
     }
     setShowAddMatchModal(false);
   };
-
-  // Sort matches by lastUsed date, most recent first
-  const sortedMatches = React.useMemo(() => {
-    return [...matches]
-      .filter(match => !match.hidden) // Filter out hidden matches
-      .sort((a, b) => {
-        // If one of them is the selected match, put it first
-        if (selectedMatch) {
-          if (a.id === selectedMatch.id) return -1;
-          if (b.id === selectedMatch.id) return 1;
-        }
-        // Then sort by lastUsed date
-        if (!a.lastUsed && !b.lastUsed) return 0;
-        if (!a.lastUsed) return 1;
-        if (!b.lastUsed) return -1;
-        return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
-      });
-  }, [matches, selectedMatch]);
 
   return (
     <Portal>
@@ -115,46 +103,48 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
             />
           </View>
           <ScrollView style={styles.scrollView}>
-            {sortedMatches.map(match => (
-              <List.Item
-                key={match.id}
-                title={match.name}
-                description={match.platform}
-                style={[
-                  styles.matchItem,
-                  selectedMatch?.id === match.id && styles.selectedMatch,
-                ]}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="account"
-                    color={theme.colors.primary}
-                  />
-                )}
-                right={props => (
-                  <View style={styles.itemActions}>
-                    <IconButton
-                      icon="pencil"
-                      size={20}
-                      onPress={() => handleEditPress(match)}
-                      style={styles.actionButton}
+            {matches
+              .filter(match => !match.hidden)
+              .map(match => (
+                <List.Item
+                  key={match.id}
+                  title={match.name}
+                  description={match.platform}
+                  style={[
+                    styles.matchItem,
+                    selectedMatch?.id === match.id && styles.selectedMatch,
+                  ]}
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="account"
+                      color={theme.colors.primary}
                     />
-                    <IconButton
-                      icon="archive"
-                      size={20}
-                      onPress={() => handleArchivePress(match)}
-                      style={styles.actionButton}
-                    />
-                    <Button
-                      mode="text"
-                      onPress={() => onSelectMatch(match)}
-                      style={styles.selectButton}>
-                      Select
-                    </Button>
-                  </View>
-                )}
-              />
-            ))}
+                  )}
+                  right={props => (
+                    <View style={styles.itemActions}>
+                      <IconButton
+                        icon="pencil"
+                        size={20}
+                        onPress={() => handleEditPress(match)}
+                        style={styles.actionButton}
+                      />
+                      <IconButton
+                        icon="archive"
+                        size={20}
+                        onPress={() => handleArchivePress(match)}
+                        style={styles.actionButton}
+                      />
+                      <Button
+                        mode="text"
+                        onPress={() => onSelectMatch(match)}
+                        style={styles.selectButton}>
+                        Select
+                      </Button>
+                    </View>
+                  )}
+                />
+              ))}
           </ScrollView>
           <View style={styles.footer}>
             <Button

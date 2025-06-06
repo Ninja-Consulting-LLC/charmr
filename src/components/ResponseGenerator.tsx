@@ -136,12 +136,27 @@ const ResponseGenerator = forwardRef<
       setShowMessagePackModal(false);
       handleCopyToClipboard();
       if (selectedMatch) {
-        updateMatchLastUsed(selectedMatch.name, selectedMatch.platform);
+        updateMatchLastUsed(selectedMatch.id.toString());
       }
     } else if (error && errorType !== '404') {
       setShowSnackbar(true);
     }
   }, [response, error, errorType]);
+
+  // Log when matches change
+  useEffect(() => {
+    console.log(
+      '[DEBUG] matches updated:',
+      matches.map(m => ({id: m.id, name: m.name, lastUsed: m.lastUsed})),
+    );
+  }, [matches]);
+
+  // Log when modal is opened
+  useEffect(() => {
+    if (showMatchSelector) {
+      console.log('[DEBUG] MatchSelectorModal opened');
+    }
+  }, [showMatchSelector]);
 
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
@@ -307,9 +322,24 @@ const ResponseGenerator = forwardRef<
     setDeleteScreenshots(value);
   };
 
-  const handleMatchSelect = (match: Match) => {
+  const handleMatchSelect = async (match: Match) => {
     setSelectedMatch(match);
     setShowMatchSelector(false);
+    await updateMatchLastUsed(match.id.toString());
+
+    // Update the match's lastUsed in the global store and re-sort
+    (setMatches as React.Dispatch<React.SetStateAction<Match[]>>)(
+      (prevMatches: Match[]) => {
+        const now = new Date().toISOString();
+        const updatedMatches = prevMatches.map((m: Match) =>
+          String(m.id) === String(match.id) ? {...m, lastUsed: now} : m,
+        );
+        return [...updatedMatches].sort((a, b) =>
+          (b.lastUsed || '').localeCompare(a.lastUsed || ''),
+        );
+      },
+    );
+
     navigation.navigate('CoachChat', {match});
   };
 
@@ -323,12 +353,31 @@ const ResponseGenerator = forwardRef<
     platform: string,
   ) => {
     try {
+      console.log('[DEBUG] handleUpdateMatch called', {
+        matchId,
+        name,
+        platform,
+      });
       await updateMatch({
         ...matches.find(m => String(m.id) === matchId)!,
         name,
         platform,
       });
-      await loadMatches(); // Reload matches to ensure UI is in sync
+      // Update the match in the global store and re-sort
+      (setMatches as React.Dispatch<React.SetStateAction<Match[]>>)(
+        (prevMatches: Match[]) => {
+          const updatedMatches = prevMatches.map((m: Match) =>
+            String(m.id) === matchId ? {...m, name, platform} : m,
+          );
+          console.log(
+            '[DEBUG] setMatches in handleUpdateMatch',
+            updatedMatches,
+          );
+          return [...updatedMatches].sort((a, b) =>
+            (b.lastUsed || '').localeCompare(a.lastUsed || ''),
+          );
+        },
+      );
     } catch (error) {
       console.error('Error updating match:', error);
     }
@@ -376,6 +425,7 @@ const ResponseGenerator = forwardRef<
 
           {/* Match Selector Modal */}
           <MatchSelectorModal
+            key={matches.map(m => m.id).join(',')}
             visible={showMatchSelector}
             onDismiss={() => setShowMatchSelector(false)}
             matches={matches}

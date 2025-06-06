@@ -774,7 +774,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           WHERE userId = ?
           AND deleted = 0
           ${includeHidden ? '' : 'AND hidden = 0'}
-          ORDER BY lastUsed DESC NULLS LAST
+          ORDER BY datetime(lastUsed) DESC NULLS LAST
         `;
         logger.debug('Database query:', {query});
         const matches = await db.all(query, [userId]);
