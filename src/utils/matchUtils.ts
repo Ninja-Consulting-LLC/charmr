@@ -130,8 +130,7 @@ export const restoreMatch = async (
 };
 
 export const updateMatchLastUsed = async (
-  name: string,
-  platform: string,
+  matchId: string,
 ): Promise<boolean> => {
   try {
     const userId = await AsyncStorage.getItem('@charmr/userId');
@@ -140,19 +139,17 @@ export const updateMatchLastUsed = async (
       return false;
     }
 
-    logger.match.debug('Updating match last used', {name, platform});
+    logger.match.debug('Updating match last used', {matchId});
     await axiosInstance.put(`/api/users/${userId}/matches/last-used`, {
-      name,
-      platform,
+      matchId,
     });
-    logger.match.debug('Updated match last used', {name, platform});
+    logger.match.debug('Updated match last used', {matchId});
     return true;
   } catch (error) {
     logger.match.error('Error updating match last used', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      name,
-      platform,
+      matchId,
     });
     return false;
   }

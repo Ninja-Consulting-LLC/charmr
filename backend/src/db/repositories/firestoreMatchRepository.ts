@@ -29,6 +29,8 @@ export class FirestoreMatchRepository {
         query = query.where('hidden', '==', false);
       }
 
+      query = query.orderBy('lastUsed', 'desc');
+
       const snapshot = await query.get();
       const matches = snapshot.docs.map(doc => ({
         id: doc.id,

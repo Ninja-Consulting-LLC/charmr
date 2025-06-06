@@ -24,7 +24,13 @@ import {useImagePicker} from '../hooks/useImagePicker';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
-import {deleteMatch, hideMatch, restoreMatch} from '../services/matchService';
+import {
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+  updateMatch,
+  updateMatchLastUsed as updateMatchLastUsedService,
+} from '../services/matchService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {
@@ -132,14 +138,36 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     try {
       const success = await restoreMatch(match.id);
       if (success) {
-        // Update local state to reflect the restored status
-        setMatches(
-          matches.map(m => (m.id === match.id ? {...m, hidden: false} : m)),
+        // Update local state directly without making an API call
+        const updatedMatches = matches.map((m: Match) =>
+          m.id === match.id ? {...m, hidden: false} : m,
         );
-        navigation.goBack();
+        setMatches(updatedMatches);
       }
     } catch (error) {
       console.error('Error restoring match:', error);
+    }
+  };
+
+  const handleUpdateMatch = async (
+    matchId: string,
+    name: string,
+    platform: string,
+  ) => {
+    try {
+      const updatedMatch = await updateMatch({
+        ...matches.find(m => String(m.id) === matchId)!,
+        name,
+        platform,
+      });
+      if (updatedMatch) {
+        const updatedMatches = matches.map(m =>
+          String(m.id) === matchId ? updatedMatch : m,
+        );
+        setMatches(updatedMatches);
+      }
+    } catch (error) {
+      console.error('Error updating match:', error);
     }
   };
 
@@ -494,6 +522,23 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       if (error instanceof Error && error.message === 'PERMISSION_DENIED') {
         setShowPermissionError(true);
       }
+    }
+  };
+
+  const updateMatchLastUsed = async (matchId: string) => {
+    try {
+      const matchToUpdate = matches.find(m => m.id.toString() === matchId);
+      if (!matchToUpdate) {
+        console.error('Match not found when updating last used', {matchId});
+        return;
+      }
+      await updateMatchLastUsedService(matchToUpdate.id.toString());
+    } catch (error) {
+      console.error('Error updating match last used', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        matchId,
+      });
     }
   };
 
@@ -854,14 +899,38 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         onDismiss={() => setShowMatchSelector(false)}
         matches={matches}
         selectedMatch={match}
-        onSelectMatch={newMatch => {
+        onSelectMatch={async newMatch => {
+          console.log('Match selected:', {
+            id: newMatch.id,
+            name: newMatch.name,
+            platform: newMatch.platform,
+            lastUsed: newMatch.lastUsed,
+          });
           setShowMatchSelector(false);
+          await updateMatchLastUsed(newMatch.id.toString());
+
+          // Update the match's lastUsed in the global store and re-sort
+          const now = new Date().toISOString();
+          (setMatches as React.Dispatch<React.SetStateAction<Match[]>>)(
+            (prevMatches: Match[]) => {
+              const updatedMatches = prevMatches.map((m: Match) =>
+                String(m.id) === String(newMatch.id)
+                  ? {...m, lastUsed: now}
+                  : m,
+              );
+              return [...updatedMatches].sort((a, b) =>
+                (b.lastUsed || '').localeCompare(a.lastUsed || ''),
+              );
+            },
+          );
+
           navigation.setParams({match: newMatch});
         }}
         onAddMatch={handleAddMatchFromSelector}
         onDeleteMatch={handleDeleteMatchById}
         onHideMatch={handleHideMatch}
         onRestoreMatch={handleRestoreMatch}
+        onUpdateMatch={handleUpdateMatch}
         userPlan={user?.plan || SubscriptionTier.FREE}
       />
       {/* Message Pack Modal */}
