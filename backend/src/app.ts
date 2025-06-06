@@ -19,8 +19,10 @@ import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import createAdminRouter from './routes/adminRoutes';
 import matchRoutes from './routes/matchRoutes';
+import pushNotificationRoutes from './routes/pushNotificationRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
 import {SupportRequest} from './services/email/types';
+import {startPushNotificationTasks} from './tasks/pushNotificationTasks';
 import logger, {stream} from './utils/logger';
 
 export const createApp = async () => {
@@ -174,6 +176,9 @@ export const createApp = async () => {
   // Mount match routes
   app.use('/api', matchRoutes(db));
 
+  // Mount push notification routes
+  app.use('/api/push-notifications', pushNotificationRoutes);
+
   // Create utility router for testing/development endpoints
   const utilityRouter = express.Router();
 
@@ -200,6 +205,9 @@ export const createApp = async () => {
     });
 
   logger.info('Available routes:', {routes});
+
+  // Start push notification tasks
+  startPushNotificationTasks();
 
   // Error handling middleware
   app.use(
