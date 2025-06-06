@@ -441,8 +441,8 @@ const ResponseGenerator = forwardRef<
         </View>
 
         {/* Generate Button */}
-        {images.length > 0 && (
-          <View style={styles.buttonContainer}>
+        <View style={styles.buttonContainer}>
+          {images.length > 0 && (
             <Button
               mode="contained"
               onPress={handleSubmit}
@@ -450,8 +450,8 @@ const ResponseGenerator = forwardRef<
               testID="submit-button">
               Generate Response
             </Button>
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       {/* Modals */}
@@ -543,11 +543,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     borderRadius: 8,
     paddingVertical: 8,
-  },
-  generateButtonDisabled: {
-    borderColor: theme.colors.surfaceVariant,
-    backgroundColor: 'transparent',
-    opacity: 0.6,
   },
   selectedMatchContainer: {
     marginBottom: 16,
