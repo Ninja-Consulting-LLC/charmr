@@ -3,8 +3,10 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import FirebaseCore
+import FirebaseMessaging
 import GoogleSignIn
 import FBSDKCoreKit
+import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -19,6 +21,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     // ✅ Initialize Firebase
     FirebaseApp.configure()
+
+    // Configure Firebase Messaging
+    Messaging.messaging().delegate = self
+
+    // Request permission for notifications
+    UNUserNotificationCenter.current().delegate = self
+    let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+    UNUserNotificationCenter.current().requestAuthorization(
+      options: authOptions,
+      completionHandler: { _, _ in }
+    )
+    application.registerForRemoteNotifications()
 
     // Initialize Facebook SDK
     FBSDKCoreKit.ApplicationDelegate.shared.application(
@@ -74,6 +88,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     )
 
     return false
+  }
+
+  // Handle FCM token refresh
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    Messaging.messaging().apnsToken = deviceToken
+  }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+extension AppDelegate: UNUserNotificationCenterDelegate {
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([[.banner, .sound]])
+  }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    completionHandler()
+  }
+}
+
+// MARK: - MessagingDelegate
+extension AppDelegate: MessagingDelegate {
+  func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+    print("Firebase registration token: \(String(describing: fcmToken))")
+
+    // Notify React Native about the new token
+    NotificationCenter.default.post(
+      name: NSNotification.Name("FCMTokenReceived"),
+      object: nil,
+      userInfo: ["token": fcmToken ?? ""]
+    )
   }
 }
 

@@ -1,6 +1,8 @@
 platform :ios, '15.1'
 
 require_relative '../node_modules/react-native/scripts/react_native_pods'
+# require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
 prepare_react_native_project!
 
 use_frameworks! :linkage => :static
@@ -19,6 +21,7 @@ target 'Charmr' do
 
   # 🔐 Firebase Auth + Google Sign-In (NO modular headers!)
   pod 'Firebase/Auth'
+  pod 'Firebase/Messaging'
   pod 'GoogleSignIn'
 
   # Facebook SDK
