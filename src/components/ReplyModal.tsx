@@ -15,7 +15,7 @@ interface ReplyModalProps {
   deleteScreenshots: boolean;
   hasScreenshots: boolean;
   onRegenerate: () => void;
-  isLoading?: boolean;
+  loading?: boolean;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
@@ -28,7 +28,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   deleteScreenshots,
   hasScreenshots,
   onRegenerate,
-  isLoading = false,
+  loading = false,
 }) => {
   return (
     <Portal>
@@ -40,7 +40,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
           <View style={styles.modalContent}>
             {/* Reply Text or Typing Indicator */}
             <View style={styles.replyContainer}>
-              {isLoading ? (
+              {loading ? (
                 <View style={styles.typingContainer}>
                   <TypingIndicator />
                 </View>
@@ -60,7 +60,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
             </View>
 
             {/* Delete Switch - Only show if screenshots were selected */}
-            {hasScreenshots && !isLoading && (
+            {hasScreenshots && !loading && (
               <View style={styles.deleteSection}>
                 <Text variant="bodyMedium">
                   {MESSAGES.REPLY_MODAL_DELETE_HINT}
@@ -73,8 +73,8 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
             )}
 
             {/* Action Buttons */}
-            {!isLoading && (
-              <View style={styles.actionButtons}>
+            <View style={styles.actionButtons}>
+              {!loading && (
                 <Pressable
                   onPress={onRegenerate}
                   style={styles.regenerateButton}>
@@ -82,13 +82,13 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                     Regenerate
                   </Text>
                 </Pressable>
-                <Pressable onPress={onDone} style={styles.doneButton}>
-                  <Text variant="bodyMedium" style={styles.doneText}>
-                    {MESSAGES.REPLY_MODAL_DONE}
-                  </Text>
-                </Pressable>
-              </View>
-            )}
+              )}
+              <Pressable onPress={onDone} style={styles.doneButton}>
+                <Text variant="bodyMedium" style={styles.doneText}>
+                  {MESSAGES.REPLY_MODAL_DONE}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 24,
-    minHeight: 60,
+    minHeight: 100,
   },
   typingContainer: {
     flex: 1,
