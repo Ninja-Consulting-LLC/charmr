@@ -650,7 +650,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       currentMessage?.user._id === 'user'
                         ? styles.userBubble
                         : styles.coachBubble,
-                      isCoachMessage && styles.coachMessageBubble,
+                      // Only apply coachMessageBubble if it's a coach (assistant) message in coach mode
+                      currentMessage?.user._id !== 'user' &&
+                        isCoachMessage &&
+                        styles.coachMessageBubble,
                     ]}>
                     {currentMessage?.type === MessageType.IMAGE &&
                       currentMessage?.images &&
@@ -679,7 +682,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                           currentMessage?.user._id === 'user'
                             ? styles.userBubbleText
                             : styles.coachBubbleText,
-                          isCoachMessage && styles.coachMessageText,
+                          // Only apply coachMessageText if it's a coach (assistant) message in coach mode
+                          currentMessage?.user._id !== 'user' &&
+                            isCoachMessage &&
+                            styles.coachMessageText,
                         ]}>
                         {currentMessage?.text}
                       </Text>
