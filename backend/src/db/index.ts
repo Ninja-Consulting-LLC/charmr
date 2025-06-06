@@ -1,4 +1,5 @@
 import {databaseConfig} from '../config/database';
+import {PromptVariant} from '../types';
 import {
   MessageMode,
   MessageRole,
@@ -105,6 +106,8 @@ export const getDatabase = async (): Promise<Database> => {
             replyTo?: number;
             content: string;
             timestamp: string;
+            imageData?: string;
+            promptVariant?: PromptVariant;
           },
         ): Promise<Message> => {
           return messageRepository!.createMessage(userId, matchId, message);

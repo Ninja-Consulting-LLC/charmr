@@ -2,6 +2,7 @@ import path from 'path';
 import {open} from 'sqlite';
 import sqlite3 from 'sqlite3';
 import {config} from '../config/config';
+import {PromptVariant} from '../types';
 import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {
@@ -53,6 +54,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       content TEXT NOT NULL,
       timestamp TEXT NOT NULL,
       imageData TEXT,
+      promptVariant TEXT,
       FOREIGN KEY (replyTo) REFERENCES messages(id)
     );
 
@@ -464,6 +466,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         content: string;
         timestamp: string;
         imageData?: string;
+        promptVariant?: PromptVariant;
       },
     ): Promise<Message> => {
       try {
@@ -479,7 +482,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         };
 
         const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             userId,
             matchId,
@@ -491,6 +494,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             messageWithDefaults.content,
             messageWithDefaults.timestamp,
             messageWithDefaults.imageData || null,
+            messageWithDefaults.promptVariant || null,
           ],
         );
 
