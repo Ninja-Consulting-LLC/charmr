@@ -1,5 +1,6 @@
 import {Request, Response} from 'express';
 import {Database} from '../db/types';
+import {createSummaryService} from '../services/summaryService';
 import logger from '../utils/logger';
 
 export const checkSchemaHealth = async (
@@ -68,16 +69,13 @@ export const checkSchemaHealth = async (
       );
     }
 
-    return res.status(200).json({
-      success: issues.length === 0,
+    res.json({
       issues,
       stats: {
-        messageCounts: {
-          byType: typeCounts,
-          used: usedCount,
-          unused: unusedCount,
-          total: messages.length,
-        },
+        totalMessages: messages.length,
+        typeCounts,
+        usedCount,
+        unusedCount,
       },
     });
   } catch (error) {
@@ -85,12 +83,54 @@ export const checkSchemaHealth = async (
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return res.status(500).json({
-      success: false,
-      issues: [
-        'Failed to check schema health: ' +
-          (error instanceof Error ? error.message : 'Unknown error'),
-      ],
+    res.status(500).json({error: 'Failed to check schema health'});
+  }
+};
+
+export const getMatchSummary = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId, matchId} = req.params;
+    const summaryService = createSummaryService(db);
+    const summary = await summaryService.getMatchSummary(userId, matchId);
+    res.json({summary});
+  } catch (error) {
+    logger.error('Failed to get match summary', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
+    res.status(500).json({error: 'Failed to get match summary'});
+  }
+};
+
+export const updateMatchSummary = async (
+  req: Request,
+  res: Response,
+  db: Database,
+) => {
+  try {
+    const {userId, matchId} = req.params;
+    const {summary} = req.body;
+
+    if (!summary) {
+      return res.status(400).json({error: 'Summary is required'});
+    }
+
+    const now = new Date().toISOString();
+    await db.updateMatch(userId, matchId, {
+      summary,
+      summaryLastUpdated: now,
+    });
+
+    res.json({success: true});
+  } catch (error) {
+    logger.error('Failed to update match summary', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    res.status(500).json({error: 'Failed to update match summary'});
   }
 };

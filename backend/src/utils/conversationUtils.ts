@@ -1,20 +1,17 @@
 import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
 import {Message} from '../db/types';
-import {
-  MessageMode,
-  MessageRole,
-  MessageType,
-  SubscriptionTier,
-} from '../types/enums';
+import {createSummaryService} from '../services/summaryService';
+import {MessageMode, MessageRole, MessageType} from '../types/enums';
 import logger from '../utils/logger';
 
 export type {Message} from '../db/types';
 
 export const loadConversation = async (
   userId: string,
-  matchId: string | undefined,
-  userPlan: SubscriptionTier,
+  matchId: string,
+  userPlan: string,
+  limit: number = 10,
 ): Promise<Message[]> => {
   try {
     const db = await getDatabase();
@@ -25,6 +22,25 @@ export const loadConversation = async (
       userId,
       matchId,
     );
+
+    // Get the match summary
+    const summaryService = createSummaryService(db);
+    const summary = await summaryService.getMatchSummary(userId, matchId);
+
+    // Add summary to the conversation if it exists
+    if (summary) {
+      messages.unshift({
+        id: -1, // Special ID for summary
+        userId,
+        matchId,
+        role: MessageRole.SYSTEM,
+        type: MessageType.SUMMARY,
+        mode: MessageMode.GENERATE,
+        used: true,
+        content: summary,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Sort messages by timestamp
     return messages.sort((a: Message, b: Message) => {
@@ -37,14 +53,13 @@ export const loadConversation = async (
       userId,
       matchId,
     });
-    throw error;
+    return [];
   }
 };
 
 export const appendConversation = async (
   userId: string,
   matchId: string | undefined,
-  summary: string,
   reply: string,
   images?: string[],
   prompt?: string,
@@ -98,23 +113,6 @@ export const appendConversation = async (
         timestamp: replyTimestamp,
       },
     );
-    baseTimestamp += 1000;
-
-    // Save the summary if provided
-    if (summary) {
-      const summaryTimestamp = new Date(baseTimestamp).toISOString();
-      await messageRepository.createMessage(userId, matchId, {
-        role: MessageRole.SYSTEM,
-        type: MessageType.SUMMARY,
-        mode: mode,
-        content: summary,
-        timestamp: summaryTimestamp,
-        replyTo:
-          typeof assistantMessage.id === 'string'
-            ? parseInt(assistantMessage.id, 10)
-            : assistantMessage.id,
-      });
-    }
 
     return assistantMessage;
   } catch (error) {

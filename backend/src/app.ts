@@ -18,15 +18,16 @@ import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
 import createAdminRouter from './routes/adminRoutes';
+import devRoutes from './routes/devRoutes';
 import matchRoutes from './routes/matchRoutes';
 import createPushNotificationRouter from './routes/pushNotificationRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
-import {SupportRequest} from './services/email/types';
 import {
   createNotificationService,
   NOTIFICATION_CONFIGS,
   NotificationType,
 } from './services/notificationService';
+import {SupportRequest} from './types/email';
 import logger, {stream} from './utils/logger';
 
 export const createApp = async () => {
@@ -248,6 +249,11 @@ export const createApp = async () => {
 
   // Mount utility router
   app.use('/api/utility', utilityRouter);
+
+  // Dev routes (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    app.use('/api/dev', devRoutes);
+  }
 
   // Log all available routes on startup
   const routes = app._router.stack

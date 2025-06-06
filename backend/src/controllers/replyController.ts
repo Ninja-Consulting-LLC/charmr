@@ -6,6 +6,7 @@ import {Database} from '../db/types';
 import {createGeminiService} from '../services/geminiService';
 import {createMessageLimitService} from '../services/messageLimitService';
 import {createOpenAIService} from '../services/openaiService';
+import {createSummaryService} from '../services/summaryService';
 import {MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
@@ -39,6 +40,7 @@ export const createReplyController = async (db: Database) => {
   const openaiService = createOpenAIService();
   const geminiService = createGeminiService();
   const messageRepository = getMessageRepository(db);
+  const summaryService = createSummaryService(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
@@ -138,6 +140,12 @@ export const createReplyController = async (db: Database) => {
         hasSummaries: !!previousSummaries,
       });
 
+      // Get the match summary if we have a matchId
+      let matchSummary: string | undefined;
+      if (matchId) {
+        matchSummary = await summaryService.getMatchSummary(userId, matchId);
+      }
+
       // Always use OpenAI service
       const service = 'openai';
       logger.debug('Using AI service', {
@@ -158,6 +166,7 @@ export const createReplyController = async (db: Database) => {
               mode: req.body.mode,
               regenerate: req.body.regenerate,
               previousMessage: req.body.regenerate ? prompt : undefined,
+              matchSummary,
             })
           : await geminiService.generateReply({
               prompt,
@@ -202,12 +211,19 @@ export const createReplyController = async (db: Database) => {
         const savedMessage = await appendConversation(
           userId,
           matchId,
-          response.summary || '',
           response.reply,
           images,
           prompt,
           req.body.mode || MessageMode.GENERATE,
         );
+
+        // Save the summary if we have one and a matchId
+        if (response.summary && matchId) {
+          await db.updateMatch(userId, matchId, {
+            summary: response.summary,
+            summaryLastUpdated: timestamp,
+          });
+        }
 
         // Calculate costs
         const costBreakdown = calculateCost(
