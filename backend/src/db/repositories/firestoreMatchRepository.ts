@@ -224,8 +224,13 @@ export class FirestoreMatchRepository {
         throw new Error('Match not found');
       }
 
-      // Only allow updating name and platform
-      const allowedFields = ['name', 'platform'];
+      // Only allow updating name, platform, summary, and summaryLastUpdated
+      const allowedFields = [
+        'name',
+        'platform',
+        'summary',
+        'summaryLastUpdated',
+      ];
       const filteredUpdates = Object.entries(updates)
         .filter(([key]) => allowedFields.includes(key))
         .reduce((acc, [key, value]) => ({...acc, [key]: value}), {});

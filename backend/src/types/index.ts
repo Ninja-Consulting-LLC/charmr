@@ -12,6 +12,7 @@ export interface GenerateReplyRequest {
   style?: MessageStyle;
   regenerate?: boolean; // Flag to indicate if this is a regeneration request
   previousMessage?: string; // The previous message to avoid repeating when regenerating
+  matchSummary?: string; // The current summary of the match's dynamic
 }
 
 export interface GenerateReplyResponse {

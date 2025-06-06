@@ -1,6 +1,6 @@
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
 import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
-import {loadConversation} from '../utils/conversationUtils';
+import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 
@@ -90,6 +90,11 @@ export const createSandboxService = () => {
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
     try {
+      // Validate required string parameters
+      if (!request.userId) {
+        throw new Error('userId is required');
+      }
+
       // Create a truncated version of the request for logging and processing
       const truncatedRequest = {
         ...request,
@@ -111,7 +116,7 @@ export const createSandboxService = () => {
       // Load conversation history
       const conversationHistory = await loadConversation(
         request.userId,
-        request.matchId,
+        request.matchId || '',
         SubscriptionTier.FREE,
       );
       const recentMessages = conversationHistory.slice(-5); // Get last 5 messages
@@ -168,6 +173,16 @@ export const createSandboxService = () => {
 
       // Calculate costs for the response
       const costBreakdown = calculateCost('gpt-4', mockResponse.usage);
+
+      // Save the message and its costs
+      const savedMessage = await appendConversation(
+        request.userId,
+        request.matchId,
+        reply,
+        request.images || [],
+        request.prompt || '',
+        request.mode || MessageMode.GENERATE,
+      );
 
       return {
         reply,

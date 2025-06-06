@@ -67,6 +67,7 @@ export const createOpenAIService = () => {
             hasText,
             request.regenerate,
             request.regenerate ? request.prompt : undefined,
+            request.matchSummary,
           ),
         },
       ];
@@ -211,6 +212,7 @@ function getSystemPrompt(
   hasText: boolean,
   regenerate?: boolean,
   previousMessage?: string,
+  matchSummary?: string,
 ): string {
   const imageOnlyPrompt = `This is a dating app screenshot. The user is replying to the match. If this is the first message, craft a great opener. Otherwise, keep the thread going naturally.${
     regenerate && previousMessage
@@ -235,7 +237,11 @@ Respond in this JSON format:
   "message": "Your crafted response"
 }`;
 
-  const generatePrompt = `You are a helpful AI dating coach. Generate a message for the user based on the conversation history and prompt.
+  const generatePrompt = `You are a helpful AI dating coach. Generate a message for the user based on the conversation history and prompt.${
+    matchSummary
+      ? `\n\nHere is a summary of their dynamic so far:\n${matchSummary}`
+      : ''
+  }
 
 Guidelines:
 1. Match the user's desired tone (flirty, sincere, etc.)
@@ -254,7 +260,11 @@ Respond in this JSON format:
   "message": "Your suggested message"
 }`;
 
-  const coachPrompt = `You're a dating coach. Provide feedback to the user about their chat.
+  const coachPrompt = `You're a dating coach. Provide feedback to the user about their chat.${
+    matchSummary
+      ? `\n\nHere is a summary of their dynamic so far:\n${matchSummary}`
+      : ''
+  }
 
 Guidelines:
 1. Focus on tone, clarity, and engagement
@@ -288,7 +298,9 @@ Respond in this JSON format:
         : generatePrompt.length,
   });
 
-  if (mode === MessageMode.COACH) return coachPrompt;
-  if (hasImages && (regenerate || !hasText)) return imageOnlyPrompt;
-  return generatePrompt;
+  if (hasImages && !hasText) {
+    return imageOnlyPrompt;
+  }
+
+  return mode === MessageMode.COACH ? coachPrompt : generatePrompt;
 }

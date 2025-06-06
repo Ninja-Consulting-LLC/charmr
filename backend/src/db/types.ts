@@ -68,6 +68,8 @@ export interface Match {
   deleted: boolean;
   createdAt: string;
   updatedAt: string;
+  summary?: string;
+  summaryLastUpdated?: string;
 }
 
 export interface SupportTicket {
