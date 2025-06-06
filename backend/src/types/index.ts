@@ -1,5 +1,7 @@
 import {ErrorType, MessageMode, MessageStyle} from './enums';
 
+export type PromptVariant = 'A' | 'B';
+
 export interface GenerateReplyRequest {
   prompt: string;
   images: string[];
@@ -13,6 +15,7 @@ export interface GenerateReplyRequest {
   regenerate?: boolean; // Flag to indicate if this is a regeneration request
   previousMessage?: string; // The previous message to avoid repeating when regenerating
   matchSummary?: string; // The current summary of the match's dynamic
+  promptVariant?: PromptVariant; // Optional field for A/B testing different prompts
 }
 
 export interface GenerateReplyResponse {
@@ -32,6 +35,7 @@ export interface GenerateReplyResponse {
     outputCost: number;
     totalCost: number;
   };
+  promptVariant?: PromptVariant;
 }
 
 export interface ErrorResponse {

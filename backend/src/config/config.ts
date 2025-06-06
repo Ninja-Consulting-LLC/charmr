@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import {PromptVariant} from '../types';
 
 dotenv.config();
 
@@ -12,14 +13,14 @@ export const config = {
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
-    maxTokens: parseInt(process.env.MAX_TOKENS || '1000', 10),
-    temperature: parseFloat(process.env.TEMPERATURE || '0.7'),
+    maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '4096', 10),
+    temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
     sandboxMode: process.env.GEMINI_SANDBOX_MODE === 'true',
-    maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '1000', 10),
+    maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4096', 10),
     temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
   },
   rateLimit: {
@@ -49,6 +50,9 @@ export const config = {
     ),
   },
   supportEmail: process.env.SUPPORT_EMAIL || 'support@charmrapp.com',
+  prompt: {
+    variant: (process.env.PROMPT_VARIANT as PromptVariant) || undefined,
+  },
 } as const;
 
 // Validate required environment variables

@@ -2,6 +2,7 @@ import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
 import {Message} from '../db/types';
 import {createSummaryService} from '../services/summaryService';
+import {PromptVariant} from '../types';
 import {MessageMode, MessageRole, MessageType} from '../types/enums';
 import logger from '../utils/logger';
 
@@ -64,8 +65,15 @@ export const appendConversation = async (
   images?: string[],
   prompt?: string,
   mode: MessageMode = MessageMode.GENERATE,
+  promptVariant?: PromptVariant,
 ): Promise<Message> => {
   try {
+    logger.info('Appending conversation with promptVariant:', {
+      userId,
+      matchId,
+      promptVariant,
+    });
+
     const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
@@ -77,25 +85,35 @@ export const appendConversation = async (
       // Save screenshots with or without prompt
       for (let i = 0; i < images.length; i++) {
         const timestamp = new Date(baseTimestamp + i * 1000).toISOString();
-        await messageRepository.createMessage(userId, matchId, {
+        const message = await messageRepository.createMessage(userId, matchId, {
           role: MessageRole.USER,
           type: MessageType.IMAGE,
           mode: mode,
           content: prompt || '',
           timestamp,
           imageData: images[i],
+          promptVariant,
+        });
+        logger.info('Saved user image message with promptVariant:', {
+          messageId: message.id,
+          promptVariant: message.promptVariant,
         });
       }
       baseTimestamp += images.length * 1000;
     } else if (prompt) {
       // Save regular text message
       const timestamp = new Date(baseTimestamp).toISOString();
-      await messageRepository.createMessage(userId, matchId, {
+      const message = await messageRepository.createMessage(userId, matchId, {
         role: MessageRole.USER,
         type: MessageType.TEXT,
         mode: mode,
         content: prompt,
         timestamp,
+        promptVariant,
+      });
+      logger.info('Saved user text message with promptVariant:', {
+        messageId: message.id,
+        promptVariant: message.promptVariant,
       });
       baseTimestamp += 1000;
     }
@@ -111,8 +129,45 @@ export const appendConversation = async (
         mode: mode,
         content: reply,
         timestamp: replyTimestamp,
+        promptVariant,
       },
     );
+    logger.info('Saved assistant message with promptVariant:', {
+      messageId: assistantMessage.id,
+      promptVariant: assistantMessage.promptVariant,
+    });
+    baseTimestamp += 1000;
+
+    // Get the match summary
+    const summaryService = createSummaryService(db);
+    const summary = matchId
+      ? await summaryService.getMatchSummary(userId, matchId)
+      : undefined;
+
+    // Save the summary if provided
+    if (summary) {
+      const summaryTimestamp = new Date(baseTimestamp).toISOString();
+      const summaryMessage = await messageRepository.createMessage(
+        userId,
+        matchId,
+        {
+          role: MessageRole.SYSTEM,
+          type: MessageType.SUMMARY,
+          mode: mode,
+          content: summary,
+          timestamp: summaryTimestamp,
+          replyTo:
+            typeof assistantMessage.id === 'string'
+              ? parseInt(assistantMessage.id, 10)
+              : assistantMessage.id,
+          promptVariant,
+        },
+      );
+      logger.info('Saved summary message with promptVariant:', {
+        messageId: summaryMessage.id,
+        promptVariant: summaryMessage.promptVariant,
+      });
+    }
 
     return assistantMessage;
   } catch (error) {

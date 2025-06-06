@@ -1,3 +1,4 @@
+import {PromptVariant} from '../types';
 import {
   MessageMode,
   MessageRole,
@@ -43,6 +44,7 @@ export interface Message {
   content: string;
   timestamp: string;
   imageData?: string;
+  promptVariant?: PromptVariant;
 }
 
 export interface MessageCost {
@@ -120,6 +122,8 @@ export interface Database {
       replyTo?: number;
       content: string;
       timestamp: string;
+      imageData?: string;
+      promptVariant?: PromptVariant;
     },
   ) => Promise<Message>;
   getMessages: (

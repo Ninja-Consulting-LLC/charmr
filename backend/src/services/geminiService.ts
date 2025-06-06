@@ -1,11 +1,25 @@
 import {GoogleGenerativeAI} from '@google/generative-ai';
 import {config} from '../config/config';
-import {formatPromptWithContext} from '../config/prompts';
-import {GenerateReplyRequest, GenerateReplyResponse} from '../types';
+import {formatPrompt, getPromptConfig} from '../config/prompts';
+import {
+  GenerateReplyRequest,
+  GenerateReplyResponse,
+  PromptVariant,
+} from '../types';
 import {ErrorType, MessageMode} from '../types/enums';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 import {createSandboxService} from './sandboxService';
+
+// Helper function to get prompt variant for a user
+function getPromptVariantForUser(userId: string): PromptVariant {
+  // First try to use the environment variable
+  if (config.prompt.variant) {
+    return config.prompt.variant;
+  }
+  // Fallback to random assignment for A/B testing
+  return Math.random() < 0.5 ? 'A' : 'B';
+}
 
 export const createGeminiService = () => {
   if (!config.gemini.apiKey && !config.gemini.sandboxMode) {
@@ -29,24 +43,74 @@ export const createGeminiService = () => {
     }
 
     try {
-      const prompt = formatPromptWithContext(request.prompt);
+      const hasImages = request.images?.length > 0;
+      const hasText = Boolean(request.prompt);
+      const variant =
+        request.promptVariant || getPromptVariantForUser(request.userId);
 
-      logger.debug('Gemini API request payload', {
+      const promptConfig = getPromptConfig(
+        request.mode || MessageMode.GENERATE,
+        hasImages,
+        hasText,
+        variant,
+      );
+
+      const prompt = formatPrompt(
+        promptConfig,
+        request.regenerate,
+        request.regenerate ? request.prompt : undefined,
+      );
+
+      // Log request context
+      logger.info('Gemini request context:', {
         userId: request.userId,
         matchId: request.matchId,
         model: config.gemini.model,
-        promptLength: prompt.length,
+        mode: request.mode || MessageMode.GENERATE,
         hasImages: request.images?.length > 0,
-        imageCount: request.images?.length,
-        maxTokens: config.gemini.maxTokens,
-        temperature: config.gemini.temperature,
+        hasText: Boolean(request.prompt),
+        regenerate: request.regenerate,
+        promptVariant: variant,
       });
+
+      // Log system prompt
+      logger.info('Gemini system prompt:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        systemPrompt: prompt,
+        promptVariant: variant,
+      });
+
+      // Log user input
+      if (hasText) {
+        logger.info('Gemini user input:', {
+          userId: request.userId,
+          matchId: request.matchId,
+          prompt: request.prompt,
+        });
+      }
+
+      if (hasImages) {
+        logger.info('Gemini image input:', {
+          userId: request.userId,
+          matchId: request.matchId,
+          imageCount: request.images?.length,
+        });
+      }
 
       const response = await model.generateContent(prompt);
       const text = response.response.text();
 
-      logger.info('Gemini API response:', {
-        response: JSON.stringify(response, null, 2),
+      // Log raw response
+      logger.info('Gemini raw response:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model: config.gemini.model,
+        rawResponse: {
+          response: response.response,
+          text: text,
+        },
+        promptVariant: variant,
       });
 
       // Parse the JSON response
@@ -62,6 +126,16 @@ export const createGeminiService = () => {
       }
 
       const {summary, message: reply} = parsedResponse;
+
+      // Log processed response
+      logger.info('Gemini processed response:', {
+        userId: request.userId,
+        matchId: request.matchId,
+        model: config.gemini.model,
+        summary,
+        reply,
+        promptVariant: variant,
+      });
 
       // Validate the response
       if (!reply) {
@@ -83,6 +157,7 @@ export const createGeminiService = () => {
         mode: request.mode || MessageMode.GENERATE,
         style: request.style,
         cost: costBreakdown,
+        promptVariant: variant,
       };
     } catch (error) {
       logger.error('Gemini API error', {
