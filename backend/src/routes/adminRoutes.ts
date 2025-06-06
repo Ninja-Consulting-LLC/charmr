@@ -16,6 +16,7 @@ import {
 } from '../controllers/adminController';
 import {Database} from '../db/types';
 import {adminAuth} from '../middleware/adminAuth';
+import logger from '../utils/logger';
 
 const createAdminRouter = (db: Database) => {
   const router = express.Router();
@@ -48,6 +49,32 @@ const createAdminRouter = (db: Database) => {
   router.post('/users/:userId/reset-message-limit', (req, res) =>
     resetUserMessageLimit(req, res, db),
   );
+
+  // Device token management
+  router.put('/users/:userId/device-token', async (req, res) => {
+    const {userId} = req.params;
+    const {deviceToken} = req.body;
+
+    if (!deviceToken) {
+      return res.status(400).json({error: 'Device token is required'});
+    }
+
+    try {
+      await db.updateUser(userId, {deviceToken});
+      const updatedUser = await db.getUser(userId);
+      if (!updatedUser) {
+        return res.status(404).json({error: 'User not found'});
+      }
+      res.json(updatedUser);
+    } catch (error) {
+      logger.error('Error updating device token:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+      });
+      res.status(500).json({error: 'Failed to update device token'});
+    }
+  });
 
   // Message management
   router.get('/users/:userId/messages', (req, res) =>

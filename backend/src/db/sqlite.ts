@@ -28,15 +28,18 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       id TEXT PRIMARY KEY,
       email TEXT,
       name TEXT,
-      plan TEXT NOT NULL,
-      dailyMessagesUsed INTEGER NOT NULL,
-      extraMessages INTEGER NOT NULL,
-      lastResetDate TEXT NOT NULL,
-      installationId TEXT UNIQUE,
-      createdAt TEXT NOT NULL
+      plan TEXT DEFAULT 'free',
+      dailyMessagesUsed INTEGER DEFAULT 0,
+      extraMessages INTEGER DEFAULT 0,
+      lastResetDate TEXT,
+      notificationDates TEXT,
+      deviceToken TEXT,
+      installationId TEXT,
+      createdAt TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
+    CREATE INDEX IF NOT EXISTS idx_users_device_token ON users(deviceToken);
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,6 +142,26 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
+    getUsersWithDeviceToken: async (): Promise<User[]> => {
+      try {
+        const users = await db.all(
+          'SELECT * FROM users WHERE deviceToken IS NOT NULL',
+        );
+        return users.map(user => ({
+          ...user,
+          notificationDates: JSON.parse(
+            user.notificationDates || '{"coach": null}',
+          ),
+        }));
+      } catch (error) {
+        logger.error('Failed to get users with device token', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
     createUser: async (user: {
       id: string;
       email: string;
@@ -190,7 +213,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   existingUser.id,
                 ]);
                 await db.run(
-                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                   [
                     user.id,
                     user.email,
@@ -199,6 +222,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                     existingUser.dailyMessagesUsed,
                     existingUser.extraMessages,
                     existingUser.lastResetDate,
+                    JSON.stringify({coach: null}),
                     user.installationId,
                     new Date().toISOString(),
                   ],
@@ -209,7 +233,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   user.id,
                 );
                 await db.run('COMMIT');
-                return updatedUser;
+                return {
+                  ...updatedUser,
+                  notificationDates: JSON.parse(
+                    updatedUser.notificationDates || '{"coach": null}',
+                  ),
+                };
               } catch (error) {
                 await db.run('ROLLBACK');
                 logger.error('Failed to link anonymous user:', {
@@ -227,7 +256,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                 installationId: user.installationId,
               });
               await db.run('COMMIT');
-              return existingUser;
+              return {
+                ...existingUser,
+                notificationDates: JSON.parse(
+                  existingUser.notificationDates || '{"coach": null}',
+                ),
+              };
             }
           }
         }
@@ -235,7 +269,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         // Create new user
         try {
           await db.run(
-            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               user.id,
               user.email,
@@ -244,6 +278,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
               0,
               0,
               new Date().toISOString(),
+              JSON.stringify({coach: null}),
               user.installationId,
               new Date().toISOString(),
             ],
@@ -254,7 +289,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             user.id,
           );
           await db.run('COMMIT');
-          return newUser;
+          return {
+            ...newUser,
+            notificationDates: JSON.parse(
+              newUser.notificationDates || '{"coach": null}',
+            ),
+          };
         } catch (error) {
           await db.run('ROLLBACK');
           logger.error('Failed to create new user:', {
@@ -282,7 +322,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         const setClause = Object.keys(updates)
           .map(key => `${key} = ?`)
           .join(', ');
-        const values = Object.values(updates);
+        const values = Object.entries(updates).map(([key, value]) => {
+          if (key === 'notificationDates') {
+            return JSON.stringify(value);
+          }
+          return value;
+        });
         values.push(userId);
 
         await db.run(`UPDATE users SET ${setClause} WHERE id = ?`, values);

@@ -172,6 +172,18 @@ export const getUserProfile = async (userId: string) => {
 // Update user profile
 export const updateUserProfile = async (userId: string, data: any) => {
   try {
+    // If only deviceToken is being updated, use the dedicated endpoint
+    if (
+      Object.keys(data).length === 1 &&
+      Object.prototype.hasOwnProperty.call(data, 'deviceToken')
+    ) {
+      const response = await axiosInstance.put(
+        `/api/users/${userId}/device-token`,
+        data,
+      );
+      return response.data;
+    }
+    // Otherwise, use the generic endpoint (if/when it exists)
     const response = await axiosInstance.put(`/api/users/${userId}`, data);
     return response.data;
   } catch (error) {

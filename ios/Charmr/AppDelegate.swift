@@ -103,7 +103,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    completionHandler([[.banner, .sound]])
+    // Show notification in foreground with banner, sound, and badge
+    completionHandler([.banner, .sound, .badge])
   }
 
   func userNotificationCenter(

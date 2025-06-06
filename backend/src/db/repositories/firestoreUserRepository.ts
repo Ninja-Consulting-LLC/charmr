@@ -66,6 +66,7 @@ export class FirestoreUserRepository {
     name: string;
     plan?: SubscriptionTier;
     installationId?: string;
+    deviceToken?: string;
   }): Promise<User> {
     try {
       const userData = {
@@ -75,6 +76,10 @@ export class FirestoreUserRepository {
         dailyMessagesUsed: 0,
         extraMessages: 0,
         lastResetDate: new Date().toISOString(),
+        notificationDates: {
+          coach: null,
+        },
+        deviceToken: user.deviceToken || null,
         installationId: user.installationId || null,
         createdAt: new Date().toISOString(),
       };
@@ -378,6 +383,12 @@ export class FirestoreUserRepository {
         // Set message counts last to ensure they're not overwritten
         dailyMessagesUsed: totalDailyMessages,
         extraMessages: totalExtraMessages,
+        notificationDates: {
+          coach:
+            registeredUserData?.notificationDates?.coach ||
+            anonymousUserData?.notificationDates?.coach ||
+            null,
+        },
         installationId:
           anonymousUserData?.installationId ||
           registeredUserData?.installationId,
@@ -477,6 +488,29 @@ export class FirestoreUserRepository {
         operation: 'link_users',
         status: 'error',
         errorDetails: error,
+      });
+      throw error;
+    }
+  }
+
+  async getUsersWithDeviceToken(): Promise<User[]> {
+    try {
+      const snapshot = await this.db
+        .collection(this.usersCollection)
+        .where('deviceToken', '!=', null)
+        .get();
+
+      return snapshot.docs.map(
+        doc =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as User),
+      );
+    } catch (error) {
+      logger.error('Failed to get users with device token from Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
     }

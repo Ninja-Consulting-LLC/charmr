@@ -15,15 +15,19 @@ export interface MessageLimit {
 
 export interface User {
   id: string;
-  email?: string;
-  name?: string;
+  email: string;
+  name: string;
   plan: SubscriptionTier;
   dailyMessagesUsed: number;
   extraMessages: number;
   lastResetDate: string;
+  notificationDates?: {
+    coach?: string;
+    match?: string;
+    message?: string;
+  };
+  deviceToken?: string;
   installationId?: string;
-  linkedFrom?: string;
-  linkedAt?: any;
   createdAt: string;
 }
 
@@ -102,6 +106,7 @@ export interface Database {
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;
   updateUserPlan: (userId: string, plan: SubscriptionTier) => Promise<void>;
+  getUsersWithDeviceToken: () => Promise<User[]>;
   saveMessage: (
     userId: string,
     matchId: string,
