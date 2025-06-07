@@ -8,6 +8,7 @@ interface BasePromptConfig {
     summary: string;
     message: string;
   };
+  jsonFormatInstructions?: string;
 }
 
 interface VariantPromptConfig extends BasePromptConfig {
@@ -31,15 +32,24 @@ const promptConfigs: PromptConfig = {
         'No em dashes (—)',
         'Short and charming',
         "Don't be boring",
+        'Be flirty but tasteful',
+        'Reference specific details from the profile or conversation',
       ],
       responseFormat: {
-        summary: 'Detailed summary of what you see in the screenshot',
-        message: 'Your crafted response',
+        summary:
+          'Detailed summary of the profile content, including specific facts, interests, and conversation context',
+        message:
+          'A natural, flirty, concise, and conversational message that the user can send to their match',
       },
+      jsonFormatInstructions: `The "message" field should contain your actual response that will be sent to the user. This should be a natural, flirty, and conversational message that the user can directly send to their match. Do not include any analysis, summaries, or meta-commentary in the message field.
+
+The "summary" field is for internal use only and should contain a detailed summary of what you see in the screenshot, including specific facts mentioned (e.g., hobbies, interests, personal details), conversation flow, and any notable details from images.`,
       additionalContext: [
         'Consider the visual elements and context of the screenshot',
         'Maintain a natural, engaging tone',
         'Keep responses concise but meaningful',
+        'Look for unique details to reference',
+        "Consider the match's interests and personality",
       ],
     },
     B: {
@@ -49,6 +59,9 @@ const promptConfigs: PromptConfig = {
         summary: 'Brief summary',
         message: 'Your response',
       },
+      jsonFormatInstructions: `The "message" field should contain your actual response that will be sent to the user. This should be a natural, conversational message that the user can directly send to their match. Do not include any analysis, summaries, or meta-commentary in the message field.
+
+The "summary" field is for internal use only and should contain a brief summary of what you see in the screenshot or conversation context.`,
     },
   },
   generate: {
@@ -59,15 +72,24 @@ const promptConfigs: PromptConfig = {
         'Use prior context to maintain flow',
         'No em dashes (—), keep it short and clever',
         "Don't overanalyze — pick one or two hooks max",
+        'Be flirty but tasteful',
+        'Reference specific details from previous messages',
+        'Keep the conversation engaging and natural',
       ],
       responseFormat: {
-        summary: 'Detailed summary of the conversation context and key points',
+        summary:
+          'Detailed summary of the conversation context, including specific facts, interests, and key points',
         message: 'Your crafted response',
       },
+      jsonFormatInstructions: `The "message" field should contain your actual response that will be sent to the user. This should be a natural, flirty, and conversational message that the user can directly send to their match. Do not include any analysis, summaries, or meta-commentary in the message field.
+
+The "summary" field is for internal use only and should contain a detailed summary of the conversation context, including specific facts mentioned (e.g., hobbies, interests, personal details), conversation flow, and any notable details from previous messages.`,
       additionalContext: [
         "Consider the user's previous messages and conversation flow",
         'Maintain a natural, engaging tone',
         'Keep responses concise but meaningful',
+        'Look for unique details to reference',
+        "Consider the match's interests and personality",
       ],
     },
     B: {
@@ -77,6 +99,9 @@ const promptConfigs: PromptConfig = {
         summary: 'Brief summary',
         message: 'Your response',
       },
+      jsonFormatInstructions: `The "message" field should contain your actual response that will be sent to the user. This should be a natural, conversational message that the user can directly send to their match. Do not include any analysis, summaries, or meta-commentary in the message field.
+
+The "summary" field is for internal use only and should contain a brief summary of what you see in the screenshot or conversation context.`,
     },
   },
   coach: {
@@ -88,15 +113,20 @@ const promptConfigs: PromptConfig = {
         'Use paragraphs only, with no headings, bullet points, or formatting',
         'Avoid overly verbose or redundant statements',
         'Maintain a conversational and insightful tone suitable for a dating coach, but without fluff or generic advice',
+        'Focus on specific, actionable suggestions',
+        'Balance positive reinforcement with constructive criticism',
       ],
       responseFormat: {
-        summary: 'Detailed feedback summary',
+        summary:
+          'Detailed analysis of conversation dynamics, strengths, and areas for improvement',
         message: 'Your coaching feedback',
       },
       additionalContext: [
         'Consider the overall conversation flow and context',
         'Provide specific, actionable suggestions',
         'Balance positive reinforcement with constructive criticism',
+        'Focus on natural conversation progression',
+        "Consider both parties' engagement levels",
       ],
     },
     B: {
@@ -137,6 +167,7 @@ export function getPromptConfig(
 
 export function formatPrompt(
   config: VariantPromptConfig,
+  mode: MessageMode,
   regenerate?: boolean,
   previousMessage?: string,
 ): string {
@@ -165,13 +196,16 @@ export function formatPrompt(
     : '';
 
   // For COACH mode, don't include JSON response format
-  const responseFormat = config.basePrompt.includes('dating coach')
-    ? ''
-    : `\n\nRespond in this JSON format:
+  const responseFormat =
+    mode !== MessageMode.COACH && config.jsonFormatInstructions
+      ? `\n\nIMPORTANT: You must respond in this exact JSON format:
 {
   "summary": "${config.responseFormat.summary}",
   "message": "${config.responseFormat.message}"
-}`;
+}
+
+${config.jsonFormatInstructions}`
+      : '';
 
   return `${basePrompt}${guidelines}${additionalContext}${responseFormat}`;
 }

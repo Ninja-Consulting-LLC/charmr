@@ -125,13 +125,13 @@ export const createNotificationService = (db: Database) => {
         ) {
           await sendNotification(user.id, notificationType);
         } else {
-          logger.debug('Skipping notification - too soon', {
-            userId: user.id,
-            notificationType,
-            lastNotification,
-            timeSinceLastNotification,
-            requiredInterval: config.minInterval,
-          });
+          // logger.debug('Skipping notification - too soon', {
+          //   userId: user.id,
+          //   notificationType,
+          //   lastNotification,
+          //   timeSinceLastNotification,
+          //   requiredInterval: config.minInterval,
+          // });
         }
       }
     } catch (error) {

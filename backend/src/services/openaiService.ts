@@ -361,5 +361,5 @@ function getSystemPrompt(
     hasText,
     variant || 'A',
   );
-  return formatPrompt(promptConfig, regenerate, previousMessage);
+  return formatPrompt(promptConfig, mode, regenerate, previousMessage);
 }
