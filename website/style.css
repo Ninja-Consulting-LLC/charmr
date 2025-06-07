@@ -217,3 +217,17 @@ footer {
     margin: 0.5rem 0;
   }
 }
+
+.app-store-button {
+  display: inline-block;
+  transition: opacity 0.2s ease;
+}
+
+.app-store-button:hover {
+  opacity: 0.8;
+}
+
+.app-store-button img {
+  display: block;
+  height: auto;
+}
