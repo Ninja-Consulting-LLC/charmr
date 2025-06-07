@@ -1,10 +1,14 @@
 :root {
-  --primary-color: #ff4b91;
-  --primary-hover: #e63e7e;
-  --secondary-color: #ffe6f0;
-  --text-color: #2d2d2d;
-  --light-text: #666666;
+  --primary-color: #7e22ce;
+  --primary-hover: #3b0764;
+  --secondary-color: #40e0d0;
   --background: #ffffff;
+  --card-bg: #ffffff;
+  --text-color: #000000;
+  --light-text: rgba(0, 0, 0, 0.6);
+  --error: #d32f2f;
+  --outline: rgba(0, 0, 0, 0.12);
+  --disabled: rgba(0, 0, 0, 0.38);
   --max-width: 1200px;
 }
 
@@ -33,12 +37,30 @@ header {
 }
 
 nav {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1rem;
+  position: relative;
+}
+
+.logo {
+  flex: 0 0 auto;
+}
+
+.header-title {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  flex: 0 0 auto;
 }
 
 .nav-links a {
@@ -104,13 +126,20 @@ nav {
 }
 
 /* Features Section */
+.features-row {
+  width: 100%;
+  background: var(--primary-color);
+  padding: 3rem 0;
+}
+
 .features {
   max-width: var(--max-width);
-  margin: 4rem auto;
+  margin: 0 auto;
   padding: 0 1rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
+  background: none;
 }
 
 .features h2 {
@@ -123,9 +152,10 @@ nav {
 .feature {
   text-align: center;
   padding: 2rem;
-  background: var(--secondary-color);
+  background: #fff;
   border-radius: 1rem;
   transition: transform 0.3s ease;
+  color: var(--text-color);
 }
 
 .feature:hover {
@@ -138,10 +168,17 @@ nav {
 }
 
 /* Gallery Section */
+.gallery-row {
+  width: 100%;
+  background: #fff;
+  padding: 3rem 0;
+}
+
 .gallery {
   max-width: var(--max-width);
   margin: 4rem auto;
   padding: 0 1rem;
+  background: none;
 }
 
 .gallery h2 {
