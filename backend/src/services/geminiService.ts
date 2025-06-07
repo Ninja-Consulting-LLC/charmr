@@ -57,6 +57,7 @@ export const createGeminiService = () => {
 
       const prompt = formatPrompt(
         promptConfig,
+        request.mode || MessageMode.GENERATE,
         request.regenerate,
         request.regenerate ? request.prompt : undefined,
       );

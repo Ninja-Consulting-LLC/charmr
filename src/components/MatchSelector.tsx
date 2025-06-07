@@ -104,7 +104,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
           </View>
           <ScrollView style={styles.scrollView}>
             {matches
-              .filter(match => !match.hidden)
+              .filter(match => !match.hidden && match.name !== 'No Match')
               .map(match => (
                 <List.Item
                   key={match.id}
