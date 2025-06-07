@@ -27,14 +27,14 @@ export const NOTIFICATION_CONFIGS: Record<
     title: 'New Match Alert!',
     body: 'You have a new match waiting for you!',
     type: 'match',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 365 * 24 * 60 * 60 * 1000, // Check once a year (effectively disabled)
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
   message: {
     title: 'New Message Received',
     body: 'You have a new message from your match!',
     type: 'message',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 365 * 24 * 60 * 60 * 1000, // Check once a year (effectively disabled)
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
 };
