@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: charmr-backend
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    healthCheckPath: /health
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
