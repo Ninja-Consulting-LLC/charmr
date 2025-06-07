@@ -1,0 +1,19 @@
+import type {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {Match} from '../utils/matchUtils';
+
+export type RootStackParamList = {
+  Home: undefined;
+  Login: undefined;
+  Onboarding: undefined;
+  DevMenu: undefined;
+  Admin: undefined;
+  Terms: undefined;
+  Privacy: undefined;
+  CoachChat: {
+    match: Match;
+    debugMatchId?: string;
+  };
+};
+
+export type RootStackScreenProps<T extends keyof RootStackParamList> =
+  NativeStackScreenProps<RootStackParamList, T>;

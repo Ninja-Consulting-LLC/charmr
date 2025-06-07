@@ -1,0 +1,103 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HomeScreen matches snapshot in development mode 1`] = `
+<RNCSafeAreaView
+  edges={
+    {
+      "bottom": "additive",
+      "left": "additive",
+      "right": "additive",
+      "top": "additive",
+    }
+  }
+  style={
+    {
+      "flex": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "flex": 1,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "paddingHorizontal": 16,
+        }
+      }
+    >
+      <Text
+        variant="headlineSmall"
+      >
+        Charmr
+      </Text>
+      <IconButton
+        icon="cog"
+        onPress={[Function]}
+        size={24}
+        testID="dev-menu-button"
+      />
+    </View>
+    <View
+      testID="response-generator"
+    >
+      Mock ResponseGenerator
+    </View>
+  </View>
+</RNCSafeAreaView>
+`;
+
+exports[`HomeScreen matches snapshot in production mode 1`] = `
+<RNCSafeAreaView
+  edges={
+    {
+      "bottom": "additive",
+      "left": "additive",
+      "right": "additive",
+      "top": "additive",
+    }
+  }
+  style={
+    {
+      "flex": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "flex": 1,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "paddingHorizontal": 16,
+        }
+      }
+    >
+      <Text
+        variant="headlineSmall"
+      >
+        Charmr
+      </Text>
+    </View>
+    <View
+      testID="response-generator"
+    >
+      Mock ResponseGenerator
+    </View>
+  </View>
+</RNCSafeAreaView>
+`;

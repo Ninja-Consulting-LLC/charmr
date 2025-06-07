@@ -1,0 +1,160 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OnboardingScreen matches snapshot for step 1 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#f5f5f5",
+      "flex": 1,
+      "justifyContent": "center",
+      "padding": 16,
+    }
+  }
+>
+  <Surface
+    style={
+      {
+        "borderRadius": 8,
+        "padding": 24,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "marginBottom": 16,
+            "textAlign": "center",
+          }
+        }
+        variant="headlineSmall"
+      >
+        Enable Dating Keyboard
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#666",
+            "marginBottom": 24,
+            "textAlign": "center",
+          }
+        }
+        variant="bodyLarge"
+      >
+        Follow these steps to enable Charmr keyboard:
+      </Text>
+      <View
+        style={
+          {
+            "marginBottom": 32,
+            "width": "100%",
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          1. Go to Settings
+        </Text>
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          2. Tap General
+        </Text>
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          3. Tap Keyboard
+        </Text>
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          4. Tap Keyboards
+        </Text>
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          5. Tap Add New Keyboard
+        </Text>
+        <Text
+          style={
+            {
+              "fontSize": 16,
+              "marginBottom": 8,
+            }
+          }
+        >
+          6. Select Charmr
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "marginTop": 16,
+        }
+      }
+    >
+      <Button
+        mode="outlined"
+        onPress={[Function]}
+        style={
+          {
+            "flex": 1,
+            "marginHorizontal": 4,
+          }
+        }
+        testID="skip-button"
+      >
+        Skip
+      </Button>
+      <Button
+        mode="contained"
+        onPress={[Function]}
+        style={
+          {
+            "flex": 1,
+            "marginHorizontal": 4,
+          }
+        }
+        testID="next-button"
+      >
+        Next
+      </Button>
+    </View>
+  </Surface>
+</View>
+`;
