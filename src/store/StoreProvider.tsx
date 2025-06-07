@@ -215,38 +215,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     initializeApp();
   }, []);
 
-  // Set device token in Firestore when app loads and user is authenticated
-  useEffect(() => {
-    const setDeviceToken = async () => {
-      if (!isAuthenticated || !userId) return;
-      try {
-        const {pushNotificationService} = await import(
-          '../services/PushNotificationService'
-        );
-        const token = await pushNotificationService.getToken();
-        if (token) {
-          await userService.updateUserProfile(userId, {deviceToken: token});
-          logger.app.info('Device token updated in Firestore', {userId, token});
-        } else {
-          logger.app.warn('No device token available to update in Firestore', {
-            userId,
-          });
-        }
-        // Listen for token refresh and update Firestore
-        pushNotificationService.onTokenRefresh(async (newToken: string) => {
-          await userService.updateUserProfile(userId, {deviceToken: newToken});
-          logger.app.info('Device token refreshed and updated in Firestore', {
-            userId,
-            newToken,
-          });
-        });
-      } catch (error) {
-        logger.app.error('Failed to set device token in Firestore', {error});
-      }
-    };
-    setDeviceToken();
-  }, [isAuthenticated, userId]);
-
   const updateUserPlan = async (plan: SubscriptionTier) => {
     try {
       if (!userId) {
