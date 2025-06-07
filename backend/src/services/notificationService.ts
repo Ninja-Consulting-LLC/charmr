@@ -46,14 +46,28 @@ export const createNotificationService = (db: Database) => {
   ) => {
     try {
       const user = await db.getUser(userId);
-      if (!user || !user.deviceToken) {
-        logger.warn(
-          'Cannot send notification - user not found or no device token',
-          {
-            userId,
-            notificationType,
-          },
-        );
+      if (!user) {
+        logger.warn('Cannot send notification - user not found', {
+          userId,
+          notificationType,
+        });
+        return;
+      }
+
+      // Skip notifications for anonymous users
+      if (user.email === user.installationId) {
+        logger.info('Skipping notification for anonymous user', {
+          userId,
+          notificationType,
+        });
+        return;
+      }
+
+      if (!user.deviceToken) {
+        logger.warn('Cannot send notification - no device token', {
+          userId,
+          notificationType,
+        });
         return;
       }
 
@@ -94,12 +108,14 @@ export const createNotificationService = (db: Database) => {
         users = await (db as any).getUsersWithDeviceToken();
       } else {
         users = await db.all(
-          'SELECT id, deviceToken, notificationDates FROM users WHERE deviceToken IS NOT NULL',
+          'SELECT id, deviceToken, notificationDates, email, installationId FROM users WHERE deviceToken IS NOT NULL',
         );
       }
 
-      // Filter out users with null device tokens
-      users = users.filter(user => user.deviceToken);
+      // Filter out users with null device tokens and anonymous users
+      users = users.filter(
+        user => user.deviceToken && user.email !== user.installationId,
+      );
 
       logger.info('Checking notifications', {
         notificationType,
@@ -124,14 +140,6 @@ export const createNotificationService = (db: Database) => {
           timeSinceLastNotification >= config.minInterval
         ) {
           await sendNotification(user.id, notificationType);
-        } else {
-          // logger.debug('Skipping notification - too soon', {
-          //   userId: user.id,
-          //   notificationType,
-          //   lastNotification,
-          //   timeSinceLastNotification,
-          //   requiredInterval: config.minInterval,
-          // });
         }
       }
     } catch (error) {

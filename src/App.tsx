@@ -20,15 +20,20 @@ import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';
 import {Platform, StatusBar} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
-import {SplashScreen} from './src/components/SplashScreen';
-import {config} from './src/config/config';
-import AppNavigator from './src/navigation/AppNavigator';
-import {pushNotificationService} from './src/services/PushNotificationService';
-import {initializeRevenueCat} from './src/services/revenueCatService';
-import {StoreProvider} from './src/store/StoreProvider';
-import {theme} from './src/theme/theme';
-import {logger} from './src/utils/logger';
-import {getPlanLimits} from './src/utils/planLimits';
+import {SplashScreen} from './components/SplashScreen';
+import {config} from './config/config';
+import {usePushNotifications} from './hooks/usePushNotifications';
+import AppNavigator from './navigation/AppNavigator';
+import {initializeRevenueCat} from './services/revenueCatService';
+import {StoreProvider} from './store/StoreProvider';
+import {theme} from './theme/theme';
+import {logger} from './utils/logger';
+import {getPlanLimits} from './utils/planLimits';
+
+const AppContent = () => {
+  usePushNotifications();
+  return <AppNavigator />;
+};
 
 const App = () => {
   const [isReady, setIsReady] = useState(false);
@@ -120,48 +125,6 @@ const App = () => {
 
     initializeApp();
 
-    const initializePushNotifications = async () => {
-      try {
-        // Request permission and get token
-        const hasPermission = await pushNotificationService.requestPermission();
-        if (hasPermission) {
-          const token = await pushNotificationService.getToken();
-          logger.app.info('Push notification initialized', {token});
-
-          // Set up token refresh handler
-          await pushNotificationService.onTokenRefresh(newToken => {
-            logger.app.info('FCM token refreshed', {token: newToken});
-            // TODO: Send new token to your backend
-          });
-
-          // Set up message handlers
-          await pushNotificationService.onMessage(message => {
-            logger.app.info('Received foreground message', {message});
-            // TODO: Handle foreground message
-          });
-
-          await pushNotificationService.onNotificationOpenedApp(message => {
-            logger.app.info('App opened from background', {message});
-            // TODO: Handle notification opened from background
-          });
-
-          // Check if app was opened from a notification
-          const initialNotification =
-            await pushNotificationService.getInitialNotification();
-          if (initialNotification) {
-            logger.app.info('App opened from quit state', {
-              message: initialNotification,
-            });
-            // TODO: Handle initial notification
-          }
-        }
-      } catch (error) {
-        logger.app.error('Failed to initialize push notifications:', error);
-      }
-    };
-
-    initializePushNotifications();
-
     return () => {
       isInitializedRef.current = false;
     };
@@ -175,7 +138,7 @@ const App = () => {
     <PaperProvider theme={theme}>
       <StatusBar barStyle="light-content" />
       <StoreProvider>
-        <AppNavigator />
+        <AppContent />
       </StoreProvider>
     </PaperProvider>
   );
