@@ -209,7 +209,7 @@ nav {
 footer {
   background: var(--secondary-color);
   padding: 2rem 1rem;
-  margin-top: 4rem;
+  margin-top: 0;
 }
 
 .footer-content {
@@ -274,4 +274,64 @@ footer {
 .app-store-button img {
   display: block;
   height: auto;
+}
+
+/* Contact Section */
+.contact-row {
+  width: 100%;
+  background: var(--primary-color);
+  padding: 3rem 0;
+  margin-bottom: 0;
+}
+
+.contact-section {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+
+.contact-section h2 {
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+}
+
+#contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#contact-form input,
+#contact-form textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+#contact-form button {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#contact-form button:hover {
+  background: var(--primary-hover);
+}
+
+#contact-status {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: var(--primary-color);
 }
