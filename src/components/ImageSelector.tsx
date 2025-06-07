@@ -24,8 +24,8 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
   const {openSettings} = useImagePicker();
   const {height: windowHeight, width: windowWidth} = useWindowDimensions();
 
-  const maxWidth = 200;
-  const baseWidth = windowWidth * 0.5;
+  const maxWidth = 300;
+  const baseWidth = windowWidth * 0.6;
   const width = Math.min(baseWidth, maxWidth);
   const height = width * (16 / 9);
 
@@ -55,18 +55,21 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
     },
-    imageBorderWrapper: {
-      backgroundColor: theme.colors.secondary,
-      padding: 6,
-      borderRadius: 26,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     image: {
       width: width,
       height: height,
       borderRadius: 20,
       objectFit: 'cover',
+      borderWidth: 6,
+      borderColor: `${theme.colors.secondary}B3`,
+      shadowColor: theme.colors.secondary,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 6,
     },
     removeImage: {
       position: 'absolute',
@@ -97,7 +100,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: 'rgba(64, 224, 208, 0.1)',
-      gap: 16,
+      gap: 8,
       position: 'relative',
       shadowColor: theme.colors.secondary,
       shadowOffset: {
@@ -113,13 +116,19 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       textAlign: 'center',
       color: theme.colors.secondary,
     },
+    addImageSubtext: {
+      fontSize: 14,
+      textAlign: 'center',
+      color: theme.colors.secondary,
+      opacity: 0.7,
+    },
   } as const;
 
   return (
     <View style={styles.imageSection}>
       <View style={styles.imageGrid}>
         {images.length > 0 ? (
-          <View style={styles.imageBorderWrapper}>
+          <View>
             <Image
               source={{uri: images[0].path}}
               style={styles.image}
@@ -143,7 +152,12 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
               size={32}
               color={theme.colors.secondary}
             />
-            <Text style={styles.addImageText}>Add Screenshot</Text>
+            <View style={{alignItems: 'center'}}>
+              <Text style={styles.addImageText}>Add Screenshot</Text>
+              <Text style={styles.addImageSubtext}>
+                conversation or dating profile
+              </Text>
+            </View>
           </Pressable>
         )}
       </View>
