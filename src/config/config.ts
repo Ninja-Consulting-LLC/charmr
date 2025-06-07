@@ -64,8 +64,8 @@ export const config = {
   googleWebClientId:
     '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
   revenueCatApiKey: Platform.select({
-    ios: process.env.REVENUECAT_IOS_API_KEY || '',
-    android: process.env.REVENUECAT_ANDROID_API_KEY || '',
+    ios: Config.REVENUECAT_IOS_API_KEY || '',
+    android: Config.REVENUECAT_ANDROID_API_KEY || '',
     default: '',
   }),
 } as const;
