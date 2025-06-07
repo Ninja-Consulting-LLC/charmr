@@ -126,18 +126,41 @@ export const createApp = async () => {
   const notificationService = createNotificationService(db);
 
   // Schedule notification checks for each type
-  Object.keys(NOTIFICATION_CONFIGS).forEach(notificationType => {
-    setInterval(() => {
+  Object.entries(NOTIFICATION_CONFIGS).forEach(([type, config]) => {
+    // Skip disabled notification types (those with very long intervals)
+    if (config.checkInterval >= 365 * 24 * 60 * 60 * 1000) {
+      logger.info('Skipping notification check scheduling for disabled type', {
+        type,
+        checkInterval: config.checkInterval,
+      });
+      return;
+    }
+
+    // Schedule the first check after the initial interval
+    setTimeout(() => {
       notificationService
-        .checkAndSendNotifications(notificationType as NotificationType)
+        .checkAndSendNotifications(type as NotificationType)
         .catch(error => {
           logger.error('Failed to run notification check', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
-            notificationType,
+            notificationType: type,
           });
         });
-    }, NOTIFICATION_CONFIGS[notificationType as NotificationType].checkInterval);
+
+      // Then set up the recurring interval
+      setInterval(() => {
+        notificationService
+          .checkAndSendNotifications(type as NotificationType)
+          .catch(error => {
+            logger.error('Failed to run notification check', {
+              error: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined,
+              notificationType: type,
+            });
+          });
+      }, config.checkInterval);
+    }, config.checkInterval);
   });
 
   // Initialize controllers
