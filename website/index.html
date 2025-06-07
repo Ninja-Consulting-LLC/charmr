@@ -91,6 +91,34 @@
           </div>
         </section>
       </div>
+
+      <!-- Contact Section -->
+      <div class="contact-row">
+        <section class="contact-section">
+          <h2>Contact Us</h2>
+          <form id="contact-form">
+            <input
+              type="text"
+              id="contact-name"
+              name="name"
+              placeholder="Your Name"
+              required />
+            <input
+              type="email"
+              id="contact-email"
+              name="email"
+              placeholder="Your Email"
+              required />
+            <textarea
+              id="contact-message"
+              name="message"
+              placeholder="Your Message"
+              required></textarea>
+            <button type="submit">Send</button>
+            <div id="contact-status"></div>
+          </form>
+        </section>
+      </div>
     </main>
 
     <footer>
@@ -102,5 +130,6 @@
         <p class="copyright">© 2024 Charmr. All rights reserved.</p>
       </div>
     </footer>
+    <script src="contact.js"></script>
   </body>
 </html>
