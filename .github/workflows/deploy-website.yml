@@ -8,12 +8,22 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        with:
+          enablement: true
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -22,3 +32,5 @@ jobs:
           publish_dir: ./website
           publish_branch: gh-pages
           force_orphan: true
+          cname: charmrapp.com
+          commit_message: 'Deploy website with SSL'
