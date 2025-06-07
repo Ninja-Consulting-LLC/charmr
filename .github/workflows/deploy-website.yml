@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - gh-pages
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   deploy:
@@ -12,19 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: |
-          cd website
-          npm install
-
-      - name: Build and Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: website
-          branch: gh-pages
-          clean: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./website
+          publish_branch: gh-pages
+          force_orphan: true
