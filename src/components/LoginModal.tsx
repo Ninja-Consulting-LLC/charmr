@@ -4,6 +4,7 @@ import auth, {
 } from '@react-native-firebase/auth';
 import React, {useState} from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Modal,
   StyleSheet,
@@ -26,15 +27,18 @@ interface LoginModalProps {
   visible: boolean;
   onClose: () => void;
   onLoginSuccess?: () => void;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
   visible,
   onClose,
   onLoginSuccess,
+  onLoadingChange,
 }) => {
   const {handleGoogleLogin} = useStore();
   const [showAccountLinking, setShowAccountLinking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [linkingData, setLinkingData] = useState<{
     email: string;
     methods: string[];
@@ -42,6 +46,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleGoogleSignIn = async () => {
     try {
+      setIsLoading(true);
+      onLoadingChange?.(true);
       console.log('Starting Google sign in process...');
       const userCredential = await signInWithGoogle();
       console.log('Got Google user credential:', userCredential.user.uid);
@@ -103,6 +109,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
       }
     } catch (error) {
       console.error('Google login error:', error);
+    } finally {
+      setIsLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -191,51 +200,58 @@ const LoginModal: React.FC<LoginModalProps> = ({
         animationType="fade"
         onRequestClose={onClose}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalWrapper}>
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.primaryContainer]}
-              style={styles.modalContent}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}>
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.button, styles.googleButton]}
-                  onPress={handleGoogleSignIn}
-                  testID="google-login-button">
-                  <View style={styles.buttonContent}>
-                    <Icon
-                      name="google"
-                      size={20}
-                      color={theme.colors.onSurface}
-                    />
-                    <Text style={styles.googleButtonText}>
-                      Continue with Google
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+          {isLoading ? (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={theme.colors.surface} />
+              <Text style={styles.loadingText}>Signing in...</Text>
+            </View>
+          ) : (
+            <View style={styles.modalWrapper}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.primaryContainer]}
+                style={styles.modalContent}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.googleButton]}
+                    onPress={handleGoogleSignIn}
+                    testID="google-login-button">
+                    <View style={styles.buttonContent}>
+                      <Icon
+                        name="google"
+                        size={20}
+                        color={theme.colors.onSurface}
+                      />
+                      <Text style={styles.googleButtonText}>
+                        Continue with Google
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.button, styles.facebookButton]}
-                  onPress={handleFacebookLogin}
-                  testID="facebook-login-button">
-                  <View style={styles.buttonContent}>
-                    <Icon
-                      name="facebook"
-                      size={20}
-                      color={theme.colors.surface}
-                    />
-                    <Text style={styles.facebookButtonText}>
-                      Continue with Facebook
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.button, styles.facebookButton]}
+                    onPress={handleFacebookLogin}
+                    testID="facebook-login-button">
+                    <View style={styles.buttonContent}>
+                      <Icon
+                        name="facebook"
+                        size={20}
+                        color={theme.colors.surface}
+                      />
+                      <Text style={styles.facebookButtonText}>
+                        Continue with Facebook
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
 
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Text style={styles.closeButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <Text style={styles.closeButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -261,6 +277,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: theme.colors.surface,
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
   },
   modalWrapper: {
     width: MODAL_WIDTH,
