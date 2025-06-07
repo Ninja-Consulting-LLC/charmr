@@ -80,6 +80,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const {userId, matches, user, setUser, setMatches, setSelectedMatch} =
     useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
@@ -430,6 +431,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setIsTyping(false);
 
         if (response.type === 'MESSAGE_LIMIT') {
+          setIsRateLimited(true);
           setShowUpgradeModal(true);
           return;
         }
@@ -460,6 +462,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       } catch (err: any) {
         setIsTyping(false);
         if (err.response?.data?.type === 'MESSAGE_LIMIT') {
+          setIsRateLimited(true);
           setShowUpgradeModal(true);
           return;
         }
@@ -934,10 +937,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       {/* Upgrade Modal */}
       <UpgradeModal
         visible={showUpgradeModal}
-        onDismiss={() => setShowUpgradeModal(false)}
-        showRateLimitMessage={
-          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
-        }
+        onDismiss={() => {
+          setShowUpgradeModal(false);
+          setIsRateLimited(false);
+        }}
+        showRateLimitMessage={isRateLimited}
       />
     </View>
   );

@@ -220,10 +220,11 @@ export const createReplyController = async (db: Database) => {
 
         // Save the summary if we have one and a matchId
         if (response.summary && matchId) {
-          await db.updateMatch(userId, matchId, {
-            summary: response.summary,
-            summaryLastUpdated: timestamp,
-          });
+          await summaryService.updateMatchSummary(
+            userId,
+            matchId,
+            response.summary,
+          );
         }
 
         // Calculate costs
