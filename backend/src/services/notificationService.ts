@@ -20,7 +20,7 @@ export const NOTIFICATION_CONFIGS: Record<
     title: 'Your Dating Coach is Here!',
     body: 'Ready to improve your dating game? Your coach is available to help!',
     type: 'coach',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 15 * 60 * 1000, // Check every 15 minutes
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
   match: {
