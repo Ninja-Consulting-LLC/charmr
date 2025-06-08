@@ -1,21 +1,21 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Keyboard,
-  Modal,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
+    Keyboard,
+    Modal,
+    StyleSheet,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
 import {
-  Button,
-  IconButton,
-  Text,
-  TextInput,
-  useTheme,
+    Button,
+    IconButton,
+    Text,
+    TextInput,
+    useTheme,
 } from 'react-native-paper';
-import {submitSupportRequest} from '../services/api';
-import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import { submitSupportRequest } from '../services/api';
+import { useStore } from '../store/StoreProvider';
+import { theme } from '../theme/theme';
 import LoginModal from './LoginModal';
 
 interface SupportContactModalProps {
@@ -33,11 +33,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
   const {user, userId, authBypass} = useStore();
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
   const [email, setEmail] = useState(
-    userId && user.email
-      ? user.email
-      : isDevelopment
-      ? 'ninjaconsultingllc@gmail.com'
-      : '',
+    userId && user.email && !authBypass ? user.email : ''
   );
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(
@@ -50,14 +46,12 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Update email when user state changes (only if not in dev mode)
+  // Update email when user state changes
   useEffect(() => {
-    if (userId && !isDevelopment) {
-      if (user.email) {
-        setEmail(user.email);
-      }
+    if (userId && user.email && !authBypass) {
+      setEmail(user.email);
     }
-  }, [user.email, userId]);
+  }, [user.email, userId, authBypass]);
 
   // Reset form state when modal becomes visible
   useEffect(() => {
@@ -72,14 +66,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           : '',
       );
       setEmail(
-        userId && user.email
-          ? user.email
-          : isDevelopment
-          ? 'ninjaconsultingllc@gmail.com'
-          : '',
+        userId && user.email && !authBypass ? user.email : ''
       );
     }
-  }, [visible, user.email, userId]);
+  }, [visible, user.email, userId, authBypass]);
 
   const handleSubmit = async () => {
     if (!email) {
@@ -211,6 +201,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
                       keyboardType="email-address"
                       autoCapitalize="none"
                       disabled={
+                        !authBypass &&
                         userId !== '' &&
                         user.email !== undefined &&
                         user.email !== ''
