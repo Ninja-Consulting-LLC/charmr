@@ -1,19 +1,20 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Image,
+    Linking,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
-import {RootStackScreenProps} from '../navigation/types';
-import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import { RootStackScreenProps } from '../navigation/types';
+import { useStore } from '../store/StoreProvider';
+import { theme } from '../theme/theme';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -73,8 +74,16 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 
             <Text style={styles.termsText}>
               By clicking above, you agree to our{' '}
-              <Text style={styles.linkText}>Terms of Use</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>.
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://charmrapp.com/terms.html')}>
+                Terms of Use
+              </Text> and{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://charmrapp.com/privacy.html')}>
+                Privacy Policy
+              </Text>.
             </Text>
           </View>
         </View>
