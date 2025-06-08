@@ -1,10 +1,10 @@
 import auth, {
-  FacebookAuthProvider,
-  GoogleAuthProvider,
+  FacebookAuthProvider
 } from '@react-native-firebase/auth';
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Modal,
   StyleSheet,
@@ -12,12 +12,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
+import { AccessToken, LoginManager } from 'react-native-fbsdk-next';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {signInWithFacebookLimited, signInWithGoogle} from '../config/firebase';
-import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import { signInWithFacebookLimited, signInWithGoogle } from '../config/firebase';
+import { syncSubscriptionState } from '../services/revenueCatService';
+import * as userService from '../services/userService';
+import { useStore } from '../store/StoreProvider';
+import { theme } from '../theme/theme';
+import { logger } from '../utils/logger';
+import { getPlanLimits } from '../utils/planLimits';
 import AccountLinkingModal from './AccountLinkingModal';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -38,7 +42,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onLoadingChange,
   handleGoogleLogin,
 }) => {
-  const {handleGoogleLogin: storeHandleGoogleLogin} = useStore();
+  const {handleGoogleLogin: storeHandleGoogleLogin, user, setUser} = useStore();
   const [showAccountLinking, setShowAccountLinking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [linkingData, setLinkingData] = useState<{
@@ -46,75 +50,70 @@ const LoginModal: React.FC<LoginModalProps> = ({
     methods: string[];
   } | null>(null);
 
+  useEffect(() => {
+    logger.auth.info('LoginModal mounted/updated:', {
+      visible,
+      hasHandleGoogleLogin: !!handleGoogleLogin,
+      hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+    });
+  }, [visible, handleGoogleLogin, storeHandleGoogleLogin]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       onLoadingChange?.(true);
-      console.log('Starting Google sign in process...');
+      logger.auth.info('Starting Google sign in process...');
+
+      logger.auth.info('Attempting to sign in with Google...');
       const userCredential = await signInWithGoogle();
-      console.log('Got Google user credential:', userCredential.user.uid);
+      logger.auth.info('Got Google user credential:', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName,
+      });
 
-      // If we're in account linking mode, link the accounts
-      if (showAccountLinking) {
-        console.log('In account linking mode, starting linking process...');
-        const currentUser = auth().currentUser;
-        if (!currentUser) {
-          console.error('No current user found for linking');
-          throw new Error('No current user found for linking');
-        }
-
-        // Create a new Google credential
-        const googleCredential = GoogleAuthProvider.credential(
-          userCredential.user.getIdToken(),
-        );
-        console.log('Created Google credential for linking');
-
-        // Link the Google credential to the current user
-        await currentUser.linkWithCredential(googleCredential);
-        console.log('Successfully linked Google credential');
-
-        // Now try to link Facebook credentials
-        try {
-          console.log('Starting Facebook credential linking...');
-          const facebookResult = await LoginManager.logInWithPermissions([
-            'public_profile',
-            'email',
-          ]);
-
-          if (facebookResult.isCancelled) {
-            console.log('User cancelled Facebook login during linking');
-            return;
-          }
-
-          const data = await AccessToken.getCurrentAccessToken();
-          if (!data) {
-            throw new Error('No Facebook access token available');
-          }
-
-          console.log('Got Facebook access token, creating credential...');
-          const facebookCredential = FacebookAuthProvider.credential(
-            data.accessToken,
-          );
-
-          await currentUser.linkWithCredential(facebookCredential);
-          console.log('Successfully linked Facebook credential');
-        } catch (error) {
-          console.error('Error linking Facebook credentials:', error);
-        }
-
-        await (handleGoogleLogin || storeHandleGoogleLogin)(
-          userCredential.user,
-        );
-        handleLinkSuccess();
+      // Call the appropriate handler
+      if (handleGoogleLogin) {
+        logger.auth.info('Using provided handleGoogleLogin handler');
+        await handleGoogleLogin(userCredential.user);
+      } else if (storeHandleGoogleLogin) {
+        logger.auth.info('Using store handleGoogleLogin handler');
+        await storeHandleGoogleLogin(userCredential.user);
       } else {
-        // Normal sign in flow
-        await (handleGoogleLogin || storeHandleGoogleLogin)(
-          userCredential.user,
-        );
-        onLoginSuccess?.();
+        logger.auth.error('No Google login handler available', {
+          hasHandleGoogleLogin: !!handleGoogleLogin,
+          hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+        });
+        throw new Error('No Google login handler available');
       }
+
+      // After successful login, sync subscription state
+      logger.auth.info('Syncing subscription state after login');
+      await syncSubscriptionState(
+        async (userId, plan) => {
+          await userService.updateUserPlan(userId, plan);
+          setUser({
+            plan,
+            getDailyMessageLimit: () => getPlanLimits(plan),
+          });
+        },
+        setUser,
+        user
+      );
+
+      logger.auth.info('Google sign in completed successfully');
+      onLoginSuccess?.();
     } catch (error) {
-      console.error('Google login error:', error);
+      logger.auth.error('Google Sign-In Error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        hasHandleGoogleLogin: !!handleGoogleLogin,
+        hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+      });
+      Alert.alert(
+        'Sign In Failed',
+        'There was an error signing in with Google. Please try again.',
+      );
     } finally {
       setIsLoading(false);
       onLoadingChange?.(false);

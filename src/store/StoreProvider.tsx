@@ -1,22 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
-import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
-import {useStoreState} from '../hooks/useStoreState';
+import { signOut as firebaseSignOut, getAuthToken } from '../config/firebase';
+import { useStoreState } from '../hooks/useStoreState';
 import * as authService from '../services/authService';
+import { installationService } from '../services/installationService';
 import * as matchService from '../services/matchService';
-import {setSubscriptionUpdateCallback} from '../services/revenueCatService';
+import { setSubscriptionUpdateCallback } from '../services/revenueCatService';
 import * as userService from '../services/userService';
-import {SubscriptionTier} from '../types/enums';
-import {User} from '../types/user';
-import {logger} from '../utils/logger';
-import {Match} from '../utils/matchUtils';
-import {getPlanLimits} from '../utils/planLimits';
+import { SubscriptionTier } from '../types/enums';
+import { User } from '../types/user';
+import { logger } from '../utils/logger';
+import { Match } from '../utils/matchUtils';
+import { getPlanLimits } from '../utils/planLimits';
 
 interface StoreContextType {
   showKeyboardModal: boolean;
@@ -102,8 +103,126 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setIsAuthenticated,
     isLoading,
     setIsLoading,
-    handleGoogleLogin,
   } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
+
+  // Initialize handleGoogleLogin
+  const handleGoogleLogin = async (firebaseUser: any) => {
+    try {
+      logger.auth.info('🔐 Starting Google login process...', {
+        firebaseUser: {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          providerId: firebaseUser.providerId,
+          isAnonymous: firebaseUser.isAnonymous,
+        },
+      });
+
+      // Get the installation ID directly from the service
+      const installationId = await installationService.getInstallationId();
+      logger.auth.info('Got installation ID', {installationId});
+
+      // Ensure we have a valid Firebase token before proceeding
+      const token = await getAuthToken();
+      if (!token) {
+        logger.auth.error('Failed to get Firebase token after login');
+        throw new Error('Failed to get Firebase token after login');
+      }
+      logger.auth.info('Successfully obtained Firebase token');
+
+      // First, check if there's an anonymous user with this installation ID
+      let anonymousUser = null;
+      try {
+        logger.auth.info(
+          '🔍 Searching for anonymous user with installation ID',
+          {
+            installationId,
+            firebaseUserId: firebaseUser.uid,
+          },
+        );
+        anonymousUser = await userService.findUserByInstallationId(
+          installationId,
+        );
+        logger.auth.info('Anonymous user search result', {
+          found: !!anonymousUser,
+          anonymousUserId: anonymousUser?.id,
+          anonymousUserData: anonymousUser
+            ? {
+                id: anonymousUser.id,
+                email: anonymousUser.email,
+                installationId: anonymousUser.installationId,
+              }
+            : null,
+          installationId,
+        });
+      } catch (error) {
+        logger.auth.warn('Error finding anonymous user:', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          installationId,
+        });
+      }
+
+      // Check if user exists in our backend
+      logger.auth.info('Checking if user exists in backend', {
+        userId: firebaseUser.uid,
+      });
+
+      let existingUser;
+      try {
+        existingUser = await userService.getUserProfile(firebaseUser.uid);
+      } catch (error: any) {
+        logger.app.error('API Response Error', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          response: error.response,
+        });
+        logger.app.error('Failed to get user profile:', error);
+      }
+
+      // If user exists, update local state
+      if (existingUser) {
+        logger.auth.info('Found existing user, updating local state', {
+          userId: firebaseUser.uid,
+          email: existingUser.email,
+          existingUserData: {
+            id: existingUser.id,
+            email: existingUser.email,
+            installationId: existingUser.installationId,
+          },
+        });
+
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
+        setUser(existingUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
+      } else {
+        // Create a new user
+        logger.auth.info('Creating new user', {
+          userId: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+        });
+
+        const newUser = await userService.createUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || 'Anonymous User',
+          installationId,
+        });
+
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
+        setUser(newUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
+      }
+    } catch (error) {
+      logger.auth.error('Error in Google login:', error);
+      throw error;
+    }
+  };
 
   // Remove dating coach preference loading since we're not using a toggle anymore
   useEffect(() => {

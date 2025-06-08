@@ -6,7 +6,6 @@ import Purchases, {
   PurchasesEntitlementInfo,
   PurchasesEntitlementInfos,
 } from 'react-native-purchases';
-import {config} from '../config/config';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
@@ -14,15 +13,15 @@ import axiosInstance from './axiosInstance';
 
 // Development configuration for testing in simulator
 const REVENUECAT_DEV_API_KEY = Platform.select({
-  ios: Config.REVENUECAT_DEV_API_KEY,
-  android: Config.REVENUECAT_ANDROID_DEV_API_KEY,
+  ios: Config.REVENUECAT_IOS_API_KEY,
+  android: Config.REVENUECAT_ANDROID_API_KEY,
   default: '',
 });
 
 // Production configuration
 const REVENUECAT_PROD_API_KEY = Platform.select({
-  ios: Config.REVENUECAT_PROD_API_KEY,
-  android: Config.REVENUECAT_ANDROID_PROD_API_KEY,
+  ios: Config.REVENUECAT_IOS_API_KEY,
+  android: Config.REVENUECAT_ANDROID_API_KEY,
   default: '',
 });
 
@@ -37,7 +36,13 @@ export const setSubscriptionUpdateCallback = (
 
 export const initializeRevenueCat = async () => {
   try {
-    const apiKey = config.revenueCatApiKey;
+    const apiKey = __DEV__ ? REVENUECAT_DEV_API_KEY : REVENUECAT_PROD_API_KEY;
+    logger.revenueCat.info('Initializing RevenueCat with API key:', {
+      hasApiKey: !!apiKey,
+      isDev: __DEV__,
+      platform: Platform.OS,
+    });
+
     if (!apiKey) {
       throw new Error('RevenueCat API key not found');
     }
@@ -46,6 +51,7 @@ export const initializeRevenueCat = async () => {
       apiKey,
     };
     await Purchases.configure(purchasesConfig);
+    logger.revenueCat.info('RevenueCat configured successfully');
 
     // Set up subscription listener
     Purchases.addCustomerInfoUpdateListener(async info => {
@@ -148,10 +154,38 @@ export const simulateProEntitlement = async (userId: string) => {
 
 export const getProPaywall = async () => {
   try {
+    logger.revenueCat.info('Fetching pro paywall...');
     const offerings = await Purchases.getOfferings();
-    return offerings.current?.availablePackages || null;
+    logger.revenueCat.info('RevenueCat offerings:', {
+      hasCurrent: !!offerings.current,
+      availablePackages: offerings.current?.availablePackages?.length || 0,
+      offerings: offerings.all,
+    });
+
+    if (!offerings.current) {
+      logger.revenueCat.warn('No current offering available');
+      return null;
+    }
+
+    if (!offerings.current.availablePackages?.length) {
+      logger.revenueCat.warn('No available packages in current offering');
+      return null;
+    }
+
+    // Filter out message pack products and only return subscription products
+    const subscriptionPackages = offerings.current.availablePackages.filter(
+      pkg => pkg.product.productType === 'AUTO_RENEWABLE_SUBSCRIPTION',
+    );
+
+    return subscriptionPackages;
   } catch (error) {
     logger.revenueCat.error('Error fetching pro paywall:', error);
+    if (error instanceof Error) {
+      logger.revenueCat.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return null;
   }
 };

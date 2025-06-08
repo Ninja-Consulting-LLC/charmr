@@ -1,27 +1,34 @@
-import {useNavigation} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {useEffect, useState} from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import {Divider, IconButton, List, useTheme} from 'react-native-paper';
-import {signOut} from '../config/firebase';
-import {RootStackParamList} from '../navigation/types';
-import {clearAuthData} from '../services/authService';
+import { Divider, IconButton, List, Portal, useTheme } from 'react-native-paper';
+import Purchases from 'react-native-purchases';
+import RevenueCatUI from 'react-native-purchases-ui';
+import { signOut } from '../config/firebase';
+import { RootStackParamList } from '../navigation/types';
+import { clearAuthData } from '../services/authService';
 import axiosInstance from '../services/axiosInstance';
-import {deleteMatch, restoreMatch} from '../services/matchService';
-import {useStore} from '../store';
-import {SubscriptionTier} from '../types/enums';
-import {Match} from '../utils/matchUtils';
-import {getPlanLimits} from '../utils/planLimits';
+import { deleteMatch, restoreMatch } from '../services/matchService';
+import { cancelSubscription, syncSubscriptionState } from '../services/revenueCatService';
+import { updateUserPlan } from '../services/userService';
+import { useStore } from '../store';
+import { SubscriptionTier } from '../types/enums';
+import { logger } from '../utils/logger';
+import { Match } from '../utils/matchUtils';
+import { getPlanLimits } from '../utils/planLimits';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import LoginModal from './LoginModal';
-import SubscriptionSlideout from './SubscriptionSlideout';
+import PurchaseSuccessModal from './PurchaseSuccessModal';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -40,17 +47,19 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const theme = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
+  const {user, setUser, isAuthenticated, setIsAuthenticated, handleGoogleLogin} = useStore();
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showPresetPaywall, setShowPresetPaywall] = useState(false);
   const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
     useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showSubscriptionSlideout, setShowSubscriptionSlideout] =
-    useState(false);
+  const [showSubscriptionSection, setShowSubscriptionSection] = useState(false);
   const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -86,6 +95,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       });
     }
   }, [visible, slideAnim, fadeAnim]);
+
+  useEffect(() => {
+    logger.auth.info('UserMenuSlideout mounted with handleGoogleLogin:', {
+      hasHandleGoogleLogin: !!handleGoogleLogin,
+      isAuthenticated,
+      userId: user?.id,
+    });
+  }, [handleGoogleLogin, isAuthenticated, user?.id]);
 
   const loadArchivedMatches = async () => {
     if (!user.id) {
@@ -168,7 +185,89 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     setShowUpgradeModal(false);
   };
 
+  const handleUpgradePress = async () => {
+    try {
+      console.log('[UserMenuSlideout] Checking RevenueCat offerings...');
+      const offerings = await Purchases.getOfferings();
+      console.log('[UserMenuSlideout] Offerings:', {
+        hasCurrent: !!offerings.current,
+        currentOffering: offerings.current?.identifier,
+        availablePackages: offerings.current?.availablePackages?.length || 0,
+      });
+
+      if (offerings.current) {
+        console.log('[UserMenuSlideout] Setting showPresetPaywall to true');
+        setShowUpgradeModal(false);
+        setShowPresetPaywall(true);
+      } else {
+        console.log('[UserMenuSlideout] No current offering, showing custom modal');
+        setShowPresetPaywall(false);
+        setShowUpgradeModal(true);
+      }
+    } catch (error) {
+      console.error('[UserMenuSlideout] Error checking offerings:', error);
+      setShowPresetPaywall(false);
+      setShowUpgradeModal(true);
+    }
+  };
+
+  const handlePurchaseSuccess = () => {
+    setShowPresetPaywall(false);
+    setShowUpgradeModal(false);
+    if (user) {
+      // Immediately update the user's plan state
+      setUser({
+        ...user,
+        plan: SubscriptionTier.PRO,
+        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.PRO),
+      });
+      // Then sync with the backend
+      syncSubscriptionState(updateUserPlan, setUser, user).catch(error => {
+        logger.revenueCat.error('Failed to sync subscription state:', error);
+      });
+    }
+    setShowPurchaseSuccess(true);
+    if (user?.email === user?.installationId) {
+      setShowRegistrationPrompt(true);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const result = await cancelSubscription();
+      if (result === 'SANDBOX') {
+        Alert.alert(
+          'Sandbox Subscription',
+          'This is a sandbox subscription. To manage it:\n\n1. Go to RevenueCat dashboard\n2. Navigate to Customers\n3. Find your test user\n4. Use the sandbox testing tools to manage the subscription',
+          [{text: 'OK'}],
+        );
+      } else if (result) {
+        await Linking.openURL(result);
+      } else {
+        Alert.alert(
+          'Subscription Management',
+          'Unable to open subscription management. Please try again later or contact support if the issue persists.',
+          [{text: 'OK'}],
+        );
+      }
+    } catch (error) {
+      logger.revenueCat.error(
+        'Failed to open subscription management:',
+        error,
+      );
+      Alert.alert(
+        'Error',
+        'Unable to open subscription management. Please try again later.',
+        [{text: 'OK'}],
+      );
+    }
+  };
+
   if (!isVisible && !visible) return null;
+
+  const userPlan = user?.plan || SubscriptionTier.FREE;
+  const dailyMessagesUsed = user?.dailyMessagesUsed || 0;
+  const dailyMessageLimit = user?.getDailyMessageLimit?.() || getPlanLimits(userPlan);
 
   return (
     <>
@@ -251,7 +350,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 left={props => (
                   <List.Icon
                     {...props}
-                    icon="login"
+                    icon="account-plus"
                     color={theme.colors.surface}
                   />
                 )}
@@ -285,24 +384,69 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               titleStyle={{color: theme.colors.surface}}
             />
             <Divider style={{backgroundColor: theme.colors.surface}} />
-            <List.Item
-              title="Manage Subscription"
-              left={props => (
-                <List.Icon {...props} icon="cog" color={theme.colors.surface} />
-              )}
-              right={props => (
-                <List.Icon
-                  {...props}
-                  icon="chevron-right"
-                  color={theme.colors.surface}
+            {userPlan === SubscriptionTier.PRO ? (
+              <>
+                <List.Item
+                  title="Subscription"
+                  description={`${userPlan}`}
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="card-account-details"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  right={props => (
+                    <List.Icon
+                      {...props}
+                      icon={showSubscriptionSection ? "chevron-up" : "chevron-down"}
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={() => setShowSubscriptionSection(!showSubscriptionSection)}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
                 />
-              )}
-              onPress={() => setShowSubscriptionSlideout(true)}
-              titleStyle={{color: theme.colors.surface}}
-            />
-            {user.plan !== SubscriptionTier.PRO && (
+                {showSubscriptionSection && (
+                  <List.Item
+                    title="Cancel Subscription"
+                    description={
+                      __DEV__
+                        ? 'Sandbox: Use RevenueCat dashboard to manage'
+                        : undefined
+                    }
+                    left={props => (
+                      <List.Icon
+                        {...props}
+                        icon="cancel"
+                        color={theme.colors.surface}
+                      />
+                    )}
+                    onPress={handleManageSubscription}
+                    titleStyle={{color: theme.colors.surface}}
+                    descriptionStyle={{color: theme.colors.surface}}
+                  />
+                )}
+              </>
+            ) : (
+              <List.Item
+                title="Subscription"
+                description={`${userPlan} Plan`}
+                left={props => (
+                  <List.Icon
+                    {...props}
+                    icon="card-account-details"
+                    color={theme.colors.surface}
+                  />
+                )}
+                titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
+              />
+            )}
+            {userPlan !== SubscriptionTier.PRO && (
               <List.Item
                 title="Upgrade Plan"
+                description="Get unlimited messages and more features"
                 left={props => (
                   <List.Icon
                     {...props}
@@ -310,8 +454,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     color={theme.colors.surface}
                   />
                 )}
-                onPress={() => setShowUpgradeModal(true)}
+                onPress={handleUpgradePress}
                 titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
               />
             )}
             <Divider style={{backgroundColor: theme.colors.surface}} />
@@ -368,29 +513,58 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         currentBalance={user.extraMessages}
       /> */}
 
-      <UpgradeModal
-        visible={showUpgradeModal}
-        onDismiss={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgrade}
-      />
-
-      <HiddenMatchesModal
-        visible={showArchivedMatchesModal}
-        onDismiss={() => setShowArchivedMatchesModal(false)}
-        hiddenMatches={archivedMatches}
-        onRestoreMatch={handleRestoreMatch}
-        onDeleteMatch={handleDeleteMatch}
-      />
-
-      <LoginModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={() => {
-          setShowLoginModal(false);
-          navigation.navigate('Home');
-        }}
-        onLoadingChange={setIsLoading}
-      />
+      <Portal>
+        <UpgradeModal
+          visible={showUpgradeModal}
+          onDismiss={() => setShowUpgradeModal(false)}
+          onUpgrade={handleUpgrade}
+          onPurchaseSuccess={handlePurchaseSuccess}
+        />
+        <LoginModal
+          visible={showLoginModal}
+          onClose={() => {
+            logger.auth.info('LoginModal closed');
+            setShowLoginModal(false);
+          }}
+          onLoginSuccess={() => {
+            logger.auth.info('Login successful, navigating to Home');
+            setShowLoginModal(false);
+            navigation.navigate('Home');
+          }}
+          onLoadingChange={(loading) => {
+            logger.auth.info('Login loading state changed:', { loading });
+            setIsLoading(loading);
+          }}
+          handleGoogleLogin={handleGoogleLogin}
+        />
+        <HiddenMatchesModal
+          visible={showArchivedMatchesModal}
+          onDismiss={() => setShowArchivedMatchesModal(false)}
+          hiddenMatches={archivedMatches}
+          onRestoreMatch={handleRestoreMatch}
+          onDeleteMatch={handleDeleteMatch}
+        />
+        <PurchaseSuccessModal
+          visible={showPurchaseSuccess}
+          onDismiss={() => {
+            setShowPurchaseSuccess(false);
+            setShowRegistrationPrompt(false);
+          }}
+          showRegistrationPrompt={showRegistrationPrompt}
+          onRegisterPress={() => {
+            setShowPurchaseSuccess(false);
+            setShowLoginModal(true);
+          }}
+        />
+        {showPresetPaywall && (
+          <RevenueCatUI.Paywall
+            onDismiss={() => setShowPresetPaywall(false)}
+            onPurchaseCompleted={() => {
+              handlePurchaseSuccess();
+            }}
+          />
+        )}
+      </Portal>
 
       {isLoading && (
         <View style={[styles.overlay, {backgroundColor: 'rgba(0, 0, 0, 0.7)'}]}>
@@ -400,11 +574,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           </Text>
         </View>
       )}
-
-      <SubscriptionSlideout
-        visible={showSubscriptionSlideout}
-        onDismiss={() => setShowSubscriptionSlideout(false)}
-      />
     </>
   );
 };
