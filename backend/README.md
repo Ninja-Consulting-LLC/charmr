@@ -14,6 +14,44 @@
    cp .env.example .env
    ```
 
+### Email Configuration
+
+The backend uses SendGrid for sending emails. To configure email functionality:
+
+1. **SendGrid Setup**
+   - Create a SendGrid account if you don't have one
+   - Go to SendGrid's "Sender Authentication" section
+   - Either:
+     a. Verify your domain (recommended)
+     b. Or verify a single sender email address
+
+2. **Required Environment Variables**
+   ```
+   EMAIL_HOST=smtp.sendgrid.net
+   EMAIL_PORT=587
+   EMAIL_SECURE=false
+   EMAIL_USER=apikey
+   EMAIL_PASS=your_sendgrid_api_key
+   EMAIL_DEFAULT_FROM=your_verified_email@domain.com
+   EMAIL_DEFAULT_REPLY_TO=support@charmrapp.com
+   ```
+
+3. **Troubleshooting**
+   - If you get a "550 The from address does not match a verified Sender Identity" error:
+     - Make sure your sender email/domain is verified in SendGrid
+     - Check that EMAIL_DEFAULT_FROM matches your verified sender
+     - Verify your SendGrid API key has the correct permissions
+
+4. **Development Mode**
+   - In development, you can use MailHog (included in docker-compose.yml)
+   - Set these environment variables for local testing:
+     ```
+     EMAIL_HOST=mailhog
+     EMAIL_PORT=1025
+     EMAIL_SECURE=false
+     ```
+   - Access MailHog web interface at http://localhost:8025
+
 3. Start the development server:
    ```bash
    npm run dev
