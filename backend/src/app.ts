@@ -14,6 +14,7 @@ import {
 import {checkSchemaHealth} from './controllers/devController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
+import {createDeviceTokenLimiter} from './middleware';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
@@ -181,6 +182,7 @@ export const createApp = async () => {
   app.put(
     '/api/users/:userId/device-token',
     authenticateUser,
+    createDeviceTokenLimiter(),
     async (req, res) => {
       try {
         const {deviceToken} = req.body;

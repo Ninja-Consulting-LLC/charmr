@@ -24,7 +24,11 @@ import {SplashScreen} from './components/SplashScreen';
 import {config} from './config/config';
 import {usePushNotifications} from './hooks/usePushNotifications';
 import AppNavigator from './navigation/AppNavigator';
-import {initializeRevenueCat} from './services/revenueCatService';
+import {
+  initializeRevenueCat,
+  syncSubscriptionState,
+} from './services/revenueCatService';
+import {updateUserPlan} from './services/userService';
 import {StoreProvider} from './store/StoreProvider';
 import {theme} from './theme/theme';
 import {logger} from './utils/logger';
@@ -89,6 +93,21 @@ const App = () => {
         const userData = await AsyncStorage.getItem('@charmr/user');
 
         const user = userData ? JSON.parse(userData) : null;
+
+        // Sync subscription state if user is authenticated
+        if (isAuthenticated === 'true' && userId && user) {
+          await syncSubscriptionState(
+            updateUserPlan,
+            async updatedUser => {
+              await AsyncStorage.setItem(
+                '@charmr/user',
+                JSON.stringify(updatedUser),
+              );
+            },
+            user,
+          );
+        }
+
         const userDetails = user
           ? {
               email: user.email || 'Not set',

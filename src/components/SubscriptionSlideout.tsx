@@ -1,8 +1,22 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Animated, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {
+  Alert,
+  Animated,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {
+  cancelSubscription,
+  syncSubscriptionState,
+} from '../services/revenueCatService';
+import {updateUserPlan} from '../services/userService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
 import UpgradeModal from './UpgradeModal';
 
 interface SubscriptionSlideoutProps {
@@ -15,7 +29,7 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
   onDismiss,
 }) => {
   const theme = useTheme();
-  const {user} = useStore();
+  const {user, setUser} = useStore();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(400)).current;
@@ -36,6 +50,9 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
+      syncSubscriptionState(updateUserPlan, setUser, user).catch(error => {
+        logger.revenueCat.error('Failed to sync subscription state:', error);
+      });
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -52,7 +69,7 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
         setIsVisible(false);
       });
     }
-  }, [visible, slideAnim, fadeAnim]);
+  }, [visible, slideAnim, fadeAnim, user, setUser]);
 
   if (!isVisible && !visible) return null;
 
@@ -110,6 +127,11 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
                 <Divider style={{backgroundColor: theme.colors.surface}} />
                 <List.Item
                   title="Cancel Subscription"
+                  description={
+                    __DEV__
+                      ? 'Sandbox: Use RevenueCat dashboard to manage'
+                      : undefined
+                  }
                   left={props => (
                     <List.Icon
                       {...props}
@@ -117,10 +139,38 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
                       color={theme.colors.surface}
                     />
                   )}
-                  onPress={() => {
-                    // TODO: Add cancel subscription flow
+                  onPress={async () => {
+                    try {
+                      const result = await cancelSubscription();
+                      if (result === 'SANDBOX') {
+                        Alert.alert(
+                          'Sandbox Subscription',
+                          'This is a sandbox subscription. To manage it:\n\n1. Go to RevenueCat dashboard\n2. Navigate to Customers\n3. Find your test user\n4. Use the sandbox testing tools to manage the subscription',
+                          [{text: 'OK'}],
+                        );
+                      } else if (result) {
+                        await Linking.openURL(result);
+                      } else {
+                        Alert.alert(
+                          'Subscription Management',
+                          'Unable to open subscription management. Please try again later or contact support if the issue persists.',
+                          [{text: 'OK'}],
+                        );
+                      }
+                    } catch (error) {
+                      logger.revenueCat.error(
+                        'Failed to open subscription management:',
+                        error,
+                      );
+                      Alert.alert(
+                        'Error',
+                        'Unable to open subscription management. Please try again later.',
+                        [{text: 'OK'}],
+                      );
+                    }
                   }}
                   titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
                 />
               </>
             ) : (
@@ -149,10 +199,6 @@ const SubscriptionSlideout: React.FC<SubscriptionSlideoutProps> = ({
       <UpgradeModal
         visible={showUpgradeModal}
         onDismiss={() => setShowUpgradeModal(false)}
-        onUpgrade={() => {
-          setShowUpgradeModal(false);
-          onDismiss();
-        }}
       />
     </>
   );

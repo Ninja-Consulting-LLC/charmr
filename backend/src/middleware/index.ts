@@ -53,6 +53,21 @@ export const createGenerateReplyLimiter = () =>
     handler: createRateLimitHandler('Too many message generation requests'),
   });
 
+// Device token update rate limiter
+export const createDeviceTokenLimiter = () =>
+  rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5, // Allow 5 requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: req => {
+      const isDevelopment = config.server.environment === 'development';
+      return isDevelopment;
+    },
+    keyGenerator: req => req.params.userId || req.ip || 'unknown',
+    handler: createRateLimitHandler('Too many device token update requests'),
+  });
+
 // Error handling middleware
 export const createErrorHandler =
   () => (err: Error, req: Request, res: Response, next: NextFunction) => {

@@ -28,6 +28,7 @@ interface LoginModalProps {
   onClose: () => void;
   onLoginSuccess?: () => void;
   onLoadingChange?: (isLoading: boolean) => void;
+  handleGoogleLogin?: (firebaseUser: any) => Promise<void>;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
@@ -35,8 +36,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
   onLoadingChange,
+  handleGoogleLogin,
 }) => {
-  const {handleGoogleLogin} = useStore();
+  const {handleGoogleLogin: storeHandleGoogleLogin} = useStore();
   const [showAccountLinking, setShowAccountLinking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [linkingData, setLinkingData] = useState<{
@@ -100,11 +102,15 @@ const LoginModal: React.FC<LoginModalProps> = ({
           console.error('Error linking Facebook credentials:', error);
         }
 
-        await handleGoogleLogin(userCredential.user);
+        await (handleGoogleLogin || storeHandleGoogleLogin)(
+          userCredential.user,
+        );
         handleLinkSuccess();
       } else {
         // Normal sign in flow
-        await handleGoogleLogin(userCredential.user);
+        await (handleGoogleLogin || storeHandleGoogleLogin)(
+          userCredential.user,
+        );
         onLoginSuccess?.();
       }
     } catch (error) {
@@ -118,7 +124,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleFacebookLogin = async () => {
     try {
       const userCredential = await signInWithFacebookLimited();
-      await handleGoogleLogin(userCredential.user);
+      await (handleGoogleLogin || storeHandleGoogleLogin)(userCredential.user);
       onLoginSuccess?.();
     } catch (error: any) {
       console.log('Facebook login error details:', {
