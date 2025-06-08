@@ -470,7 +470,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     color={theme.colors.surface}
                   />
                 )}
-                onPress={() => navigation.navigate('Terms')}
+                onPress={() => Linking.openURL('https://example.invalid/terms.html')}
                 titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
               <List.Item
@@ -482,7 +482,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     color={theme.colors.surface}
                   />
                 )}
-                onPress={() => navigation.navigate('Privacy')}
+                onPress={() => Linking.openURL('https://example.invalid/privacy.html')}
                 titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
             </View>
