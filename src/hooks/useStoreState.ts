@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useEffect, useState} from 'react';
 import {getAuthToken} from '../config/firebase';
 import {installationService} from '../services/installationService';
+import {syncSubscriptionState} from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import {useStore} from '../store/StoreProvider';
 import {User} from '../types/user';
@@ -260,6 +261,18 @@ export const useStoreState = (skipInitialization = false) => {
             const updatedUser = await userService.getUserProfile(newUser.id);
             if (updatedUser) {
               setUser(updatedUser);
+              // Sync subscription state after linking
+              await syncSubscriptionState(
+                async (userId, plan) => {
+                  await userService.updateUserPlan(userId, plan);
+                  setUser({
+                    plan,
+                    getDailyMessageLimit: () => getPlanLimits(plan),
+                  });
+                },
+                setUser,
+                updatedUser,
+              );
             }
           } catch (error) {
             logger.app.error(

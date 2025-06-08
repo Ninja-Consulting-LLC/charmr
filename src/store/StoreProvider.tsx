@@ -10,6 +10,7 @@ import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
 import {useStoreState} from '../hooks/useStoreState';
 import * as authService from '../services/authService';
 import * as matchService from '../services/matchService';
+import {setSubscriptionUpdateCallback} from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
@@ -429,6 +430,24 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     }
   };
 
+  useEffect(() => {
+    // Set up subscription update handler
+    setSubscriptionUpdateCallback(async info => {
+      if (user) {
+        const hasProAccess = info.entitlements.active['Pro']?.isActive;
+        if (!hasProAccess && user.plan === SubscriptionTier.PRO) {
+          // If user no longer has pro access, update their plan
+          await updateUserPlan(SubscriptionTier.FREE);
+          setUser({
+            ...user,
+            plan: SubscriptionTier.FREE,
+            getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+          });
+        }
+      }
+    });
+  }, [user, setUser, updateUserPlan]);
+
   const value = useMemo(
     () => ({
       showKeyboardModal,
@@ -478,6 +497,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       matches,
       selectedMatch,
       deleteScreenshots,
+      handleGoogleLogin,
     ],
   );
 

@@ -172,17 +172,45 @@ export const getUserProfile = async (userId: string) => {
 // Update user profile
 export const updateUserProfile = async (userId: string, data: any) => {
   try {
-    // If only deviceToken is being updated, use the dedicated endpoint
+    // If only deviceToken is being updated, use the dedicated endpoint with retry logic
     if (
       Object.keys(data).length === 1 &&
       Object.prototype.hasOwnProperty.call(data, 'deviceToken')
     ) {
-      const response = await axiosInstance.put(
-        `/api/users/${userId}/device-token`,
-        data,
-      );
-      return response.data;
+      const maxRetries = 3;
+      const initialDelay = 1000; // 1 second
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await axiosInstance.put(
+            `/api/users/${userId}/device-token`,
+            data,
+          );
+          return response.data;
+        } catch (error: any) {
+          // If it's not a rate limit error or it's the last attempt, throw the error
+          if (error?.response?.status !== 429 || attempt === maxRetries - 1) {
+            throw error;
+          }
+
+          // Calculate delay with exponential backoff
+          const delay = initialDelay * Math.pow(2, attempt);
+          logger.app.info(
+            'Rate limited when updating device token, retrying...',
+            {
+              attempt: attempt + 1,
+              maxRetries,
+              delay,
+              userId,
+            },
+          );
+
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+
     // Otherwise, use the generic endpoint (if/when it exists)
     const response = await axiosInstance.put(`/api/users/${userId}`, data);
     return response.data;

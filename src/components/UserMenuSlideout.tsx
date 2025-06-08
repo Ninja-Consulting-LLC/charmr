@@ -1,7 +1,14 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {Divider, IconButton, List, useTheme} from 'react-native-paper';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
@@ -43,6 +50,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     useState(false);
   const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -381,7 +389,17 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           setShowLoginModal(false);
           navigation.navigate('Home');
         }}
+        onLoadingChange={setIsLoading}
       />
+
+      {isLoading && (
+        <View style={[styles.overlay, {backgroundColor: 'rgba(0, 0, 0, 0.7)'}]}>
+          <ActivityIndicator size="large" color={theme.colors.surface} />
+          <Text style={[styles.loadingText, {color: theme.colors.surface}]}>
+            Signing in...
+          </Text>
+        </View>
+      )}
 
       <SubscriptionSlideout
         visible={showSubscriptionSlideout}
@@ -472,6 +490,11 @@ const styles = StyleSheet.create({
   registerText: {
     fontSize: 16,
     marginLeft: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 
