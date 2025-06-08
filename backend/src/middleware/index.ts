@@ -1,10 +1,10 @@
-import {NextFunction, Request, Response} from 'express';
+import { NextFunction, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import {config} from '../config/config';
-import {ErrorResponse} from '../types';
-import {authenticateUser} from './auth';
+import { config } from '../config/config';
+import { ErrorResponse } from '../types';
+import { authenticateUser } from './auth';
 
-export {authenticateUser};
+export { authenticateUser };
 
 // Helper function to format retry time
 const formatRetryAfter = (seconds: number): string => {
@@ -39,6 +39,21 @@ export const createGeneralLimiter = () =>
     },
     keyGenerator: req => req.body.userId || req.ip,
     handler: createRateLimitHandler('Too many requests'),
+  });
+
+// User creation rate limiter - more lenient
+export const createUserCreationLimiter = () =>
+  rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // Allow 10 user creation requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: req => {
+      const isDevelopment = config.server.environment === 'development';
+      return isDevelopment;
+    },
+    keyGenerator: req => req.body.installationId || req.ip,
+    handler: createRateLimitHandler('Too many user creation requests'),
   });
 
 // Specific rate limiter for generate-reply endpoint

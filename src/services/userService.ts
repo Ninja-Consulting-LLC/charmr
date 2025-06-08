@@ -1,9 +1,9 @@
-import {SubscriptionTier} from '../types/enums';
-import {User} from '../types/user';
-import {logger} from '../utils/logger';
-import {getPlanLimits} from '../utils/planLimits';
+import { SubscriptionTier } from '../types/enums';
+import { User } from '../types/user';
+import { logger } from '../utils/logger';
+import { getPlanLimits } from '../utils/planLimits';
 import axiosInstance from './axiosInstance';
-import {installationService} from './installationService';
+import { installationService } from './installationService';
 
 export const fetchUserData = async (userId: string): Promise<User | null> => {
   try {
@@ -59,6 +59,27 @@ export const createAnonymousUser = async (): Promise<User> => {
       installationId,
     });
 
+    // First check if user already exists
+    try {
+      const existingUser = await findUserByInstallationId(installationId);
+      if (existingUser) {
+        logger.app.debug('Found existing anonymous user', {
+          userId: existingUser.id,
+          installationId,
+        });
+        return {
+          ...existingUser,
+          getDailyMessageLimit: () => getPlanLimits(existingUser.plan),
+        };
+      }
+    } catch (error) {
+      logger.app.warn('Error checking for existing user:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+
+    // If no existing user found, create a new one
     const newUser = await axiosInstance.post('/api/users', {
       id: installationId,
       email: installationId,

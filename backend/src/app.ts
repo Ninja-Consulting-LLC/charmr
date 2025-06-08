@@ -3,33 +3,33 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import {config} from './config/config';
+import { config } from './config/config';
 import {
-  createUser,
-  getUser,
-  getUserByInstallationId,
-  linkAnonymousUser,
-  updateUserPlan,
+    createUser,
+    getUser,
+    getUserByInstallationId,
+    linkAnonymousUser,
+    updateUserPlan,
 } from './controllers/adminController';
-import {checkSchemaHealth} from './controllers/devController';
-import {createReplyController} from './controllers/replyController';
-import {getDatabase} from './db';
-import {createDeviceTokenLimiter} from './middleware';
-import {authenticateUser} from './middleware/auth';
-import {createRateLimiter} from './middleware/rateLimit';
-import {requestLogger} from './middleware/requestLogger';
+import { checkSchemaHealth } from './controllers/devController';
+import { createReplyController } from './controllers/replyController';
+import { getDatabase } from './db';
+import { createDeviceTokenLimiter, createUserCreationLimiter } from './middleware';
+import { authenticateUser } from './middleware/auth';
+import { createRateLimiter } from './middleware/rateLimit';
+import { requestLogger } from './middleware/requestLogger';
 import createAdminRouter from './routes/adminRoutes';
 import devRoutes from './routes/devRoutes';
 import matchRoutes from './routes/matchRoutes';
 import createPushNotificationRouter from './routes/pushNotificationRoutes';
-import {createEmailService, createSupportEmailService} from './services/email';
+import { createEmailService, createSupportEmailService } from './services/email';
 import {
-  createNotificationService,
-  NOTIFICATION_CONFIGS,
-  NotificationType,
+    createNotificationService,
+    NOTIFICATION_CONFIGS,
+    NotificationType,
 } from './services/notificationService';
-import {SupportRequest} from './types/email';
-import logger, {stream} from './utils/logger';
+import { SupportRequest } from './types/email';
+import logger, { stream } from './utils/logger';
 
 export const createApp = async () => {
   const app = express();
@@ -214,7 +214,7 @@ export const createApp = async () => {
   app.post('/api/users/link', authenticateUser, (req, res) =>
     linkAnonymousUser(req, res, db),
   );
-  app.post('/api/users', authenticateUser, async (req, res) => {
+  app.post('/api/users', authenticateUser, createUserCreationLimiter(), async (req, res) => {
     const user = await createUser(db, {
       id: req.body.id,
       email: req.body.email,

@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		18CA474954CD913F331764AD /* Pods_Charmr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BDEA5ABEEAE5463D759E29E /* Pods_Charmr.framework */; };
 		428EFC2C506D9C2516DC7A8E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
@@ -16,6 +15,7 @@
 		BC81A40C2DB5982900626B4A /* Dummy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC81A40B2DB5982400626B4A /* Dummy.swift */; };
 		BCB29EA42DB2F40100A24B21 /* CharmrKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCB29E9D2DB2F40100A24B21 /* CharmrKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BCB29EB92DB2F5B400A24B21 /* KeyboardKit in Frameworks */ = {isa = PBXBuildFile; productRef = BCB29EB82DB2F5B400A24B21 /* KeyboardKit */; };
+		E6583A1D07B954C11F5FF197 /* Pods_Charmr.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8937EB84001FE0213A50E4BC /* Pods_Charmr.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,11 +47,11 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Charmr/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Charmr/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Charmr/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		2A874E115AEEF812B5B12868 /* Pods-Charmr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.release.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.release.xcconfig"; sourceTree = "<group>"; };
+		1B546AA023903EAAF7372BE7 /* Pods-Charmr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.debug.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Charmr/AppDelegate.swift; sourceTree = "<group>"; };
-		7BDEA5ABEEAE5463D759E29E /* Pods_Charmr.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Charmr.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7CBE1A1E39B8DEF973EA5466 /* Pods-Charmr.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.release.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.release.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Charmr/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8FACD0AE2B2C0CAB22858C37 /* Pods-Charmr.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Charmr.debug.xcconfig"; path = "Target Support Files/Pods-Charmr/Pods-Charmr.debug.xcconfig"; sourceTree = "<group>"; };
+		8937EB84001FE0213A50E4BC /* Pods_Charmr.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Charmr.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC15F8282DB1C14B00DC1E61 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KeyboardViewController.swift; path = CharmrKeyboard/KeyboardViewController.swift; sourceTree = "<group>"; };
 		BC43A8762DB590E300376DC5 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BC494ED82DF322CF0072F404 /* Charmr.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = Charmr.entitlements; path = Charmr/Charmr.entitlements; sourceTree = "<group>"; };
@@ -90,7 +90,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18CA474954CD913F331764AD /* Pods_Charmr.framework in Frameworks */,
+				E6583A1D07B954C11F5FF197 /* Pods_Charmr.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,7 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				7BDEA5ABEEAE5463D759E29E /* Pods_Charmr.framework */,
+				8937EB84001FE0213A50E4BC /* Pods_Charmr.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -164,8 +164,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8FACD0AE2B2C0CAB22858C37 /* Pods-Charmr.debug.xcconfig */,
-				2A874E115AEEF812B5B12868 /* Pods-Charmr.release.xcconfig */,
+				1B546AA023903EAAF7372BE7 /* Pods-Charmr.debug.xcconfig */,
+				7CBE1A1E39B8DEF973EA5466 /* Pods-Charmr.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -177,15 +177,15 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Charmr" */;
 			buildPhases = (
-				2F7A07AF440280AB285205E9 /* [CP] Check Pods Manifest.lock */,
+				B722AE349D43FB0B37BA86BB /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				BCB912042DB179370033AE63 /* Embed Foundation Extensions */,
-				2BE1092F47F798C99FFC1BC9 /* [CP] Embed Pods Frameworks */,
-				4CD718F1C3C60AAEA3820A6E /* [CP] Copy Pods Resources */,
-				AD86FFC65E550D543BDF202A /* [CP-User] [RNFB] Core Configuration */,
+				4DBF7ECD63A41FAA66BF140A /* [CP] Embed Pods Frameworks */,
+				402A8D95BA4C54C86124DEE8 /* [CP] Copy Pods Resources */,
+				CF630D3A642F91825B9399D3 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
 			);
@@ -297,7 +297,24 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		2BE1092F47F798C99FFC1BC9 /* [CP] Embed Pods Frameworks */ = {
+		402A8D95BA4C54C86124DEE8 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		4DBF7ECD63A41FAA66BF140A /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -314,7 +331,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		2F7A07AF440280AB285205E9 /* [CP] Check Pods Manifest.lock */ = {
+		B722AE349D43FB0B37BA86BB /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -336,24 +353,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		4CD718F1C3C60AAEA3820A6E /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Charmr/Pods-Charmr-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		AD86FFC65E550D543BDF202A /* [CP-User] [RNFB] Core Configuration */ = {
+		CF630D3A642F91825B9399D3 /* [CP-User] [RNFB] Core Configuration */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -398,12 +398,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8FACD0AE2B2C0CAB22858C37 /* Pods-Charmr.debug.xcconfig */;
+			baseConfigurationReference = 1B546AA023903EAAF7372BE7 /* Pods-Charmr.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Charmr/Charmr.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = V8MBW2V2C2;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Charmr/Info.plist;
@@ -428,12 +428,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2A874E115AEEF812B5B12868 /* Pods-Charmr.release.xcconfig */;
+			baseConfigurationReference = 7CBE1A1E39B8DEF973EA5466 /* Pods-Charmr.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Charmr/Charmr.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = V8MBW2V2C2;
 				INFOPLIST_FILE = Charmr/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
