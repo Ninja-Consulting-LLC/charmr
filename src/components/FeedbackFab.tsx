@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, {useEffect, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, IconButton, useTheme} from 'react-native-paper';
-import {theme} from '../theme/theme';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, IconButton, useTheme } from 'react-native-paper';
+import { theme } from '../theme/theme';
 
 interface FeedbackFabProps {
   onPress: () => void;
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     right: 0,
-    top: '50%',
+    top: '80%',
     transform: [{translateY: -50}],
     zIndex: 1,
   },

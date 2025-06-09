@@ -2,14 +2,14 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Linking,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { Divider, IconButton, List, Portal, useTheme } from 'react-native-paper';
 import Purchases from 'react-native-purchases';
@@ -308,41 +308,43 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         <ScrollView style={styles.scrollView}>
           <List.Section>
             {user.email && user.email !== user.installationId ? (
-              <List.Item
-                title={user.name || 'Guest'}
-                description={user.email}
-                left={props => (
+              <View style={styles.infoBox}>
+                <View style={styles.infoRow}>
                   <List.Icon
-                    {...props}
                     icon="account"
                     color={theme.colors.surface}
                   />
-                )}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
-              />
+                  <View style={styles.infoContent}>
+                    <Text style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                      {user.name || 'Guest'}
+                    </Text>
+                    <Text style={[styles.infoDescription, {color: theme.colors.surface}]}>
+                      {user.email}
+                    </Text>
+                  </View>
+                </View>
+                <Divider style={[styles.infoDivider, {backgroundColor: theme.colors.surface}]} />
+                <View style={styles.infoRow}>
+                  <List.Icon
+                    icon="message"
+                    color={theme.colors.surface}
+                  />
+                  <View style={styles.infoContent}>
+                    <Text style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                      Daily Messages
+                    </Text>
+                    <Text style={[styles.infoDescription, {color: theme.colors.surface}]}>
+                      {user.plan === SubscriptionTier.PRO
+                        ? 'Unlimited'
+                        : `${user.dailyMessagesUsed}/${(
+                            user.getDailyMessageLimit ||
+                            (() => getPlanLimits(user.plan))
+                          )()} used`}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             ) : null}
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            <List.Item
-              title="Daily Messages"
-              description={
-                user.plan === SubscriptionTier.PRO
-                  ? 'Unlimited'
-                  : `${user.dailyMessagesUsed}/${(
-                      user.getDailyMessageLimit ||
-                      (() => getPlanLimits(user.plan))
-                    )()} used`
-              }
-              left={props => (
-                <List.Icon
-                  {...props}
-                  icon="message"
-                  color={theme.colors.surface}
-                />
-              )}
-              titleStyle={{color: theme.colors.surface}}
-              descriptionStyle={{color: theme.colors.surface}}
-            />
             <Divider style={{backgroundColor: theme.colors.surface}} />
             {!user.email || user.email === user.installationId ? (
               <List.Item
@@ -664,6 +666,41 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: '500',
+  },
+  clickableItem: {
+    opacity: 0.9,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  infoItem: {
+    opacity: 0.7,
+    backgroundColor: 'transparent',
+  },
+  infoBox: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    margin: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  infoContent: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  infoDescription: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  infoDivider: {
+    marginVertical: 8,
+    opacity: 0.2,
   },
 });
 

@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
   Dialog,
@@ -9,8 +9,8 @@ import {
   Portal,
   Text,
 } from 'react-native-paper';
-import {theme} from '../theme/theme';
-import {Match} from '../utils/matchUtils';
+import { theme } from '../theme/theme';
+import { Match } from '../utils/matchUtils';
 
 interface HiddenMatchesModalProps {
   visible: boolean;
@@ -93,7 +93,7 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
                 size={48}
                 iconColor={theme.colors.disabled}
               />
-              <Text style={styles.emptyText}>No hidden matches</Text>
+              <Text style={styles.emptyText}>No archived matches</Text>
             </View>
           )}
         </ScrollView>
