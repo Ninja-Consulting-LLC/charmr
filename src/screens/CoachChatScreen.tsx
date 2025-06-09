@@ -1,47 +1,47 @@
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Clipboard,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Clipboard,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
+import { GiftedChat, IMessage as GiftedIMessage } from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {IconButton, SegmentedButtons, Snackbar, Text} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { IconButton, SegmentedButtons, Snackbar, Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
 import PhotoAccessBanner from '../components/PhotoAccessBanner';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
-import {useImagePicker} from '../hooks/useImagePicker';
-import {RootStackParamList} from '../navigation/types';
-import {generateReply} from '../services/api';
+import { useImagePicker } from '../hooks/useImagePicker';
+import { RootStackParamList } from '../navigation/types';
+import { generateReply } from '../services/api';
 import axiosInstance from '../services/axiosInstance';
 import {
-  deleteMatch,
-  hideMatch,
-  restoreMatch,
-  updateMatch,
-  updateMatchLastUsed as updateMatchLastUsedService,
+    deleteMatch,
+    hideMatch,
+    restoreMatch,
+    updateMatch,
+    updateMatchLastUsed as updateMatchLastUsedService,
 } from '../services/matchService';
-import {useStore} from '../store';
-import {theme} from '../theme/theme';
+import { useStore } from '../store';
+import { theme } from '../theme/theme';
 import {
-  MessageMode,
-  MessageRole,
-  MessageType,
-  SubscriptionTier,
+    MessageMode,
+    MessageRole,
+    MessageType,
+    SubscriptionTier,
 } from '../types/enums';
-import {Message} from '../types/message';
-import {compressImages} from '../utils/imageCompression';
-import {Match, addMatch} from '../utils/matchUtils';
+import { Message } from '../types/message';
+import { compressImages } from '../utils/imageCompression';
+import { Match, addMatch } from '../utils/matchUtils';
 
 type CoachChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -333,7 +333,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       headerTitle: () => (
         <View style={styles.headerTitle}>
           <Text style={styles.headerName}>{match.name}</Text>
-          <Text style={styles.headerPlatform}>{match.platform}</Text>
+          <Text style={styles.headerPlatform}>{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</Text>
         </View>
       ),
       headerLeft: () => (

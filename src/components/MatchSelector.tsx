@@ -1,5 +1,5 @@
 import React from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
   IconButton,
@@ -8,9 +8,9 @@ import {
   Portal,
   Text,
 } from 'react-native-paper';
-import {theme} from '../theme/theme';
-import {SubscriptionTier} from '../types/enums';
-import {Match} from '../utils/matchUtils';
+import { theme } from '../theme/theme';
+import { SubscriptionTier } from '../types/enums';
+import { Match } from '../utils/matchUtils';
 import AddEditMatchModal from './AddEditMatchModal';
 import ArchiveMatchDialog from './ArchiveMatchDialog';
 
@@ -109,7 +109,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                 <List.Item
                   key={match.id}
                   title={match.name}
-                  description={match.platform}
+                  description={match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
                   style={[
                     styles.matchItem,
                     selectedMatch?.id === match.id && styles.selectedMatch,
