@@ -3,10 +3,10 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {
-    forwardRef,
-    useEffect,
-    useImperativeHandle,
-    useState,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
 } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -16,10 +16,10 @@ import { useImagePicker } from '../hooks/useImagePicker';
 import { useResponseGenerator } from '../hooks/useResponseGenerator';
 import { RootStackParamList } from '../navigation/types';
 import {
-    deleteMatch,
-    hideMatch,
-    restoreMatch,
-    updateMatchLastUsed,
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+  updateMatchLastUsed,
 } from '../services/matchService';
 import { useStore } from '../store';
 import { theme } from '../theme/theme';
@@ -35,6 +35,7 @@ import PermissionHelpModal from './PermissionHelpModal';
 import PhotoAccessBanner from './PhotoAccessBanner';
 import PurchaseSuccessModal from './PurchaseSuccessModal';
 import ReplyModal from './ReplyModal';
+import TryAgainModal from './TryAgainModal';
 import UpgradeModal from './UpgradeModal';
 
 export interface ResponseGeneratorRef {
@@ -77,7 +78,7 @@ const DATING_COACH_ENABLED_KEY = '@charmr/dating_coach_enabled';
 const ResponseGenerator = forwardRef<
   ResponseGeneratorRef,
   ResponseGeneratorProps
->(({navigation}, ref) => {
+>(({navigation}: ResponseGeneratorProps, ref) => {
   const {
     userId,
     skipRateLimiting,
@@ -114,6 +115,7 @@ const ResponseGenerator = forwardRef<
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showTryAgainModal, setShowTryAgainModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -122,6 +124,11 @@ const ResponseGenerator = forwardRef<
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
       mode: MessageMode.GENERATE,
+      onMessageLimitReached: () => {
+        setShowUpgradeModal(true);
+        setShowMessagePackModal(false);
+        setShowReplyModal(false);
+      },
     });
 
   useImperativeHandle(ref, () => ({
@@ -138,6 +145,9 @@ const ResponseGenerator = forwardRef<
     if (errorType === 'MESSAGE_LIMIT') {
       setShowUpgradeModal(true);
       setShowMessagePackModal(false);
+      setShowReplyModal(false);
+    } else if (errorType === 'TIMEOUT_ERROR') {
+      setShowTryAgainModal(true);
       setShowReplyModal(false);
     } else if (response) {
       setShowReplyModal(true);
@@ -291,7 +301,13 @@ const ResponseGenerator = forwardRef<
     }
 
     try {
-      setShowReplyModal(true);
+      // Check if user has hit their message limit
+      if (user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)) {
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      setShowReplyModal(true); // Only show reply modal if user hasn't hit their limit
       await generateResponse(prompt);
     } catch (error) {
       console.error('Error generating response:', error);
@@ -400,6 +416,11 @@ const ResponseGenerator = forwardRef<
     }
   };
 
+  const handleTryAgain = () => {
+    setShowTryAgainModal(false);
+    generateResponse(prompt);
+  };
+
   return (
     <View style={styles.container} testID="response-generator-container">
       <PhotoAccessBanner
@@ -478,9 +499,7 @@ const ResponseGenerator = forwardRef<
           setShowScreenshotUpgrade(false);
         }}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={
-          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
-        }
+        showRateLimitMessage={errorType === 'MESSAGE_LIMIT'}
         showScreenshotMessage={showScreenshotUpgrade}
       />
 
@@ -536,6 +555,11 @@ const ResponseGenerator = forwardRef<
         }}
         onLoadingChange={setIsLoading}
         handleGoogleLogin={handleGoogleLogin}
+      />
+
+      <TryAgainModal
+        visible={showTryAgainModal}
+        onDismiss={() => setShowTryAgainModal(false)}
       />
 
       <Snackbar

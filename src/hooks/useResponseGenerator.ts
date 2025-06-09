@@ -1,13 +1,13 @@
-import {useState} from 'react';
-import {MESSAGES} from '../constants/messages';
-import {generateReply} from '../services/api';
-import {useStore} from '../store';
-import {MessageMode, SubscriptionTier} from '../types/enums';
-import {SelectedImage} from '../types/image';
-import {User} from '../types/user';
-import {compressImages} from '../utils/imageCompression';
-import {logger} from '../utils/logger';
-import {Match} from '../utils/matchUtils';
+import { useState } from 'react';
+import { MESSAGES } from '../constants/messages';
+import { generateReply } from '../services/api';
+import { useStore } from '../store';
+import { MessageMode, SubscriptionTier } from '../types/enums';
+import { SelectedImage } from '../types/image';
+import { User } from '../types/user';
+import { compressImages } from '../utils/imageCompression';
+import { logger } from '../utils/logger';
+import { Match } from '../utils/matchUtils';
 
 interface UseResponseGeneratorProps {
   images: SelectedImage[];
@@ -113,8 +113,9 @@ export const useResponseGenerator = ({
         });
         if (reply.type === 'MESSAGE_LIMIT') {
           onMessageLimitReached?.();
-          setError(null);
-          setErrorType(null);
+          setError(reply.error);
+          setErrorType(reply.type);
+          return;
         } else if (reply.type !== '404') {
           setError(reply.error);
           setErrorType(reply.type || 'UNKNOWN');
@@ -155,8 +156,9 @@ export const useResponseGenerator = ({
       if (error.response?.data) {
         if (error.response.data.type === 'MESSAGE_LIMIT') {
           onMessageLimitReached?.();
-          setError(null);
-          setErrorType(null);
+          setError(error.response.data.error);
+          setErrorType(error.response.data.type);
+          return;
         } else if (error.response.status !== 404) {
           setError(error.response.data.error);
           setErrorType(error.response.data.type || 'UNKNOWN');

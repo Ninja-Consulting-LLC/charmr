@@ -1,4 +1,4 @@
-import {config} from '../config/config';
+import { config } from '../config/config';
 import logger from './logger';
 
 export const logEnvironmentVariables = () => {
@@ -15,7 +15,7 @@ export const logEnvironmentVariables = () => {
     RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS,
     RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
     MAX_TOKENS: process.env.MAX_TOKENS,
-    TEMPERATURE: process.env.TEMPERATURE,
+    OPENAI_TEMPERATURE: process.env.OPENAI_TEMPERATURE,
     ADMIN_TOKEN: process.env.ADMIN_TOKEN,
   };
 
