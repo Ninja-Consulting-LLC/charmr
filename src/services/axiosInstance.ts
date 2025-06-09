@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {getInstallations} from '@react-native-firebase/installations';
-import axios, {AxiosHeaders} from 'axios';
-import {config} from '../config/config';
-import {getAuthToken} from '../config/firebase';
-import {logger} from '../utils/logger';
-import {getUserId} from './authService';
-import {installationService} from './installationService';
+import { getInstallations } from '@react-native-firebase/installations';
+import axios, { AxiosHeaders } from 'axios';
+import { config } from '../config/config';
+import { getAuthToken } from '../config/firebase';
+import { logger } from '../utils/logger';
+import { getUserId } from './authService';
+import { installationService } from './installationService';
 
 // Create an axios instance with default config
 const axiosInstance = axios.create({
@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds timeout
+  timeout: 15000, // 15 seconds timeout
 });
 
 // Helper to get auth headers

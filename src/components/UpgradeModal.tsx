@@ -30,9 +30,9 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
   const {user, setUser, handleGoogleLogin} = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [packages, setPackages] = useState<any[] | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [packages, setPackages] = useState<any[] | null>(null);
 
   const isAnonymous = user?.email === user?.installationId;
 
@@ -46,43 +46,28 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
 
   useEffect(() => {
     const fetchPaywall = async () => {
-      if (visible && !showPresetPaywall) {
-        console.log('[UpgradeModal] Starting to fetch paywall...');
+      if (visible) {
         setIsLoading(true);
         setError(null);
         try {
           const proPaywall = await getProPaywall();
-          console.log('[UpgradeModal] Paywall fetch result:', {
-            hasPaywall: !!proPaywall,
-            packageCount: proPaywall?.length || 0,
-          });
-
-          if (proPaywall) {
-            setPackages(proPaywall);
-          } else {
-            console.log('[UpgradeModal] No paywall data, using fallback UI');
-            setPackages([]);
-          }
+          setPackages(proPaywall || []);
         } catch (err) {
-          console.error('[UpgradeModal] Error fetching paywall:', err);
-          setError('Failed to load subscription options');
+          setError('Failed to load subscription options. Please try again later.');
           setPackages([]);
         } finally {
           setIsLoading(false);
         }
       }
     };
-
     fetchPaywall();
-  }, [visible, showPresetPaywall]);
+  }, [visible]);
 
   const handleUpgrade = async (productId: string) => {
-    console.log('[UpgradeModal] handleUpgrade called with', productId);
     setIsLoading(true);
     setError(null);
     try {
       const success = await handlePurchase(productId, user, setUser);
-      console.log('[UpgradeModal] handlePurchase returned', success);
       if (success) {
         if (isAnonymous) {
           setShowRegistrationPrompt(true);
@@ -91,7 +76,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         onDismiss();
       }
     } catch (err) {
-      console.log('[UpgradeModal] handleUpgrade error', err);
+      console.error('[UpgradeModal] handleUpgrade error', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -146,7 +131,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
             </Text>
           )}
 
-          {isLoading && packages === null ? (
+          {isLoading ? (
             <Text>Loading subscription options...</Text>
           ) : error ? (
             <Text style={{color: theme.colors.error}}>{error}</Text>
@@ -159,11 +144,20 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
                   onTouchEnd={() => handleUpgrade(pkg.product.identifier)}>
                   <View style={styles.productContent}>
                     <Text variant="titleMedium">{pkg.product.title}</Text>
-                    <Text
-                      variant="headlineMedium"
-                      style={{color: theme.colors.primary}}>
-                      {pkg.product.priceString}
-                    </Text>
+                    {pkg.product.subscriptionPeriod === 'P1Y' ? (
+                      <>
+                        <Text variant="headlineMedium" style={{color: theme.colors.primary}}>
+                          ${ (pkg.product.price / 12).toFixed(2) }/mo
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                          Billed annually at {pkg.product.priceString}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text variant="headlineMedium" style={{color: theme.colors.primary}}>
+                        {pkg.product.priceString}
+                      </Text>
+                    )}
                     <Text variant="bodyMedium">
                       {pkg.product.description}
                     </Text>
@@ -172,32 +166,14 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
               ))}
             </View>
           ) : (
-            // Fallback UI
-            <View style={styles.paywallContainer}>
-              <Surface
-                style={styles.productCard}
-                onTouchEnd={() =>
-                  handleUpgrade('com.ninjadating.charmr.Pro')
-                }>
-                <View style={styles.productContent}>
-                  <Text variant="titleMedium">Pro Plan</Text>
-                  <Text
-                    variant="headlineMedium"
-                    style={{color: theme.colors.primary}}>
-                    $9.99/month
-                  </Text>
-                  <Text variant="bodyMedium">
-                    Unlimited messages and advanced features
-                  </Text>
-                </View>
-              </Surface>
-            </View>
+            <Text>No subscription options available.</Text>
           )}
         </View>
       </Modal>
+
       <LoginModal
         visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
+        onDismiss={() => setShowLoginModal(false)}
         onLoginSuccess={handleLoginSuccess}
         handleGoogleLogin={handleGoogleLogin}
       />
@@ -209,35 +185,34 @@ const styles = StyleSheet.create({
   modal: {
     padding: 20,
     margin: 20,
-    borderRadius: theme.roundness,
+    borderRadius: 8,
   },
   content: {
-    gap: 16,
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   title: {
     flex: 1,
   },
   closeButton: {
-    margin: 0,
+    marginLeft: 10,
   },
   rateLimitMessage: {
+    marginBottom: 20,
     textAlign: 'center',
-    marginBottom: 16,
   },
   paywallContainer: {
-    gap: 8,
+    marginTop: 20,
   },
   productCard: {
-    borderRadius: theme.roundness,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
-    padding: 12,
+    padding: 20,
+    borderRadius: 8,
+    elevation: 2,
   },
   productContent: {
     alignItems: 'center',
