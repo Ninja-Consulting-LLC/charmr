@@ -1,14 +1,15 @@
-import {Platform} from 'react-native';
+import { Platform } from 'react-native';
 import Config from 'react-native-config';
 import Purchases, {
-  CustomerInfo,
-  PurchasesConfiguration,
-  PurchasesEntitlementInfo,
-  PurchasesEntitlementInfos,
+    CustomerInfo,
+    PurchasesConfiguration,
+    PurchasesEntitlementInfo,
+    PurchasesEntitlementInfos,
 } from 'react-native-purchases';
-import {SubscriptionTier} from '../types/enums';
-import {User} from '../types/user';
-import {logger} from '../utils/logger';
+import { SubscriptionTier } from '../types/enums';
+import { User } from '../types/user';
+import { logger } from '../utils/logger';
+import { getPlanLimits } from '../utils/planLimits';
 import axiosInstance from './axiosInstance';
 
 // Development configuration for testing in simulator
@@ -343,6 +344,18 @@ export const syncSubscriptionState = async (
           ...currentUser,
           plan: SubscriptionTier.PRO,
           getDailyMessageLimit: () => Infinity,
+        });
+      }
+    } else {
+      if (currentUser.plan !== SubscriptionTier.FREE) {
+        logger.revenueCat.info(
+          'Updating user plan to FREE based on RevenueCat state',
+        );
+        await updateUserPlan(currentUser.id, SubscriptionTier.FREE);
+        setUser({
+          ...currentUser,
+          plan: SubscriptionTier.FREE,
+          getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
         });
       }
     }
