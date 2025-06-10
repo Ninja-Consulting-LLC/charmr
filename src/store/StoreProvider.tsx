@@ -1,10 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 import { signOut as firebaseSignOut, getAuthToken } from '../config/firebase';
 import { useStoreState } from '../hooks/useStoreState';
@@ -41,7 +41,7 @@ interface StoreContextType {
   setShowUpgradeModal: (show: boolean) => void;
   createNewUser: () => Promise<User>;
   linkAnonymousUser: (registeredUserId: string) => Promise<void>;
-  handleGoogleLogin: (firebaseUser: any) => Promise<void>;
+  handleProviderLogin: (firebaseUser: any) => Promise<void>;
   matches: Match[];
   setMatches: (matches: Match[]) => void;
   addMatch: (match: Match) => void;
@@ -105,10 +105,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setIsLoading,
   } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
 
-  // Initialize handleGoogleLogin
-  const handleGoogleLogin = async (firebaseUser: any) => {
+  // Initialize handleProviderLogin
+  const handleProviderLogin = async (firebaseUser: any) => {
     try {
-      logger.auth.info('🔐 Starting Google login process...', {
+      logger.auth.info('🔐 Starting provider login process...', {
         firebaseUser: {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -192,6 +192,27 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           },
         });
 
+        // Update user's name if it's from Apple login and we have a display name
+        if (firebaseUser.displayName && (!existingUser.name || existingUser.name === 'Anonymous User')) {
+          logger.auth.info('Updating user name from provider login', {
+            userId: firebaseUser.uid,
+            displayName: firebaseUser.displayName,
+            currentName: existingUser.name,
+          });
+          try {
+            await userService.updateUserProfile(firebaseUser.uid, {
+              name: firebaseUser.displayName,
+            });
+            existingUser.name = firebaseUser.displayName;
+          } catch (error) {
+            logger.auth.error('Failed to update user name', {
+              error,
+              userId: firebaseUser.uid,
+              displayName: firebaseUser.displayName,
+            });
+          }
+        }
+
         setUserId(firebaseUser.uid);
         await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
         setUser(existingUser);
@@ -219,7 +240,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
       }
     } catch (error) {
-      logger.auth.error('Error in Google login:', error);
+      logger.auth.error('Error in provider login:', error);
       throw error;
     }
   };
@@ -590,7 +611,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setShowUpgradeModal,
       createNewUser,
       linkAnonymousUser,
-      handleGoogleLogin,
+      handleProviderLogin,
       matches,
       setMatches,
       addMatch,
@@ -616,7 +637,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       matches,
       selectedMatch,
       deleteScreenshots,
-      handleGoogleLogin,
+      handleProviderLogin,
     ],
   );
 

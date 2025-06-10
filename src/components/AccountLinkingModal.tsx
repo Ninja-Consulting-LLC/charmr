@@ -1,9 +1,10 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, Modal, Portal, Text} from 'react-native-paper';
-import {signInWithGoogle} from '../config/firebase';
-import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import { StyleSheet, View } from 'react-native';
+import { Button, Modal, Portal, Text } from 'react-native-paper';
+import { signInWithGoogle } from '../config/firebase';
+import { useStore } from '../store/StoreProvider';
+import { theme } from '../theme/theme';
+import { logger } from '../utils/logger';
 
 interface AccountLinkingModalProps {
   visible: boolean;
@@ -20,26 +21,15 @@ const AccountLinkingModal: React.FC<AccountLinkingModalProps> = ({
   availableMethods,
   email,
 }) => {
-  const {handleGoogleLogin} = useStore();
+  const {handleProviderLogin} = useStore();
 
   const handleGoogleSignIn = async () => {
     try {
       const userCredential = await signInWithGoogle();
-      await handleGoogleLogin(userCredential.user);
+      await handleProviderLogin(userCredential.user);
       onLinkSuccess?.();
     } catch (error) {
-      console.error('Google login error:', error);
-    }
-  };
-
-  const getProviderName = (method: string) => {
-    switch (method) {
-      case 'google.com':
-        return 'Google';
-      case 'facebook.com':
-        return 'Facebook';
-      default:
-        return method;
+      logger.auth.error('Google login error:', error);
     }
   };
 

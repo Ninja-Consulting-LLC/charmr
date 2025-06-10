@@ -1,5 +1,8 @@
+import { appleAuth } from '@invertase/react-native-apple-authentication';
 import auth, {
-  FacebookAuthProvider
+  AppleAuthProvider,
+  FacebookAuthProvider,
+  getAuth
 } from '@react-native-firebase/auth';
 import React, { useEffect, useState } from 'react';
 import {
@@ -18,6 +21,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { signInWithFacebookLimited, signInWithGoogle } from '../config/firebase';
 import { syncSubscriptionState } from '../services/revenueCatService';
 import * as userService from '../services/userService';
+import { updateUserProfile } from '../services/userService';
 import { useStore } from '../store/StoreProvider';
 import { theme } from '../theme/theme';
 import { logger } from '../utils/logger';
@@ -32,7 +36,7 @@ interface LoginModalProps {
   onClose: () => void;
   onLoginSuccess?: () => void;
   onLoadingChange?: (isLoading: boolean) => void;
-  handleGoogleLogin?: (firebaseUser: any) => Promise<void>;
+  handleProviderLogin?: (firebaseUser: any) => Promise<void>;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({
@@ -40,23 +44,25 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   onLoginSuccess,
   onLoadingChange,
-  handleGoogleLogin,
+  handleProviderLogin: propHandleProviderLogin,
 }) => {
-  const {handleGoogleLogin: storeHandleGoogleLogin, user, setUser} = useStore();
+  const {handleProviderLogin: storeHandleProviderLogin, user, setUser} = useStore();
   const [showAccountLinking, setShowAccountLinking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [linkingData, setLinkingData] = useState<{
     email: string;
     methods: string[];
+    credential?: any;
+    displayName?: string;
   } | null>(null);
 
   useEffect(() => {
     logger.auth.info('LoginModal mounted/updated:', {
       visible,
-      hasHandleGoogleLogin: !!handleGoogleLogin,
-      hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+      hasHandleProviderLogin: !!propHandleProviderLogin,
+      hasStoreHandleProviderLogin: !!storeHandleProviderLogin,
     });
-  }, [visible, handleGoogleLogin, storeHandleGoogleLogin]);
+  }, [visible, propHandleProviderLogin, storeHandleProviderLogin]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -73,16 +79,16 @@ const LoginModal: React.FC<LoginModalProps> = ({
       });
 
       // Call the appropriate handler
-      if (handleGoogleLogin) {
-        logger.auth.info('Using provided handleGoogleLogin handler');
-        await handleGoogleLogin(userCredential.user);
-      } else if (storeHandleGoogleLogin) {
-        logger.auth.info('Using store handleGoogleLogin handler');
-        await storeHandleGoogleLogin(userCredential.user);
+      if (propHandleProviderLogin) {
+        logger.auth.info('Using provided handleProviderLogin handler');
+        await propHandleProviderLogin(userCredential.user);
+      } else if (storeHandleProviderLogin) {
+        logger.auth.info('Using store handleProviderLogin handler');
+        await storeHandleProviderLogin(userCredential.user);
       } else {
         logger.auth.error('No Google login handler available', {
-          hasHandleGoogleLogin: !!handleGoogleLogin,
-          hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+          hasHandleProviderLogin: !!propHandleProviderLogin,
+          hasStoreHandleProviderLogin: !!storeHandleProviderLogin,
         });
         throw new Error('No Google login handler available');
       }
@@ -107,8 +113,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
       logger.auth.error('Google Sign-In Error:', {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
-        hasHandleGoogleLogin: !!handleGoogleLogin,
-        hasStoreHandleGoogleLogin: !!storeHandleGoogleLogin,
+        hasHandleProviderLogin: !!propHandleProviderLogin,
+        hasStoreHandleProviderLogin: !!storeHandleProviderLogin,
       });
       Alert.alert(
         'Sign In Failed',
@@ -123,7 +129,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleFacebookLogin = async () => {
     try {
       const userCredential = await signInWithFacebookLimited();
-      await (handleGoogleLogin || storeHandleGoogleLogin)(userCredential.user);
+      await (propHandleProviderLogin || storeHandleProviderLogin)(userCredential.user);
       onLoginSuccess?.();
     } catch (error: any) {
       console.log('Facebook login error details:', {
@@ -151,25 +157,188 @@ const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
+  const handleAppleLogin = async () => {
+    try {
+      setIsLoading(true);
+      onLoadingChange?.(true);
+      logger.auth.info('Starting Apple sign in process...');
+
+      // Get Apple user credential
+      const appleAuthResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      });
+
+      logger.auth.info('Apple Sign In Response:', {
+        fullResponse: appleAuthResponse,
+        identityToken: appleAuthResponse.identityToken ? 'present' : 'missing',
+        nonce: appleAuthResponse.nonce ? 'present' : 'missing',
+        fullName: appleAuthResponse.fullName,
+        email: appleAuthResponse.email,
+        realUserStatus: appleAuthResponse.realUserStatus,
+        user: appleAuthResponse.user,
+        authorizationCode: appleAuthResponse.authorizationCode ? 'present' : 'missing',
+      });
+
+      // Ensure Apple returned a user identityToken
+      if (!appleAuthResponse.identityToken) {
+        throw new Error('Apple Sign-In failed - no identify token returned');
+      }
+
+      // Get the full name from Apple response if available
+      const fullName = appleAuthResponse.fullName;
+      const displayName = fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : null;
+
+      // If we have an email from Apple, check if there's an existing account
+      if (appleAuthResponse.email) {
+        try {
+          const auth = getAuth();
+          logger.auth.info('Checking existing accounts for Apple email:', {
+            appleEmail: appleAuthResponse.email,
+            currentUserEmail: auth.currentUser?.email,
+          });
+
+          const signInMethods = await auth.fetchSignInMethodsForEmail(appleAuthResponse.email);
+          logger.auth.info('Found sign in methods for Apple email:', {
+            email: appleAuthResponse.email,
+            methods: signInMethods,
+          });
+
+          // If there are existing sign-in methods and they don't include apple.com,
+          // show the account linking modal
+          if (signInMethods.length > 0 && !signInMethods.includes('apple.com')) {
+            logger.auth.info('Found existing account with different provider', {
+              email: appleAuthResponse.email,
+              methods: signInMethods,
+            });
+
+            // Store the Apple credential for later use
+            const { identityToken, nonce } = appleAuthResponse;
+            const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
+
+            setLinkingData({
+              email: appleAuthResponse.email,
+              methods: signInMethods,
+              credential: appleCredential,
+              displayName,
+            });
+            setShowAccountLinking(true);
+            return;
+          }
+        } catch (error) {
+          logger.auth.error('Error checking existing accounts:', error);
+        }
+      }
+
+      // Create a Firebase credential from the response
+      const { identityToken, nonce } = appleAuthResponse;
+      const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
+
+      // Sign in with credential
+      const userCredential = await auth().signInWithCredential(appleCredential);
+
+      // Update the user's display name if we got it from Apple
+      if (displayName && displayName !== ' ') {
+        await userCredential.user.updateProfile({ displayName });
+        logger.auth.info('Updated user display name:', { displayName });
+      }
+
+      // If we have an email from Apple and it's different from the current email,
+      // try to update it in the backend
+      if (appleAuthResponse.email && appleAuthResponse.email !== userCredential.user.email) {
+        try {
+          // Update email in backend
+          await updateUserProfile(userCredential.user.uid, {
+            email: appleAuthResponse.email
+          });
+          logger.auth.info('Updated user email in backend:', {
+            oldEmail: userCredential.user.email,
+            newEmail: appleAuthResponse.email
+          });
+        } catch (error) {
+          logger.auth.error('Failed to update user email in backend:', error);
+        }
+      }
+
+      logger.auth.info('Got Apple user credential:', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName,
+        appleFullName: displayName,
+      });
+
+      // Call the appropriate handler
+      if (propHandleProviderLogin) {
+        logger.auth.info('Using provided handleProviderLogin handler');
+        await propHandleProviderLogin(userCredential.user);
+      } else if (storeHandleProviderLogin) {
+        logger.auth.info('Using store handleProviderLogin handler');
+        await storeHandleProviderLogin(userCredential.user);
+      } else {
+        logger.auth.error('No login handler available');
+        throw new Error('No login handler available');
+      }
+
+      // After successful login, sync subscription state
+      logger.auth.info('Syncing subscription state after login');
+      await syncSubscriptionState(
+        async (userId, plan) => {
+          await userService.updateUserPlan(userId, plan);
+          setUser({
+            plan,
+            getDailyMessageLimit: () => getPlanLimits(plan),
+          });
+        },
+        setUser,
+        user
+      );
+
+      logger.auth.info('Apple sign in completed successfully');
+      onLoginSuccess?.();
+    } catch (error) {
+      logger.auth.error('Apple Sign-In Error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      Alert.alert(
+        'Sign In Failed',
+        'There was an error signing in with Apple. Please try again.',
+      );
+    } finally {
+      setIsLoading(false);
+      onLoadingChange?.(false);
+    }
+  };
+
   const handleLinkSuccess = async () => {
     try {
-      console.log('Starting account linking process...');
       const currentUser = auth().currentUser;
       if (!currentUser) {
-        console.error('No current user found for linking');
+        logger.auth.error('No current user found for linking');
         return;
+      }
+
+      // If we have an Apple credential from the linking data, use it
+      if (linkingData?.credential) {
+        try {
+          logger.auth.info('Linking Apple credential...');
+          await currentUser.linkWithCredential(linkingData.credential);
+          logger.auth.info('Successfully linked Apple credential');
+        } catch (error) {
+          logger.auth.error('Error linking Apple credential:', error);
+          throw error;
+        }
       }
 
       // Try to link Facebook credentials
       try {
-        console.log('Starting Facebook credential linking...');
         const facebookResult = await LoginManager.logInWithPermissions([
           'public_profile',
           'email',
         ]);
 
         if (facebookResult.isCancelled) {
-          console.log('User cancelled Facebook login during linking');
+          logger.auth.info('User cancelled Facebook login during linking');
           return;
         }
 
@@ -178,22 +347,25 @@ const LoginModal: React.FC<LoginModalProps> = ({
           throw new Error('No Facebook access token available');
         }
 
-        console.log('Got Facebook access token, creating credential...');
         const facebookCredential = FacebookAuthProvider.credential(
           data.accessToken,
         );
 
         await currentUser.linkWithCredential(facebookCredential);
-        console.log('Successfully linked Facebook credential');
+        logger.auth.info('Successfully linked Facebook credential');
       } catch (error) {
-        console.error('Error linking Facebook credentials:', error);
+        logger.auth.error('Error linking Facebook credentials:', error);
       }
 
       setShowAccountLinking(false);
       setLinkingData(null);
       onLoginSuccess?.();
     } catch (error) {
-      console.error('Error in handleLinkSuccess:', error);
+      logger.auth.error('Error in handleLinkSuccess:', error);
+      Alert.alert(
+        'Account Linking Failed',
+        'There was an error linking your accounts. Please try again.',
+      );
     }
   };
 
@@ -246,6 +418,22 @@ const LoginModal: React.FC<LoginModalProps> = ({
                       />
                       <Text style={styles.facebookButtonText}>
                         Continue with Facebook
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.button, styles.appleButton]}
+                    onPress={handleAppleLogin}
+                    testID="apple-login-button">
+                    <View style={styles.buttonContent}>
+                      <Icon
+                        name="apple"
+                        size={20}
+                        color={theme.colors.surface}
+                      />
+                      <Text style={styles.appleButtonText}>
+                        Continue with Apple
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -302,7 +490,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    minHeight: 240,
+    minHeight: 300,
     paddingTop: 24,
     paddingBottom: 24,
     borderRadius: 16,
@@ -328,9 +516,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
   },
   appleButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000',
   },
   facebookButton: {
     backgroundColor: '#1877F2',
