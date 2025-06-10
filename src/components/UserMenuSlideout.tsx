@@ -2,14 +2,14 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { Divider, IconButton, List, Portal, useTheme } from 'react-native-paper';
 import Purchases from 'react-native-purchases';
@@ -433,7 +433,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             ) : (
               <List.Item
                 title="Subscription"
-                description={`${userPlan} Plan`}
+                description={`${userPlan}`}
                 left={props => (
                   <List.Icon
                     {...props}
