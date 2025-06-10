@@ -100,6 +100,8 @@
 	<string>We need access to your photos to help you generate dating messages based on your profile pictures.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>We need to send you notifications about new matches and messages.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to securely authenticate you with Apple Sign In.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>MaterialCommunityIcons.ttf</string>
