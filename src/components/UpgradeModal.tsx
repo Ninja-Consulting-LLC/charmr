@@ -27,7 +27,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
   showPresetPaywall,
   onPurchaseSuccess,
 }) => {
-  const {user, setUser, handleGoogleLogin} = useStore();
+  const {user, setUser, handleProviderLogin} = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -175,7 +175,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         visible={showLoginModal}
         onDismiss={() => setShowLoginModal(false)}
         onLoginSuccess={handleLoginSuccess}
-        handleGoogleLogin={handleGoogleLogin}
+        handleProviderLogin={handleProviderLogin}
       />
     </Portal>
   );

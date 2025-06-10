@@ -14,47 +14,10 @@ import * as matchService from '../services/matchService';
 import { setSubscriptionUpdateCallback } from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import { SubscriptionTier } from '../types/enums';
-import { User } from '../types/user';
 import { logger } from '../utils/logger';
 import { Match } from '../utils/matchUtils';
 import { getPlanLimits } from '../utils/planLimits';
-
-interface StoreContextType {
-  showKeyboardModal: boolean;
-  setShowKeyboardModal: (show: boolean) => void;
-  userId: string;
-  setUserId: (userId: string) => void;
-  showDevMenu: boolean;
-  setShowDevMenu: (show: boolean) => void;
-  skipRateLimiting: boolean;
-  setSkipRateLimiting: (skip: boolean) => void;
-  authBypass: boolean;
-  setAuthBypass: (bypass: boolean) => void;
-  user: any;
-  setUser: (user: any) => void;
-  isAuthenticated: boolean;
-  setIsAuthenticated: (isAuthenticated: boolean) => void;
-  isLoading: boolean;
-  setIsLoading: (isLoading: boolean) => void;
-  updateUserPlan: (plan: SubscriptionTier) => Promise<void>;
-  showUpgradeModal: boolean;
-  setShowUpgradeModal: (show: boolean) => void;
-  createNewUser: () => Promise<User>;
-  linkAnonymousUser: (registeredUserId: string) => Promise<void>;
-  handleProviderLogin: (firebaseUser: any) => Promise<void>;
-  matches: Match[];
-  setMatches: (matches: Match[]) => void;
-  addMatch: (match: Match) => void;
-  updateMatch: (match: Match) => void;
-  removeMatch: (matchId: string) => void;
-  loadMatches: () => Promise<void>;
-  // Dating Coach state
-  selectedMatch: Match | null;
-  setSelectedMatch: (match: Match | null) => void;
-  deleteScreenshots: boolean;
-  setDeleteScreenshots: (value: boolean) => void;
-  signOut: () => Promise<void>;
-}
+import { StoreContextType } from './types';
 
 export const StoreContext = createContext<StoreContextType>(
   {} as StoreContextType,
@@ -233,11 +196,82 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           installationId,
         });
 
+        // Now try to link if we found an anonymous user
+        if (anonymousUser && anonymousUser.id !== newUser.id) {
+          logger.app.info(
+            'Found anonymous user, attempting to link with newly created registered user',
+            {
+              anonymousUserId: anonymousUser.id,
+              registeredUserId: newUser.id,
+              anonymousUserEmail: anonymousUser.email,
+              registeredUserEmail: newUser.email,
+              installationId,
+              anonymousUserData: {
+                id: anonymousUser.id,
+                email: anonymousUser.email,
+                installationId: anonymousUser.installationId,
+              },
+            },
+          );
+
+          try {
+            // Link users in our backend
+            await userService.linkUsers(anonymousUser.id, newUser.id);
+            logger.app.info(
+              'Successfully linked anonymous user with newly created registered user in backend',
+              {
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+              },
+            );
+
+            // Fetch the updated user profile after linking
+            const updatedUser = await userService.getUserProfile(newUser.id);
+            if (updatedUser) {
+              setUser(updatedUser);
+              // Sync subscription state after linking
+              await syncSubscriptionState(
+                async (userId, plan) => {
+                  await userService.updateUserPlan(userId, plan);
+                  setUser({
+                    plan,
+                    getDailyMessageLimit: () => getPlanLimits(plan),
+                  });
+                },
+                setUser,
+                updatedUser,
+              );
+            }
+          } catch (error) {
+            logger.app.error(
+              'Failed to link anonymous user with newly created registered user',
+              {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+                installationId,
+              },
+            );
+            throw new Error(
+              'Failed to link anonymous user with provider account. Please try again.',
+            );
+          }
+        }
+
         setUserId(firebaseUser.uid);
         await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
         setUser(newUser);
         setIsAuthenticated(true);
         await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
+
+        logger.app.info('Provider Login Success', {
+          event: 'provider_login_success',
+          userId: firebaseUser.uid,
+          email: firebaseUser.email,
+          wasAnonymous: !!anonymousUser,
+          anonymousUserId: anonymousUser?.id,
+        });
       }
     } catch (error) {
       logger.auth.error('Error in provider login:', error);

@@ -3,10 +3,10 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {
-    forwardRef,
-    useEffect,
-    useImperativeHandle,
-    useState,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
 } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -16,10 +16,10 @@ import { useImagePicker } from '../hooks/useImagePicker';
 import { useResponseGenerator } from '../hooks/useResponseGenerator';
 import { RootStackParamList } from '../navigation/types';
 import {
-    deleteMatch,
-    hideMatch,
-    restoreMatch,
-    updateMatchLastUsed,
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+  updateMatchLastUsed,
 } from '../services/matchService';
 import { useStore } from '../store';
 import { theme } from '../theme/theme';
@@ -94,7 +94,7 @@ const ResponseGenerator = forwardRef<
     deleteScreenshots,
     setDeleteScreenshots,
     setMatches,
-    handleGoogleLogin,
+    handleProviderLogin,
   } = useStore();
   const {images, setImages, pickImages, openSettings} = useImagePicker();
 
@@ -555,7 +555,7 @@ const ResponseGenerator = forwardRef<
           navigation.navigate('Home');
         }}
         onLoadingChange={setIsLoading}
-        handleGoogleLogin={handleGoogleLogin}
+        handleProviderLogin={handleProviderLogin}
       />
 
       <TryAgainModal
