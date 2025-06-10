@@ -48,7 +48,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const theme = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {user, setUser, isAuthenticated, setIsAuthenticated, handleGoogleLogin} = useStore();
+  const {user, setUser, isAuthenticated, setIsAuthenticated, handleProviderLogin} = useStore();
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showPresetPaywall, setShowPresetPaywall] = useState(false);
@@ -99,12 +99,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   }, [visible, slideAnim, fadeAnim]);
 
   useEffect(() => {
-    logger.auth.info('UserMenuSlideout mounted with handleGoogleLogin:', {
-      hasHandleGoogleLogin: !!handleGoogleLogin,
+    logger.auth.info('UserMenuSlideout mounted with handleProviderLogin:', {
+      hasHandleProviderLogin: !!handleProviderLogin,
       isAuthenticated,
       userId: user?.id,
     });
-  }, [handleGoogleLogin, isAuthenticated, user?.id]);
+  }, [handleProviderLogin, isAuthenticated, user?.id]);
 
   const loadArchivedMatches = async () => {
     if (!user.id) {
@@ -223,8 +223,8 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         plan: SubscriptionTier.PRO,
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.PRO),
       });
-      // Then sync with the backend
-      syncSubscriptionState(updateUserPlan, setUser, user).catch(error => {
+      // Then sync with the backend, forcing sync after purchase
+      syncSubscriptionState(updateUserPlan, setUser, user, true).catch(error => {
         logger.revenueCat.error('Failed to sync subscription state:', error);
       });
     }
@@ -547,7 +547,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             logger.auth.info('Login loading state changed:', { loading });
             setIsLoading(loading);
           }}
-          handleGoogleLogin={handleGoogleLogin}
+          handleProviderLogin={handleProviderLogin}
         />
         <EditUserDetailsModal
           visible={showEditUserModal}

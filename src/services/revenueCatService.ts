@@ -1,10 +1,8 @@
 import { Platform } from 'react-native';
 import Config from 'react-native-config';
 import Purchases, {
-    CustomerInfo,
-    PurchasesConfiguration,
-    PurchasesEntitlementInfo,
-    PurchasesEntitlementInfos,
+  CustomerInfo,
+  PurchasesConfiguration
 } from 'react-native-purchases';
 import { SubscriptionTier } from '../types/enums';
 import { User } from '../types/user';
@@ -84,72 +82,6 @@ export const initializeRevenueCat = async () => {
         stack: error.stack,
       });
     }
-  }
-};
-
-// Helper function to simulate pro entitlement in development
-export const simulateProEntitlement = async (userId: string) => {
-  if (!__DEV__) {
-    logger.revenueCat.warn(
-      'simulateProEntitlement can only be used in development mode',
-    );
-    return;
-  }
-
-  try {
-    // In development, we can simulate the pro entitlement
-    await Purchases.logIn(userId);
-    const customerInfo = await Purchases.getCustomerInfo();
-
-    const now = Date.now();
-    const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
-
-    // Create a mock pro entitlement
-    const mockProEntitlement: PurchasesEntitlementInfo = {
-      identifier: 'pro',
-      isActive: true,
-      willRenew: true,
-      periodType: 'NORMAL',
-      latestPurchaseDate: new Date(now).toISOString(),
-      latestPurchaseDateMillis: now,
-      originalPurchaseDate: new Date(now).toISOString(),
-      originalPurchaseDateMillis: now,
-      expirationDate: new Date(thirtyDaysFromNow).toISOString(),
-      expirationDateMillis: thirtyDaysFromNow,
-      store: 'APP_STORE',
-      unsubscribeDetectedAt: null,
-      unsubscribeDetectedAtMillis: null,
-      billingIssueDetectedAt: null,
-      billingIssueDetectedAtMillis: null,
-      ownershipType: 'PURCHASED',
-      productIdentifier: 'pro_monthly',
-      productPlanIdentifier: 'monthly',
-      isSandbox: true,
-      verification: 'NOT_REQUESTED' as any, // Using any as a temporary workaround
-    };
-
-    // Create mock entitlements object
-    const mockEntitlements: PurchasesEntitlementInfos = {
-      ...customerInfo.entitlements,
-      active: {
-        ...customerInfo.entitlements.active,
-        pro: mockProEntitlement,
-      },
-    };
-
-    // Create mock customer info
-    const mockCustomerInfo: CustomerInfo = {
-      ...customerInfo,
-      entitlements: mockEntitlements,
-    };
-
-    // Update the customer info with our mock data
-    await Purchases.syncPurchases();
-    logger.revenueCat.info('Pro entitlement simulated successfully');
-    return mockCustomerInfo;
-  } catch (error) {
-    logger.revenueCat.error('Failed to simulate pro entitlement:', error);
-    throw error;
   }
 };
 
@@ -322,17 +254,25 @@ export const syncSubscriptionState = async (
   updateUserPlan: (userId: string, plan: SubscriptionTier) => Promise<any>,
   setUser: (user: any) => void,
   currentUser: any,
+  forceSync: boolean = false,
 ) => {
   try {
+    // Only sync if forced or if user has an active subscription
     const customerInfo = await Purchases.getCustomerInfo();
+    const hasProAccess = customerInfo.entitlements.active['Pro']?.isActive;
+
+    // If not forcing sync and no active subscription, don't sync
+    if (!forceSync && !hasProAccess) {
+      logger.revenueCat.info('Skipping subscription sync - no active subscription');
+      return null;
+    }
+
     logger.revenueCat.info('Syncing RevenueCat state:', {
       entitlements: customerInfo.entitlements,
       originalAppUserId: customerInfo.originalAppUserId,
       managementURL: customerInfo.managementURL,
+      forceSync,
     });
-
-    // Check if user has pro access - using correct identifier "Pro"
-    const hasProAccess = customerInfo.entitlements.active['Pro']?.isActive;
 
     if (hasProAccess) {
       if (currentUser.plan !== SubscriptionTier.PRO) {

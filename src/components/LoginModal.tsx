@@ -104,7 +104,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
           });
         },
         setUser,
-        user
+        user,
+        true
       );
 
       logger.auth.info('Google sign in completed successfully');
@@ -290,7 +291,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
           });
         },
         setUser,
-        user
+        user,
+        true
       );
 
       logger.auth.info('Apple sign in completed successfully');

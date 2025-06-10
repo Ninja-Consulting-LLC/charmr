@@ -16,23 +16,23 @@ declare global {
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import React, {useEffect, useRef, useState} from 'react';
-import {Platform, StatusBar} from 'react-native';
-import {PaperProvider} from 'react-native-paper';
-import {SplashScreen} from './components/SplashScreen';
-import {config} from './config/config';
-import {usePushNotifications} from './hooks/usePushNotifications';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, StatusBar } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
+import { SplashScreen } from './components/SplashScreen';
+import { config } from './config/config';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import AppNavigator from './navigation/AppNavigator';
 import {
   initializeRevenueCat,
   syncSubscriptionState,
 } from './services/revenueCatService';
-import {updateUserPlan} from './services/userService';
-import {StoreProvider} from './store/StoreProvider';
-import {theme} from './theme/theme';
-import {logger} from './utils/logger';
-import {getPlanLimits} from './utils/planLimits';
+import { updateUserPlan } from './services/userService';
+import { StoreProvider } from './store/StoreProvider';
+import { theme } from './theme/theme';
+import { logger } from './utils/logger';
+import { getPlanLimits } from './utils/planLimits';
 
 const AppContent = () => {
   usePushNotifications();
@@ -105,6 +105,7 @@ const App = () => {
               );
             },
             user,
+            false // Don't force sync on startup
           );
         }
 
