@@ -1,17 +1,17 @@
 import {
-    FacebookAuthProvider,
-    getAuth,
-    GoogleAuthProvider,
-    signInWithCredential,
+  FacebookAuthProvider,
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from '@react-native-firebase/auth';
 import {
-    GoogleSignin,
-    statusCodes,
+  GoogleSignin,
+  statusCodes,
 } from '@react-native-google-signin/google-signin';
 import {
-    AccessToken,
-    AuthenticationToken,
-    LoginManager,
+  AccessToken,
+  AuthenticationToken,
+  LoginManager,
 } from 'react-native-fbsdk-next';
 import { sha256 } from 'react-native-sha256';
 import { logger } from '../utils/logger';
