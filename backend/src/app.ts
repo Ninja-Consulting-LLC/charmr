@@ -9,6 +9,7 @@ import {
     getUser,
     getUserByInstallationId,
     linkAnonymousUser,
+    updateUser,
     updateUserPlan,
 } from './controllers/adminController';
 import { checkSchemaHealth } from './controllers/devController';
@@ -175,6 +176,9 @@ export const createApp = async () => {
   );
   app.get('/api/users/:userId', authenticateUser, (req, res) =>
     getUser(req, res, db),
+  );
+  app.put('/api/users/:userId', authenticateUser, (req, res) =>
+    updateUser(req, res, db),
   );
   app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
     updateUserPlan(req, res, db),

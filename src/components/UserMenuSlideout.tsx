@@ -26,6 +26,7 @@ import { SubscriptionTier } from '../types/enums';
 import { logger } from '../utils/logger';
 import { Match } from '../utils/matchUtils';
 import { getPlanLimits } from '../utils/planLimits';
+import EditUserDetailsModal from './EditUserDetailsModal';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import LoginModal from './LoginModal';
 import PurchaseSuccessModal from './PurchaseSuccessModal';
@@ -54,6 +55,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
     useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [showSubscriptionSection, setShowSubscriptionSection] = useState(false);
   const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
@@ -322,6 +324,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                       {user.email}
                     </Text>
                   </View>
+                  {(!user.email || user.email === user.installationId || user.email.includes('privaterelay')) && (
+                    <IconButton
+                      icon="pencil"
+                      size={20}
+                      onPress={() => setShowEditUserModal(true)}
+                      iconColor={theme.colors.surface}
+                    />
+                  )}
                 </View>
                 <Divider style={[styles.infoDivider, {backgroundColor: theme.colors.surface}]} />
                 <View style={styles.infoRow}>
@@ -538,6 +548,10 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             setIsLoading(loading);
           }}
           handleGoogleLogin={handleGoogleLogin}
+        />
+        <EditUserDetailsModal
+          visible={showEditUserModal}
+          onDismiss={() => setShowEditUserModal(false)}
         />
         <HiddenMatchesModal
           visible={showArchivedMatchesModal}
