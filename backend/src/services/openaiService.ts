@@ -68,7 +68,7 @@ export const createOpenAIService = () => {
               (msg: Message) => {
                 if (msg.role === 'user') {
                   if (msg.type === 'image') {
-                    return `User shared a screenshot${msg.content ? ` with the message: "${msg.content}"` : ''}`;
+                    return `User shared a screenshot of a dating app profile or conversation${msg.content ? ` with the message: "${msg.content}"` : ''}`;
                   }
                   return `User: ${msg.content}`;
                 }
@@ -117,8 +117,8 @@ export const createOpenAIService = () => {
         },
       ];
 
-      // Add fallback prompt for image-only requests
-      const fallbackPrompt = "This is a screenshot from a dating app. Can you help me come up with a witty reply?";
+      // Add fallback prompt for image-only requests (when user uploads images but provides no text)
+      const fallbackPrompt = "This is a screenshot of a dating app profile or conversation. Since there's no specific context, help me craft a flirty opener based on their appearance - maybe their style, smile, or overall vibe. Keep it playful and charming!";
       const userPrompt = request.prompt || (hasImages ? fallbackPrompt : '');
 
       if (userPrompt) {
@@ -136,7 +136,7 @@ export const createOpenAIService = () => {
         messages.push({
           role: 'user',
           content: [
-            {type: 'text', text: 'Here are the screenshots to consider:'},
+            {type: 'text', text: 'Here are the screenshots of conversations or dating profiles to consider:'},
             ...request.images.map(img => ({
               type: 'image_url' as const,
               image_url: {url: img, detail: 'low' as const},
@@ -170,10 +170,7 @@ export const createOpenAIService = () => {
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
-        response_format:
-          request.mode === MessageMode.COACH || !request.matchId
-            ? undefined
-            : {type: 'json_object'},
+        response_format: request.mode === MessageMode.COACH ? undefined : {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';
@@ -188,10 +185,29 @@ export const createOpenAIService = () => {
         usage: response.usage,
       });
 
-      // For COACH mode or home screen (no matchId), return the raw response without JSON parsing
-      if (request.mode === MessageMode.COACH || !request.matchId) {
+      // For COACH mode, return the raw response without JSON parsing
+      if (request.mode === MessageMode.COACH) {
         return {
           reply: text,
+          usage: response.usage,
+          mode: request.mode,
+          style: request.style,
+          cost: calculateCost(model, {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: request.images?.length || 0,
+          }),
+          promptVariant: variant,
+        };
+      }
+
+      // For home screen (no matchId), require strict JSON format
+      if (!request.matchId) {
+        const {message: reply} = JSON.parse(text);
+
+        return {
+          reply,
           usage: response.usage,
           mode: request.mode || MessageMode.GENERATE,
           style: request.style,
@@ -205,20 +221,8 @@ export const createOpenAIService = () => {
         };
       }
 
-      // For chat screen, parse the JSON response
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(text);
-      } catch (error) {
-        logger.error('Failed to parse OpenAI response', {
-          error,
-          response: text,
-        });
-        throw new Error('Invalid response format');
-      }
-
-      const {summary, message: reply} = parsedResponse;
-
+      // For chat screen (with matchId)
+      const {summary, message: reply} = JSON.parse(text);
       return {
         reply,
         summary,

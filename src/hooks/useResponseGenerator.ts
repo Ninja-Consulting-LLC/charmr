@@ -134,7 +134,16 @@ export const useResponseGenerator = ({
         logger.app.info('[ResponseGenerator] Setting response state:', {
           replyLength: reply.reply.length,
         });
-        setResponse(reply.reply);
+        let finalReply = reply.reply;
+        try {
+          const parsedReply = JSON.parse(reply.reply);
+          if (parsedReply.message) {
+            finalReply = parsedReply.message;
+          }
+        } catch (e) {
+          logger.app.info('[ResponseGenerator] Using plain text response');
+        }
+        setResponse(finalReply);
         setError(null);
         setErrorType(null);
         if (reply.limits) {
