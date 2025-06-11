@@ -1,15 +1,16 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Clipboard,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Clipboard,
+  Image,
+  Keyboard,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { GiftedChat, IMessage as GiftedIMessage } from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
@@ -25,19 +26,19 @@ import { RootStackParamList } from '../navigation/types';
 import { generateReply } from '../services/api';
 import axiosInstance from '../services/axiosInstance';
 import {
-    deleteMatch,
-    hideMatch,
-    restoreMatch,
-    updateMatch,
-    updateMatchLastUsed as updateMatchLastUsedService,
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+  updateMatch,
+  updateMatchLastUsed as updateMatchLastUsedService,
 } from '../services/matchService';
 import { useStore } from '../store';
 import { theme } from '../theme/theme';
 import {
-    MessageMode,
-    MessageRole,
-    MessageType,
-    SubscriptionTier,
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
 } from '../types/enums';
 import { Message } from '../types/message';
 import { compressImages } from '../utils/imageCompression';
@@ -581,6 +582,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 </View>
               ) : null
             }
+            keyboardShouldPersistTaps="never"
+            listViewProps={{
+              onScroll: () => {
+                Keyboard.dismiss();
+              }
+            }}
             renderAvatar={props => {
               if (props.currentMessage?.user._id === 'coach') {
                 return (
