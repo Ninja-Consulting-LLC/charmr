@@ -9,16 +9,25 @@ const COMMON_SUMMARY_INSTRUCTIONS = `The "summary" field is for internal use onl
 
 const COMMON_MESSAGE_INSTRUCTIONS = `The "message" field should contain your actual response that will be sent to the user. This should be a natural, conversational message that the user can directly send to their match. Do not include any analysis, summaries, meta-commentary, or quotes in the message field.`;
 
-const HOME_SCREEN_MESSAGE_INSTRUCTIONS = `Return ONLY the message text itself, without any prefixes like "you could say" or quotes.`;
-
-const JSON_RESPONSE_FORMAT = {
+export const JSON_RESPONSE_FORMAT = {
   summary: 'Combined summary preserving existing info and adding new details',
   message: 'Your response',
 };
 
-const PLAIN_TEXT_RESPONSE_FORMAT = {
+const HOME_SCREEN_FORMAT_INSTRUCTIONS = `Return a JSON object with exactly this structure:
+${JSON.stringify({
   message: 'Your response',
-};
+}, null, 2)}
+
+The message field should contain your actual response that will be sent to the user. Do not include any prefixes like "you could say" or quotes. Do not wrap the response in code blocks or add any explanatory text. Do not include safety disclaimers or requests for more information - just return the JSON object with your suggested message.`;
+
+const CHAT_SCREEN_FORMAT_INSTRUCTIONS = `Return a JSON object with exactly this structure:
+${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}
+
+The message field should contain your actual response that will be sent to the user.
+The summary field should contain a brief summary of the conversation.`;
+
+const COACH_MODE_FORMAT_INSTRUCTIONS = `Return your response as plain text. Do not wrap it in JSON, markdown, or any other format. Do not use code blocks, bullet points, or any special formatting. When analyzing screenshots, focus on providing specific, actionable advice about the conversation dynamics and communication patterns.`;
 
 interface BasePromptConfig {
   basePrompt: string;
@@ -48,6 +57,8 @@ const promptConfigs: PromptConfig = {
         'Add a subtle hint of romantic interest',
         'Use playful language and gentle teasing',
         'No em dashes (—), use ellipses (...) if needed',
+        'Do not prefix your message with "you could say" or "here\'s what you could say"',
+        'Do not wrap your message in quotes',
       ],
       jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
 
@@ -74,6 +85,8 @@ ${COMMON_SUMMARY_INSTRUCTIONS}`,
         'Add a subtle hint of romantic interest',
         'Use playful language and gentle teasing',
         'No em dashes (—), use ellipses (...) if needed',
+        'Do not prefix your message with "you could say" or "here\'s what you could say"',
+        'Do not wrap your message in quotes',
       ],
       jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
 
@@ -89,19 +102,20 @@ ${COMMON_SUMMARY_INSTRUCTIONS}`,
   },
   coach: {
     A: {
-      basePrompt: 'You are a dating coach helping the user improve their conversation skills.',
+      basePrompt: 'You are a dating coach helping the user improve their conversation skills. You can analyze dating app screenshots and provide specific, actionable advice. Your responses should be in plain text format without any special formatting.',
       guidelines: [
-        'Keep your responses laconic - short, crisp, and to the point',
-        'Use paragraphs only, with no headings, bullet points, or formatting',
-        'Avoid overly verbose or redundant statements',
-        'Maintain a conversational and insightful tone suitable for a dating coach, but without fluff or generic advice',
-        'Focus on specific, actionable suggestions',
+        'Write everything in pure paragraphs with no lists, headings, bullet points, or special formatting',
+        'Maintain a conversational and insightful tone suitable for a dating coach',
+        'Provide detailed analysis of conversation dynamics and communication patterns',
+        'Focus on specific, actionable suggestions with concrete examples',
         'Balance positive reinforcement with constructive criticism',
         'Consider the overall conversation flow and context',
-        'Provide specific, actionable suggestions',
-        'Balance positive reinforcement with constructive criticism',
-        'Focus on natural conversation progression',
-        'Consider both parties\' engagement levels',
+        'Help identify patterns in communication that could be improved',
+        'Suggest concrete ways to improve engagement and connection',
+        'Consider both parties\' engagement levels and communication styles',
+        'Explain the reasoning behind your suggestions to help users learn',
+        'Highlight successful conversation elements and why they worked',
+        'Point out missed opportunities and how to capitalize on them next time'
       ],
     },
     B: {
@@ -167,7 +181,7 @@ function formatJsonResponse(config: VariantPromptConfig, hasMatchId: boolean): s
   // Only include JSON format instructions for chat screen (with matchId)
   if (!hasMatchId) return '';
 
-  return `\n\nPlease respond in JSON with two fields: "summary" and "message". Do not include anything else.
+  return `\n\n${CHAT_SCREEN_FORMAT_INSTRUCTIONS}
 
 ${config.jsonFormatInstructions}`;
 }
@@ -186,13 +200,17 @@ export function formatPrompt(
   const basePrompt = formatBasePrompt(config.basePrompt, regenerationMessage);
   const guidelines = formatGuidelines(config.guidelines);
 
-  // For home screen (no matchId), use different message instructions
-  if (!hasMatchId) {
-    return `${basePrompt}${guidelines}\n\n${HOME_SCREEN_MESSAGE_INSTRUCTIONS}`;
+  // For coach mode, use plain text format
+  if (mode === MessageMode.COACH) {
+    return `${basePrompt}${guidelines}\n\n${COACH_MODE_FORMAT_INSTRUCTIONS}`;
   }
 
-  const responseFormat =
-    mode !== MessageMode.COACH ? formatJsonResponse(config, hasMatchId || false) : '';
+  // For home screen (no matchId), use JSON format with just message field
+  if (!hasMatchId) {
+    return `${basePrompt}${guidelines}\n\n${HOME_SCREEN_FORMAT_INSTRUCTIONS}`;
+  }
 
+  // For chat screen, use JSON format with summary and message fields
+  const responseFormat = formatJsonResponse(config, hasMatchId || false);
   return `${basePrompt}${guidelines}${responseFormat}`;
 }

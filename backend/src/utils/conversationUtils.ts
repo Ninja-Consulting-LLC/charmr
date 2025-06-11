@@ -1,12 +1,12 @@
-import {getDatabase} from '../db';
-import {getMessageRepository} from '../db/repositories';
-import {Message} from '../db/types';
-import {createSummaryService} from '../services/summaryService';
-import {PromptVariant} from '../types';
-import {MessageMode, MessageRole, MessageType} from '../types/enums';
+import { getDatabase } from '../db';
+import { getMessageRepository } from '../db/repositories';
+import { Message } from '../db/types';
+import { createSummaryService } from '../services/summaryService';
+import { PromptVariant } from '../types';
+import { MessageMode, MessageRole, MessageType } from '../types/enums';
 import logger from '../utils/logger';
 
-export type {Message} from '../db/types';
+export type { Message } from '../db/types';
 
 export const loadConversation = async (
   userId: string,
@@ -82,7 +82,7 @@ export const appendConversation = async (
 
     // Save user message first (either text, images, or both)
     if (images && images.length > 0) {
-      // Save screenshots with or without prompt
+      // Save screenshots of conversations or dating profiles with or without prompt
       for (let i = 0; i < images.length; i++) {
         const timestamp = new Date(baseTimestamp + i * 1000).toISOString();
         const message = await messageRepository.createMessage(userId, matchId, {
