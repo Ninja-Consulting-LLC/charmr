@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {logger} from './logger';
+import { logger } from './logger';
 
 export class DevUtils {
   static shouldBypassAuth(): boolean {
@@ -41,27 +41,6 @@ export class DevUtils {
       logger.app.info('Storage contents', items);
     } catch (error) {
       logger.app.error('Error inspecting storage', error);
-    }
-  }
-
-  static async toggleSandboxMode(): Promise<void> {
-    try {
-      const currentMode = await AsyncStorage.getItem('sandboxMode');
-      const newMode = currentMode === 'true' ? 'false' : 'true';
-      await AsyncStorage.setItem('sandboxMode', newMode);
-      logger.app.info('Sandbox mode toggled', {newMode});
-    } catch (error) {
-      logger.app.error('Error toggling sandbox mode', error);
-    }
-  }
-
-  static async isSandboxMode(): Promise<boolean> {
-    try {
-      const mode = await AsyncStorage.getItem('sandboxMode');
-      return mode === 'true';
-    } catch (error) {
-      logger.app.error('Error checking sandbox mode', error);
-      return false;
     }
   }
 }

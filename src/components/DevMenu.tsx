@@ -99,7 +99,7 @@ const DevMenu = () => {
   const handleResetOnboarding = async () => {
     try {
       await DevUtils.resetOnboarding();
-      Alert.alert('Development', 'Onboarding status reset');
+      Alert.alert('Development', 'Onboarding reset successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to reset onboarding');
     }
@@ -127,23 +127,9 @@ const DevMenu = () => {
   const handleInspectStorage = async () => {
     try {
       await DevUtils.inspectStorage();
-      Alert.alert('Development', 'Storage contents logged to console');
+      Alert.alert('Development', 'Storage inspection completed. Check logs for details.');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to inspect storage');
-    }
-  };
-
-  const handleToggleSandboxMode = async (value: boolean) => {
-    try {
-      await DevUtils.toggleSandboxMode();
-      const newMode = await DevUtils.isSandboxMode();
-      setIsSandboxMode(newMode);
-      Alert.alert(
-        'Development',
-        `Sandbox mode ${newMode ? 'enabled' : 'disabled'}`,
-      );
-    } catch (error) {
-      Alert.alert('Development Error', 'Failed to toggle sandbox mode');
     }
   };
 
@@ -375,7 +361,7 @@ const DevMenu = () => {
               <Text>Sandbox Mode (No ChatGPT)</Text>
               <Switch
                 value={isSandboxMode}
-                onValueChange={handleToggleSandboxMode}
+                onValueChange={() => {}}
               />
             </View>
 

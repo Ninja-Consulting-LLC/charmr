@@ -11,27 +11,18 @@ import { ErrorType, MessageMode, SubscriptionTier } from '../types/enums';
 import { loadConversation, Message } from '../utils/conversationUtils';
 import { calculateCost } from '../utils/costUtils';
 import logger from '../utils/logger';
-import { createSandboxService } from './sandboxService';
 import { createSummaryService } from './summaryService';
 
 export const createOpenAIService = () => {
-  if (!config.openai.apiKey && !config.openai.sandboxMode) {
-    throw new Error('OPENAI_API_KEY is required when not in sandbox mode');
+  if (!config.openai.apiKey) {
+    throw new Error('OPENAI_API_KEY is required');
   }
 
-  const openai = config.openai.sandboxMode
-    ? null
-    : new OpenAI({apiKey: config.openai.apiKey});
-
-  const sandboxService = createSandboxService();
+  const openai = new OpenAI({apiKey: config.openai.apiKey});
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
-    if (config.openai.sandboxMode) {
-      return sandboxService.generateReply(request);
-    }
-
     if (!openai) throw new Error('OpenAI client not initialized');
 
     try {

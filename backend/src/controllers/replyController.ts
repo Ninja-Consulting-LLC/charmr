@@ -1,15 +1,15 @@
-import {Request, Response} from 'express';
-import {config} from '../config/config';
-import {getDatabase} from '../db';
-import {getMessageRepository} from '../db/repositories';
-import {Database} from '../db/types';
-import {createGeminiService} from '../services/geminiService';
-import {createMessageLimitService} from '../services/messageLimitService';
-import {createOpenAIService} from '../services/openaiService';
-import {createSummaryService} from '../services/summaryService';
-import {MessageMode} from '../types/enums';
-import {appendConversation, loadConversation} from '../utils/conversationUtils';
-import {calculateCost} from '../utils/costUtils';
+import { Request, Response } from 'express';
+import { config } from '../config/config';
+import { getDatabase } from '../db';
+import { getMessageRepository } from '../db/repositories';
+import { Database } from '../db/types';
+import { createGeminiService } from '../services/geminiService';
+import { createMessageLimitService } from '../services/messageLimitService';
+import { createOpenAIService } from '../services/openaiService';
+import { createSummaryService } from '../services/summaryService';
+import { MessageMode } from '../types/enums';
+import { appendConversation, loadConversation } from '../utils/conversationUtils';
+import { calculateCost } from '../utils/costUtils';
 import logger from '../utils/logger';
 
 interface ChatGptImage {
@@ -60,8 +60,6 @@ export const createReplyController = async (db: Database) => {
         hasImages: images?.length > 0,
         prompt,
         imageCount: images?.length,
-        sandboxMode: config.openai.sandboxMode,
-        images: images?.map(truncateImageData),
         mode: req.body.mode,
         regenerate: req.body.regenerate,
       });

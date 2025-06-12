@@ -178,19 +178,12 @@ npm run android
 
 ### Development Features
 
-#### Sandbox Mode
-
-- Mock API responses
-- Simulated rate limits
-- Development data generation
-- Test user creation
-
 #### Dev Menu
 
-- Toggle development features
 - Clear local storage
 - Reset message counts
 - View debug information
+- Test rate limiting
 
 ## Conversation Context
 
