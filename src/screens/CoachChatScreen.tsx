@@ -1,16 +1,16 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Clipboard,
-  Image,
-  Keyboard,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Clipboard,
+    Image,
+    Keyboard,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { GiftedChat, IMessage as GiftedIMessage } from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
@@ -26,22 +26,21 @@ import { RootStackParamList } from '../navigation/types';
 import { generateReply } from '../services/api';
 import axiosInstance from '../services/axiosInstance';
 import {
-  deleteMatch,
-  hideMatch,
-  restoreMatch,
-  updateMatch,
-  updateMatchLastUsed as updateMatchLastUsedService,
+    deleteMatch,
+    hideMatch,
+    restoreMatch,
+    updateMatch,
+    updateMatchLastUsed as updateMatchLastUsedService,
 } from '../services/matchService';
 import { useStore } from '../store';
 import { theme } from '../theme/theme';
 import {
-  MessageMode,
-  MessageRole,
-  MessageType,
-  SubscriptionTier,
+    MessageMode,
+    MessageRole,
+    MessageType,
+    SubscriptionTier,
 } from '../types/enums';
 import { Message } from '../types/message';
-import { compressImages } from '../utils/imageCompression';
 import { Match, addMatch } from '../utils/matchUtils';
 
 type CoachChatScreenProps = NativeStackScreenProps<
@@ -393,12 +392,20 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       let base64Images: string[] = [];
       if (images.length > 0) {
         try {
-          const compressedImages = await compressImages(
-            images.map(img => img.path),
+          base64Images = await Promise.all(
+            images.map(async img => {
+              const response = await fetch(img.path);
+              const blob = await response.blob();
+              return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            }),
           );
-          base64Images = compressedImages.map(img => img.base64);
         } catch (error) {
-          console.error('Error compressing images:', error);
+          console.error('Error preparing images:', error);
           setIsTyping(false);
           setMessages(previousMessages =>
             GiftedChat.append(previousMessages, [
