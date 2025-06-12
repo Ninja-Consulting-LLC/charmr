@@ -20,6 +20,9 @@ export const config = {
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL || 'gemini-pro-vision',
   },
+  ai: {
+    defaultService: process.env.AI_SERVICE || 'openai',
+  },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
