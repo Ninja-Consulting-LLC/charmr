@@ -11,6 +11,7 @@ import { MessageMode } from '../types/enums';
 import { appendConversation, loadConversation } from '../utils/conversationUtils';
 import { calculateCost } from '../utils/costUtils';
 import logger from '../utils/logger';
+import { sanitizeImage } from '../utils/sanitizeImage';
 
 interface ChatGptImage {
   type: 'image_url';
@@ -88,6 +89,45 @@ export const createReplyController = async (db: Database) => {
         return res.status(404).json({error: 'User not found'});
       }
 
+      // Sanitize images if present
+      let sanitizedImages: string[] = [];
+      let storedImages: string[] = [];
+      if (images?.length > 0) {
+        try {
+          const imagePromises = images.map(async (base64Image: string) => {
+            try {
+              // Convert base64 to buffer
+              const base64Data = base64Image.split(',')[1];
+              const imageBuffer = Buffer.from(base64Data, 'base64');
+
+              // Sanitize image for AI service (strip metadata)
+              const aiSanitized = await sanitizeImage(imageBuffer, { stripMetadata: true });
+
+              // Sanitize image for storage (preserve metadata)
+              const storedSanitized = await sanitizeImage(imageBuffer, { stripMetadata: false });
+
+              return {
+                aiImage: `data:image/png;base64,${aiSanitized.buffer.toString('base64')}`,
+                storedImage: `data:image/png;base64,${storedSanitized.buffer.toString('base64')}`
+              };
+            } catch (error) {
+              logger.error('Error sanitizing image:', error);
+              throw new Error('Failed to process image. Please try again with a different image.');
+            }
+          });
+
+          const results = await Promise.all(imagePromises);
+          sanitizedImages = results.map(r => r.aiImage);
+          storedImages = results.map(r => r.storedImage);
+        } catch (error) {
+          logger.error('Error processing images:', error);
+          return res.status(400).json({
+            error: error instanceof Error ? error.message : 'Failed to process images',
+            type: 'IMAGE_PROCESSING_ERROR',
+          });
+        }
+      }
+
       // Load conversation history for the specified match if matchId is provided
       const conversationHistory = matchId
         ? await loadConversation(userId, matchId, user.plan)
@@ -144,12 +184,13 @@ export const createReplyController = async (db: Database) => {
         matchSummary = await summaryService.getMatchSummary(userId, matchId);
       }
 
-      // Always use OpenAI service
-      const service = 'openai';
+      // Determine which AI service to use
+      const service = config.ai.defaultService;
+
       logger.debug('Using AI service', {
         service,
-        hasImages: images?.length > 0,
-        imageCount: images?.length,
+        hasImages: sanitizedImages.length > 0,
+        imageCount: sanitizedImages.length,
         requestedModel: req.body.model,
       });
 
@@ -157,7 +198,7 @@ export const createReplyController = async (db: Database) => {
         service === 'openai'
           ? await openaiService.generateReply({
               prompt,
-              images: images || [],
+              images: sanitizedImages,
               userId,
               matchId,
               model: req.body.model,
@@ -210,7 +251,7 @@ export const createReplyController = async (db: Database) => {
           userId,
           matchId,
           response.reply,
-          images,
+          storedImages, // Use images with preserved metadata for storage
           prompt,
           req.body.mode || MessageMode.GENERATE,
           response.promptVariant,
@@ -232,7 +273,7 @@ export const createReplyController = async (db: Database) => {
             prompt_tokens: response.usage?.prompt_tokens || 0,
             completion_tokens: response.usage?.completion_tokens || 0,
             total_tokens: response.usage?.total_tokens || 0,
-            image_count: images?.length || 0,
+            image_count: sanitizedImages.length || 0,
           },
         );
 
