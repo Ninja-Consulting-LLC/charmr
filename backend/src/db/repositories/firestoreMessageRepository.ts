@@ -168,9 +168,6 @@ export class FirestoreMessageRepository implements MessageRepository {
         };
       }) as Message[];
 
-      // Reverse the messages array to maintain chronological order
-      messages.reverse();
-
       return {
         messages,
         total,
@@ -199,20 +196,14 @@ export class FirestoreMessageRepository implements MessageRepository {
       // Get all messages
       const {messages} = await this.getMessagesByMatch(userId, matchId);
 
-      // Sort by timestamp
-      const sortedMessages = messages.sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
-
-      // Apply pagination
+      // DO NOT sort ascending. Paginate on the original (DESC) order from Firestore.
       const start = pagination?.offset || 0;
       const end = pagination?.limit ? start + pagination.limit : undefined;
-      const paginatedMessages = sortedMessages.slice(start, end);
+      const paginatedMessages = messages.slice(start, end);
 
       return {
         items: paginatedMessages,
-        total: sortedMessages.length,
+        total: messages.length,
       };
     } catch (error) {
       logger.error('Failed to get conversation timeline', {
