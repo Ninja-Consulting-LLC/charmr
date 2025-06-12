@@ -68,6 +68,9 @@ export const config = {
     android: Config.REVENUECAT_ANDROID_API_KEY || '',
     default: '',
   }),
+  chat: {
+    pageSize: parseInt(Config.CHAT_PAGE_SIZE || '5', 10),
+  },
 } as const;
 
 // Log all config variables in development
