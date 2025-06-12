@@ -1,47 +1,49 @@
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
-    ActivityIndicator,
-    Clipboard,
-    Image,
-    Keyboard,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Clipboard,
+  Image,
+  Keyboard,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { GiftedChat, IMessage as GiftedIMessage } from 'react-native-gifted-chat';
+import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import { IconButton, SegmentedButtons, Snackbar, Text } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {IconButton, SegmentedButtons, Snackbar, Text} from 'react-native-paper';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
 import PhotoAccessBanner from '../components/PhotoAccessBanner';
 import TypingIndicator from '../components/TypingIndicator';
 import UpgradeModal from '../components/UpgradeModal';
-import { useImagePicker } from '../hooks/useImagePicker';
-import { RootStackParamList } from '../navigation/types';
-import { generateReply } from '../services/api';
+import {config} from '../config/config';
+import {useImagePicker} from '../hooks/useImagePicker';
+import {RootStackParamList} from '../navigation/types';
+import {generateReply} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
 import {
-    deleteMatch,
-    hideMatch,
-    restoreMatch,
-    updateMatch,
-    updateMatchLastUsed as updateMatchLastUsedService,
+  deleteMatch,
+  hideMatch,
+  restoreMatch,
+  updateMatch,
+  updateMatchLastUsed as updateMatchLastUsedService,
 } from '../services/matchService';
-import { useStore } from '../store';
-import { theme } from '../theme/theme';
+import {useStore} from '../store';
+import {theme} from '../theme/theme';
 import {
-    MessageMode,
-    MessageRole,
-    MessageType,
-    SubscriptionTier,
+  MessageMode,
+  MessageRole,
+  MessageType,
+  SubscriptionTier,
 } from '../types/enums';
-import { Message } from '../types/message';
-import { Match, addMatch } from '../utils/matchUtils';
+import {Message} from '../types/message';
+import {Match, addMatch} from '../utils/matchUtils';
+import {getPlanLimits} from '../utils/planLimits';
 
 type CoachChatScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -175,7 +177,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   // Use debug match ID if provided and enabled, otherwise use the match from route params
   const effectiveMatchId = useDebugMatch ? DEBUG_MATCH_ID : match.id;
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = config.chat.pageSize;
 
   const loadMessages = useCallback(
     async (offset = 0) => {
@@ -208,6 +210,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           receivedMessages: messagesData.length,
           hasMore: offset + PAGE_SIZE < total,
         });
+
+        // Check if this is the only page
+        const isOnlyPage = total <= PAGE_SIZE;
 
         // Filter out system/summary messages and deduplicate by id
         const seenIds = new Set();
@@ -246,26 +251,30 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           JSON.stringify(chatMessages, null, 2),
         );
 
-        // Add welcome message at the beginning if this is the first page
+        // Add welcome message only on the last page or if it's the only page
         if (offset === 0) {
-          const welcomeMessage: IMessageWithImages = {
-            _id: Date.now(),
-            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
-            createdAt: new Date(),
-            user: {
-              _id: 'coach',
-              name: 'Coach',
-              avatar: '👨‍🏫',
-            },
-            type: MessageType.TEXT,
-            mode: MessageMode.COACH,
-          };
-
-          console.log('Showing all messages');
-          setMessages(prevMessages => {
-            const messages = [welcomeMessage, ...chatMessages];
-            return messages.reverse();
-          });
+          if (isOnlyPage) {
+            const welcomeMessage: IMessageWithImages = {
+              _id: Date.now(),
+              text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+              createdAt: new Date(),
+              user: {
+                _id: 'coach',
+                name: 'Coach',
+                avatar: '👨‍🏫',
+              },
+              type: MessageType.TEXT,
+              mode: MessageMode.COACH,
+            };
+            setMessages(prevMessages => {
+              const messages = [welcomeMessage, ...chatMessages];
+              return messages;
+            });
+          } else {
+            setMessages(prevMessages => {
+              return chatMessages;
+            });
+          }
         } else {
           // If this is the last page (no more messages after this), add the welcome message
           const isLastPage = offset + PAGE_SIZE >= total;
@@ -283,8 +292,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           };
 
           setMessages(prevMessages => {
-            const newMessages = chatMessages.reverse();
-            const messages = GiftedChat.prepend(prevMessages, newMessages);
+            const messages = GiftedChat.prepend(prevMessages, chatMessages);
             return isLastPage
               ? GiftedChat.prepend(messages, [welcomeMessage])
               : messages;
@@ -295,21 +303,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         setHasMoreMessages(offset + PAGE_SIZE < total);
       } catch (error) {
         console.error('Failed to fetch messages:', error);
-        // Add welcome message as fallback only for first page
+        // Just set empty messages array on error
         if (offset === 0) {
-          const welcomeMessage: IMessageWithImages = {
-            _id: Date.now(),
-            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
-            createdAt: new Date(),
-            user: {
-              _id: 'coach',
-              name: 'Coach',
-              avatar: '👨‍🏫',
-            },
-            type: MessageType.TEXT,
-            mode: MessageMode.COACH,
-          };
-          setMessages([welcomeMessage]);
+          setMessages([]);
         }
       } finally {
         setIsLoadingMessages(false);
@@ -333,7 +329,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       headerTitle: () => (
         <View style={styles.headerTitle}>
           <Text style={styles.headerName}>{match.name}</Text>
-          <Text style={styles.headerPlatform}>{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</Text>
+          <Text style={styles.headerPlatform}>
+            {match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
+          </Text>
         </View>
       ),
       headerLeft: () => (
@@ -447,8 +445,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         // Update user state with new message limits
         if (response.limits) {
           setUser({
+            ...user,
             dailyMessagesUsed: response.limits.dailyMessagesUsed,
             extraMessages: response.limits.extraMessages,
+            getDailyMessageLimit: () => getPlanLimits(user.plan),
           });
         }
 
@@ -591,9 +591,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             }
             keyboardShouldPersistTaps="never"
             listViewProps={{
+              // @ts-ignore - onScroll is a valid prop but not in the type definition
               onScroll: () => {
                 Keyboard.dismiss();
-              }
+              },
             }}
             renderAvatar={props => {
               if (props.currentMessage?.user._id === 'coach') {
