@@ -4,8 +4,6 @@ import { generateReply } from '../services/api';
 import { useStore } from '../store';
 import { MessageMode, SubscriptionTier } from '../types/enums';
 import { SelectedImage } from '../types/image';
-import { User } from '../types/user';
-import { compressImages } from '../utils/imageCompression';
 import { logger } from '../utils/logger';
 import { Match } from '../utils/matchUtils';
 
@@ -13,7 +11,7 @@ interface UseResponseGeneratorProps {
   images: SelectedImage[];
   selectedMatch: Match | null;
   userPlan: SubscriptionTier;
-  onMessageLimitReached?: () => void;
+  onMessageLimitReached: () => void;
   mode: MessageMode;
 }
 
@@ -24,6 +22,16 @@ interface UseResponseGeneratorReturn {
   errorType: string | null;
   generateResponse: (prompt?: string, regenerate?: boolean) => Promise<void>;
   resetResponse: () => void;
+}
+
+interface GenerateReplyResponse {
+  reply?: string;
+  error?: string;
+  type?: string;
+  limits?: {
+    dailyMessagesUsed: number;
+    extraMessages: number;
+  };
 }
 
 export const useResponseGenerator = ({
@@ -66,130 +74,51 @@ export const useResponseGenerator = ({
     }
 
     try {
-      logger.app.info('[ResponseGenerator] Converting images to base64');
+      logger.app.info('[ResponseGenerator] Preparing images for upload');
       const base64Images = await Promise.all(
-        images.map(async (img, index) => {
+        images.map(async (img) => {
           try {
             if (img.base64) {
-              logger.app.info(
-                `[ResponseGenerator] Using existing base64 for image ${index}`,
-              );
               return img.base64;
             }
-            logger.app.info(
-              `[ResponseGenerator] Converting image ${index} to base64`,
-            );
-            const compressedImage = await compressImages([img.path]);
-            return compressedImage[0].base64;
+            // For local files, fetch and convert to base64
+            const response = await fetch(img.path);
+            const blob = await response.blob();
+            return new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
           } catch (error) {
-            logger.app.error(
-              `[ResponseGenerator] Error converting image ${index}:`,
-              error,
-            );
-            throw new Error('Failed to process images. Please try again.');
+            logger.app.error('[ResponseGenerator] Error preparing image:', error);
+            throw new Error('Failed to prepare image for upload');
           }
-        }),
+        })
       );
 
-      logger.app.info('[ResponseGenerator] Calling generateReply API');
-      const reply = await generateReply({
-        prompt: prompt?.trim() || '',
-        images: base64Images,
+      const result = await generateReply({
         userId,
+        matchId: selectedMatch?.id?.toString(),
+        prompt: prompt || '',
+        images: base64Images,
         mode,
-        regenerate,
       });
 
-      logger.app.info('[ResponseGenerator] Received API response:', {
-        hasReply: !!reply.reply,
-        hasError: !!reply.error,
-        errorType: reply.type,
-      });
-
-      if (reply.error) {
-        logger.app.info('[ResponseGenerator] Setting error state:', {
-          error: reply.error,
-          type: reply.type,
-        });
-        if (reply.type === 'MESSAGE_LIMIT') {
-          onMessageLimitReached?.();
-          setError(reply.error);
-          setErrorType(reply.type);
-          return;
-        } else if (reply.type !== '404') {
-          setError(reply.error);
-          setErrorType(reply.type || 'UNKNOWN');
-        }
-        setResponse(null);
-        if (reply.limits) {
-          setUser((prevUser: User) => ({
-            ...prevUser,
-            dailyMessagesUsed:
-              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
-            extraMessages:
-              reply.limits?.extraMessages ?? prevUser.extraMessages,
-          }));
-        }
-      } else if (reply.reply) {
-        logger.app.info('[ResponseGenerator] Setting response state:', {
-          replyLength: reply.reply.length,
-        });
-        let finalReply = reply.reply;
-        try {
-          const parsedReply = JSON.parse(reply.reply);
-          if (parsedReply.message) {
-            finalReply = parsedReply.message;
-          }
-        } catch (e) {
-          logger.app.info('[ResponseGenerator] Using plain text response');
-        }
-        setResponse(finalReply);
-        setError(null);
-        setErrorType(null);
-        if (reply.limits) {
-          setUser((prevUser: User) => ({
-            ...prevUser,
-            dailyMessagesUsed:
-              reply.limits?.dailyMessagesUsed ?? prevUser.dailyMessagesUsed,
-            extraMessages:
-              reply.limits?.extraMessages ?? prevUser.extraMessages,
-          }));
-        }
-      }
-    } catch (error: any) {
-      logger.app.error('[ResponseGenerator] Error in generateResponse:', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
-      });
-      if (error.response?.data) {
-        if (error.response.data.type === 'MESSAGE_LIMIT') {
-          onMessageLimitReached?.();
-          setError(error.response.data.error);
-          setErrorType(error.response.data.type);
-          return;
-        } else if (error.response.status !== 404) {
-          setError(error.response.data.error);
-          setErrorType(error.response.data.type || 'UNKNOWN');
-        }
-        if (error.response.data.limits) {
-          setUser((prevUser: User) => ({
-            ...prevUser,
-            dailyMessagesUsed:
-              error.response.data.limits?.dailyMessagesUsed ??
-              prevUser.dailyMessagesUsed,
-            extraMessages:
-              error.response.data.limits?.extraMessages ??
-              prevUser.extraMessages,
-          }));
+      if (result.error) {
+        setError(result.error);
+        setErrorType(result.type || null);
+        if (result.type === 'MESSAGE_LIMIT') {
+          onMessageLimitReached();
         }
       } else {
-        setError(error.message || MESSAGES.GENERATION_ERROR);
-        setErrorType('UNKNOWN');
+        setResponse(result.reply || null);
       }
-      setResponse(null);
+    } catch (error) {
+      logger.app.error('[ResponseGenerator] Error generating response:', error);
+      setError(MESSAGES.GENERATION_ERROR);
+      setErrorType('GENERATION_ERROR');
     } finally {
-      logger.app.info('[ResponseGenerator] Finishing response generation');
       setLoading(false);
     }
   };
