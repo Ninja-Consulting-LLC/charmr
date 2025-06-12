@@ -8,6 +8,7 @@ export interface UserData {
   extraMessages: number;
   lastResetDate: string;
   installationId?: string;
+  deviceToken?: string;
   createdAt: string;
 }
 
