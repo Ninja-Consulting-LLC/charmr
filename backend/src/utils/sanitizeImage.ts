@@ -26,57 +26,69 @@ export async function sanitizeImage(
     const originalWidth = metadata.width || 1200;
     const originalHeight = metadata.height || 1200;
     const originalSize = input.length;
+    const originalFormat = metadata.format || 'jpeg';
 
-    // Calculate initial dimensions and quality
+    // Calculate initial dimensions
     let width = Math.min(originalWidth, 1200);
     const height = Math.round((width * originalHeight) / originalWidth);
 
-    // Calculate initial quality based on original size
-    let quality = Math.min(80, Math.max(20, Math.floor((maxSizeBytes / originalSize) * 100)));
+    // Try with high quality first
+    let bestResult = await sharp(input)
+      .resize(width, height, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .toFormat(originalFormat, {quality: 90}) // Start with high quality
+      .toBuffer({resolveWithObject: true});
 
-    // Binary search for optimal quality
-    let minQuality = 20;
-    let maxQuality = 80;
-    let bestResult: {data: Buffer; info: sharp.OutputInfo} | null = null;
+    let currentQuality = 90; // Track the quality used
 
-    while (minQuality <= maxQuality) {
-      quality = Math.floor((minQuality + maxQuality) / 2);
+    // If still too large, try reducing quality
+    if (bestResult.data.length > maxSizeBytes) {
+      // Binary search for optimal quality
+      let minQuality = 60; // Don't go below 60% quality
+      let maxQuality = 90;
 
-      const result = await sharp(input)
-        .resize(width, height, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .png({quality})
-        .toBuffer({resolveWithObject: true});
+      while (minQuality <= maxQuality) {
+        currentQuality = Math.floor((minQuality + maxQuality) / 2);
 
-      if (result.data.length <= maxSizeBytes) {
-        // This quality works, try to find a better one
-        bestResult = result;
-        minQuality = quality + 1;
-      } else {
-        // Too large, need lower quality
-        maxQuality = quality - 1;
+        const result = await sharp(input)
+          .resize(width, height, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .toFormat(originalFormat, {quality: currentQuality})
+          .toBuffer({resolveWithObject: true});
+
+        if (result.data.length <= maxSizeBytes) {
+          // This quality works, try to find a better one
+          bestResult = result;
+          minQuality = currentQuality + 1;
+        } else {
+          // Too large, need lower quality
+          maxQuality = currentQuality - 1;
+        }
       }
-    }
 
-    // If we couldn't find a working quality, try reducing dimensions
-    if (!bestResult) {
-      width = Math.round(width * 0.8); // Reduce width by 20%
-      const newHeight = Math.round((width * originalHeight) / originalWidth);
-
-      bestResult = await sharp(input)
-        .resize(width, newHeight, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .png({quality: 20}) // Use minimum quality
-        .toBuffer({resolveWithObject: true});
-
+      // If we still couldn't find a working quality, try reducing dimensions
       if (bestResult.data.length > maxSizeBytes) {
-        throw new Error(
-          `Image could not be compressed below ${maxSizeBytes} bytes. Current size: ${bestResult.data.length} bytes`,
-        );
+        width = Math.round(width * 0.8); // Reduce width by 20%
+        const newHeight = Math.round((width * originalHeight) / originalWidth);
+
+        currentQuality = 60; // Set to minimum quality when reducing dimensions
+        bestResult = await sharp(input)
+          .resize(width, newHeight, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .toFormat(originalFormat, {quality: currentQuality})
+          .toBuffer({resolveWithObject: true});
+
+        if (bestResult.data.length > maxSizeBytes) {
+          throw new Error(
+            `Image could not be compressed below ${maxSizeBytes} bytes. Current size: ${bestResult.data.length} bytes`,
+          );
+        }
       }
     }
 
@@ -90,14 +102,15 @@ export async function sanitizeImage(
     logger.debug('Image compression result', {
       originalSize,
       finalSize: bestResult.data.length,
-      quality,
+      quality: currentQuality,
       width: bestResult.info.width,
       height: bestResult.info.height,
+      format: originalFormat,
     });
 
     return {
       buffer: bestResult.data,
-      format: 'png',
+      format: originalFormat,
       width: bestResult.info.width,
       height: bestResult.info.height,
       size: bestResult.data.length,
