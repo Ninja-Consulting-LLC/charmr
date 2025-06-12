@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import {PromptVariant} from '../types';
+import { PromptVariant } from '../types';
 
 dotenv.config();
 
@@ -11,18 +11,14 @@ export const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    sandboxMode: process.env.OPENAI_SANDBOX_MODE === 'true',
-    maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '4096', 10),
+    model: process.env.OPENAI_MODEL || 'gpt-4-mini',
+    maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000', 10),
     temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-    maxCoachMessages: parseInt(process.env.MAX_COACH_MESSAGES || '10', 10),
+    maxCoachMessages: parseInt(process.env.OPENAI_MAX_COACH_MESSAGES || '10', 10),
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
-    model: process.env.GEMINI_MODEL || 'gemini-1.5-pro',
-    sandboxMode: process.env.GEMINI_SANDBOX_MODE === 'true',
-    maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '4096', 10),
-    temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
+    model: process.env.GEMINI_MODEL || 'gemini-pro-vision',
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
@@ -52,7 +48,7 @@ export const config = {
   },
   supportEmail: process.env.SUPPORT_EMAIL || 'support@charmrapp.com',
   prompt: {
-    variant: (process.env.PROMPT_VARIANT as PromptVariant) || undefined,
+    variant: process.env.PROMPT_VARIANT as PromptVariant | undefined,
   },
 } as const;
 
