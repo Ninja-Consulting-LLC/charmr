@@ -1,17 +1,17 @@
 import OpenAI from 'openai';
-import { config } from '../config/config';
-import { formatPrompt, getPromptConfig } from '../config/prompts';
-import { getDatabase } from '../db';
+import {config} from '../config/config';
+import {formatPrompt, getPromptConfig} from '../config/prompts';
+import {getDatabase} from '../db';
 import {
   GenerateReplyRequest,
   GenerateReplyResponse,
   PromptVariant,
 } from '../types';
-import { ErrorType, MessageMode, SubscriptionTier } from '../types/enums';
-import { loadConversation, Message } from '../utils/conversationUtils';
-import { calculateCost } from '../utils/costUtils';
+import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
+import {loadConversation, Message} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
-import { createSummaryService } from './summaryService';
+import {createSummaryService} from './summaryService';
 
 export const createOpenAIService = () => {
   if (!config.openai.apiKey) {
@@ -43,7 +43,10 @@ export const createOpenAIService = () => {
       let matchSummary: string | undefined;
       if (request.matchId) {
         const summaryService = createSummaryService(db);
-        matchSummary = await summaryService.getMatchSummary(request.userId, request.matchId);
+        matchSummary = await summaryService.getMatchSummary(
+          request.userId,
+          request.matchId,
+        );
       }
 
       // Format the conversation history if we have any messages
@@ -53,13 +56,15 @@ export const createOpenAIService = () => {
         )
         .slice(-config.openai.maxCoachMessages);
 
-      const conversationText = recentMessages.length > 0
-        ? recentMessages
-            .map(
-              (msg: Message) => {
+      const conversationText =
+        recentMessages.length > 0
+          ? recentMessages
+              .map((msg: Message) => {
                 if (msg.role === 'user') {
                   if (msg.type === 'image') {
-                    return `User shared a screenshot of a dating app profile or conversation${msg.content ? ` with the message: "${msg.content}"` : ''}`;
+                    return `User shared a screenshot of a dating app profile or conversation${
+                      msg.content ? ` with the message: "${msg.content}"` : ''
+                    }`;
                   }
                   return `User: ${msg.content}`;
                 }
@@ -67,11 +72,10 @@ export const createOpenAIService = () => {
                   return `AI Assistant: ${msg.content}`;
                 }
                 return ''; // Should never happen due to filter above
-              }
-            )
-            .filter(Boolean) // Remove any empty strings
-            .join('\n\n')
-        : '';
+              })
+              .filter(Boolean) // Remove any empty strings
+              .join('\n\n')
+          : '';
 
       // Only include summary and conversation if they exist and we're in chat screen
       if (request.matchId) {
@@ -109,7 +113,8 @@ export const createOpenAIService = () => {
       ];
 
       // Add fallback prompt for image-only requests (when user uploads images but provides no text)
-      const fallbackPrompt = "This is a screenshot of a dating app profile or conversation. Since there's no specific context, help me craft a flirty opener based on their appearance - maybe their style, smile, or overall vibe. Keep it playful and charming!";
+      const fallbackPrompt =
+        "This is a screenshot of a dating app interaction. Please analyze the screenshot carefully to determine if this is a new match where the user needs to make the first message (look for 'You matched' or 'Liked your photo' indicators) or if it's an existing conversation. Help craft an appropriate message based on the context.";
       const userPrompt = request.prompt || (hasImages ? fallbackPrompt : '');
 
       if (userPrompt) {
@@ -127,7 +132,10 @@ export const createOpenAIService = () => {
         messages.push({
           role: 'user',
           content: [
-            {type: 'text', text: 'Here are the screenshots of conversations or dating profiles to consider:'},
+            {
+              type: 'text',
+              text: 'Here are the screenshots of conversations or dating profiles to consider:',
+            },
             ...request.images.map(img => ({
               type: 'image_url' as const,
               image_url: {url: img, detail: 'low' as const},
@@ -144,15 +152,16 @@ export const createOpenAIService = () => {
         mode: request.mode || MessageMode.GENERATE,
         messages: messages.map(msg => ({
           role: msg.role,
-          content: typeof msg.content === 'string'
-            ? msg.content
-            : Array.isArray(msg.content)
-            ? msg.content.map(item => {
-                if (item.type === 'text') return item.text;
-                if (item.type === 'image_url') return '[IMAGE]';
-                return item;
-              })
-            : 'Unknown content type',
+          content:
+            typeof msg.content === 'string'
+              ? msg.content
+              : Array.isArray(msg.content)
+              ? msg.content.map(item => {
+                  if (item.type === 'text') return item.text;
+                  if (item.type === 'image_url') return '[IMAGE]';
+                  return item;
+                })
+              : 'Unknown content type',
         })),
       });
 
@@ -161,7 +170,10 @@ export const createOpenAIService = () => {
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
-        response_format: request.mode === MessageMode.COACH ? undefined : {type: 'json_object'},
+        response_format:
+          request.mode === MessageMode.COACH
+            ? undefined
+            : {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';
@@ -282,10 +294,16 @@ function getSystemPrompt(
   if (!matchSummary) {
     const basePrompt = promptConfig.basePrompt.replace(
       "If it's the first message, help them break the ice. If it's mid-thread, help them flirt, escalate, or keep it fun.",
-      "Help them break the ice."
+      'Help them break the ice.',
     );
     promptConfig.basePrompt = basePrompt;
   }
 
-  return formatPrompt(promptConfig, mode, regenerate, previousMessage, !!matchSummary);
+  return formatPrompt(
+    promptConfig,
+    mode,
+    regenerate,
+    previousMessage,
+    !!matchSummary,
+  );
 }
