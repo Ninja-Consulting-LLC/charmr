@@ -32,21 +32,36 @@ export const usePushNotifications = () => {
 
         const token = await pushNotificationService.getToken();
         if (token) {
-          await userService.updateUserProfile(userId, {deviceToken: token});
-          logger.app.info('Device token updated', {userId, token});
+          // Only update if the token has changed
+          if (token !== user?.deviceToken) {
+            await userService.updateUserProfile(userId, {deviceToken: token});
+            logger.app.info('Device token updated', {userId, token});
+          } else {
+            logger.app.info('Device token unchanged, skipping update', {
+              userId,
+            });
+          }
         } else {
           logger.app.warn('No device token available to update', {
             userId,
           });
         }
 
-        // Listen for token refresh and update
+        // Listen for token refresh and update only if different
         pushNotificationService.onTokenRefresh(async (newToken: string) => {
-          await userService.updateUserProfile(userId, {deviceToken: newToken});
-          logger.app.info('Device token refreshed and updated', {
-            userId,
-            newToken,
-          });
+          if (newToken !== user?.deviceToken) {
+            await userService.updateUserProfile(userId, {
+              deviceToken: newToken,
+            });
+            logger.app.info('Device token refreshed and updated', {
+              userId,
+              newToken,
+            });
+          } else {
+            logger.app.info('Refreshed token unchanged, skipping update', {
+              userId,
+            });
+          }
         });
 
         // Set up message handlers
