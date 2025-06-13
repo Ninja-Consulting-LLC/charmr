@@ -1,13 +1,13 @@
-import { Platform } from 'react-native';
+import {Platform} from 'react-native';
 import Config from 'react-native-config';
 import Purchases, {
   CustomerInfo,
-  PurchasesConfiguration
+  PurchasesConfiguration,
 } from 'react-native-purchases';
-import { SubscriptionTier } from '../types/enums';
-import { User } from '../types/user';
-import { logger } from '../utils/logger';
-import { getPlanLimits } from '../utils/planLimits';
+import {SubscriptionTier} from '../types/enums';
+import {User} from '../types/user';
+import {logger} from '../utils/logger';
+import {getPlanLimits} from '../utils/planLimits';
 import axiosInstance from './axiosInstance';
 
 // Development configuration for testing in simulator
@@ -263,7 +263,9 @@ export const syncSubscriptionState = async (
 
     // If not forcing sync and no active subscription, don't sync
     if (!forceSync && !hasProAccess) {
-      logger.revenueCat.info('Skipping subscription sync - no active subscription');
+      logger.revenueCat.info(
+        'Skipping subscription sync - no active subscription',
+      );
       return null;
     }
 

@@ -173,13 +173,35 @@ export class SQLiteMessageRepository implements MessageRepository {
     total: number;
   }> {
     try {
+      logger.debug('[Repository] Getting conversation timeline:', {
+        userId,
+        matchId,
+        pagination,
+      });
+
       // Get all messages
       const {messages} = await this.getMessagesByMatch(userId, matchId);
+
+      logger.debug('[Repository] Retrieved messages from database:', {
+        userId,
+        matchId,
+        totalMessages: messages.length,
+        messageIds: messages.map(m => m.id),
+      });
 
       // DO NOT sort ascending. Paginate on the original (DESC) order from DB.
       const start = pagination?.offset || 0;
       const end = pagination?.limit ? start + pagination.limit : undefined;
       const paginatedMessages = messages.slice(start, end);
+
+      logger.debug('[Repository] Paginated messages:', {
+        userId,
+        matchId,
+        start,
+        end,
+        paginatedCount: paginatedMessages.length,
+        paginatedIds: paginatedMessages.map(m => m.id),
+      });
 
       return {
         items: paginatedMessages,

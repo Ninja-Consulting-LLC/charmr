@@ -6,18 +6,18 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { signOut as firebaseSignOut, getAuthToken } from '../config/firebase';
-import { useStoreState } from '../hooks/useStoreState';
+import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
+import {useStoreState} from '../hooks/useStoreState';
 import * as authService from '../services/authService';
-import { installationService } from '../services/installationService';
+import {installationService} from '../services/installationService';
 import * as matchService from '../services/matchService';
-import { setSubscriptionUpdateCallback } from '../services/revenueCatService';
+import {setSubscriptionUpdateCallback} from '../services/revenueCatService';
 import * as userService from '../services/userService';
-import { SubscriptionTier } from '../types/enums';
-import { logger } from '../utils/logger';
-import { Match } from '../utils/matchUtils';
-import { getPlanLimits } from '../utils/planLimits';
-import { StoreContextType } from './types';
+import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
+import {Match} from '../utils/matchUtils';
+import {getPlanLimits} from '../utils/planLimits';
+import {StoreContextType} from './types';
 
 export const StoreContext = createContext<StoreContextType>(
   {} as StoreContextType,
@@ -71,19 +71,14 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   // Initialize handleProviderLogin
   const handleProviderLogin = async (firebaseUser: any) => {
     try {
-      logger.auth.info('🔐 Starting provider login process...', {
-        firebaseUser: {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          providerId: firebaseUser.providerId,
-          isAnonymous: firebaseUser.isAnonymous,
-        },
+      logger.auth.info('Starting provider login process', {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        providerId: firebaseUser.providerId,
       });
 
       // Get the installation ID directly from the service
       const installationId = await installationService.getInstallationId();
-      logger.auth.info('Got installation ID', {installationId});
 
       // Ensure we have a valid Firebase token before proceeding
       const token = await getAuthToken();
@@ -91,88 +86,52 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         logger.auth.error('Failed to get Firebase token after login');
         throw new Error('Failed to get Firebase token after login');
       }
-      logger.auth.info('Successfully obtained Firebase token');
 
       // First, check if there's an anonymous user with this installation ID
       let anonymousUser = null;
       try {
-        logger.auth.info(
-          '🔍 Searching for anonymous user with installation ID',
-          {
-            installationId,
-            firebaseUserId: firebaseUser.uid,
-          },
-        );
         anonymousUser = await userService.findUserByInstallationId(
           installationId,
         );
-        logger.auth.info('Anonymous user search result', {
-          found: !!anonymousUser,
-          anonymousUserId: anonymousUser?.id,
-          anonymousUserData: anonymousUser
-            ? {
-                id: anonymousUser.id,
-                email: anonymousUser.email,
-                installationId: anonymousUser.installationId,
-              }
-            : null,
-          installationId,
-        });
+        if (__DEV__) {
+          logger.auth.debug('Anonymous user search result', {
+            found: !!anonymousUser,
+            anonymousUserId: anonymousUser?.id,
+          });
+        }
       } catch (error) {
-        logger.auth.warn('Error finding anonymous user:', {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          installationId,
-        });
+        logger.auth.warn('Error finding anonymous user:', error);
       }
 
       // Check if user exists in our backend
-      logger.auth.info('Checking if user exists in backend', {
-        userId: firebaseUser.uid,
-      });
-
       let existingUser;
       try {
         existingUser = await userService.getUserProfile(firebaseUser.uid);
       } catch (error: any) {
-        logger.app.error('API Response Error', {
-          error: error instanceof Error ? error.message : error,
-          stack: error instanceof Error ? error.stack : undefined,
-          response: error.response,
-        });
         logger.app.error('Failed to get user profile:', error);
       }
 
       // If user exists, update local state
       if (existingUser) {
-        logger.auth.info('Found existing user, updating local state', {
-          userId: firebaseUser.uid,
-          email: existingUser.email,
-          existingUserData: {
-            id: existingUser.id,
+        if (__DEV__) {
+          logger.auth.debug('Found existing user', {
+            userId: firebaseUser.uid,
             email: existingUser.email,
-            installationId: existingUser.installationId,
-          },
-        });
+          });
+        }
 
         // Update user's name if it's from Apple login and we have a display name
-        if (firebaseUser.displayName && (!existingUser.name || existingUser.name === 'Anonymous User')) {
-          logger.auth.info('Updating user name from provider login', {
-            userId: firebaseUser.uid,
-            displayName: firebaseUser.displayName,
-            currentName: existingUser.name,
-          });
+        if (
+          firebaseUser.displayName &&
+          (!existingUser.name || existingUser.name === 'Anonymous User')
+        ) {
           try {
             await userService.updateUserProfile(firebaseUser.uid, {
               name: firebaseUser.displayName,
             });
             existingUser.name = firebaseUser.displayName;
           } catch (error) {
-            logger.auth.error('Failed to update user name', {
-              error,
-              userId: firebaseUser.uid,
-              displayName: firebaseUser.displayName,
-            });
+            logger.auth.error('Failed to update user name', error);
           }
         }
 
@@ -183,11 +142,12 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
       } else {
         // Create a new user
-        logger.auth.info('Creating new user', {
-          userId: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        });
+        if (__DEV__) {
+          logger.auth.debug('Creating new user', {
+            userId: firebaseUser.uid,
+            email: firebaseUser.email,
+          });
+        }
 
         const newUser = await userService.createUser({
           id: firebaseUser.uid,
@@ -198,7 +158,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
 
         // Now try to link if we found an anonymous user
         if (anonymousUser && anonymousUser.id !== newUser.id) {
-          logger.app.info(
+          logger.app.debug(
             'Found anonymous user, attempting to link with newly created registered user',
             {
               anonymousUserId: anonymousUser.id,
@@ -217,7 +177,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
           try {
             // Link users in our backend
             await userService.linkUsers(anonymousUser.id, newUser.id);
-            logger.app.info(
+            logger.app.debug(
               'Successfully linked anonymous user with newly created registered user in backend',
               {
                 anonymousUserId: anonymousUser.id,
@@ -265,7 +225,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         setIsAuthenticated(true);
         await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
 
-        logger.app.info('Provider Login Success', {
+        logger.app.debug('Provider Login Success', {
           event: 'provider_login_success',
           userId: firebaseUser.uid,
           email: firebaseUser.email,
@@ -290,7 +250,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        logger.app.info('🚀 Starting app initialization...');
+        logger.app.debug('🚀 Starting app initialization...');
 
         // Check authentication state
         const storedIsAuthenticated = await AsyncStorage.getItem(
@@ -299,7 +259,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         const storedUserId = await AsyncStorage.getItem('@charmr/userId');
         const storedUser = await AsyncStorage.getItem('@charmr/user');
 
-        logger.app.info('🔍 Checking authentication state:', {
+        logger.app.debug('🔍 Checking authentication state:', {
           isAuthenticated: storedIsAuthenticated,
           userId: storedUserId,
           hasUserData: !!storedUser,
@@ -311,7 +271,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             // First check if we have a valid Firebase token
             const token = await getAuthToken();
             if (!token) {
-              logger.app.info(
+              logger.app.debug(
                 '❌ No Firebase token found, falling back to stored user data',
               );
               // If we have stored user data, use it
@@ -333,7 +293,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
               if (storedUser) {
                 setUser(JSON.parse(storedUser));
               }
-              logger.app.info('✅ User is authenticated');
+              logger.app.debug('✅ User is authenticated');
             } else {
               // Only clear auth-related data
               await AsyncStorage.multiRemove([
@@ -351,7 +311,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
                 '@charmr/extraMessages',
                 '@charmr/lastResetDate',
               ]);
-              logger.app.info(
+              logger.app.debug(
                 '❌ Stored credentials are invalid, clearing them',
               );
               setIsAuthenticated(false);
@@ -400,7 +360,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         plan,
         getDailyMessageLimit: () => getPlanLimits(plan),
       });
-      logger.app.info('User Plan Updated', {
+      logger.app.debug('User Plan Updated', {
         event: 'update_user_plan',
         userId,
         plan,
@@ -459,7 +419,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setMatches(prevMatches =>
         prevMatches.map(m => (m.id === match.id ? match : m)),
       );
-      logger.app.info('Match Updated', {
+      logger.app.debug('Match Updated', {
         event: 'update_match',
         matchId: match.id,
         userId,
@@ -479,7 +439,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       const success = await matchService.deleteMatch(matchId);
       if (success) {
         setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
-        logger.app.info('Match Removed', {
+        logger.app.debug('Match Removed', {
           event: 'remove_match',
           matchId,
           userId,
@@ -533,7 +493,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setIsAuthenticated(true);
       await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
 
-      logger.app.info('Anonymous User Linked', {
+      logger.app.debug('Anonymous User Linked', {
         event: 'link_anonymous_user',
         oldUserId: userId,
         newUserId: registeredUserId,
@@ -585,7 +545,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       // Sign out from Firebase
       await firebaseSignOut();
 
-      logger.app.info('Successfully signed out and cleared all data');
+      logger.app.debug('Successfully signed out and cleared all data');
     } catch (error) {
       logger.app.error('Error during sign out:', error);
       // Even if there's an error, we should still clear local state

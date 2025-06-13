@@ -1,10 +1,10 @@
-import { appleAuth } from '@invertase/react-native-apple-authentication';
+import {appleAuth} from '@invertase/react-native-apple-authentication';
 import auth, {
   AppleAuthProvider,
   FacebookAuthProvider,
-  getAuth
+  getAuth,
 } from '@react-native-firebase/auth';
-import React, { useEffect, useState } from 'react';
+import React, {useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,17 +15,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { AccessToken, LoginManager } from 'react-native-fbsdk-next';
+import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { signInWithFacebookLimited, signInWithGoogle } from '../config/firebase';
-import { syncSubscriptionState } from '../services/revenueCatService';
+import {signInWithFacebookLimited, signInWithGoogle} from '../config/firebase';
+import {syncSubscriptionState} from '../services/revenueCatService';
 import * as userService from '../services/userService';
-import { updateUserProfile } from '../services/userService';
-import { useStore } from '../store/StoreProvider';
-import { theme } from '../theme/theme';
-import { logger } from '../utils/logger';
-import { getPlanLimits } from '../utils/planLimits';
+import {updateUserProfile} from '../services/userService';
+import {useStore} from '../store/StoreProvider';
+import {theme} from '../theme/theme';
+import {logger} from '../utils/logger';
+import {getPlanLimits} from '../utils/planLimits';
 import AccountLinkingModal from './AccountLinkingModal';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
@@ -46,7 +46,11 @@ const LoginModal: React.FC<LoginModalProps> = ({
   onLoadingChange,
   handleProviderLogin: propHandleProviderLogin,
 }) => {
-  const {handleProviderLogin: storeHandleProviderLogin, user, setUser} = useStore();
+  const {
+    handleProviderLogin: storeHandleProviderLogin,
+    user,
+    setUser,
+  } = useStore();
   const [showAccountLinking, setShowAccountLinking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [linkingData, setLinkingData] = useState<{
@@ -55,14 +59,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
     credential?: any;
     displayName?: string;
   } | null>(null);
-
-  useEffect(() => {
-    logger.auth.info('LoginModal mounted/updated:', {
-      visible,
-      hasHandleProviderLogin: !!propHandleProviderLogin,
-      hasStoreHandleProviderLogin: !!storeHandleProviderLogin,
-    });
-  }, [visible, propHandleProviderLogin, storeHandleProviderLogin]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -105,7 +101,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         },
         setUser,
         user,
-        true
+        true,
       );
 
       logger.auth.info('Google sign in completed successfully');
@@ -130,7 +126,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const handleFacebookLogin = async () => {
     try {
       const userCredential = await signInWithFacebookLimited();
-      await (propHandleProviderLogin || storeHandleProviderLogin)(userCredential.user);
+      await (propHandleProviderLogin || storeHandleProviderLogin)(
+        userCredential.user,
+      );
       onLoginSuccess?.();
     } catch (error: any) {
       console.log('Facebook login error details:', {
@@ -178,7 +176,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
         email: appleAuthResponse.email,
         realUserStatus: appleAuthResponse.realUserStatus,
         user: appleAuthResponse.user,
-        authorizationCode: appleAuthResponse.authorizationCode ? 'present' : 'missing',
+        authorizationCode: appleAuthResponse.authorizationCode
+          ? 'present'
+          : 'missing',
       });
 
       // Ensure Apple returned a user identityToken
@@ -188,7 +188,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
       // Get the full name from Apple response if available
       const fullName = appleAuthResponse.fullName;
-      const displayName = fullName ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim() : null;
+      const displayName = fullName
+        ? `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim()
+        : null;
 
       // If we have an email from Apple, check if there's an existing account
       if (appleAuthResponse.email) {
@@ -199,7 +201,9 @@ const LoginModal: React.FC<LoginModalProps> = ({
             currentUserEmail: auth.currentUser?.email,
           });
 
-          const signInMethods = await auth.fetchSignInMethodsForEmail(appleAuthResponse.email);
+          const signInMethods = await auth.fetchSignInMethodsForEmail(
+            appleAuthResponse.email,
+          );
           logger.auth.info('Found sign in methods for Apple email:', {
             email: appleAuthResponse.email,
             methods: signInMethods,
@@ -207,15 +211,21 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
           // If there are existing sign-in methods and they don't include apple.com,
           // show the account linking modal
-          if (signInMethods.length > 0 && !signInMethods.includes('apple.com')) {
+          if (
+            signInMethods.length > 0 &&
+            !signInMethods.includes('apple.com')
+          ) {
             logger.auth.info('Found existing account with different provider', {
               email: appleAuthResponse.email,
               methods: signInMethods,
             });
 
             // Store the Apple credential for later use
-            const { identityToken, nonce } = appleAuthResponse;
-            const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
+            const {identityToken, nonce} = appleAuthResponse;
+            const appleCredential = AppleAuthProvider.credential(
+              identityToken,
+              nonce,
+            );
 
             setLinkingData({
               email: appleAuthResponse.email,
@@ -232,29 +242,35 @@ const LoginModal: React.FC<LoginModalProps> = ({
       }
 
       // Create a Firebase credential from the response
-      const { identityToken, nonce } = appleAuthResponse;
-      const appleCredential = AppleAuthProvider.credential(identityToken, nonce);
+      const {identityToken, nonce} = appleAuthResponse;
+      const appleCredential = AppleAuthProvider.credential(
+        identityToken,
+        nonce,
+      );
 
       // Sign in with credential
       const userCredential = await auth().signInWithCredential(appleCredential);
 
       // Update the user's display name if we got it from Apple
       if (displayName && displayName !== ' ') {
-        await userCredential.user.updateProfile({ displayName });
-        logger.auth.info('Updated user display name:', { displayName });
+        await userCredential.user.updateProfile({displayName});
+        logger.auth.info('Updated user display name:', {displayName});
       }
 
       // If we have an email from Apple and it's different from the current email,
       // try to update it in the backend
-      if (appleAuthResponse.email && appleAuthResponse.email !== userCredential.user.email) {
+      if (
+        appleAuthResponse.email &&
+        appleAuthResponse.email !== userCredential.user.email
+      ) {
         try {
           // Update email in backend
           await updateUserProfile(userCredential.user.uid, {
-            email: appleAuthResponse.email
+            email: appleAuthResponse.email,
           });
           logger.auth.info('Updated user email in backend:', {
             oldEmail: userCredential.user.email,
-            newEmail: appleAuthResponse.email
+            newEmail: appleAuthResponse.email,
           });
         } catch (error) {
           logger.auth.error('Failed to update user email in backend:', error);
@@ -292,7 +308,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         },
         setUser,
         user,
-        true
+        true,
       );
 
       logger.auth.info('Apple sign in completed successfully');

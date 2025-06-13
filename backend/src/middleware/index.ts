@@ -2,6 +2,7 @@ import {NextFunction, Request, Response} from 'express';
 import rateLimit from 'express-rate-limit';
 import {config} from '../config/config';
 import {ErrorResponse} from '../types';
+import logger from '../utils/logger';
 import {authenticateUser} from './auth';
 
 export {authenticateUser};
@@ -116,13 +117,13 @@ export const createRequestValidator =
           return `data:image/jpeg;base64,${base64Data.substring(0, 20)}...`;
         }) || [],
     };
-    console.log(
+    logger.debug(
       `[${new Date().toISOString()}] [Validator] Received request:`,
       JSON.stringify(truncatedRequest, null, 2),
     );
 
     if (!req.body.userId) {
-      console.log(
+      logger.debug(
         `[${new Date().toISOString()}] Missing required field: userId`,
       );
       return res.status(400).json({

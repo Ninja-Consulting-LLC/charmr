@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 import * as userService from '../services/userService';
-import { useStore } from '../store/StoreProvider';
-import { StoreState } from '../store/types';
-import { User } from '../types/user';
-import { logger } from '../utils/logger';
-import { getPlanLimits } from '../utils/planLimits';
-import { createDefaultUser, shouldResetDailyCount } from '../utils/storeUtils';
+import {useStore} from '../store/StoreProvider';
+import {StoreState} from '../store/types';
+import {User} from '../types/user';
+import {logger} from '../utils/logger';
+import {getPlanLimits} from '../utils/planLimits';
+import {createDefaultUser, shouldResetDailyCount} from '../utils/storeUtils';
 
 export const useStoreState = (skipInitialization = false): StoreState => {
   const store = useStore();
@@ -18,7 +18,7 @@ export const useStoreState = (skipInitialization = false): StoreState => {
   // Add debug logging for authentication state changes
   useEffect(() => {
     if (typeof isAuthenticated !== 'undefined') {
-      logger.app.info('Auth State Changed', {
+      logger.app.debug('Auth State Changed', {
         event: 'auth_state_change',
         isAuthenticated,
         userId,
@@ -69,7 +69,7 @@ export const useStoreState = (skipInitialization = false): StoreState => {
           if (storedUser && (!storedUserId || !storedIsAuthenticated)) {
             const userData = JSON.parse(storedUser);
             if (userData.id) {
-              logger.app.info('Restoring auth state from stored user data', {
+              logger.app.debug('Restoring auth state from stored user data', {
                 userId: userData.id,
               });
               setUserId(userData.id);

@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { MESSAGES } from '../constants/messages';
-import { generateReply } from '../services/api';
-import { useStore } from '../store';
-import { MessageMode, SubscriptionTier } from '../types/enums';
-import { SelectedImage } from '../types/image';
-import { logger } from '../utils/logger';
-import { Match } from '../utils/matchUtils';
+import {useState} from 'react';
+import {MESSAGES} from '../constants/messages';
+import {generateReply} from '../services/api';
+import {useStore} from '../store';
+import {MessageMode, SubscriptionTier} from '../types/enums';
+import {SelectedImage} from '../types/image';
+import {logger} from '../utils/logger';
+import {Match} from '../utils/matchUtils';
 
 interface UseResponseGeneratorProps {
   images: SelectedImage[];
@@ -57,7 +57,7 @@ export const useResponseGenerator = ({
     setLoading(true);
     resetResponse();
 
-    logger.app.info('[ResponseGenerator] Starting response generation', {
+    logger.app.debug('[ResponseGenerator] Starting response generation', {
       promptLength: prompt?.length,
       imageCount: images?.length,
       selectedMatch: selectedMatch?.name,
@@ -66,7 +66,7 @@ export const useResponseGenerator = ({
     });
 
     if (images.length === 0 && !prompt?.trim()) {
-      logger.app.info('[ResponseGenerator] No images or prompt provided');
+      logger.app.debug('[ResponseGenerator] No images or prompt provided');
       setError(MESSAGES.NO_IMAGES);
       setErrorType('NO_IMAGES');
       setLoading(false);
@@ -74,9 +74,9 @@ export const useResponseGenerator = ({
     }
 
     try {
-      logger.app.info('[ResponseGenerator] Preparing images for upload');
+      logger.app.debug('[ResponseGenerator] Preparing images for upload');
       const base64Images = await Promise.all(
-        images.map(async (img) => {
+        images.map(async img => {
           try {
             if (img.base64) {
               return img.base64;
@@ -91,10 +91,13 @@ export const useResponseGenerator = ({
               reader.readAsDataURL(blob);
             });
           } catch (error) {
-            logger.app.error('[ResponseGenerator] Error preparing image:', error);
+            logger.app.error(
+              '[ResponseGenerator] Error preparing image:',
+              error,
+            );
             throw new Error('Failed to prepare image for upload');
           }
-        })
+        }),
       );
 
       const result = await generateReply({

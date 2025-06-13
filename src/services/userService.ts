@@ -1,9 +1,9 @@
-import { SubscriptionTier } from '../types/enums';
-import { User } from '../types/user';
-import { logger } from '../utils/logger';
-import { getPlanLimits } from '../utils/planLimits';
+import {SubscriptionTier} from '../types/enums';
+import {User} from '../types/user';
+import {logger} from '../utils/logger';
+import {getPlanLimits} from '../utils/planLimits';
 import axiosInstance from './axiosInstance';
-import { installationService } from './installationService';
+import {installationService} from './installationService';
 
 export const fetchUserData = async (userId: string): Promise<User | null> => {
   try {
@@ -106,7 +106,7 @@ export const linkUsers = async (
 ): Promise<void> => {
   try {
     const installationId = await installationService.getInstallationId();
-    logger.app.info('Linking users with data:', {
+    logger.app.debug('Linking users with data:', {
       anonymousUserId,
       registeredUserId,
       installationId,
@@ -216,7 +216,7 @@ export const updateUserProfile = async (userId: string, data: any) => {
 
           // Calculate delay with exponential backoff
           const delay = initialDelay * Math.pow(2, attempt);
-          logger.app.info(
+          logger.app.debug(
             'Rate limited when updating device token, retrying...',
             {
               attempt: attempt + 1,

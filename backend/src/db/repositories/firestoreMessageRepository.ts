@@ -12,6 +12,14 @@ import {MessageRepository} from './messageRepository';
 
 export class FirestoreMessageRepository implements MessageRepository {
   private readonly db: Firestore;
+  private messageCache: Map<
+    string,
+    {
+      messages: Message[];
+      timestamp: number;
+    }
+  > = new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.db = firebaseAdmin.firestore();
@@ -43,58 +51,32 @@ export class FirestoreMessageRepository implements MessageRepository {
     },
   ): Promise<Message> {
     try {
-      // First check if user exists
-      const userDoc = await this.db.collection('users').doc(userId).get();
-      if (!userDoc.exists) {
-        throw new Error(`User ${userId} does not exist`);
-      }
-
-      // For no_match, ensure the document exists
-      const effectiveMatchId = matchId || 'no_match';
-      const matchDoc = await this.db
-        .collection('users')
-        .doc(userId)
-        .collection('matches')
-        .doc(effectiveMatchId)
-        .get();
-
-      if (!matchDoc.exists) {
-        await this.db
-          .collection('users')
-          .doc(userId)
-          .collection('matches')
-          .doc(effectiveMatchId)
-          .set({
-            name: 'No Match',
-            platform: 'direct',
-            lastUsed: new Date().toISOString(),
-            hidden: false,
-            deleted: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-      }
-
+      const messageRef = this.getMessagesCollection(userId, matchId).doc();
       const messageData = {
-        role: message.role,
-        type: message.type || MessageType.TEXT,
-        mode: message.mode || MessageMode.GENERATE,
-        used: message.used || false,
-        replyTo: message.replyTo || null,
-        content: message.content,
-        timestamp: message.timestamp,
-        imageData: message.imageData || null,
-        promptVariant: message.promptVariant || null,
+        ...message,
+        id: messageRef.id,
       };
+      await messageRef.set(messageData);
 
-      const messagesCollection = this.getMessagesCollection(userId, matchId);
-      const docRef = await messagesCollection.add(messageData);
-      const doc = await docRef.get();
+      // Update cache if it exists
+      const cacheKey = `${userId}-${matchId || 'all'}`;
+      const cached = this.messageCache.get(cacheKey);
+      if (cached) {
+        // Add new message to the beginning of the array (since messages are ordered by timestamp desc)
+        cached.messages.unshift(messageData as Message);
+        // Update timestamp to extend cache life
+        cached.timestamp = Date.now();
+        logger.debug('[Repository] Updated cache with new message:', {
+          cacheKey,
+          newMessageId: messageData.id,
+          totalMessages: cached.messages.length,
+        });
+      } else {
+        // If no cache exists, invalidate to force a fresh load
+        this.invalidateCache(userId, matchId);
+      }
 
-      return {
-        id: doc.id,
-        ...(doc.data() as Omit<Message, 'id'>),
-      } as Message;
+      return messageData as Message;
     } catch (error) {
       logger.error('Failed to create message in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -117,7 +99,36 @@ export class FirestoreMessageRepository implements MessageRepository {
     total: number;
   }> {
     try {
+      const cacheKey = `${userId}-${matchId || 'all'}`;
+      const cached = this.messageCache.get(cacheKey);
+      const now = Date.now();
+
+      // Return cached data if it exists and is not expired
+      if (cached && now - cached.timestamp < this.CACHE_TTL) {
+        logger.debug('[Repository] Using cached messages:', {
+          userId,
+          matchId,
+          cachedCount: cached.messages.length,
+        });
+
+        if (pagination) {
+          const start = pagination.offset;
+          const end = start + pagination.limit;
+          return {
+            messages: cached.messages.slice(start, end),
+            total: cached.messages.length,
+          };
+        }
+        return {
+          messages: cached.messages,
+          total: cached.messages.length,
+        };
+      }
+
       let query: Query = this.getMessagesCollection(userId, matchId);
+
+      // Always exclude system messages
+      query = query.where('role', '!=', 'system');
 
       if (filter) {
         if (filter.role) {
@@ -141,24 +152,7 @@ export class FirestoreMessageRepository implements MessageRepository {
       // Order by timestamp descending (newest first)
       query = query.orderBy('timestamp', 'desc');
 
-      // Apply pagination
-      if (pagination) {
-        // For initial load (offset = 0), we want messages 11-30
-        // For second load (offset = 20), we want messages 1-10
-        const skipCount = pagination.offset;
-        query = query.limit(pagination.limit);
-
-        if (skipCount > 0) {
-          // Get the document at the skip count
-          const offsetSnapshot = await query.limit(skipCount).get();
-
-          if (!offsetSnapshot.empty) {
-            const lastDoc = offsetSnapshot.docs[offsetSnapshot.docs.length - 1];
-            query = query.startAfter(lastDoc);
-          }
-        }
-      }
-
+      // Get all messages for caching
       const snapshot = await query.get();
       const messages = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
         const data = doc.data() as Omit<Message, 'id'>;
@@ -168,11 +162,38 @@ export class FirestoreMessageRepository implements MessageRepository {
         };
       }) as Message[];
 
+      // Cache the results
+      this.messageCache.set(cacheKey, {
+        messages,
+        timestamp: now,
+      });
+
+      logger.debug('[Repository] Cached messages:', {
+        userId,
+        matchId,
+        messageCount: messages.length,
+        cacheKey,
+      });
+
+      // Apply pagination if requested
+      if (pagination) {
+        const start = pagination.offset;
+        const end = start + pagination.limit;
+        return {
+          messages: messages.slice(start, end),
+          total,
+        };
+      }
+
       return {
         messages,
         total,
       };
     } catch (error) {
+      console.error(
+        '[Repository] Failed to get messages by match from Firestore:',
+        error,
+      );
       logger.error('Failed to get messages by match from Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
@@ -216,31 +237,31 @@ export class FirestoreMessageRepository implements MessageRepository {
 
   async markMessageAsUsed(messageId: ID): Promise<void> {
     try {
-      // Since we don't have userId and matchId in the message data anymore,
-      // we need to search for the message in all user matches
-      const usersSnapshot = await this.db.collection('users').get();
+      const messageRef = this.db
+        .collection('messages')
+        .doc(messageId.toString());
+      await messageRef.update({used: true});
 
-      for (const userDoc of usersSnapshot.docs) {
-        const userId = userDoc.id;
-        const matchesSnapshot = await userDoc.ref.collection('matches').get();
-
-        for (const matchDoc of matchesSnapshot.docs) {
-          const matchId = matchDoc.id;
-          const messageRef = this.getMessagesCollection(userId, matchId).doc(
-            messageId.toString(),
-          );
-          const messageDoc = await messageRef.get();
-
-          if (messageDoc.exists) {
-            await messageRef.update({used: true});
-            return;
-          }
+      // Update cache if it exists
+      for (const [cacheKey, cached] of this.messageCache.entries()) {
+        const messageIndex = cached.messages.findIndex(m => m.id === messageId);
+        if (messageIndex !== -1) {
+          cached.messages[messageIndex] = {
+            ...cached.messages[messageIndex],
+            used: true,
+          };
+          // Update timestamp to extend cache life
+          cached.timestamp = Date.now();
+          logger.debug('[Repository] Updated cache for used message:', {
+            cacheKey,
+            messageId,
+            totalMessages: cached.messages.length,
+          });
+          break;
         }
       }
-
-      throw new Error(`Message ${messageId} not found`);
     } catch (error) {
-      logger.error('Failed to mark message as used in Firestore', {
+      logger.error('Failed to mark message as used', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -277,5 +298,12 @@ export class FirestoreMessageRepository implements MessageRepository {
       });
       throw error;
     }
+  }
+
+  // Add method to invalidate cache when new messages are added
+  private invalidateCache(userId: string, matchId?: string) {
+    const cacheKey = `${userId}-${matchId || 'all'}`;
+    this.messageCache.delete(cacheKey);
+    logger.debug('[Repository] Invalidated cache:', {cacheKey});
   }
 }

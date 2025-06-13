@@ -28,7 +28,7 @@ export const generateReply = async (
   request: GenerateReplyRequest,
 ): Promise<GenerateReplyResponse> => {
   try {
-    logger.app.info('[API] Starting generate reply request', {
+    logger.app.debug('[API] Starting generate reply request', {
       promptLength: request.prompt?.length,
       imageCount: request.images?.length,
       userId: request.userId,
@@ -40,7 +40,7 @@ export const generateReply = async (
       request,
     );
 
-    logger.app.info('[API] Received response:', {
+    logger.app.debug('[API] Received response:', {
       hasReply: !!response.data.reply,
       hasError: !!response.data.error,
       errorType: response.data.type,
@@ -59,7 +59,7 @@ export const generateReply = async (
 
     // If we have a response with error data, return it
     if (error.response?.data) {
-      logger.app.info('[API] Error response data', error.response.data);
+      logger.app.debug('[API] Error response data', error.response.data);
       return {
         reply: '',
         error: error.response.data.error || 'Failed to generate reply',
@@ -139,17 +139,10 @@ export const fetchUserData = async (
 };
 
 export const getNetworkInfo = async () => {
-  logger.app.info('Getting network information');
+  logger.app.debug('Getting network information');
 
   try {
     const networkState = await NetInfo.fetch();
-
-    logger.app.info('Network state:', {
-      isConnected: networkState.isConnected,
-      isInternetReachable: networkState.isInternetReachable,
-      type: networkState.type,
-      details: networkState.details,
-    });
 
     return {
       isConnected: networkState.isConnected,

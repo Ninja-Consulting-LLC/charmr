@@ -1,6 +1,6 @@
-import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import {CameraRoll} from '@react-native-camera-roll/camera-roll';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {
   forwardRef,
@@ -8,25 +8,25 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import { Image, Platform, StyleSheet, View } from 'react-native';
+import {Image, Platform, StyleSheet, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import { Button, IconButton, Snackbar } from 'react-native-paper';
-import { MESSAGES } from '../constants/messages';
-import { useImagePicker } from '../hooks/useImagePicker';
-import { useResponseGenerator } from '../hooks/useResponseGenerator';
-import { RootStackParamList } from '../navigation/types';
+import {Button, IconButton, Snackbar} from 'react-native-paper';
+import {MESSAGES} from '../constants/messages';
+import {useImagePicker} from '../hooks/useImagePicker';
+import {useResponseGenerator} from '../hooks/useResponseGenerator';
+import {RootStackParamList} from '../navigation/types';
 import {
   deleteMatch,
   hideMatch,
   restoreMatch,
   updateMatchLastUsed,
 } from '../services/matchService';
-import { useStore } from '../store';
-import { theme } from '../theme/theme';
-import { MessageMode, SubscriptionTier } from '../types/enums';
-import { logger } from '../utils/logger';
-import { Match, addMatch as addMatchUtil } from '../utils/matchUtils';
-import { getPlanLimits } from '../utils/planLimits';
+import {useStore} from '../store';
+import {theme} from '../theme/theme';
+import {MessageMode, SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
+import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
+import {getPlanLimits} from '../utils/planLimits';
 import ImageSelector from './ImageSelector';
 import LoginModal from './LoginModal';
 import MatchSelectorModal from './MatchSelector';
@@ -161,21 +161,6 @@ const ResponseGenerator = forwardRef<
     }
   }, [response, error, errorType]);
 
-  // Log when matches change
-  useEffect(() => {
-    console.log(
-      '[DEBUG] matches updated:',
-      matches.map(m => ({id: m.id, name: m.name, lastUsed: m.lastUsed})),
-    );
-  }, [matches]);
-
-  // Log when modal is opened
-  useEffect(() => {
-    if (showMatchSelector) {
-      console.log('[DEBUG] MatchSelectorModal opened');
-    }
-  }, [showMatchSelector]);
-
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
       const newMatch = await addMatchUtil(name, platform);
@@ -183,7 +168,7 @@ const ResponseGenerator = forwardRef<
         await loadMatches(); // Reload matches to ensure UI is in sync
       }
     } catch (error) {
-      console.error('Error adding match:', error);
+      logger.app.error('Error adding match:', error);
     }
   };
 
@@ -197,7 +182,7 @@ const ResponseGenerator = forwardRef<
         }
       }
     } catch (error) {
-      console.error('Error deleting match:', error);
+      logger.app.error('Error deleting match:', error);
     }
   };
 
