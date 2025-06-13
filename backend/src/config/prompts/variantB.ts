@@ -38,6 +38,8 @@ export const generateVariantB: VariantPromptConfig = {
     'Do not prefix your message with "you could say" or "here\'s what you could say"',
     'Do not wrap your message in quotes',
     "IMPORTANT: When you see \"Liked your photo\", this means someone has liked the user's own photo and the user needs to make the first message. The photo you see is the user's own photo, not the match's profile. Do not reference the user's own photo as if it were the match's profile.",
+    'Do not include any analysis or commentary about the image',
+    'Return ONLY the message that should be sent, nothing else',
   ],
   jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
 
