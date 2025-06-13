@@ -42,9 +42,9 @@ enum MessageStyle: String, CaseIterable {
 }
 
 struct Openers: Codable {
+    let spicy: [String]
     let flirty: [String]
     let casual: [String]
-    let cute: [String]
     let sincere: [String]
 }
 
@@ -72,7 +72,9 @@ func getRandomOpener(style: MessageStyle) -> String {
     // Select openers based on style
     let selectedOpeners: [String]
     switch style {
-    case .spicy, .flirty:
+    case .spicy:
+        selectedOpeners = openers.spicy
+    case .flirty:
         selectedOpeners = openers.flirty
     case .casual:
         selectedOpeners = openers.casual
@@ -88,10 +90,7 @@ class KeyboardViewController: KeyboardInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Load openers from JSON file
         loadOpeners()
-
         setup(for: .magicKeyboard) { result in
             switch result {
             case .success:
@@ -103,16 +102,33 @@ class KeyboardViewController: KeyboardInputViewController {
     }
 
     override func viewWillSetupKeyboardView() {
-        setupKeyboardView { controller in
-            CustomKeyboardView(controller: controller)
+        setupKeyboardView { [weak self] controller in
+            CustomKeyboardView(
+                state: controller.state,
+                services: controller.services,
+                insertOpener: { style, hasGeneratedOpener in
+                    // Clear existing text if regenerating
+                    if hasGeneratedOpener {
+                        controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: -Int.max)
+                        controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: Int.max)
+                        let length = controller.textDocumentProxy.documentContextBeforeInput?.count ?? 0
+                        for _ in 0..<length {
+                            controller.textDocumentProxy.deleteBackward()
+                        }
+                    }
+                    // Insert the new opener
+                    let opener = getRandomOpener(style: style)
+                    controller.textDocumentProxy.insertText(opener)
+                }
+            )
         }
     }
 }
 
 struct StylePickerView: View {
-    let controller: KeyboardInputViewController
     @Binding var selectedStyle: MessageStyle
     @Binding var showingStylePicker: Bool
+    @Environment(\.openURL) var openURL
 
     var body: some View {
         VStack(spacing: 16) {
@@ -203,7 +219,7 @@ struct StylePickerView: View {
                 }
                 Button(action: {
                     if let url = URL(string: "charmr://open/screenshot") {
-                        controller.openUrl(url)
+                        openURL(url)
                     }
                 }) {
                     Text("Take a screenshot & tap 'Dating Coach'")
@@ -223,37 +239,26 @@ struct StylePickerView: View {
 }
 
 struct CustomToolbar: View {
-    let controller: KeyboardInputViewController
     @Binding var isCustomKeyboard: Bool
     @Binding var selectedStyle: MessageStyle
     @Binding var showingStylePicker: Bool
     @Binding var hasGeneratedOpener: Bool
+    @Environment(\.openURL) var openURL
+    var onOpener: (MessageStyle, Bool) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
             Button("Dating Coach") {
                 if let url = URL(string: "charmr://open/homescreen") {
                     print("Opening app with URL:", url.absoluteString)
-                    controller.openUrl(url)
+                    openURL(url)
                 }
             }
             .buttonStyle(OutlineButtonStyle())
 
             Button(hasGeneratedOpener ? "Regenerate" : "Create Opener") {
                 isCustomKeyboard = true
-                if hasGeneratedOpener {
-                    // Regenerate: Clear existing text first
-                    controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: -Int.max)
-                    controller.textDocumentProxy.adjustTextPosition(byCharacterOffset: Int.max)
-                    let length = controller.textDocumentProxy.documentContextBeforeInput?.count ?? 0
-                    for _ in 0..<length {
-                        controller.textDocumentProxy.deleteBackward()
-                    }
-                }
-
-                // Insert the new opener
-                let opener = getRandomOpener(style: selectedStyle)
-                controller.textDocumentProxy.insertText(opener)
+                onOpener(selectedStyle, hasGeneratedOpener)
                 hasGeneratedOpener = true
             }
             .buttonStyle(OutlineButtonStyle())
@@ -288,7 +293,12 @@ struct OutlineButtonStyle: ButtonStyle {
 }
 
 struct CustomKeyboardView: View {
-    let controller: KeyboardInputViewController
+    var state: Keyboard.State
+    var services: Keyboard.Services
+    var insertOpener: (MessageStyle, Bool) -> Void
+
+    @EnvironmentObject var keyboardContext: KeyboardContext
+
     @State private var isCustomKeyboard = false
     @State private var selectedStyle: MessageStyle = .flirty
     @State private var showingStylePicker = false
@@ -296,26 +306,23 @@ struct CustomKeyboardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Common toolbar that appears in both modes
             CustomToolbar(
-                controller: controller,
                 isCustomKeyboard: $isCustomKeyboard,
                 selectedStyle: $selectedStyle,
                 showingStylePicker: $showingStylePicker,
-                hasGeneratedOpener: $hasGeneratedOpener
+                hasGeneratedOpener: $hasGeneratedOpener,
+                onOpener: insertOpener
             )
             .background(Color.primaryGradient)
 
             if isCustomKeyboard {
-                // Custom keyboard with style selector
-                StylePickerView(controller: controller, selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
+                StylePickerView(selectedStyle: $selectedStyle, showingStylePicker: $showingStylePicker)
                     .frame(height: 230)
                     .background(Color.primaryGradient)
             } else {
-                // Default KeyboardKit keyboard
                 KeyboardView(
-                    state: controller.state,
-                    services: controller.services,
+                    state: state,
+                    services: services,
                     buttonContent: { $0.view },
                     buttonView: { $0.view },
                     collapsedView: { $0.view },
