@@ -1,6 +1,6 @@
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useState } from 'react';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,21 +11,24 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Divider, IconButton, List, Portal, useTheme } from 'react-native-paper';
+import {Divider, IconButton, List, Portal, useTheme} from 'react-native-paper';
 import Purchases from 'react-native-purchases';
 import RevenueCatUI from 'react-native-purchases-ui';
-import { signOut } from '../config/firebase';
-import { RootStackParamList } from '../navigation/types';
-import { clearAuthData } from '../services/authService';
+import {signOut} from '../config/firebase';
+import {RootStackParamList} from '../navigation/types';
+import {clearAuthData} from '../services/authService';
 import axiosInstance from '../services/axiosInstance';
-import { deleteMatch, restoreMatch } from '../services/matchService';
-import { cancelSubscription, syncSubscriptionState } from '../services/revenueCatService';
-import { updateUserPlan } from '../services/userService';
-import { useStore } from '../store';
-import { SubscriptionTier } from '../types/enums';
-import { logger } from '../utils/logger';
-import { Match } from '../utils/matchUtils';
-import { getPlanLimits } from '../utils/planLimits';
+import {deleteMatch, restoreMatch} from '../services/matchService';
+import {
+  cancelSubscription,
+  syncSubscriptionState,
+} from '../services/revenueCatService';
+import {updateUserPlan} from '../services/userService';
+import {useStore} from '../store';
+import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
+import {Match} from '../utils/matchUtils';
+import {getPlanLimits} from '../utils/planLimits';
 import EditUserDetailsModal from './EditUserDetailsModal';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import LoginModal from './LoginModal';
@@ -48,7 +51,13 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const theme = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {user, setUser, isAuthenticated, setIsAuthenticated, handleProviderLogin} = useStore();
+  const {
+    user,
+    setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    handleProviderLogin,
+  } = useStore();
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showPresetPaywall, setShowPresetPaywall] = useState(false);
@@ -99,12 +108,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   }, [visible, slideAnim, fadeAnim]);
 
   useEffect(() => {
-    logger.auth.info('UserMenuSlideout mounted with handleProviderLogin:', {
-      hasHandleProviderLogin: !!handleProviderLogin,
-      isAuthenticated,
-      userId: user?.id,
-    });
-  }, [handleProviderLogin, isAuthenticated, user?.id]);
+    // Load archived matches when component mounts
+    loadArchivedMatches();
+  }, []);
 
   const loadArchivedMatches = async () => {
     if (!user.id) {
@@ -202,7 +208,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         setShowUpgradeModal(false);
         setShowPresetPaywall(true);
       } else {
-        console.log('[UserMenuSlideout] No current offering, showing custom modal');
+        console.log(
+          '[UserMenuSlideout] No current offering, showing custom modal',
+        );
         setShowPresetPaywall(false);
         setShowUpgradeModal(true);
       }
@@ -224,9 +232,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.PRO),
       });
       // Then sync with the backend, forcing sync after purchase
-      syncSubscriptionState(updateUserPlan, setUser, user, true).catch(error => {
-        logger.revenueCat.error('Failed to sync subscription state:', error);
-      });
+      syncSubscriptionState(updateUserPlan, setUser, user, true).catch(
+        error => {
+          logger.revenueCat.error('Failed to sync subscription state:', error);
+        },
+      );
     }
     setShowPurchaseSuccess(true);
     if (user?.email === user?.installationId) {
@@ -253,10 +263,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         );
       }
     } catch (error) {
-      logger.revenueCat.error(
-        'Failed to open subscription management:',
-        error,
-      );
+      logger.revenueCat.error('Failed to open subscription management:', error);
       Alert.alert(
         'Error',
         'Unable to open subscription management. Please try again later.',
@@ -269,7 +276,8 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
 
   const userPlan = user?.plan || SubscriptionTier.FREE;
   const dailyMessagesUsed = user?.dailyMessagesUsed || 0;
-  const dailyMessageLimit = user?.getDailyMessageLimit?.() || getPlanLimits(userPlan);
+  const dailyMessageLimit =
+    user?.getDailyMessageLimit?.() || getPlanLimits(userPlan);
 
   return (
     <>
@@ -312,19 +320,23 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             {user.email && user.email !== user.installationId ? (
               <View style={styles.infoBox}>
                 <View style={styles.infoRow}>
-                  <List.Icon
-                    icon="account"
-                    color={theme.colors.surface}
-                  />
+                  <List.Icon icon="account" color={theme.colors.surface} />
                   <View style={styles.infoContent}>
-                    <Text style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                    <Text
+                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
                       {user.name || 'Guest'}
                     </Text>
-                    <Text style={[styles.infoDescription, {color: theme.colors.surface}]}>
+                    <Text
+                      style={[
+                        styles.infoDescription,
+                        {color: theme.colors.surface},
+                      ]}>
                       {user.email}
                     </Text>
                   </View>
-                  {(!user.email || user.email === user.installationId || user.email.includes('privaterelay')) && (
+                  {(!user.email ||
+                    user.email === user.installationId ||
+                    user.email.includes('privaterelay')) && (
                     <IconButton
                       icon="pencil"
                       size={20}
@@ -333,17 +345,24 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     />
                   )}
                 </View>
-                <Divider style={[styles.infoDivider, {backgroundColor: theme.colors.surface}]} />
+                <Divider
+                  style={[
+                    styles.infoDivider,
+                    {backgroundColor: theme.colors.surface},
+                  ]}
+                />
                 <View style={styles.infoRow}>
-                  <List.Icon
-                    icon="message"
-                    color={theme.colors.surface}
-                  />
+                  <List.Icon icon="message" color={theme.colors.surface} />
                   <View style={styles.infoContent}>
-                    <Text style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                    <Text
+                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
                       Daily Messages
                     </Text>
-                    <Text style={[styles.infoDescription, {color: theme.colors.surface}]}>
+                    <Text
+                      style={[
+                        styles.infoDescription,
+                        {color: theme.colors.surface},
+                      ]}>
                       {user.plan === SubscriptionTier.PRO
                         ? 'Unlimited'
                         : `${user.dailyMessagesUsed}/${(
@@ -411,11 +430,15 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                   right={props => (
                     <List.Icon
                       {...props}
-                      icon={showSubscriptionSection ? "chevron-up" : "chevron-down"}
+                      icon={
+                        showSubscriptionSection ? 'chevron-up' : 'chevron-down'
+                      }
                       color={theme.colors.surface}
                     />
                   )}
-                  onPress={() => setShowSubscriptionSection(!showSubscriptionSection)}
+                  onPress={() =>
+                    setShowSubscriptionSection(!showSubscriptionSection)
+                  }
                   titleStyle={{color: theme.colors.surface}}
                   descriptionStyle={{color: theme.colors.surface}}
                 />
@@ -482,7 +505,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     color={theme.colors.surface}
                   />
                 )}
-                onPress={() => Linking.openURL('https://charmrapp.com/terms.html')}
+                onPress={() =>
+                  Linking.openURL('https://charmrapp.com/terms.html')
+                }
                 titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
               <List.Item
@@ -494,7 +519,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     color={theme.colors.surface}
                   />
                 )}
-                onPress={() => Linking.openURL('https://charmrapp.com/privacy.html')}
+                onPress={() =>
+                  Linking.openURL('https://charmrapp.com/privacy.html')
+                }
                 titleStyle={[styles.legalText, {color: theme.colors.surface}]}
               />
             </View>
@@ -543,8 +570,8 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             setShowLoginModal(false);
             navigation.navigate('Home');
           }}
-          onLoadingChange={(loading) => {
-            logger.auth.info('Login loading state changed:', { loading });
+          onLoadingChange={loading => {
+            logger.auth.info('Login loading state changed:', {loading});
             setIsLoading(loading);
           }}
           handleProviderLogin={handleProviderLogin}

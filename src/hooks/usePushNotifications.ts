@@ -12,7 +12,7 @@ export const usePushNotifications = () => {
 
       // Skip device token updates for anonymous users
       if (user?.email === user?.installationId) {
-        logger.app.info('Skipping device token update for anonymous user', {
+        logger.app.debug('Skipping device token update for anonymous user', {
           userId,
         });
         return;
@@ -35,9 +35,9 @@ export const usePushNotifications = () => {
           // Only update if the token has changed
           if (token !== user?.deviceToken) {
             await userService.updateUserProfile(userId, {deviceToken: token});
-            logger.app.info('Device token updated', {userId, token});
+            logger.app.debug('Device token updated', {userId, token});
           } else {
-            logger.app.info('Device token unchanged, skipping update', {
+            logger.app.debug('Device token unchanged, skipping update', {
               userId,
             });
           }
@@ -53,12 +53,12 @@ export const usePushNotifications = () => {
             await userService.updateUserProfile(userId, {
               deviceToken: newToken,
             });
-            logger.app.info('Device token refreshed and updated', {
+            logger.app.debug('Device token refreshed and updated', {
               userId,
               newToken,
             });
           } else {
-            logger.app.info('Refreshed token unchanged, skipping update', {
+            logger.app.debug('Refreshed token unchanged, skipping update', {
               userId,
             });
           }
@@ -66,12 +66,12 @@ export const usePushNotifications = () => {
 
         // Set up message handlers
         pushNotificationService.onMessage(message => {
-          logger.app.info('Received foreground message', {message});
+          logger.app.debug('Received foreground message', {message});
           // TODO: Handle foreground message
         });
 
         pushNotificationService.onNotificationOpenedApp(message => {
-          logger.app.info('App opened from background', {message});
+          logger.app.debug('App opened from background', {message});
           // TODO: Handle notification opened from background
         });
 
@@ -79,7 +79,7 @@ export const usePushNotifications = () => {
         const initialNotification =
           await pushNotificationService.getInitialNotification();
         if (initialNotification) {
-          logger.app.info('App opened from quit state', {
+          logger.app.debug('App opened from quit state', {
             message: initialNotification,
           });
           // TODO: Handle initial notification

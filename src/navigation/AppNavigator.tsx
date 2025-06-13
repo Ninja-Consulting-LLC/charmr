@@ -24,13 +24,13 @@ const AppNavigator = () => {
     }
     isInitializedRef.current = true;
 
-    logger.app.info('🔄 AppNavigator mounted', {
+    logger.app.debug('🔄 AppNavigator mounted', {
       isAuthenticated,
       isLoading,
     });
 
     return () => {
-      logger.app.info('🔄 AppNavigator unmounted');
+      logger.app.debug('🔄 AppNavigator unmounted');
       isInitializedRef.current = false;
     };
   }, [isAuthenticated, isLoading]);

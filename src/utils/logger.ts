@@ -1,3 +1,4 @@
+import Config from 'react-native-config';
 import {logger as RNLogger} from 'react-native-logs';
 
 const COLORS = {
@@ -82,39 +83,39 @@ const createLogger = (
 // Create loggers for different parts of the app
 export const logger = {
   app: createLogger('app', {
-    debug: process.env.NODE_ENV === 'development',
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
     info: true,
     warn: true,
     error: true,
   }),
   auth: createLogger('auth', {
-    debug: false,
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
     info: true,
     warn: true,
     error: true,
   }),
   match: createLogger('match', {
-    debug: false,
-    info: true,
-    warn: true,
-    error: true,
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
+    info: Config.LOGGER_INFO_LEVEL === 'true',
+    warn: Config.LOGGER_WARN_LEVEL === 'true',
+    error: Config.LOGGER_ERROR_LEVEL === 'true',
   }),
   deepLink: createLogger('deepLink', {
-    debug: false,
-    info: false,
-    warn: true,
-    error: true,
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
+    info: Config.LOGGER_INFO_LEVEL === 'true',
+    warn: Config.LOGGER_WARN_LEVEL === 'true',
+    error: Config.LOGGER_ERROR_LEVEL === 'true',
   }),
   config: createLogger('config', {
-    debug: false,
-    info: true,
-    warn: true,
-    error: true,
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
+    info: Config.LOGGER_INFO_LEVEL === 'true',
+    warn: Config.LOGGER_WARN_LEVEL === 'true',
+    error: Config.LOGGER_ERROR_LEVEL === 'true',
   }),
   revenueCat: createLogger('revenueCat', {
-    debug: false,
-    info: true,
-    warn: true,
-    error: true,
+    debug: Config.LOGGER_DEBUG_LEVEL === 'true',
+    info: Config.LOGGER_INFO_LEVEL === 'true',
+    warn: Config.LOGGER_WARN_LEVEL === 'true',
+    error: Config.LOGGER_ERROR_LEVEL === 'true',
   }),
 };

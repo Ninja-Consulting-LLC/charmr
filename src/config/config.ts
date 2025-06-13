@@ -1,4 +1,3 @@
-import NetInfo from '@react-native-community/netinfo';
 import {Platform} from 'react-native';
 import Config from 'react-native-config';
 import {logger} from '../utils/logger';
@@ -40,23 +39,6 @@ const getBaseUrl = () => {
   return 'https://ai-dating-keyboard.onrender.com';
 };
 
-// Helper to log device network information
-const logNetworkInfo = async () => {
-  if (__DEV__) {
-    try {
-      const state = await NetInfo.fetch();
-      logger.config.info('Network State:', {
-        type: state.type,
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-        details: state.details,
-      });
-    } catch (error) {
-      logger.config.error('Error fetching network info:', error);
-    }
-  }
-};
-
 export const config = {
   // API baseUrl is the domain without path
   // Some endpoints use /api/ prefix, but others (like /health) don't
@@ -69,7 +51,7 @@ export const config = {
     default: '',
   }),
   chat: {
-    pageSize: parseInt(Config.CHAT_PAGE_SIZE || '5', 10),
+    pageSize: parseInt(Config.CHAT_PAGE_SIZE || '20', 10),
   },
 } as const;
 
@@ -84,7 +66,6 @@ if (__DEV__) {
     // Add any other environment variables you want to log
   });
   logger.config.info('App Config', config);
-  logNetworkInfo();
 }
 
 // Type for the config object

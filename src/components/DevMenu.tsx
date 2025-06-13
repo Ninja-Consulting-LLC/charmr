@@ -1,19 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {useNavigation} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
-import { Alert, Animated, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, IconButton, Switch, Text } from 'react-native-paper';
-import { config } from '../config/config';
-import { RootStackParamList } from '../navigation/types';
-import { generateReply, resetDb, testContext } from '../services/api';
+import React, {useEffect, useState} from 'react';
+import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
+import {Button, IconButton, Switch, Text} from 'react-native-paper';
+import {config} from '../config/config';
+import {RootStackParamList} from '../navigation/types';
+import {generateReply, resetDb, testContext} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
-import { useStore } from '../store';
-import { theme } from '../theme/theme';
-import { SubscriptionTier } from '../types/enums';
-import { DevUtils } from '../utils/devUtils';
-import { logger } from '../utils/logger';
+import {useStore} from '../store';
+import {theme} from '../theme/theme';
+import {SubscriptionTier} from '../types/enums';
+import {DevUtils} from '../utils/devUtils';
+import {logger} from '../utils/logger';
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -127,7 +127,10 @@ const DevMenu = () => {
   const handleInspectStorage = async () => {
     try {
       await DevUtils.inspectStorage();
-      Alert.alert('Development', 'Storage inspection completed. Check logs for details.');
+      Alert.alert(
+        'Development',
+        'Storage inspection completed. Check logs for details.',
+      );
     } catch (error) {
       Alert.alert('Development Error', 'Failed to inspect storage');
     }
@@ -218,7 +221,7 @@ const DevMenu = () => {
         },
       );
 
-      logger.app.info('Reset message limit response', response.data);
+      logger.app.debug('Reset message limit response', response.data);
 
       // Fetch fresh user data from backend
       const userResponse = await axiosInstance.get(
@@ -359,10 +362,7 @@ const DevMenu = () => {
 
             <View style={styles.toggleContainer}>
               <Text>Sandbox Mode (No ChatGPT)</Text>
-              <Switch
-                value={isSandboxMode}
-                onValueChange={() => {}}
-              />
+              <Switch value={isSandboxMode} onValueChange={() => {}} />
             </View>
 
             <View style={styles.buttonContainer}>

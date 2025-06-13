@@ -13,6 +13,7 @@ import {Database} from '../db/types';
 import {authenticateUser} from '../middleware/auth';
 import {SubscriptionTier} from '../types/enums';
 import {loadConversation} from '../utils/conversationUtils';
+import logger from '../utils/logger';
 
 const createMatchRouter = (db: Database) => {
   const router = express.Router();
@@ -62,19 +63,33 @@ const createMatchRouter = (db: Database) => {
       const {matchId} = req.params;
       const {limit, offset} = req.query;
 
+      logger.debug('[Backend] Loading messages for match:', {
+        userId,
+        matchId,
+        limit,
+        offset,
+      });
+
       const messageRepository = getMessageRepository(db);
-      // Use the combined timeline (messages + screenshots)
-      const {items: timeline, total} =
-        await messageRepository.getConversationTimeline(
-          userId,
-          matchId,
-          limit && offset
-            ? {
-                limit: parseInt(limit as string, 10),
-                offset: parseInt(offset as string, 10),
-              }
-            : undefined,
-        );
+      const {messages, total} = await messageRepository.getMessagesByMatch(
+        userId,
+        matchId,
+        undefined, // No additional filters needed since system messages are excluded in the query
+        limit && offset
+          ? {
+              limit: parseInt(limit as string, 10),
+              offset: parseInt(offset as string, 10),
+            }
+          : undefined,
+      );
+
+      logger.debug('[Backend] Retrieved messages:', {
+        userId,
+        matchId,
+        totalMessages: total,
+        returnedMessages: messages.length,
+        messageIds: messages.map(m => m.id),
+      });
 
       // Set headers to prevent caching
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -82,11 +97,11 @@ const createMatchRouter = (db: Database) => {
       res.setHeader('Expires', '0');
 
       res.json({
-        messages: timeline,
+        messages,
         total,
       });
     } catch (error) {
-      console.error('Error fetching match messages:', error);
+      console.error('[Backend] Error fetching match messages:', error);
       res.status(500).json({error: 'Failed to fetch match messages'});
     }
   });

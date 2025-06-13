@@ -188,9 +188,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           setIsLoadingMore(true);
         }
 
-        console.log('Loading messages with offset:', offset);
-        console.log('User plan:', user?.plan, 'Type:', typeof user?.plan);
-        console.log('User object:', JSON.stringify(user, null, 2));
+        console.log('[Message Loading] Starting to load messages:', {
+          offset,
+          matchId: effectiveMatchId,
+          userId,
+          pageSize: PAGE_SIZE,
+        });
 
         const messagesResponse = await axiosInstance.get(
           `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
@@ -203,32 +206,26 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         );
 
         const {messages: messagesData, total} = messagesResponse.data;
-        console.log('Pagination info:', {
+        console.log('[Message Loading] Received messages from API:', {
           offset,
           limit: PAGE_SIZE,
           total,
           receivedMessages: messagesData.length,
           hasMore: offset + PAGE_SIZE < total,
+          messageIds: messagesData.map((m: any) => m.id),
         });
 
         // Check if this is the only page
         const isOnlyPage = total <= PAGE_SIZE;
 
-        // Filter out system/summary messages and deduplicate by id
-        const seenIds = new Set();
-        const chatMessages: IMessageWithImages[] = messagesData
-          .filter((msg: Message) => msg.role !== MessageRole.SYSTEM)
-          .filter((msg: Message) => {
-            if (seenIds.has(msg.id)) return false;
-            seenIds.add(msg.id);
-            return true;
-          })
-          .map((msg: Message) => {
-            console.log('Processing message:', {
+        // Transform messages to chat format
+        const chatMessages: IMessageWithImages[] = messagesData.map(
+          (msg: Message) => {
+            console.log('[Message Transformation] Converting message:', {
               id: msg.id,
               type: msg.type,
               hasImageData: !!msg.imageData,
-              content: msg.content,
+              content: msg.content?.substring(0, 50) + '...',
             });
 
             return {
@@ -244,12 +241,14 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               mode: msg.mode,
               images: msg.imageData ? [msg.imageData] : undefined,
             };
-          });
-
-        console.log(
-          'Processed chat messages:',
-          JSON.stringify(chatMessages, null, 2),
+          },
         );
+
+        console.log('[Message Loading] Final processed messages:', {
+          totalProcessed: chatMessages.length,
+          messageIds: chatMessages.map(m => m._id),
+          hasWelcomeMessage: isOnlyPage,
+        });
 
         // Add welcome message only on the last page or if it's the only page
         if (offset === 0) {
@@ -266,11 +265,16 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               type: MessageType.TEXT,
               mode: MessageMode.COACH,
             };
+            console.log(
+              '[Message Loading] Adding welcome message to only page',
+            );
             setMessages(prevMessages => {
-              const messages = [welcomeMessage, ...chatMessages];
-              return messages;
+              return [...chatMessages, welcomeMessage];
             });
           } else {
+            console.log(
+              '[Message Loading] Setting initial messages without welcome',
+            );
             setMessages(prevMessages => {
               return chatMessages;
             });
@@ -291,6 +295,12 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             mode: MessageMode.COACH,
           };
 
+          console.log('[Message Loading] Loading more messages:', {
+            isLastPage,
+            currentOffset: offset,
+            totalMessages: total,
+          });
+
           setMessages(prevMessages => {
             const messages = GiftedChat.prepend(prevMessages, chatMessages);
             return isLastPage
@@ -302,7 +312,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         // Update hasMoreMessages based on total count
         setHasMoreMessages(offset + PAGE_SIZE < total);
       } catch (error) {
-        console.error('Failed to fetch messages:', error);
+        console.error('[Message Loading] Failed to fetch messages:', error);
         // Just set empty messages array on error
         if (offset === 0) {
           setMessages([]);
