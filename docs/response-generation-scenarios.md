@@ -5,10 +5,12 @@ This document outlines the different scenarios for response generation in the ap
 ## Home Screen Scenarios (No matchId)
 
 ### 1. Generate Response (First Message)
+
 - **Context**: No match summary or conversation history
 - **System Prompt**: Basic wingman prompt without first message context
 - **Response Format**: Plain text message only (no JSON)
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them break the ice.
 
@@ -25,10 +27,12 @@ Guidelines:
 ```
 
 ### 2. Regenerate Response (First Message)
+
 - **Context**: No match summary or conversation history
 - **System Prompt**: Basic wingman prompt with regeneration instructions
 - **Response Format**: Plain text message only (no JSON)
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them break the ice.
 
@@ -57,10 +61,12 @@ Previous message to avoid repeating:
 ## Chat Screen Scenarios (With matchId)
 
 ### 3. Generate with Image Only (First Message in Match)
+
 - **Context**: Has matchId but no conversation history
 - **System Prompt**: Basic wingman prompt
 - **Response Format**: JSON with summary and message
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them break the ice.
 
@@ -83,10 +89,12 @@ IMPORTANT: You must respond in this exact JSON format:
 ```
 
 ### 4. Generate with Image + Context (First Message in Match)
+
 - **Context**: Has matchId but no conversation history
 - **System Prompt**: Basic wingman prompt
 - **Response Format**: JSON with summary and message
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them break the ice.
 
@@ -110,10 +118,12 @@ IMPORTANT: You must respond in this exact JSON format:
 ```
 
 ### 5. Generate with History (No Image)
+
 - **Context**: Has matchId and conversation history
 - **System Prompt**: Basic wingman prompt with mid-thread context
 - **Response Format**: JSON with summary and message
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them flirt, escalate, or keep it fun.
 
@@ -138,10 +148,12 @@ AI Assistant: [previous response]
 ```
 
 ### 6. Generate with History + Image
+
 - **Context**: Has matchId and conversation history
 - **System Prompt**: Basic wingman prompt with mid-thread context
 - **Response Format**: JSON with summary and message
 - **Example**:
+
 ```
 [System] You are a clever, confident AI dating wingman. The user just uploaded a screenshot of their match on a dating app and needs a great message to reply with. Help them flirt, escalate, or keep it fun.
 
@@ -168,10 +180,12 @@ AI Assistant: [previous response]
 ```
 
 ### 7. Coach Mode with Image Only (with History)
+
 - **Context**: Has matchId and conversation history
 - **System Prompt**: Coach mode prompt
 - **Response Format**: Plain text response
 - **Example**:
+
 ```
 [System] You are a helpful AI dating coach. Provide feedback and advice about the conversation.
 
@@ -202,10 +216,12 @@ AI Assistant: [previous response]
 ```
 
 ### 8. Coach Mode with Image + Context (with History)
+
 - **Context**: Has matchId and conversation history
 - **System Prompt**: Coach mode prompt
 - **Response Format**: Plain text response
 - **Example**:
+
 ```
 [System] You are a helpful AI dating coach. Provide feedback and advice about the conversation.
 
@@ -235,3 +251,22 @@ AI Assistant: [previous response]
 [Image data]
 [User] What should I say to this?
 ```
+
+## Vision Model & Image Analysis
+
+- When users upload screenshots, the backend uses GPT-4 Vision to analyze the image and extract relevant context (e.g., match status, conversation history, profile details).
+- If no text prompt is provided, a fallback prompt instructs the AI to analyze the screenshot and generate an appropriate message.
+- The AI can distinguish between new matches and ongoing conversations by analyzing screenshot content (e.g., "You matched", "Liked your photo").
+- If image analysis fails, the user receives an error and can retry with a different image.
+
+## Coach Mode Invocation
+
+- Coach mode can be invoked from the custom keyboard or chat screen by selecting "Dating Coach" or a similar option.
+- In coach mode, the backend uses a different prompt to provide feedback and actionable suggestions about the conversation, rather than generating a message to send.
+- Coach mode responses are always plain text and focus on advice, not message generation.
+
+## Error Scenarios
+
+- If image upload or processing fails, the user receives an error message and can retry.
+- If the AI fails to generate a response, the user is notified and can try again.
+- If the daily message limit is reached, the user is informed and prompted to upgrade or wait for reset.
