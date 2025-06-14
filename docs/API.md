@@ -405,33 +405,31 @@ All endpoints may return the following error responses:
 
 ## Webhooks
 
-### Message Sent
+### Message Sent Event
 
 ```http
 POST /api/webhooks/message-sent
 ```
 
-Triggered when a message is sent through the keyboard.
+Triggered when a message is successfully sent.
 
 **Request Body**
 
 ```json
 {
-  "userId": "string",
   "matchId": "string",
   "message": "string",
-  "style": "spicy|flirty|casual|sincere",
   "timestamp": "string"
 }
 ```
 
-### Plan Updated
+### Plan Updated Event
 
 ```http
 POST /api/webhooks/plan-updated
 ```
 
-Triggered when a user's plan is updated.
+Triggered when a user's subscription plan is updated.
 
 **Request Body**
 

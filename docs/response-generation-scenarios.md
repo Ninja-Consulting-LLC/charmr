@@ -265,6 +265,12 @@ AI Assistant: [previous response]
 - In coach mode, the backend uses a different prompt to provide feedback and actionable suggestions about the conversation, rather than generating a message to send.
 - Coach mode responses are always plain text and focus on advice, not message generation.
 
+## Coach Mode Feedback
+
+- Coach mode provides feedback on conversation flow, engagement, and tone.
+- Feedback is concise, actionable, and tailored to the current conversation context.
+- Users can use coach mode to improve their messaging strategy and engagement.
+
 ## Error Scenarios
 
 - If image upload or processing fails, the user receives an error message and can retry.
