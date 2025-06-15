@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
-import { PromptVariant } from '../types';
+import path from 'path';
+import {PromptVariant} from '../types';
 
-dotenv.config();
+// Load environment variables from .env file
+dotenv.config({path: path.resolve(__dirname, '../../.env')});
 
 export const config = {
   server: {
@@ -11,10 +13,13 @@ export const config = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4-mini',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '1000', 10),
     temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
-    maxCoachMessages: parseInt(process.env.OPENAI_MAX_COACH_MESSAGES || '10', 10),
+    maxCoachMessages: parseInt(
+      process.env.OPENAI_MAX_COACH_MESSAGES || '10',
+      10,
+    ),
   },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,

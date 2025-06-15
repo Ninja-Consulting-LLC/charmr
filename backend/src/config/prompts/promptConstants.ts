@@ -1,12 +1,25 @@
 import {PromptVariant} from '../../types';
 
 export const COMMON_SUMMARY_INSTRUCTIONS = `The "summary" field is for internal use only and should:
-1. Preserve all important existing information from the current match summary
-2. Add any new relevant details from the current message
-3. Combine both into a coherent summary
-4. If no meaningful changes occurred, keep the existing summary`;
+1. If there is an existing match summary:
+   - Preserve all important existing information
+   - Add any new relevant details from the current message
+   - Combine both into a coherent summary
+   - If no meaningful changes occurred, keep the existing summary
+2. If there is no existing match summary:
+   - Create a new summary that captures the key details of the conversation
+   - Include relevant information about the match and their interests
+   - Keep it concise but informative
+   - Focus on the most important aspects of the interaction
+3. For the current message:
+   - Always include the specific topic or theme being discussed (e.g., "discussing physical features", "talking about travel plans")
+   - Note any specific details mentioned (e.g., "mentioned interest in photography", "commented on eyes")
+   - Capture the tone and style of the interaction
+   - Highlight any notable aspects of the current exchange`;
 
 export const COMMON_MESSAGE_INSTRUCTIONS = `The "message" field should contain ONLY the direct message that will be sent to the user. Do not include any analysis, summaries, meta-commentary, or quotes. Do not wrap the message in quotes or add any prefixes like "you could say" or "here's what you could say". The message should be ready to send as-is.`;
+
+export const COMMON_JSON_FORMAT_INSTRUCTIONS = `${COMMON_MESSAGE_INSTRUCTIONS}\n\n${COMMON_SUMMARY_INSTRUCTIONS}`;
 
 export const JSON_RESPONSE_FORMAT = {
   summary: 'Combined summary preserving existing info and adding new details',
@@ -30,7 +43,12 @@ ${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}
 The message field should contain your actual response that will be sent to the user.
 The summary field should contain a brief summary of the conversation.`;
 
-export const COACH_MODE_FORMAT_INSTRUCTIONS = `Return your response as plain text. Do not wrap it in JSON, markdown, or any other format. Do not use code blocks, bullet points, or any special formatting. When analyzing screenshots, focus on providing specific, actionable advice about the conversation dynamics and communication patterns.`;
+export const COACH_MODE_FORMAT_INSTRUCTIONS = `Return a JSON object with exactly this structure:
+${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}
+
+The message field should contain your coaching advice as plain text. Do not wrap it in JSON, markdown, or any other format. Do not use code blocks, bullet points, or any special formatting. When analyzing screenshots, focus on providing specific, actionable advice about the conversation dynamics and communication patterns.
+
+${COMMON_SUMMARY_INSTRUCTIONS}`;
 
 export interface BasePromptConfig {
   basePrompt: string;

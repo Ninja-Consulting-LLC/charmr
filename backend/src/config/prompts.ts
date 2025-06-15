@@ -1,8 +1,7 @@
-import { PromptVariant } from '../types';
-import { MessageMode } from '../types/enums';
+import {PromptVariant} from '../types';
+import {MessageMode} from '../types/enums';
 import {
   CHAT_SCREEN_FORMAT_INSTRUCTIONS,
-  COACH_MODE_FORMAT_INSTRUCTIONS,
   HOME_SCREEN_FORMAT_INSTRUCTIONS,
   PromptConfig,
   VariantPromptConfig,
@@ -83,7 +82,10 @@ function formatGuidelines(guidelines: string[]): string {
     .join('\n')}`;
 }
 
-function formatJsonResponse(config: VariantPromptConfig, hasMatchId: boolean): string {
+function formatJsonResponse(
+  config: VariantPromptConfig,
+  hasMatchId: boolean,
+): string {
   if (!config.jsonFormatInstructions) return '';
 
   // Only include JSON format instructions for chat screen (with matchId)
@@ -108,17 +110,12 @@ export function formatPrompt(
   const basePrompt = formatBasePrompt(config.basePrompt, regenerationMessage);
   const guidelines = formatGuidelines(config.guidelines);
 
-  // For coach mode, use plain text format
-  if (mode === MessageMode.COACH) {
-    return `${basePrompt}${guidelines}\n\n${COACH_MODE_FORMAT_INSTRUCTIONS}`;
-  }
-
   // For home screen (no matchId), use JSON format with just message field
   if (!hasMatchId) {
     return `${basePrompt}${guidelines}\n\n${HOME_SCREEN_FORMAT_INSTRUCTIONS}`;
   }
 
-  // For chat screen, use JSON format with summary and message fields
-  const responseFormat = formatJsonResponse(config, hasMatchId || false);
+  // For chat screen (with matchId), use JSON format with summary and message fields
+  const responseFormat = formatJsonResponse(config, hasMatchId);
   return `${basePrompt}${guidelines}${responseFormat}`;
 }
