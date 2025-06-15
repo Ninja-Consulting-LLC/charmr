@@ -1,6 +1,5 @@
 import {
-  COMMON_MESSAGE_INSTRUCTIONS,
-  COMMON_SUMMARY_INSTRUCTIONS,
+  COMMON_JSON_FORMAT_INSTRUCTIONS,
   VariantPromptConfig,
 } from './promptConstants';
 
@@ -19,9 +18,7 @@ export const imageOnlyVariantB: VariantPromptConfig = {
     'Do not wrap your message in quotes',
     "IMPORTANT: When you see \"Liked your photo\", this means someone has liked the user's own photo and the user needs to make the first message. The photo you see is the user's own photo, not the match's profile. Do not reference the user's own photo as if it were the match's profile.",
   ],
-  jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
-
-${COMMON_SUMMARY_INSTRUCTIONS}`,
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
 export const generateVariantB: VariantPromptConfig = {
@@ -41,9 +38,7 @@ export const generateVariantB: VariantPromptConfig = {
     'Do not include any analysis or commentary about the image',
     'Return ONLY the message that should be sent, nothing else',
   ],
-  jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
-
-${COMMON_SUMMARY_INSTRUCTIONS}`,
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
 export const coachVariantB: VariantPromptConfig = {
@@ -61,4 +56,5 @@ export const coachVariantB: VariantPromptConfig = {
     'Suggest concrete ways to improve engagement and connection',
     'Point out missed opportunities and how to capitalize on them next time',
   ],
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };

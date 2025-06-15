@@ -108,6 +108,7 @@ export const createOpenAIService = () => {
             request.regenerate ? request.prompt : undefined,
             request.matchSummary,
             variant,
+            !!request.matchId,
           ),
         },
       ];
@@ -188,23 +189,6 @@ export const createOpenAIService = () => {
         usage: response.usage,
       });
 
-      // For COACH mode, return the raw response without JSON parsing
-      if (request.mode === MessageMode.COACH) {
-        return {
-          reply: text,
-          usage: response.usage,
-          mode: request.mode,
-          style: request.style,
-          cost: calculateCost(model, {
-            prompt_tokens: response.usage?.prompt_tokens || 0,
-            completion_tokens: response.usage?.completion_tokens || 0,
-            total_tokens: response.usage?.total_tokens || 0,
-            image_count: request.images?.length || 0,
-          }),
-          promptVariant: variant,
-        };
-      }
-
       // For home screen (no matchId), require strict JSON format
       if (!request.matchId) {
         const {message: reply} = JSON.parse(text);
@@ -282,6 +266,7 @@ function getSystemPrompt(
   previousMessage?: string,
   matchSummary?: string,
   variant?: PromptVariant,
+  hasMatchId: boolean = false,
 ): string {
   const promptConfig = getPromptConfig(
     mode,
@@ -304,6 +289,6 @@ function getSystemPrompt(
     mode,
     regenerate,
     previousMessage,
-    !!matchSummary,
+    hasMatchId,
   );
 }

@@ -76,7 +76,7 @@ export const DeepLinkHandler: React.FC = () => {
 
     // Check for initial deep link that launched the app
     Linking.getInitialURL().then(url => {
-      logger.deepLink.info('Deep Link Initial URL Check', {
+      logger.deepLink.debug('Deep Link Initial URL Check', {
         event: 'deep_link_initial_url_check',
         url,
       });

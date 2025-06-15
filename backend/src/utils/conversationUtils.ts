@@ -1,12 +1,12 @@
-import { getDatabase } from '../db';
-import { getMessageRepository } from '../db/repositories';
-import { Message } from '../db/types';
-import { createSummaryService } from '../services/summaryService';
-import { PromptVariant } from '../types';
-import { MessageMode, MessageRole, MessageType } from '../types/enums';
+import {getDatabase} from '../db';
+import {getMessageRepository} from '../db/repositories';
+import {Message} from '../db/types';
+import {createSummaryService} from '../services/summaryService';
+import {PromptVariant} from '../types';
+import {MessageMode, MessageRole, MessageType} from '../types/enums';
 import logger from '../utils/logger';
 
-export type { Message } from '../db/types';
+export type {Message} from '../db/types';
 
 export const loadConversation = async (
   userId: string,
@@ -144,8 +144,8 @@ export const appendConversation = async (
       ? await summaryService.getMatchSummary(userId, matchId)
       : undefined;
 
-    // Save the summary if provided and not in COACH mode
-    if (summary && mode !== MessageMode.COACH) {
+    // Save the summary if provided
+    if (summary) {
       const summaryTimestamp = new Date(baseTimestamp).toISOString();
       const summaryMessage = await messageRepository.createMessage(
         userId,

@@ -1,6 +1,5 @@
 import {
-  COMMON_MESSAGE_INSTRUCTIONS,
-  COMMON_SUMMARY_INSTRUCTIONS,
+  COMMON_JSON_FORMAT_INSTRUCTIONS,
   VariantPromptConfig,
 } from './promptConstants';
 
@@ -19,9 +18,7 @@ export const imageOnlyVariantA: VariantPromptConfig = {
     'Do not prefix your message with "you could say" or "here\'s what you could say"',
     'Do not wrap your message in quotes',
   ],
-  jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
-
-${COMMON_SUMMARY_INSTRUCTIONS}`,
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
 export const generateVariantA: VariantPromptConfig = {
@@ -39,9 +36,7 @@ export const generateVariantA: VariantPromptConfig = {
     'Do not prefix your message with "you could say" or "here\'s what you could say"',
     'Do not wrap your message in quotes',
   ],
-  jsonFormatInstructions: `${COMMON_MESSAGE_INSTRUCTIONS}
-
-${COMMON_SUMMARY_INSTRUCTIONS}`,
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
 export const coachVariantA: VariantPromptConfig = {
@@ -61,4 +56,5 @@ export const coachVariantA: VariantPromptConfig = {
     'Highlight successful conversation elements and why they worked',
     'Point out missed opportunities and how to capitalize on them next time',
   ],
+  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };

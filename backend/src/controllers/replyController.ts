@@ -1,17 +1,17 @@
-import { Request, Response } from 'express';
-import { config } from '../config/config';
-import { getDatabase } from '../db';
-import { getMessageRepository } from '../db/repositories';
-import { Database } from '../db/types';
-import { createGeminiService } from '../services/geminiService';
-import { createMessageLimitService } from '../services/messageLimitService';
-import { createOpenAIService } from '../services/openaiService';
-import { createSummaryService } from '../services/summaryService';
-import { MessageMode } from '../types/enums';
-import { appendConversation, loadConversation } from '../utils/conversationUtils';
-import { calculateCost } from '../utils/costUtils';
+import {Request, Response} from 'express';
+import {config} from '../config/config';
+import {getDatabase} from '../db';
+import {getMessageRepository} from '../db/repositories';
+import {Database} from '../db/types';
+import {createGeminiService} from '../services/geminiService';
+import {createMessageLimitService} from '../services/messageLimitService';
+import {createOpenAIService} from '../services/openaiService';
+import {createSummaryService} from '../services/summaryService';
+import {MessageMode} from '../types/enums';
+import {appendConversation, loadConversation} from '../utils/conversationUtils';
+import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
-import { sanitizeImage } from '../utils/sanitizeImage';
+import {sanitizeImage} from '../utils/sanitizeImage';
 
 interface ChatGptImage {
   type: 'image_url';
@@ -39,23 +39,23 @@ const truncateImageData = (image: string): string => {
 export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
   const openaiService = createOpenAIService();
-  const geminiService = createGeminiService();
+  // const geminiService = createGeminiService();
   const messageRepository = getMessageRepository(db);
   const summaryService = createSummaryService(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
-    const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
+    try {
+      const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-    // 1. Validate prompt
-    if (
-      (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
-      (!images || images.length === 0)
-    ) {
-      return res.status(400).json({error: 'Prompt is required.'});
-    }
+      // 1. Validate prompt
+      if (
+        (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
+        (!images || images.length === 0)
+      ) {
+        return res.status(400).json({error: 'Prompt is required.'});
+      }
 
-    // Main logic as a promise
-    const mainLogic = (async () => {
+      // Main logic
       logger.debug('Generating reply - request payload', {
         userId,
         hasImages: images?.length > 0,
@@ -85,7 +85,10 @@ export const createReplyController = async (db: Database) => {
       const user = await db.getUser(userId);
       logger.debug('ReplyController: user lookup', {userId, user});
       if (!user) {
-        logger.error('User not found in generateReplyHandler', {userId, user});
+        logger.error('User not found in generateReplyHandler', {
+          userId,
+          user,
+        });
         return res.status(404).json({error: 'User not found'});
       }
 
@@ -101,18 +104,28 @@ export const createReplyController = async (db: Database) => {
               const imageBuffer = Buffer.from(base64Data, 'base64');
 
               // Sanitize image for AI service (strip metadata)
-              const aiSanitized = await sanitizeImage(imageBuffer, { stripMetadata: true });
+              const aiSanitized = await sanitizeImage(imageBuffer, {
+                stripMetadata: true,
+              });
 
               // Sanitize image for storage (preserve metadata)
-              const storedSanitized = await sanitizeImage(imageBuffer, { stripMetadata: false });
+              const storedSanitized = await sanitizeImage(imageBuffer, {
+                stripMetadata: false,
+              });
 
               return {
-                aiImage: `data:image/png;base64,${aiSanitized.buffer.toString('base64')}`,
-                storedImage: `data:image/png;base64,${storedSanitized.buffer.toString('base64')}`
+                aiImage: `data:image/png;base64,${aiSanitized.buffer.toString(
+                  'base64',
+                )}`,
+                storedImage: `data:image/png;base64,${storedSanitized.buffer.toString(
+                  'base64',
+                )}`,
               };
             } catch (error) {
               logger.error('Error sanitizing image:', error);
-              throw new Error('Failed to process image. Please try again with a different image.');
+              throw new Error(
+                'Failed to process image. Please try again with a different image.',
+              );
             }
           });
 
@@ -122,7 +135,10 @@ export const createReplyController = async (db: Database) => {
         } catch (error) {
           logger.error('Error processing images:', error);
           return res.status(400).json({
-            error: error instanceof Error ? error.message : 'Failed to process images',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to process images',
             type: 'IMAGE_PROCESSING_ERROR',
           });
         }
@@ -207,7 +223,7 @@ export const createReplyController = async (db: Database) => {
               previousMessage: req.body.regenerate ? prompt : undefined,
               matchSummary,
             })
-          : await geminiService.generateReply({
+          : await createGeminiService().generateReply({
               prompt,
               images: [],
               userId,
@@ -318,22 +334,10 @@ export const createReplyController = async (db: Database) => {
         usage: response.usage,
         limits: updatedLimits,
       });
-    })();
-
-    // Handle any errors in the main logic
-    mainLogic.catch(error => {
-      logger.error('Error in generateReplyHandler', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-
-      if (res.headersSent) return;
-
-      res.status(500).json({
-        error: 'An unexpected error occurred',
-        type: 'UNKNOWN_ERROR',
-      });
-    });
+    } catch (error) {
+      console.error('Error generating reply:', error);
+      return res.status(500).json({error: 'Failed to generate reply'});
+    }
   };
 
   return {
