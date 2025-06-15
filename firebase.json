@@ -1,0 +1,20 @@
+{
+  "firestore": {
+    "rules": "firebase/rules/firestore.rules",
+    "indexes": "firebase/indexes/firestore.indexes.json"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8081
+    },
+    "ui": {
+      "port": 4001
+    },
+    "hub": {
+      "port": 4401
+    },
+    "logging": {
+      "port": 4501
+    }
+  }
+}

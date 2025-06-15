@@ -92,3 +92,4 @@ assets/pro_paywall.png
 service-account.json
 assets/screenshots/*
 keys/*
+firestore-debug.log
