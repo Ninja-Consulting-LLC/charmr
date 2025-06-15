@@ -112,6 +112,23 @@ export const getDatabase = async (): Promise<Database> => {
         ): Promise<Message> => {
           return messageRepository!.createMessage(userId, matchId, message);
         },
+        createMessage: async (
+          userId: string,
+          matchId: string,
+          message: {
+            role: MessageRole;
+            type?: MessageType;
+            mode?: MessageMode;
+            used?: boolean;
+            replyTo?: number;
+            content: string;
+            timestamp: string;
+            imageData?: string;
+            promptVariant?: PromptVariant;
+          },
+        ): Promise<Message> => {
+          return messageRepository!.createMessage(userId, matchId, message);
+        },
         getMessages: async (userId: string, matchId: string) => {
           return messageRepository!.getMessagesByMatch(userId, matchId);
         },
@@ -228,6 +245,14 @@ export const getDatabase = async (): Promise<Database> => {
           ) => {
             return supportRepository!.updateTicketStatus(ticketId, status);
           },
+        },
+
+        // User linking
+        linkUsers: async (
+          anonymousUserId: string,
+          registeredUserId: string,
+        ): Promise<void> => {
+          return userRepository!.linkUsers(anonymousUserId, registeredUserId);
         },
 
         // Required by Database interface but not used in Firestore
