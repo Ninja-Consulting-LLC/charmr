@@ -13,6 +13,7 @@
     "test:backend": "ts-node src/test/backend.integration.test.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:integration": "firebase emulators:start --only auth,firestore & sleep 5 && jest __tests__/integration/authFlow.test.ts",
     "clean": "rm -rf node_modules && npm install",
     "reset": "npm run clean && npm start -- --reset-cache",
     "install:fast": "npm ci --no-audit --no-fund --prefer-offline",
