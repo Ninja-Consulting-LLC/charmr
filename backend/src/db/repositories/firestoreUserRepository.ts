@@ -437,11 +437,29 @@ export class FirestoreUserRepository {
 
       // Delete anonymous user after successful linking
       try {
+        // Delete all matches and messages from the anonymous user
+        const matchesSnapshot = await this.db
+          .collection(this.usersCollection)
+          .doc(anonymousUserId)
+          .collection('matches')
+          .get();
+        for (const matchDoc of matchesSnapshot.docs) {
+          const messagesSnapshot = await matchDoc.ref
+            .collection('messages')
+            .get();
+          for (const messageDoc of messagesSnapshot.docs) {
+            await messageDoc.ref.delete();
+          }
+          await matchDoc.ref.delete();
+        }
         await this.db
           .collection(this.usersCollection)
           .doc(anonymousUserId)
           .delete();
-        logger.info('Anonymous user deleted after linking', {anonymousUserId});
+        logger.info(
+          'Anonymous user and associated data deleted after linking',
+          {anonymousUserId},
+        );
       } catch (error) {
         logger.error('Failed to delete anonymous user after linking', {
           error: error instanceof Error ? error.message : 'Unknown error',

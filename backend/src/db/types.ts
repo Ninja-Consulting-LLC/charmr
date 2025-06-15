@@ -126,6 +126,21 @@ export interface Database {
       promptVariant?: PromptVariant;
     },
   ) => Promise<Message>;
+  createMessage: (
+    userId: string,
+    matchId: string,
+    message: {
+      role: MessageRole;
+      type?: MessageType;
+      mode?: MessageMode;
+      used?: boolean;
+      replyTo?: number;
+      content: string;
+      timestamp: string;
+      imageData?: string;
+      promptVariant?: PromptVariant;
+    },
+  ) => Promise<Message>;
   getMessages: (
     userId: string,
     matchId?: string,
@@ -191,4 +206,9 @@ export interface Database {
       status: SupportTicket['status'],
     ) => Promise<void>;
   };
+
+  linkUsers: (
+    anonymousUserId: string,
+    registeredUserId: string,
+  ) => Promise<void>;
 }

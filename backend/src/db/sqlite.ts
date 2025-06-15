@@ -1077,5 +1077,78 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         }
       },
     },
+
+    createMessage: async (
+      userId: string,
+      matchId: string,
+      message: {
+        role: 'user' | 'assistant' | 'system';
+        type?: 'text' | 'image' | 'summary';
+        mode?: 'generate' | 'coach';
+        used?: boolean;
+        replyTo?: number;
+        content: string;
+        timestamp: string;
+        imageData?: string;
+        promptVariant?: PromptVariant;
+      },
+    ): Promise<Message> => {
+      // Just call saveMessage
+      return await (async () => {
+        const defaultMessage = {
+          type: 'text' as const,
+          mode: 'generate' as const,
+          used: false,
+        };
+        const messageWithDefaults = {
+          ...defaultMessage,
+          ...message,
+        };
+        const result = await db.run(
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            userId,
+            matchId,
+            messageWithDefaults.role,
+            messageWithDefaults.type,
+            messageWithDefaults.mode,
+            messageWithDefaults.used ? 1 : 0,
+            messageWithDefaults.replyTo || null,
+            messageWithDefaults.content,
+            messageWithDefaults.timestamp,
+            messageWithDefaults.imageData || null,
+            messageWithDefaults.promptVariant || null,
+          ],
+        );
+        const insertedMessage = await db.get(
+          'SELECT * FROM messages WHERE id = ?',
+          [result.lastID],
+        );
+        return {
+          ...insertedMessage,
+          used: Boolean(insertedMessage.used),
+        };
+      })();
+    },
+
+    linkUsers: async (
+      anonymousUserId: string,
+      registeredUserId: string,
+    ): Promise<void> => {
+      // Transfer all messages, matches, screenshots, then delete the anonymous user
+      await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
+        registeredUserId,
+        anonymousUserId,
+      ]);
+      await db.run('UPDATE matches SET userId = ? WHERE userId = ?', [
+        registeredUserId,
+        anonymousUserId,
+      ]);
+      await db.run('UPDATE screenshots SET userId = ? WHERE userId = ?', [
+        registeredUserId,
+        anonymousUserId,
+      ]);
+      await db.run('DELETE FROM users WHERE id = ?', [anonymousUserId]);
+    },
   };
 };
