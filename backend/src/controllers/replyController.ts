@@ -72,7 +72,7 @@ export const createReplyController = async (db: Database) => {
           messageLimits.dailyMessagesUsed < messageLimits.dailyMessageLimit ||
           messageLimits.extraMessages > 0;
         if (!canSendMessage) {
-          logger.warn('Message limit reached', {userId, messageLimits});
+          logger.warning('Message limit reached', {userId, messageLimits});
           return res.status(429).json({
             error: 'Message limit reached',
             limits: messageLimits,
@@ -306,7 +306,7 @@ export const createReplyController = async (db: Database) => {
         });
       }
 
-      logger.info('Reply generated successfully', {
+      logger.debug('Reply generated successfully', {
         userId,
         matchId,
         replyLength: response.reply.length,
@@ -315,7 +315,7 @@ export const createReplyController = async (db: Database) => {
       // Increment message count after successful assistant reply
       const success = await messageLimitService.incrementMessageCount(userId);
       if (!success) {
-        logger.warn('Failed to increment message count', {userId});
+        logger.warning('Failed to increment message count', {userId});
         return res.status(500).json({
           error: 'Failed to update message count',
           type: 'MESSAGE_COUNT_ERROR',

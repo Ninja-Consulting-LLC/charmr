@@ -47,7 +47,7 @@ export const createNotificationService = (db: Database) => {
     try {
       const user = await db.getUser(userId);
       if (!user) {
-        logger.warn('Cannot send notification - user not found', {
+        logger.warning('Cannot send notification - user not found', {
           userId,
           notificationType,
         });
@@ -64,7 +64,7 @@ export const createNotificationService = (db: Database) => {
       }
 
       if (!user.deviceToken) {
-        logger.warn('Cannot send notification - no device token', {
+        logger.warning('Cannot send notification - no device token', {
           userId,
           notificationType,
         });

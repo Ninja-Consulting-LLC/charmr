@@ -9,7 +9,7 @@ import logger from '../../utils/logger';
 
 // Create email service instance
 export const createEmailService = (config: EmailConfig): EmailService => {
-  logger.info('Creating email service', {
+  logger.debug('Creating email service', {
     host: config.host,
     port: config.port,
     secure: config.secure,
@@ -23,7 +23,7 @@ export const createEmailService = (config: EmailConfig): EmailService => {
     ...(config.auth && {auth: config.auth}),
   };
 
-  logger.info('Email transporter configuration', {
+  logger.debug('Email transporter configuration', {
     host: transporterConfig.host,
     port: transporterConfig.port,
     secure: transporterConfig.secure,
@@ -40,7 +40,7 @@ export const createEmailService = (config: EmailConfig): EmailService => {
         stack: error.stack,
       });
     } else {
-      logger.info('Email transporter verified successfully');
+      logger.debug('Email transporter verified successfully');
     }
   });
 
