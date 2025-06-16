@@ -85,15 +85,20 @@ function formatGuidelines(guidelines: string[]): string {
 function formatJsonResponse(
   config: VariantPromptConfig,
   hasMatchId: boolean,
+  mode?: MessageMode,
 ): string {
   if (!config.jsonFormatInstructions) return '';
 
   // Only include JSON format instructions for chat screen (with matchId)
   if (!hasMatchId) return '';
 
-  return `\n\n${CHAT_SCREEN_FORMAT_INSTRUCTIONS}
+  // For coach mode, only include the coach-specific instructions
+  if (mode === MessageMode.COACH) {
+    return `\n\n${config.jsonFormatInstructions}`;
+  }
 
-${config.jsonFormatInstructions}`;
+  // For other modes, include the generic instructions and the variant's instructions
+  return `\n\n${CHAT_SCREEN_FORMAT_INSTRUCTIONS}\n\n${config.jsonFormatInstructions}`;
 }
 
 export function formatPrompt(
@@ -116,6 +121,6 @@ export function formatPrompt(
   }
 
   // For chat screen (with matchId), use JSON format with summary and message fields
-  const responseFormat = formatJsonResponse(config, hasMatchId);
+  const responseFormat = formatJsonResponse(config, hasMatchId, mode);
   return `${basePrompt}${guidelines}${responseFormat}`;
 }

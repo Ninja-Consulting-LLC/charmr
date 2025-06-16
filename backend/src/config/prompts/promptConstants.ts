@@ -38,13 +38,13 @@ ${JSON.stringify(
 The message field should contain your actual response that will be sent to the user. Do not include any prefixes like "you could say" or quotes. Do not wrap the response in code blocks or add any explanatory text. Do not include safety disclaimers or requests for more information - just return the JSON object with your suggested message.`;
 
 export const CHAT_SCREEN_FORMAT_INSTRUCTIONS = `Return a JSON object with exactly this structure:
-${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}
-
-The message field should contain your actual response that will be sent to the user.
-The summary field should contain a brief summary of the conversation.`;
+${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}`;
 
 export const COACH_MODE_FORMAT_INSTRUCTIONS = `Return a JSON object with exactly this structure:
-${JSON.stringify(JSON_RESPONSE_FORMAT, null, 2)}
+{
+  "summary": "Combined summary preserving existing info and adding new details",
+  "message": "Your coaching advice as plain text"
+}
 
 The message field should contain your coaching advice as plain text. Do not wrap it in JSON, markdown, or any other format. Do not use code blocks, bullet points, or any special formatting. When analyzing screenshots, focus on providing specific, actionable advice about the conversation dynamics and communication patterns.
 
