@@ -172,10 +172,7 @@ export const createOpenAIService = () => {
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
-        response_format:
-          request.mode === MessageMode.COACH
-            ? undefined
-            : {type: 'json_object'},
+        response_format: {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';

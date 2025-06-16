@@ -1,4 +1,5 @@
 import {
+  COACH_MODE_FORMAT_INSTRUCTIONS,
   COMMON_JSON_FORMAT_INSTRUCTIONS,
   VariantPromptConfig,
 } from './promptConstants';
@@ -56,5 +57,5 @@ export const coachVariantA: VariantPromptConfig = {
     'Highlight successful conversation elements and why they worked',
     'Point out missed opportunities and how to capitalize on them next time',
   ],
-  jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
+  jsonFormatInstructions: COACH_MODE_FORMAT_INSTRUCTIONS,
 };

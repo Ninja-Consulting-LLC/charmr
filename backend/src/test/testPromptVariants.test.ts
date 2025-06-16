@@ -1,10 +1,18 @@
 import axios from 'axios';
-import admin from 'firebase-admin';
+import {default as admin, default as firebaseAdmin} from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 import {formatPrompt} from '../config/prompts';
-import {imageOnlyVariantA} from '../config/prompts/variantA';
-import {imageOnlyVariantB} from '../config/prompts/variantB';
+import {
+  coachVariantA,
+  generateVariantA,
+  imageOnlyVariantA,
+} from '../config/prompts/variantA';
+import {
+  coachVariantB,
+  generateVariantB,
+  imageOnlyVariantB,
+} from '../config/prompts/variantB';
 import {MessageMode, SubscriptionTier} from '../types/enums';
 
 // Use require for service account
@@ -25,44 +33,75 @@ const testCases = [
       projectRoot,
       'assets/dating_screenshots/dating-conversation.PNG',
     ),
-    matchContext: 'Sarah, 28, loves hiking and photography',
-    previousSummary:
-      'Initial conversation about shared interests in outdoor activities',
+    userPrompt: 'Do you think I should ask about their cooking?',
+    previousSummary: '',
     matchId: 'test-match-1',
-    name: 'Sarah',
+    name: 'Grace',
     platform: 'tinder',
+    coachMode: true,
+    usePrompt: false,
+    variants: ['B'] as const,
+    temperatures: [1.0],
   },
-  {
-    screenshotPath: path.join(
-      projectRoot,
-      'assets/dating_screenshots/dating-profile-photos-and-text.PNG',
-    ),
-    matchContext: 'Alex, 31, enjoys traveling and trying new restaurants',
-    previousSummary:
-      'Profile shows multiple travel photos and mentions food preferences',
-    matchId: 'test-match-2',
-    name: 'Alex',
-    platform: 'tinder',
-  },
-  {
-    screenshotPath: path.join(
-      projectRoot,
-      'assets/dating_screenshots/dating-profile-photos-only.PNG',
-    ),
-    matchContext: 'Jordan, 29, fitness enthusiast and coffee lover',
-    previousSummary: 'Profile has gym and coffee shop photos',
-    matchId: 'test-match-3',
-    name: 'Jordan',
-    platform: 'tinder',
-  },
+  // {
+  //   screenshotPath: path.join(
+  //     projectRoot,
+  //     'assets/dating_screenshots/dating-profile-photos-and-text.PNG',
+  //   ),
+  //   userPrompt: '',
+  //   previousSummary: '',
+  //   matchId: 'test-match-2',
+  //   name: 'Michelle',
+  //   platform: 'tinder',
+  //   coachMode: false,
+  //   usePrompt: false,
+  //   variants: ['A', 'B'],
+  //   temperatures: [0.7, 1.0],
+  // },
+  // {
+  //   screenshotPath: path.join(
+  //     projectRoot,
+  //     'assets/dating_screenshots/dating-profile-photos-only.PNG',
+  //   ),
+  //   userPrompt: '',
+  //   previousSummary: '',
+  //   matchId: 'test-match-3',
+  //   name: 'Emma',
+  //   platform: 'tinder',
+  //   coachMode: false,
+  //   usePrompt: false,
+  //   variants: ['A', 'B'],
+  //   temperatures: [0.7, 1.0],
+  // },
+  // {
+  //   screenshotPath: path.join(
+  //     projectRoot,
+  //     'assets/dating_screenshots/dating-profile-almost-naked.PNG',
+  //   ),
+  //   userPrompt: '',
+  //   previousSummary: '',
+  //   matchId: 'test-match-4',
+  //   name: 'Janice',
+  //   platform: 'tinder',
+  //   coachMode: false,
+  //   usePrompt: false,
+  //   variants: ['A', 'B'],
+  //   temperatures: [0.7, 1.0],
+  // },
 ];
 
 const promptVariants = {
-  A: imageOnlyVariantA,
-  B: imageOnlyVariantB,
+  A: {
+    [MessageMode.GENERATE]: generateVariantA,
+    [MessageMode.COACH]: coachVariantA,
+    imageOnly: imageOnlyVariantA,
+  },
+  B: {
+    [MessageMode.GENERATE]: generateVariantB,
+    [MessageMode.COACH]: coachVariantB,
+    imageOnly: imageOnlyVariantB,
+  },
 };
-
-const temperatures = [0.7, 1.0];
 
 const results: any[] = [];
 
@@ -83,12 +122,20 @@ async function cleanupUserTestData(userId: string) {
     await Promise.all(messageDeletePromises);
     return matchDoc.ref.delete();
   });
-
-  // Wait for all matches and their messages to be deleted
   await Promise.all(deletePromises);
-
-  // Finally delete the user document
   await userRef.delete();
+
+  // Delete messageCosts for this user's messages only
+  const messageCostsSnap = await firebaseAdmin
+    .firestore()
+    .collection('messageCosts')
+    .where('userId', '==', userId)
+    .get();
+  const batch = firebaseAdmin.firestore().batch();
+  messageCostsSnap.docs.forEach(
+    (doc: FirebaseFirestore.QueryDocumentSnapshot) => batch.delete(doc.ref),
+  );
+  await batch.commit();
 }
 
 async function setupTestUserAndMatches() {
@@ -121,54 +168,88 @@ async function getBase64Image(imagePath: string): Promise<string> {
   return `data:image/png;base64,${imageBuffer.toString('base64')}`;
 }
 
+async function getAssistantMessageAndCost(userId: string, matchId: string) {
+  // Use available index: role (asc), timestamp (asc), __name__ (asc)
+  const messagesSnap = await firebaseAdmin
+    .firestore()
+    .collection('users')
+    .doc(userId)
+    .collection('matches')
+    .doc(matchId)
+    .collection('messages')
+    .where('role', '==', 'assistant')
+    .orderBy('timestamp', 'asc')
+    .orderBy('__name__', 'asc')
+    .get();
+  if (messagesSnap.empty) return {assistantMessage: null, messageCost: null};
+  // Pick the last document (latest message)
+  const assistantMsg = messagesSnap.docs[messagesSnap.docs.length - 1];
+  // Find the messageCost for this message
+  const costSnap = await firebaseAdmin
+    .firestore()
+    .collection('messageCosts')
+    .where('messageId', '==', assistantMsg.id)
+    .limit(1)
+    .get();
+  return {
+    assistantMessage: assistantMsg.data(),
+    messageCost: costSnap.empty ? null : costSnap.docs[0].data(),
+  };
+}
+
 async function generateResponse(
   promptConfig: typeof imageOnlyVariantA,
   temperature: number,
   testCase: any,
   userId: string,
   matchId: string,
-): Promise<{message: string; summary: string}> {
+  mode: MessageMode,
+) {
   const base64Image = await getBase64Image(testCase.screenshotPath);
   const formattedPrompt = formatPrompt(
     promptConfig,
-    MessageMode.GENERATE,
+    mode,
     false,
     undefined,
     true,
   );
+  const requestPayload = {
+    userId,
+    matchId,
+    images: [base64Image],
+    match: {
+      name: testCase.name,
+      context: testCase.userPrompt,
+      previousSummary: testCase.previousSummary,
+      platform: testCase.platform,
+    },
+    prompt: formattedPrompt,
+    temperature,
+    mode,
+  };
   try {
     const response = await axios.post(
       'http://localhost:3001/api/generate-reply',
-      {
-        userId,
-        matchId,
-        images: [base64Image],
-        match: {
-          name: testCase.name,
-          context: testCase.matchContext,
-          previousSummary: testCase.previousSummary,
-          platform: testCase.platform,
-        },
-        prompt: formattedPrompt,
-        temperature,
-      },
+      requestPayload,
     );
     return {
       message: response.data.reply,
       summary: response.data.summary,
+      requestPrompt: formattedPrompt,
+      requestPayload,
     };
   } catch (error) {
     const err = error as any;
     if (err && err.response) {
-      console.error('Error generating response:', {
+      console.error(`Error generating ${mode} response:`, {
         status: err.response.status,
         data: err.response.data,
         headers: err.response.headers,
       });
     } else {
-      console.error('Error generating response:', err);
+      console.error(`Error generating ${mode} response:`, err);
     }
-    throw new Error('Failed to generate response');
+    throw new Error(`Failed to generate ${mode} response`);
   }
 }
 
@@ -176,7 +257,7 @@ describe('Prompt Variant Integration Tests', () => {
   beforeAll(async () => {
     await cleanupUserTestData(userId);
     await setupTestUserAndMatches();
-  });
+  }, 30000);
 
   afterAll(async () => {
     await cleanupUserTestData(userId);
@@ -187,11 +268,19 @@ describe('Prompt Variant Integration Tests', () => {
     );
     let mdContent = '# Prompt Test Results\n\n';
     mdContent += '## Summary\n\n';
-    mdContent += '| Variant | Temperature | Success |\n';
-    mdContent += '|---------|-------------|--------|\n';
-    results.forEach(result => {
-      mdContent += `| ${result.variant} | ${result.temperature} | ${
-        result.success ? '✅' : '❌'
+    mdContent +=
+      '| # | Variant | Temperature | Mode | Screenshot | Prompt Used | Success | Tokens | Price (USD) |\n';
+    mdContent +=
+      '|---|---------|-------------|------|------------|-------------|---------|--------|-------------|\n';
+    results.forEach((result, index) => {
+      mdContent += `| ${index + 1} | ${result.variant} | ${
+        result.temperature
+      } | ${result.mode} | ${path.basename(result.testCase.screenshotPath)} | ${
+        result.testCase.matchContext ? '✅' : '❌'
+      } | ${result.success ? '✅' : '❌'} | ${
+        result.messageCost ? result.messageCost.totalTokens : ''
+      } | ${
+        result.messageCost ? result.messageCost.totalCost.toFixed(6) : ''
       } |\n`;
     });
     mdContent += '\n## Detailed Results\n\n';
@@ -199,9 +288,51 @@ describe('Prompt Variant Integration Tests', () => {
       mdContent += `### Test Case ${index + 1}\n\n`;
       mdContent += `- **Variant:** ${result.variant}\n`;
       mdContent += `- **Temperature:** ${result.temperature}\n`;
+      mdContent += `- **Mode:** ${result.mode}\n`;
+      mdContent += `- **Prompt Used:** ${
+        result.testCase.matchContext ? 'Yes' : 'No'
+      }\n`;
       mdContent += `- **Success:** ${result.success ? 'Yes' : 'No'}\n`;
+      mdContent += `- **Screenshot:** ${path.basename(
+        result.testCase.screenshotPath,
+      )}\n`;
+      if (result.testCase.matchContext) {
+        mdContent += `- **User Prompt:** ${result.testCase.matchContext}\n`;
+      }
       if (result.success) {
         mdContent += `- **Response:**\n  - Message: ${result.response.message}\n  - Summary: ${result.response.summary}\n`;
+        mdContent += `- **Request Prompt:**\n\n\`\`\`\n${result.response.requestPrompt}\n\`\`\`\n`;
+        // Truncate base64 image data in request payload
+        const safePayload = JSON.parse(
+          JSON.stringify(result.response.requestPayload),
+        );
+        if (safePayload.images && Array.isArray(safePayload.images)) {
+          safePayload.images = safePayload.images.map((img: string) =>
+            typeof img === 'string' && img.length > 60
+              ? img.slice(0, 20) + '...[truncated]...' + img.slice(-20)
+              : '[truncated base64 image]',
+          );
+        }
+        mdContent += `- **Request Payload:**\n\n\`\`\`json\n${JSON.stringify(
+          safePayload,
+          null,
+          2,
+        )}\n\`\`\`\n`;
+        if (result.messageCost) {
+          mdContent += `- **Message Cost:**\n  - Model: ${
+            result.messageCost.model
+          }\n  - Prompt Tokens: ${
+            result.messageCost.promptTokens
+          }\n  - Completion Tokens: ${
+            result.messageCost.completionTokens
+          }\n  - Total Tokens: ${
+            result.messageCost.totalTokens
+          }\n  - Input Cost: $${result.messageCost.inputCost.toFixed(
+            6,
+          )}\n  - Output Cost: $${result.messageCost.outputCost.toFixed(
+            6,
+          )}\n  - Total Cost: $${result.messageCost.totalCost.toFixed(6)}\n`;
+        }
       } else {
         mdContent += `- **Error:**\n  \`\`\`json\n  ${JSON.stringify(
           result.error,
@@ -215,62 +346,149 @@ describe('Prompt Variant Integration Tests', () => {
     console.log(`Prompt test results written to ${outputPath}`);
   });
 
-  it.each(
-    testCases.flatMap(testCase =>
-      Object.entries(promptVariants).flatMap(([variant, promptConfig]) =>
-        temperatures.map(temperature => ({
-          testCase,
-          variant,
-          promptConfig,
-          temperature,
-        })),
-      ),
-    ),
-  )(
-    'should generate a response for variant %s at temperature %f for %s',
-    async ({testCase, variant, promptConfig, temperature}) => {
-      let result: any = {
-        testCase: {
-          matchId: testCase.matchId,
-          name: testCase.name,
-          platform: testCase.platform,
-          matchContext: testCase.matchContext,
-          previousSummary: testCase.previousSummary,
-        },
-        variant,
-        temperature,
-        success: false,
-        response: null,
-        error: null,
-      };
-      try {
-        const response = await generateResponse(
-          promptConfig,
-          temperature,
-          testCase,
-          userId,
-          testCase.matchId,
-        );
-        expect(response.message).toBeDefined();
-        expect(response.summary).toBeDefined();
-        expect(typeof response.message).toBe('string');
-        expect(typeof response.summary).toBe('string');
-        result.success = true;
-        result.response = response;
-      } catch (err: any) {
-        result.error =
-          err && err.response
-            ? {
-                status: err.response.status,
-                data: err.response.data,
-                headers: err.response.headers,
+  it(
+    'should generate all responses in parallel and log costs',
+    async () => {
+      const allCases = testCases.flatMap(testCase =>
+        testCase.variants.flatMap(variant =>
+          testCase.temperatures.flatMap(temperature => {
+            const cases = [];
+
+            // Add generate mode test case (without prompt)
+            cases.push({
+              testCase: {
+                ...testCase,
+                userPrompt: '', // Ensure no prompt for base case
+              },
+              variant,
+              promptConfig:
+                promptVariants[variant as keyof typeof promptVariants][
+                  MessageMode.GENERATE
+                ],
+              temperature,
+              mode: MessageMode.GENERATE,
+            });
+
+            // Add coach mode test case if enabled (without prompt)
+            if (testCase.coachMode) {
+              cases.push({
+                testCase: {
+                  ...testCase,
+                  userPrompt: '', // Ensure no prompt for base case
+                },
+                variant,
+                promptConfig:
+                  promptVariants[variant as keyof typeof promptVariants][
+                    MessageMode.COACH
+                  ],
+                temperature,
+                mode: MessageMode.COACH,
+              });
+            }
+
+            // Add image + prompt test cases if enabled
+            if (testCase.usePrompt) {
+              // Add generate mode with prompt
+              cases.push({
+                testCase: {
+                  ...testCase,
+                  userPrompt: testCase.userPrompt, // Use the original prompt
+                },
+                variant,
+                promptConfig:
+                  promptVariants[variant as keyof typeof promptVariants][
+                    MessageMode.GENERATE
+                  ],
+                temperature,
+                mode: MessageMode.GENERATE,
+              });
+
+              // Add coach mode with prompt if coach mode is enabled
+              if (testCase.coachMode) {
+                cases.push({
+                  testCase: {
+                    ...testCase,
+                    userPrompt: testCase.userPrompt, // Use the original prompt
+                  },
+                  variant,
+                  promptConfig:
+                    promptVariants[variant as keyof typeof promptVariants][
+                      MessageMode.COACH
+                    ],
+                  temperature,
+                  mode: MessageMode.COACH,
+                });
               }
-            : err && err.message
-            ? err.message
-            : String(err);
-      } finally {
-        results.push(result);
+            }
+
+            return cases;
+          }),
+        ),
+      );
+
+      const batchSize = 4;
+      const delayMs = 3000;
+      for (let i = 0; i < allCases.length; i += batchSize) {
+        const batch = allCases.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(
+            async ({testCase, variant, promptConfig, temperature, mode}) => {
+              let result: any = {
+                testCase: {
+                  matchId: testCase.matchId,
+                  name: testCase.name,
+                  platform: testCase.platform,
+                  matchContext: testCase.userPrompt,
+                  previousSummary: testCase.previousSummary,
+                  screenshotPath: testCase.screenshotPath,
+                },
+                variant,
+                temperature,
+                mode,
+                success: false,
+                response: null,
+                error: null,
+                messageCost: null,
+              };
+              try {
+                const response = await generateResponse(
+                  promptConfig,
+                  temperature,
+                  testCase,
+                  userId,
+                  testCase.matchId,
+                  mode,
+                );
+
+                // Wait a moment for messageCost to be written
+                await new Promise(res => setTimeout(res, 1000));
+                const {assistantMessage, messageCost} =
+                  await getAssistantMessageAndCost(userId, testCase.matchId);
+                result.success = true;
+                result.response = response;
+                result.messageCost = messageCost;
+              } catch (err: any) {
+                result.error =
+                  err && err.response
+                    ? {
+                        status: err.response.status,
+                        data: err.response.data,
+                        headers: err.response.headers,
+                      }
+                    : err && err.message
+                    ? err.message
+                    : String(err);
+              } finally {
+                results.push(result);
+              }
+            },
+          ),
+        );
+        if (i + batchSize < allCases.length) {
+          await new Promise(res => setTimeout(res, delayMs));
+        }
       }
     },
+    60000 * 3,
   );
 });
