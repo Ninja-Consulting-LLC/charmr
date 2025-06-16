@@ -36,7 +36,7 @@ export const setSubscriptionUpdateCallback = (
 export const initializeRevenueCat = async () => {
   try {
     const apiKey = __DEV__ ? REVENUECAT_DEV_API_KEY : REVENUECAT_PROD_API_KEY;
-    logger.revenueCat.info('Initializing RevenueCat with API key:', {
+    logger.revenueCat.debug('Initializing RevenueCat with API key:', {
       hasApiKey: !!apiKey,
       isDev: __DEV__,
       platform: Platform.OS,
@@ -50,11 +50,11 @@ export const initializeRevenueCat = async () => {
       apiKey,
     };
     await Purchases.configure(purchasesConfig);
-    logger.revenueCat.info('RevenueCat configured successfully');
+    logger.revenueCat.debug('RevenueCat configured successfully');
 
     // Set up subscription listener
     Purchases.addCustomerInfoUpdateListener(async info => {
-      logger.revenueCat.info('RevenueCat subscription updated:', {
+      logger.revenueCat.debug('RevenueCat subscription updated:', {
         entitlements: info.entitlements,
         originalAppUserId: info.originalAppUserId,
         managementURL: info.managementURL,
@@ -67,13 +67,13 @@ export const initializeRevenueCat = async () => {
 
     // Log initial customer info
     const customerInfo = await Purchases.getCustomerInfo();
-    logger.revenueCat.info('Initial RevenueCat customer info:', {
+    logger.revenueCat.debug('Initial RevenueCat customer info:', {
       entitlements: customerInfo.entitlements,
       originalAppUserId: customerInfo.originalAppUserId,
       managementURL: customerInfo.managementURL,
     });
 
-    logger.revenueCat.info('RevenueCat initialized successfully');
+    logger.revenueCat.debug('RevenueCat initialized successfully');
   } catch (error) {
     logger.revenueCat.error('Failed to initialize RevenueCat:', error);
     if (error instanceof Error) {
@@ -87,9 +87,9 @@ export const initializeRevenueCat = async () => {
 
 export const getProPaywall = async () => {
   try {
-    logger.revenueCat.info('Fetching pro paywall...');
+    logger.revenueCat.debug('Fetching pro paywall...');
     const offerings = await Purchases.getOfferings();
-    logger.revenueCat.info('RevenueCat offerings:', {
+    logger.revenueCat.debug('RevenueCat offerings:', {
       hasCurrent: !!offerings.current,
       availablePackages: offerings.current?.availablePackages?.length || 0,
       offerings: offerings.all,
@@ -263,13 +263,13 @@ export const syncSubscriptionState = async (
 
     // If not forcing sync and no active subscription, don't sync
     if (!forceSync && !hasProAccess) {
-      logger.revenueCat.info(
+      logger.revenueCat.debug(
         'Skipping subscription sync - no active subscription',
       );
       return null;
     }
 
-    logger.revenueCat.info('Syncing RevenueCat state:', {
+    logger.revenueCat.debug('Syncing RevenueCat state:', {
       entitlements: customerInfo.entitlements,
       originalAppUserId: customerInfo.originalAppUserId,
       managementURL: customerInfo.managementURL,
@@ -278,7 +278,7 @@ export const syncSubscriptionState = async (
 
     if (hasProAccess) {
       if (currentUser.plan !== SubscriptionTier.PRO) {
-        logger.revenueCat.info(
+        logger.revenueCat.debug(
           'Updating user plan to PRO based on RevenueCat state',
         );
         await updateUserPlan(currentUser.id, SubscriptionTier.PRO);
@@ -290,7 +290,7 @@ export const syncSubscriptionState = async (
       }
     } else {
       if (currentUser.plan !== SubscriptionTier.FREE) {
-        logger.revenueCat.info(
+        logger.revenueCat.debug(
           'Updating user plan to FREE based on RevenueCat state',
         );
         await updateUserPlan(currentUser.id, SubscriptionTier.FREE);
@@ -314,7 +314,7 @@ export const cancelSubscription = async () => {
     // Get the current customer info
     const customerInfo = await Purchases.getCustomerInfo();
 
-    logger.revenueCat.info('Checking subscription state for cancellation:', {
+    logger.revenueCat.debug('Checking subscription state for cancellation:', {
       entitlements: customerInfo.entitlements,
       managementURL: customerInfo.managementURL,
     });
@@ -322,7 +322,7 @@ export const cancelSubscription = async () => {
     // Check if this is a sandbox subscription
     const proEntitlement = customerInfo.entitlements.active['Pro'];
     if (proEntitlement?.isSandbox) {
-      logger.revenueCat.info('Sandbox subscription detected');
+      logger.revenueCat.debug('Sandbox subscription detected');
       return 'SANDBOX';
     }
 
