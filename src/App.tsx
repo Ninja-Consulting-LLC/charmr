@@ -18,8 +18,9 @@ globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import React, {useEffect, useRef, useState} from 'react';
-import {Platform, StatusBar} from 'react-native';
+import {Platform, StatusBar, View} from 'react-native';
 import {PaperProvider} from 'react-native-paper';
+import GlobalAlert from './components/GlobalAlert';
 import {SplashScreen} from './components/SplashScreen';
 import {config} from './config/config';
 import {usePushNotifications} from './hooks/usePushNotifications';
@@ -143,7 +144,10 @@ const App = () => {
     <PaperProvider theme={theme}>
       <StatusBar barStyle="light-content" />
       <StoreProvider>
-        <AppContent />
+        <View style={{flex: 1}}>
+          <GlobalAlert />
+          <AppContent />
+        </View>
       </StoreProvider>
     </PaperProvider>
   );

@@ -22,6 +22,7 @@ target 'Charmr' do
   # 🔐 Firebase Auth + Google Sign-In (NO modular headers!)
   pod 'Firebase/Auth'
   pod 'Firebase/Messaging'
+  pod 'Firebase/RemoteConfig'
   pod 'GoogleSignIn'
 
   # Facebook SDK
