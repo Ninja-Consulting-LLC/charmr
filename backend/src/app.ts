@@ -134,7 +134,7 @@ export const createApp = async () => {
   Object.entries(NOTIFICATION_CONFIGS).forEach(([type, config]) => {
     // Skip disabled notification types (those with very long intervals)
     if (config.checkInterval >= 365 * 24 * 60 * 60 * 1000) {
-      logger.info('Skipping notification check scheduling for disabled type', {
+      logger.debug('Skipping notification check scheduling for disabled type', {
         type,
         checkInterval: config.checkInterval,
       });
@@ -241,13 +241,13 @@ export const createApp = async () => {
     },
   );
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
-    logger.info('Route instantiated: POST /api/generate-reply');
+    logger.debug('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
   });
 
   app.post('/api/support', authenticateUser, async (req, res) => {
     logger.debug('RAW SUPPORT REQUEST BODY:', req.body);
-    logger.info('Route instantiated: POST /api/support');
+    logger.debug('Route instantiated: POST /api/support');
     try {
       const supportRequest: SupportRequest = req.body;
       await supportEmailService.sendSupportRequest(supportRequest);
@@ -300,7 +300,7 @@ export const createApp = async () => {
       return `${methods} ${r.route.path}`;
     });
 
-  logger.info('Available routes:', {routes});
+  logger.debug('Available routes:', {routes});
 
   // Error handling middleware
   app.use(

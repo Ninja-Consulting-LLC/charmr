@@ -52,7 +52,7 @@ export const authenticateUser = async (
   const hasAnonymousUser = req.headers['x-anonymous-user'];
 
   if (!hasFirebaseToken && !hasAnonymousUser) {
-    logger.warn('No auth credentials found', {
+    logger.warning('No auth credentials found', {
       path: req.path,
       method: req.method,
       url: req.url,
@@ -88,7 +88,7 @@ export const authenticateUser = async (
       });
       return next();
     } catch (error) {
-      logger.warn('Invalid Firebase token', {
+      logger.warning('Invalid Firebase token', {
         error: error instanceof Error ? error.message : 'Unknown error',
         path: req.path,
         method: req.method,
@@ -102,7 +102,7 @@ export const authenticateUser = async (
     if (req.path === '/api/users/link' && req.method === 'POST') {
       const anonymousUserId = req.body.anonymousUserId;
       if (!anonymousUserId) {
-        logger.warn('Missing anonymous user ID for linking request', {
+        logger.warning('Missing anonymous user ID for linking request', {
           path: req.path,
           method: req.method,
           url: req.url,

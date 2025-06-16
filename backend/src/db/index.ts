@@ -7,7 +7,6 @@ import {
   SubscriptionTier,
 } from '../types/enums';
 import logger from '../utils/logger';
-import {getFirestore} from './firestore';
 import {FirestoreMatchRepository} from './repositories/firestoreMatchRepository';
 import {FirestoreMessageCostRepository} from './repositories/firestoreMessageCostRepository';
 import {FirestoreMessageRepository} from './repositories/firestoreMessageRepository';
@@ -33,19 +32,18 @@ let supportRepository: FirestoreSupportRepository | null = null;
 
 export const getDatabase = async (): Promise<Database> => {
   if (!db) {
-    logger.info('Initializing database', {type: databaseConfig.type});
+    logger.debug('Initializing database', {type: databaseConfig.type});
     if (databaseConfig.type === 'firestore') {
       // For Firestore, we return a minimal Database interface implementation
       // that delegates to Firestore. This is needed because some parts of the
       // application expect a Database interface.
-      const firestore = getFirestore();
-      logger.info('Firestore instance obtained, initializing repositories');
+      logger.debug('Firestore instance obtained, initializing repositories');
       userRepository = new FirestoreUserRepository();
       messageRepository = new FirestoreMessageRepository();
       matchRepository = new FirestoreMatchRepository();
       messageCostRepository = new FirestoreMessageCostRepository();
       supportRepository = new FirestoreSupportRepository();
-      logger.info('Firestore repositories initialized successfully');
+      logger.debug('Firestore repositories initialized successfully');
 
       db = {
         // User operations

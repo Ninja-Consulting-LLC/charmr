@@ -146,7 +146,8 @@ export const createOpenAIService = () => {
       }
 
       // Log the exact messages being sent to OpenAI
-      logger.info('OpenAI request:', {
+      // TODO: change to info
+      logger.debug('OpenAI request:', {
         userId: request.userId,
         matchId: request.matchId,
         model,

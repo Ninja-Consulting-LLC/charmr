@@ -68,7 +68,7 @@ export const appendConversation = async (
   promptVariant?: PromptVariant,
 ): Promise<Message> => {
   try {
-    logger.info('Appending conversation with promptVariant:', {
+    logger.debug('Appending conversation with promptVariant:', {
       userId,
       matchId,
       promptVariant,
@@ -94,7 +94,7 @@ export const appendConversation = async (
           imageData: images[i],
           promptVariant,
         });
-        logger.info('Saved user image message with promptVariant:', {
+        logger.debug('Saved user image message with promptVariant:', {
           messageId: message.id,
           promptVariant: message.promptVariant,
         });
@@ -132,7 +132,7 @@ export const appendConversation = async (
         promptVariant,
       },
     );
-    logger.info('Saved assistant message with promptVariant:', {
+    logger.debug('Saved assistant message with promptVariant:', {
       messageId: assistantMessage.id,
       promptVariant: assistantMessage.promptVariant,
     });
@@ -163,7 +163,7 @@ export const appendConversation = async (
           promptVariant,
         },
       );
-      logger.info('Saved summary message with promptVariant:', {
+      logger.debug('Saved summary message with promptVariant:', {
         messageId: summaryMessage.id,
         promptVariant: summaryMessage.promptVariant,
       });

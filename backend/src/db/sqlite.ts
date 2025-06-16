@@ -372,7 +372,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           user.dailyMessagesUsed < dailyLimit || user.extraMessages > 0;
 
         if (!canIncrement) {
-          logger.warn('Message limit reached', {
+          logger.warning('Message limit reached', {
             userId,
             plan: user.plan,
             dailyMessagesUsed: user.dailyMessagesUsed,

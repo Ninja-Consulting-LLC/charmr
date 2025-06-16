@@ -48,7 +48,7 @@ const initializeFirebaseAdmin = () => {
         projectId: 'ai-dating-keyboard', // From .firebaserc
         credential,
       });
-      logger.info('Firebase Admin initialized successfully');
+      logger.debug('Firebase Admin initialized successfully');
     }
     return admin;
   } catch (error) {

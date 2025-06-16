@@ -228,7 +228,7 @@ export const linkAnonymousUser = async (
     });
 
     if (!anonymousUserId || !registeredUserId) {
-      logger.warn('Missing required fields for user linking', {
+      logger.warning('Missing required fields for user linking', {
         hasAnonymousUserId: !!anonymousUserId,
         hasRegisteredUserId: !!registeredUserId,
       });
@@ -238,7 +238,7 @@ export const linkAnonymousUser = async (
     // Get the anonymous user's data
     const anonymousUser = await db.getUser(anonymousUserId);
     if (!anonymousUser) {
-      logger.warn('Anonymous user not found during linking', {
+      logger.warning('Anonymous user not found during linking', {
         anonymousUserId,
         registeredUserId,
       });
@@ -253,7 +253,7 @@ export const linkAnonymousUser = async (
     // Get the registered user
     const registeredUser = await db.getUser(registeredUserId);
     if (!registeredUser) {
-      logger.warn('Registered user not found during linking', {
+      logger.warning('Registered user not found during linking', {
         anonymousUserId,
         registeredUserId,
       });
@@ -509,7 +509,7 @@ export const getUserInfo = async (
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found:', {userId});
+      logger.warning('User not found:', {userId});
       return res.status(404).json({error: 'User not found', userId});
     }
 
@@ -736,7 +736,7 @@ export const resetDb = async (
 
     // Check if the user is authorized
     if (userEmail !== 'mike.doubintchik@gmail.com') {
-      logger.warn('Unauthorized database reset attempt:', {userEmail});
+      logger.warning('Unauthorized database reset attempt:', {userEmail});
       return res.status(403).json({error: 'Unauthorized to reset database'});
     }
 

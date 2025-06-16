@@ -5,7 +5,7 @@ import {Message} from './types';
 export const getFirestore = () => {
   try {
     const firestore = firebaseAdmin.firestore();
-    logger.info('Firestore initialized successfully');
+    logger.debug('Firestore initialized successfully');
     return firestore;
   } catch (error) {
     logger.error('Failed to initialize Firestore', {

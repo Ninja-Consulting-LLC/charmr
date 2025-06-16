@@ -18,7 +18,7 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
     // First check if user exists
     const user = await db.getUser(userId);
     if (!user) {
-      logger.warn('User not found when getting matches', {userId});
+      logger.warning('User not found when getting matches', {userId});
       return res.status(404).json({error: 'User not found'});
     }
 
