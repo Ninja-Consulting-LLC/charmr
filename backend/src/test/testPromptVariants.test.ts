@@ -2,6 +2,8 @@ import axios from 'axios';
 import {default as admin, default as firebaseAdmin} from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
+import yargs from 'yargs';
+import {hideBin} from 'yargs/helpers';
 import {formatPrompt} from '../config/prompts';
 import {
   coachVariantA,
@@ -14,6 +16,32 @@ import {
   imageOnlyVariantB,
 } from '../config/prompts/variantB';
 import {MessageMode, SubscriptionTier} from '../types/enums';
+
+// Parse command line arguments
+const argv = yargs(hideBin(process.argv))
+  .option('overwrite', {
+    type: 'boolean',
+    description: 'Overwrite existing results.json instead of appending',
+    default: false,
+  })
+  .parseSync();
+
+// Function to calculate composite score
+function calculateCompositeScore(scores: {
+  relevance: number | null;
+  tone: number | null;
+  originality: number | null;
+  sendability: number | null;
+  composite: number | null;
+}): number | null {
+  const validScores = Object.values(scores).filter(
+    (score): score is number => score !== null && score !== undefined,
+  );
+  if (validScores.length === 0) return null;
+  return (
+    validScores.reduce((sum, score) => sum + score, 0) / validScores.length
+  );
+}
 
 // Use require for service account
 const serviceAccount = require('../../service-account.json');
@@ -103,7 +131,54 @@ const promptVariants = {
   },
 };
 
-const results: any[] = [];
+interface TestResponse {
+  message: string;
+  summary: string;
+  requestPrompt: string;
+  requestPayload: any;
+}
+
+interface TestResult {
+  testCase: {
+    matchId: string;
+    name: string;
+    platform: string;
+    matchContext: string;
+    previousSummary: string;
+    screenshotPath: string;
+  };
+  variant: string;
+  temperature: number;
+  mode: MessageMode;
+  success: boolean;
+  response: TestResponse | null;
+  error: any;
+  messageCost: any;
+  scores: {
+    relevance: number | null;
+    tone: number | null;
+    originality: number | null;
+    sendability: number | null;
+    composite: number | null;
+  };
+}
+
+interface JsonResult {
+  variant: string;
+  temperature: number;
+  screenshot: string;
+  message: string | null;
+  summary: string | null;
+  scores: {
+    relevance: number | null;
+    tone: number | null;
+    originality: number | null;
+    sendability: number | null;
+    composite: number | null;
+  };
+}
+
+const results: TestResult[] = [];
 
 async function cleanupUserTestData(userId: string) {
   const userRef = db.collection('users').doc(userId);
@@ -204,7 +279,7 @@ async function generateResponse(
   userId: string,
   matchId: string,
   mode: MessageMode,
-) {
+): Promise<TestResponse> {
   const base64Image = await getBase64Image(testCase.screenshotPath);
   const formattedPrompt = formatPrompt(
     promptConfig,
@@ -261,11 +336,15 @@ describe('Prompt Variant Integration Tests', () => {
 
   afterAll(async () => {
     await cleanupUserTestData(userId);
-    // Write results to prompt-test-results.md in project root
-    const outputPath = path.resolve(
-      __dirname,
-      '../../../prompt-test-results.md',
-    );
+
+    // Create test-results directory if it doesn't exist
+    const testResultsDir = path.resolve(__dirname, '../../test-results');
+    if (!fs.existsSync(testResultsDir)) {
+      fs.mkdirSync(testResultsDir, {recursive: true});
+    }
+
+    // Write results to prompt-test-results.md in test-results directory
+    const outputPath = path.resolve(testResultsDir, 'prompt-test-results.md');
     let mdContent = '# Prompt Test Results\n\n';
     mdContent += '## Summary\n\n';
     mdContent +=
@@ -299,13 +378,12 @@ describe('Prompt Variant Integration Tests', () => {
       if (result.testCase.matchContext) {
         mdContent += `- **User Prompt:** ${result.testCase.matchContext}\n`;
       }
-      if (result.success) {
-        mdContent += `- **Response:**\n  - Message: ${result.response.message}\n  - Summary: ${result.response.summary}\n`;
-        mdContent += `- **Request Prompt:**\n\n\`\`\`\n${result.response.requestPrompt}\n\`\`\`\n`;
+      if (result.success && result.response !== null) {
+        const response = result.response;
+        mdContent += `- **Response:**\n  - Message: ${response.message}\n  - Summary: ${response.summary}\n`;
+        mdContent += `- **Request Prompt:**\n\n\`\`\`\n${response.requestPrompt}\n\`\`\`\n`;
         // Truncate base64 image data in request payload
-        const safePayload = JSON.parse(
-          JSON.stringify(result.response.requestPayload),
-        );
+        const safePayload = JSON.parse(JSON.stringify(response.requestPayload));
         if (safePayload.images && Array.isArray(safePayload.images)) {
           safePayload.images = safePayload.images.map((img: string) =>
             typeof img === 'string' && img.length > 60
@@ -344,6 +422,64 @@ describe('Prompt Variant Integration Tests', () => {
     });
     fs.writeFileSync(outputPath, mdContent, 'utf-8');
     console.log(`Prompt test results written to ${outputPath}`);
+
+    // Write results to results.json in test-results directory
+    const jsonOutputPath = path.resolve(testResultsDir, 'results.json');
+    const jsonResults: JsonResult[] = results.map(result => {
+      let message: string | null = null;
+      let summary: string | null = null;
+
+      if (result.success && result.response !== null) {
+        const response = result.response as TestResponse;
+        message = response.message;
+        summary = response.summary;
+      }
+
+      return {
+        variant: result.variant,
+        temperature: result.temperature,
+        screenshot: path.basename(result.testCase.screenshotPath),
+        message,
+        summary,
+        scores: {
+          relevance: null,
+          tone: null,
+          originality: null,
+          sendability: null,
+          composite: null,
+        },
+      };
+    });
+
+    // Calculate composite scores where available
+    jsonResults.forEach(result => {
+      const composite = calculateCompositeScore(result.scores);
+      result.scores.composite = composite;
+    });
+
+    // Read existing results if appending
+    let existingResults: JsonResult[] = [];
+    if (!argv.overwrite && fs.existsSync(jsonOutputPath)) {
+      try {
+        const existingContent = fs.readFileSync(jsonOutputPath, 'utf-8');
+        existingResults = JSON.parse(existingContent);
+      } catch (error) {
+        console.error('Error reading existing results.json:', error);
+      }
+    }
+
+    // Combine or replace results based on overwrite flag
+    const finalResults = argv.overwrite
+      ? jsonResults
+      : [...existingResults, ...jsonResults];
+
+    // Write the final results
+    fs.writeFileSync(
+      jsonOutputPath,
+      JSON.stringify(finalResults, null, 2),
+      'utf-8',
+    );
+    console.log(`JSON results written to ${jsonOutputPath}`);
   });
 
   it(
@@ -433,7 +569,7 @@ describe('Prompt Variant Integration Tests', () => {
         await Promise.all(
           batch.map(
             async ({testCase, variant, promptConfig, temperature, mode}) => {
-              let result: any = {
+              let result: TestResult = {
                 testCase: {
                   matchId: testCase.matchId,
                   name: testCase.name,
@@ -449,6 +585,13 @@ describe('Prompt Variant Integration Tests', () => {
                 response: null,
                 error: null,
                 messageCost: null,
+                scores: {
+                  relevance: null,
+                  tone: null,
+                  originality: null,
+                  sendability: null,
+                  composite: null,
+                },
               };
               try {
                 const response = await generateResponse(

@@ -80,7 +80,7 @@ yarn-error.log
 
 # Testing
 coverage/
-prompt-test-results.md
+backend/test-results/*
 
 # Backend
 backend/dist/
