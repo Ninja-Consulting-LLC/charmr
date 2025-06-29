@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import {config} from './config/config';
 import {
   createUser,
+  deleteUser,
   getUser,
   getUserByInstallationId,
   linkAnonymousUser,
@@ -182,6 +183,9 @@ export const createApp = async () => {
   );
   app.put('/api/users/:userId', authenticateUser, (req, res) =>
     updateUser(req, res, db),
+  );
+  app.delete('/api/users/:userId', authenticateUser, (req, res) =>
+    deleteUser(req, res, db),
   );
   app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
     updateUserPlan(req, res, db),

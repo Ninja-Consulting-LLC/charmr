@@ -114,6 +114,21 @@ export class FirestoreUserRepository {
     }
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      const docRef = this.db.collection(this.usersCollection).doc(userId);
+      await docRef.update({deleted: true});
+      logger.info('Marked user as deleted in Firestore', {userId});
+    } catch (error) {
+      logger.error('Failed to delete user in Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+      });
+      throw error;
+    }
+  }
+
   async incrementMessageCount(userId: string): Promise<boolean> {
     try {
       const docRef = this.db.collection(this.usersCollection).doc(userId);

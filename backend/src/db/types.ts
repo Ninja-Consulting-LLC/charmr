@@ -29,7 +29,8 @@ export interface User {
   };
   deviceToken?: string;
   installationId?: string;
-  createdAt: string;
+  deleted?: boolean;
+  createdAt?: string;
 }
 
 export interface Message {
@@ -106,6 +107,7 @@ export interface Database {
     installationId?: string;
   }) => Promise<User | null>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;

@@ -36,11 +36,13 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       notificationDates TEXT,
       deviceToken TEXT,
       installationId TEXT,
+      deleted INTEGER DEFAULT 0,
       createdAt TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
     CREATE INDEX IF NOT EXISTS idx_users_device_token ON users(deviceToken);
+    CREATE INDEX IF NOT EXISTS idx_users_deleted ON users(deleted);
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -215,7 +217,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   existingUser.id,
                 ]);
                 await db.run(
-                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                   [
                     user.id,
                     user.email,
@@ -226,6 +228,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                     existingUser.lastResetDate,
                     JSON.stringify({coach: null}),
                     user.installationId,
+                    0, // not deleted
                     new Date().toISOString(),
                   ],
                 );
@@ -268,10 +271,58 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           }
         }
 
+        // Check if there's a deleted user with the same email
+        if (user.email && user.email !== user.installationId) {
+          const deletedUser = await db.get(
+            'SELECT * FROM users WHERE email = ? AND deleted = 1',
+            user.email,
+          );
+          if (deletedUser) {
+            logger.info('Restoring deleted user account', {
+              userId: deletedUser.id,
+              email: user.email,
+            });
+
+            try {
+              // Restore the deleted user account
+              await db.run(
+                'UPDATE users SET deleted = 0, name = ?, plan = ?, installationId = ? WHERE id = ?',
+                [
+                  user.name,
+                  user.plan || SubscriptionTier.FREE,
+                  user.installationId,
+                  deletedUser.id,
+                ],
+              );
+
+              const restoredUser = await db.get(
+                'SELECT * FROM users WHERE id = ?',
+                deletedUser.id,
+              );
+              await db.run('COMMIT');
+              return {
+                ...restoredUser,
+                notificationDates: JSON.parse(
+                  restoredUser.notificationDates || '{"coach": null}',
+                ),
+              };
+            } catch (error) {
+              await db.run('ROLLBACK');
+              logger.error('Failed to restore deleted user:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                userId: deletedUser.id,
+                email: user.email,
+              });
+              throw error;
+            }
+          }
+        }
+
         // Create new user
         try {
           await db.run(
-            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               user.id,
               user.email,
@@ -282,6 +333,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
               new Date().toISOString(),
               JSON.stringify({coach: null}),
               user.installationId,
+              0, // not deleted
               new Date().toISOString(),
             ],
           );
@@ -337,6 +389,21 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         logger.error('Failed to update user', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
+        });
+        throw error;
+      }
+    },
+
+    deleteUser: async (userId: string): Promise<void> => {
+      try {
+        // Mark user as deleted instead of actually deleting
+        await db.run('UPDATE users SET deleted = 1 WHERE id = ?', [userId]);
+        logger.info('Marked user as deleted', {userId});
+      } catch (error) {
+        logger.error('Failed to delete user', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
         });
         throw error;
       }

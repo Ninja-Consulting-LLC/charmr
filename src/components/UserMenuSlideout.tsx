@@ -23,12 +23,13 @@ import {
   cancelSubscription,
   syncSubscriptionState,
 } from '../services/revenueCatService';
-import {updateUserPlan} from '../services/userService';
+import {deleteUserAccount, updateUserPlan} from '../services/userService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
+import DeleteAccountModal from './DeleteAccountModal';
 import EditUserDetailsModal from './EditUserDetailsModal';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import LoginModal from './LoginModal';
@@ -71,6 +72,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -174,6 +176,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         email: '',
         name: '',
         installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
 
@@ -267,6 +270,33 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       Alert.alert(
         'Error',
         'Unable to open subscription management. Please try again later.',
+        [{text: 'OK'}],
+      );
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      if (!user.id) {
+        Alert.alert('Error', 'No user ID available');
+        return;
+      }
+
+      await deleteUserAccount(user.id);
+
+      // Sign out after successful deletion
+      await handleSignOut();
+
+      Alert.alert(
+        'Account Deleted',
+        'Your account has been successfully deleted. You can restore it by logging in with the same email address.',
+        [{text: 'OK'}],
+      );
+    } catch (error) {
+      logger.app.error('Failed to delete account:', error);
+      Alert.alert(
+        'Error',
+        'Failed to delete account. Please try again later or contact support.',
         [{text: 'OK'}],
       );
     }
@@ -462,6 +492,20 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     descriptionStyle={{color: theme.colors.surface}}
                   />
                 )}
+                <List.Item
+                  title="Delete Account"
+                  description="Permanently delete your account and data"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="delete"
+                      color={theme.colors.error}
+                    />
+                  )}
+                  onPress={() => setShowDeleteAccountModal(true)}
+                  titleStyle={{color: theme.colors.error}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
               </>
             ) : (
               <List.Item
@@ -529,6 +573,20 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               <>
                 <Divider style={{backgroundColor: theme.colors.surface}} />
                 <List.Item
+                  title="Delete Account"
+                  description="Permanently delete your account and data"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="delete"
+                      color={theme.colors.error}
+                    />
+                  )}
+                  onPress={() => setShowDeleteAccountModal(true)}
+                  titleStyle={{color: theme.colors.error}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+                <List.Item
                   title="Logout"
                   left={props => (
                     <List.Icon
@@ -579,6 +637,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         <EditUserDetailsModal
           visible={showEditUserModal}
           onDismiss={() => setShowEditUserModal(false)}
+        />
+        <DeleteAccountModal
+          visible={showDeleteAccountModal}
+          onDismiss={() => setShowDeleteAccountModal(false)}
+          onConfirm={handleDeleteAccount}
+          isLoading={isLoading}
         />
         <HiddenMatchesModal
           visible={showArchivedMatchesModal}
