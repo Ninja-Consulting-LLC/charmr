@@ -1,22 +1,23 @@
 import express from 'express';
 import {
-    createUser,
-    getMessageCosts,
-    getUser,
-    getUserByInstallationId,
-    getUserInfo,
-    getUserMessageHistory,
-    getUserMessages,
-    getUsers,
-    linkAnonymousUser,
-    resetDb,
-    resetUserMessageLimit,
-    testContext,
-    updateUser,
-    updateUserPlan,
+  createUser,
+  deleteUser,
+  getMessageCosts,
+  getUser,
+  getUserByInstallationId,
+  getUserInfo,
+  getUserMessageHistory,
+  getUserMessages,
+  getUsers,
+  linkAnonymousUser,
+  resetDb,
+  resetUserMessageLimit,
+  testContext,
+  updateUser,
+  updateUserPlan,
 } from '../controllers/adminController';
-import { Database } from '../db/types';
-import { adminAuth } from '../middleware/adminAuth';
+import {Database} from '../db/types';
+import {adminAuth} from '../middleware/adminAuth';
 import logger from '../utils/logger';
 
 const createAdminRouter = (db: Database) => {
@@ -46,6 +47,7 @@ const createAdminRouter = (db: Database) => {
     }
   });
   router.put('/users/:userId', (req, res) => updateUser(req, res, db));
+  router.delete('/users/:userId', (req, res) => deleteUser(req, res, db));
   router.put('/users/:userId/plan', (req, res) => updateUserPlan(req, res, db));
   router.post('/users/link', (req, res) => linkAnonymousUser(req, res, db));
   router.post('/users/:userId/reset-message-limit', (req, res) =>

@@ -70,6 +70,9 @@ export const getDatabase = async (): Promise<Database> => {
         ): Promise<void> => {
           return userRepository!.updateUser(userId, updates);
         },
+        deleteUser: async (userId: string): Promise<void> => {
+          return userRepository!.deleteUser(userId);
+        },
         incrementMessageCount: async (userId: string): Promise<boolean> => {
           return userRepository!.incrementMessageCount(userId);
         },

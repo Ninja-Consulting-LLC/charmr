@@ -3,6 +3,7 @@ import {SubscriptionTier} from './enums';
 export interface UserData {
   id: string;
   email?: string;
+  name?: string;
   plan: SubscriptionTier;
   dailyMessagesUsed: number;
   extraMessages: number;

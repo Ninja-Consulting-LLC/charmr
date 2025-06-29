@@ -11,7 +11,10 @@ import {useStoreState} from '../hooks/useStoreState';
 import * as authService from '../services/authService';
 import {installationService} from '../services/installationService';
 import * as matchService from '../services/matchService';
-import {setSubscriptionUpdateCallback} from '../services/revenueCatService';
+import {
+  setSubscriptionUpdateCallback,
+  syncSubscriptionState,
+} from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
@@ -191,9 +194,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
               setUser(updatedUser);
               // Sync subscription state after linking
               await syncSubscriptionState(
-                async (userId, plan) => {
+                async (userId: string, plan: SubscriptionTier) => {
                   await userService.updateUserPlan(userId, plan);
                   setUser({
+                    ...updatedUser,
                     plan,
                     getDailyMessageLimit: () => getPlanLimits(plan),
                   });
@@ -357,6 +361,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       }
       await userService.updateUserPlan(userId, plan);
       setUser({
+        ...user,
         plan,
         getDailyMessageLimit: () => getPlanLimits(plan),
       });
@@ -520,6 +525,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         extraMessages: 0,
         lastResetDate: new Date().toISOString(),
         getDailyMessageLimit: () => 0,
+        email: '',
+        name: '',
+        installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
       setMatches([]);
@@ -557,6 +566,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         extraMessages: 0,
         lastResetDate: new Date().toISOString(),
         getDailyMessageLimit: () => 0,
+        email: '',
+        name: '',
+        installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
       setMatches([]);
