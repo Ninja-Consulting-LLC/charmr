@@ -109,6 +109,15 @@ export const getDatabase = async (): Promise<Database> => {
             timestamp: string;
             imageData?: string;
             promptVariant?: PromptVariant;
+            // Cost fields
+            model?: string;
+            promptTokens?: number;
+            completionTokens?: number;
+            totalTokens?: number;
+            inputCost?: number;
+            outputCost?: number;
+            totalCost?: number;
+            costTimestamp?: string;
           },
         ): Promise<Message> => {
           return messageRepository!.createMessage(userId, matchId, message);
@@ -126,12 +135,35 @@ export const getDatabase = async (): Promise<Database> => {
             timestamp: string;
             imageData?: string;
             promptVariant?: PromptVariant;
+            // Cost fields
+            model?: string;
+            promptTokens?: number;
+            completionTokens?: number;
+            totalTokens?: number;
+            inputCost?: number;
+            outputCost?: number;
+            totalCost?: number;
+            costTimestamp?: string;
           },
         ): Promise<Message> => {
           return messageRepository!.createMessage(userId, matchId, message);
         },
         getMessages: async (userId: string, matchId: string) => {
           return messageRepository!.getMessagesByMatch(userId, matchId);
+        },
+
+        // Cost tracking operations
+        updateUserCosts: async (
+          userId: string,
+          cost: {
+            totalCost: number;
+            totalTokens: number;
+          },
+        ): Promise<void> => {
+          return userRepository!.updateUserCosts(userId, cost);
+        },
+        getUserCosts: async (userId: string) => {
+          return userRepository!.getUserCosts(userId);
         },
 
         // Message cost operations

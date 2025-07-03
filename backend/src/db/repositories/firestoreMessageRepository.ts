@@ -48,6 +48,15 @@ export class FirestoreMessageRepository implements MessageRepository {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      // Cost fields
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ): Promise<Message> {
     try {
