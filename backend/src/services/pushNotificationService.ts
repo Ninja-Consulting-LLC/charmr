@@ -110,12 +110,41 @@ export const sendPushNotification = async (
         token: token.substring(0, 10) + '...',
         recommendation: 'Implement rate limiting per device',
       });
-    } else if (errorMessage.includes('APNS')) {
-      logger.error('APNS specific error', {
+    } else if (
+      errorMessage.includes('APNS') ||
+      errorMessage.includes('Auth error from APNS')
+    ) {
+      logger.error('APNS authentication error - check Firebase credentials', {
         error: errorMessage,
         stack: errorStack,
         token: token.substring(0, 10) + '...',
-        recommendation: 'Check APNS certificate and configuration',
+        tokenLength: token.length,
+        platform: token.startsWith('f') ? 'ios' : 'android',
+        recommendation:
+          'Check Firebase service account key and project configuration',
+        troubleshooting: [
+          'Verify service account key is valid and not expired',
+          'Check if Firebase project is active',
+          'Ensure Cloud Messaging is enabled in Firebase Console',
+          'Verify service account has Firebase Admin and Cloud Messaging Admin roles',
+        ],
+      });
+    } else if (
+      errorMessage.includes('Auth error from APNS or Web Push Service')
+    ) {
+      logger.error('Firebase authentication error - service account issue', {
+        error: errorMessage,
+        stack: errorStack,
+        token: token.substring(0, 10) + '...',
+        tokenLength: token.length,
+        platform: token.startsWith('f') ? 'ios' : 'android',
+        recommendation: 'Regenerate Firebase service account key',
+        troubleshooting: [
+          'Go to Firebase Console → Project Settings → Service Accounts',
+          'Generate new private key',
+          'Update GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable',
+          'Restart the application',
+        ],
       });
     } else {
       logger.error('Failed to send push notification', {
@@ -127,6 +156,7 @@ export const sendPushNotification = async (
         body,
         hasData: !!data,
         dataKeys: data ? Object.keys(data) : [],
+        platform: token.startsWith('f') ? 'ios' : 'android',
       });
     }
 
