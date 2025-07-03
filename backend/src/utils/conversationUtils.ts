@@ -66,6 +66,16 @@ export const appendConversation = async (
   prompt?: string,
   mode: MessageMode = MessageMode.GENERATE,
   promptVariant?: PromptVariant,
+  costData?: {
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    inputCost: number;
+    outputCost: number;
+    totalCost: number;
+    costTimestamp: string;
+  },
 ): Promise<Message> => {
   try {
     logger.debug('Appending conversation with promptVariant:', {
@@ -130,44 +140,24 @@ export const appendConversation = async (
         content: reply,
         timestamp: replyTimestamp,
         promptVariant,
+        // Include cost data if provided
+        ...(costData && {
+          model: costData.model,
+          promptTokens: costData.promptTokens,
+          completionTokens: costData.completionTokens,
+          totalTokens: costData.totalTokens,
+          inputCost: costData.inputCost,
+          outputCost: costData.outputCost,
+          totalCost: costData.totalCost,
+          costTimestamp: costData.costTimestamp,
+        }),
       },
     );
     logger.debug('Saved assistant message with promptVariant:', {
       messageId: assistantMessage.id,
       promptVariant: assistantMessage.promptVariant,
+      hasCostData: !!costData,
     });
-    baseTimestamp += 1000;
-
-    // Get the match summary
-    const summaryService = createSummaryService(db);
-    const summary = matchId
-      ? await summaryService.getMatchSummary(userId, matchId)
-      : undefined;
-
-    // Save the summary if provided
-    if (summary) {
-      const summaryTimestamp = new Date(baseTimestamp).toISOString();
-      const summaryMessage = await messageRepository.createMessage(
-        userId,
-        matchId,
-        {
-          role: MessageRole.SYSTEM,
-          type: MessageType.SUMMARY,
-          mode: mode,
-          content: summary,
-          timestamp: summaryTimestamp,
-          replyTo:
-            typeof assistantMessage.id === 'string'
-              ? parseInt(assistantMessage.id, 10)
-              : assistantMessage.id,
-          promptVariant,
-        },
-      );
-      logger.debug('Saved summary message with promptVariant:', {
-        messageId: summaryMessage.id,
-        promptVariant: summaryMessage.promptVariant,
-      });
-    }
 
     return assistantMessage;
   } catch (error) {

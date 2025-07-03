@@ -199,18 +199,6 @@ async function cleanupUserTestData(userId: string) {
   });
   await Promise.all(deletePromises);
   await userRef.delete();
-
-  // Delete messageCosts for this user's messages only
-  const messageCostsSnap = await firebaseAdmin
-    .firestore()
-    .collection('messageCosts')
-    .where('userId', '==', userId)
-    .get();
-  const batch = firebaseAdmin.firestore().batch();
-  messageCostsSnap.docs.forEach(
-    (doc: FirebaseFirestore.QueryDocumentSnapshot) => batch.delete(doc.ref),
-  );
-  await batch.commit();
 }
 
 async function setupTestUserAndMatches() {
@@ -259,16 +247,25 @@ async function getAssistantMessageAndCost(userId: string, matchId: string) {
   if (messagesSnap.empty) return {assistantMessage: null, messageCost: null};
   // Pick the last document (latest message)
   const assistantMsg = messagesSnap.docs[messagesSnap.docs.length - 1];
-  // Find the messageCost for this message
-  const costSnap = await firebaseAdmin
-    .firestore()
-    .collection('messageCosts')
-    .where('messageId', '==', assistantMsg.id)
-    .limit(1)
-    .get();
+  const messageData = assistantMsg.data();
+
+  // Extract cost data from embedded message fields
+  const messageCost = messageData.totalCost
+    ? {
+        model: messageData.model || '',
+        promptTokens: messageData.promptTokens || 0,
+        completionTokens: messageData.completionTokens || 0,
+        totalTokens: messageData.totalTokens || 0,
+        inputCost: messageData.inputCost || 0,
+        outputCost: messageData.outputCost || 0,
+        totalCost: messageData.totalCost || 0,
+        timestamp: messageData.costTimestamp || messageData.timestamp,
+      }
+    : null;
+
   return {
-    assistantMessage: assistantMsg.data(),
-    messageCost: costSnap.empty ? null : costSnap.docs[0].data(),
+    assistantMessage: messageData,
+    messageCost,
   };
 }
 

@@ -82,6 +82,10 @@ export class FirestoreUserRepository {
         deviceToken: user.deviceToken || null,
         installationId: user.installationId || null,
         createdAt: new Date().toISOString(),
+        // Initialize cost tracking
+        totalCost: 0,
+        totalTokens: 0,
+        lastCostUpdate: new Date().toISOString(),
       };
 
       const docRef = this.db.collection(this.usersCollection).doc(user.id);
@@ -195,6 +199,61 @@ export class FirestoreUserRepository {
       logger.error('Failed to update user plan in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  async updateUserCosts(
+    userId: string,
+    cost: {
+      totalCost: number;
+      totalTokens: number;
+    },
+  ): Promise<void> {
+    try {
+      const docRef = this.db.collection(this.usersCollection).doc(userId);
+      await docRef.update({
+        totalCost: firebaseAdmin.firestore.FieldValue.increment(cost.totalCost),
+        totalTokens: firebaseAdmin.firestore.FieldValue.increment(
+          cost.totalTokens,
+        ),
+        lastCostUpdate: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Failed to update user costs in Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        cost,
+      });
+      throw error;
+    }
+  }
+
+  async getUserCosts(userId: string): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    lastCostUpdate?: string;
+  }> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) {
+        return {
+          totalCost: 0,
+          totalTokens: 0,
+        };
+      }
+      return {
+        totalCost: user.totalCost || 0,
+        totalTokens: user.totalTokens || 0,
+        lastCostUpdate: user.lastCostUpdate,
+      };
+    } catch (error) {
+      logger.error('Failed to get user costs from Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
       });
       throw error;
     }

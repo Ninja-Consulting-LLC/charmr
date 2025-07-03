@@ -262,26 +262,6 @@ export const createReplyController = async (db: Database) => {
         const db = await getDatabase();
         const timestamp = new Date().toISOString();
 
-        // Save the message and its costs
-        const savedMessage = await appendConversation(
-          userId,
-          matchId,
-          response.reply,
-          storedImages, // Use images with preserved metadata for storage
-          prompt,
-          req.body.mode || MessageMode.GENERATE,
-          response.promptVariant,
-        );
-
-        // Save the summary if we have one and a matchId
-        if (response.summary && matchId) {
-          await summaryService.updateMatchSummary(
-            userId,
-            matchId,
-            response.summary,
-          );
-        }
-
         // Calculate costs
         const costBreakdown = calculateCost(
           req.body.model || config.openai.model,
@@ -293,16 +273,40 @@ export const createReplyController = async (db: Database) => {
           },
         );
 
-        // Save message cost
-        await db.saveMessageCost(savedMessage.id, {
-          model: req.body.model || config.openai.model,
-          promptTokens: response.usage?.prompt_tokens || 0,
-          completionTokens: response.usage?.completion_tokens || 0,
-          totalTokens: response.usage?.total_tokens || 0,
-          inputCost: costBreakdown.inputCost,
-          outputCost: costBreakdown.outputCost,
+        // Save the message with cost data embedded
+        const savedMessage = await appendConversation(
+          userId,
+          matchId,
+          response.reply,
+          storedImages, // Use images with preserved metadata for storage
+          prompt,
+          req.body.mode || MessageMode.GENERATE,
+          response.promptVariant,
+          {
+            model: req.body.model || config.openai.model,
+            promptTokens: response.usage?.prompt_tokens || 0,
+            completionTokens: response.usage?.completion_tokens || 0,
+            totalTokens: response.usage?.total_tokens || 0,
+            inputCost: costBreakdown.inputCost,
+            outputCost: costBreakdown.outputCost,
+            totalCost: costBreakdown.totalCost,
+            costTimestamp: timestamp,
+          },
+        );
+
+        // Save the summary if we have one and a matchId
+        if (response.summary && matchId) {
+          await summaryService.updateMatchSummary(
+            userId,
+            matchId,
+            response.summary,
+          );
+        }
+
+        // Update user cost totals
+        await db.updateUserCosts(userId, {
           totalCost: costBreakdown.totalCost,
-          timestamp: new Date().toISOString(),
+          totalTokens: response.usage?.total_tokens || 0,
         });
       }
 

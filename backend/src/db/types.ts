@@ -31,6 +31,9 @@ export interface User {
   installationId?: string;
   deleted?: boolean;
   createdAt?: string;
+  totalCost?: number;
+  totalTokens?: number;
+  lastCostUpdate?: string;
 }
 
 export interface Message {
@@ -46,6 +49,14 @@ export interface Message {
   timestamp: string;
   imageData?: string;
   promptVariant?: PromptVariant;
+  model?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  inputCost?: number;
+  outputCost?: number;
+  totalCost?: number;
+  costTimestamp?: string;
 }
 
 export interface MessageCost {
@@ -113,6 +124,18 @@ export interface Database {
   addExtraMessages: (userId: string, count: number) => Promise<void>;
   updateUserPlan: (userId: string, plan: SubscriptionTier) => Promise<void>;
   getUsersWithDeviceToken: () => Promise<User[]>;
+  updateUserCosts: (
+    userId: string,
+    cost: {
+      totalCost: number;
+      totalTokens: number;
+    },
+  ) => Promise<void>;
+  getUserCosts: (userId: string) => Promise<{
+    totalCost: number;
+    totalTokens: number;
+    lastCostUpdate?: string;
+  }>;
   saveMessage: (
     userId: string,
     matchId: string,
@@ -126,6 +149,14 @@ export interface Database {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ) => Promise<Message>;
   createMessage: (
@@ -141,6 +172,14 @@ export interface Database {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ) => Promise<Message>;
   getMessages: (

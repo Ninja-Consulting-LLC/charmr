@@ -37,12 +37,17 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       deviceToken TEXT,
       installationId TEXT,
       deleted INTEGER DEFAULT 0,
-      createdAt TEXT
+      createdAt TEXT,
+      totalCost REAL DEFAULT 0,
+      totalTokens INTEGER DEFAULT 0,
+      lastCostUpdate TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
     CREATE INDEX IF NOT EXISTS idx_users_device_token ON users(deviceToken);
     CREATE INDEX IF NOT EXISTS idx_users_deleted ON users(deleted);
+    CREATE INDEX IF NOT EXISTS idx_users_total_cost ON users(totalCost);
+    CREATE INDEX IF NOT EXISTS idx_users_last_cost_update ON users(lastCostUpdate);
 
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,6 +62,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       timestamp TEXT NOT NULL,
       imageData TEXT,
       promptVariant TEXT,
+      model TEXT,
+      promptTokens INTEGER DEFAULT 0,
+      completionTokens INTEGER DEFAULT 0,
+      totalTokens INTEGER DEFAULT 0,
+      inputCost REAL DEFAULT 0,
+      outputCost REAL DEFAULT 0,
+      totalCost REAL DEFAULT 0,
+      costTimestamp TEXT,
       FOREIGN KEY (replyTo) REFERENCES messages(id)
     );
 
@@ -65,6 +78,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     CREATE INDEX IF NOT EXISTS idx_messages_role ON messages(role);
     CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(type);
     CREATE INDEX IF NOT EXISTS idx_messages_used ON messages(used);
+    CREATE INDEX IF NOT EXISTS idx_messages_cost_timestamp ON messages(costTimestamp);
+    CREATE INDEX IF NOT EXISTS idx_messages_total_cost ON messages(totalCost);
 
     CREATE TABLE IF NOT EXISTS screenshots (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,7 +232,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   existingUser.id,
                 ]);
                 await db.run(
-                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                  'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt, totalCost, totalTokens, lastCostUpdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                   [
                     user.id,
                     user.email,
@@ -230,6 +245,9 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                     user.installationId,
                     0, // not deleted
                     new Date().toISOString(),
+                    existingUser.totalCost,
+                    existingUser.totalTokens,
+                    existingUser.lastCostUpdate,
                   ],
                 );
 
@@ -322,7 +340,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         // Create new user
         try {
           await db.run(
-            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO users (id, email, name, plan, dailyMessagesUsed, extraMessages, lastResetDate, notificationDates, installationId, deleted, createdAt, totalCost, totalTokens, lastCostUpdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               user.id,
               user.email,
@@ -335,6 +353,9 @@ export const createSqliteDatabase = async (): Promise<Database> => {
               user.installationId,
               0, // not deleted
               new Date().toISOString(),
+              0,
+              0,
+              '',
             ],
           );
 
@@ -376,13 +397,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         const setClause = Object.keys(updates)
           .map(key => `${key} = ?`)
           .join(', ');
-        const values = Object.entries(updates).map(([key, value]) => {
-          if (key === 'notificationDates') {
-            return JSON.stringify(value);
-          }
-          return value;
-        });
-        values.push(userId);
+        const values = Object.entries(updates)
+          .map(([key, value]) => {
+            if (key === 'notificationDates') {
+              return JSON.stringify(value);
+            }
+            return value;
+          })
+          .concat(userId);
 
         await db.run(`UPDATE users SET ${setClause} WHERE id = ?`, values);
       } catch (error) {
@@ -520,6 +542,63 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       }
     },
 
+    // Cost tracking operations
+    updateUserCosts: async (
+      userId: string,
+      cost: {
+        totalCost: number;
+        totalTokens: number;
+      },
+    ): Promise<void> => {
+      try {
+        await db.run(
+          'UPDATE users SET totalCost = COALESCE(totalCost, 0) + ?, totalTokens = COALESCE(totalTokens, 0) + ?, lastCostUpdate = ? WHERE id = ?',
+          [cost.totalCost, cost.totalTokens, new Date().toISOString(), userId],
+        );
+      } catch (error) {
+        logger.error('Failed to update user costs', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+          cost,
+        });
+        throw error;
+      }
+    },
+
+    getUserCosts: async (
+      userId: string,
+    ): Promise<{
+      totalCost: number;
+      totalTokens: number;
+      lastCostUpdate?: string;
+    }> => {
+      try {
+        const user = await db.get(
+          'SELECT totalCost, totalTokens, lastCostUpdate FROM users WHERE id = ?',
+          [userId],
+        );
+        if (!user) {
+          return {
+            totalCost: 0,
+            totalTokens: 0,
+          };
+        }
+        return {
+          totalCost: user.totalCost || 0,
+          totalTokens: user.totalTokens || 0,
+          lastCostUpdate: user.lastCostUpdate,
+        };
+      } catch (error) {
+        logger.error('Failed to get user costs', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          userId,
+        });
+        throw error;
+      }
+    },
+
     // Conversation storage methods
     saveMessage: async (
       userId: string,
@@ -534,6 +613,15 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         timestamp: string;
         imageData?: string;
         promptVariant?: PromptVariant;
+        // Cost fields
+        model?: string;
+        promptTokens?: number;
+        completionTokens?: number;
+        totalTokens?: number;
+        inputCost?: number;
+        outputCost?: number;
+        totalCost?: number;
+        costTimestamp?: string;
       },
     ): Promise<Message> => {
       try {
@@ -549,7 +637,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
         };
 
         const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant, model, promptTokens, completionTokens, totalTokens, inputCost, outputCost, totalCost, costTimestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             userId,
             matchId,
@@ -562,6 +650,14 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             messageWithDefaults.timestamp,
             messageWithDefaults.imageData || null,
             messageWithDefaults.promptVariant || null,
+            messageWithDefaults.model || null,
+            messageWithDefaults.promptTokens || null,
+            messageWithDefaults.completionTokens || null,
+            messageWithDefaults.totalTokens || null,
+            messageWithDefaults.inputCost || null,
+            messageWithDefaults.outputCost || null,
+            messageWithDefaults.totalCost || null,
+            messageWithDefaults.costTimestamp || null,
           ],
         );
 
