@@ -492,20 +492,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     descriptionStyle={{color: theme.colors.surface}}
                   />
                 )}
-                <List.Item
-                  title="Delete Account"
-                  description="Permanently delete your account and data"
-                  left={props => (
-                    <List.Icon
-                      {...props}
-                      icon="delete"
-                      color={theme.colors.error}
-                    />
-                  )}
-                  onPress={() => setShowDeleteAccountModal(true)}
-                  titleStyle={{color: theme.colors.error}}
-                  descriptionStyle={{color: theme.colors.surface}}
-                />
               </>
             ) : (
               <List.Item
@@ -574,16 +560,15 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 <Divider style={{backgroundColor: theme.colors.surface}} />
                 <List.Item
                   title="Delete Account"
-                  description="Permanently delete your account and data"
                   left={props => (
                     <List.Icon
                       {...props}
                       icon="delete"
-                      color={theme.colors.error}
+                      color={theme.colors.surface}
                     />
                   )}
                   onPress={() => setShowDeleteAccountModal(true)}
-                  titleStyle={{color: theme.colors.error}}
+                  titleStyle={{color: theme.colors.surface}}
                   descriptionStyle={{color: theme.colors.surface}}
                 />
                 <List.Item
