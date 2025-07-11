@@ -41,7 +41,7 @@ export const useResponseGenerator = ({
   onMessageLimitReached,
   mode,
 }: UseResponseGeneratorProps): UseResponseGeneratorReturn => {
-  const {userId, setUser} = useStore();
+  const {userId, user, setUser} = useStore();
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +116,19 @@ export const useResponseGenerator = ({
         }
       } else {
         setResponse(result.reply || null);
+
+        // Update user state with new message limits after successful response
+        if (result.limits) {
+          setUser({
+            ...user,
+            dailyMessagesUsed: result.limits.dailyMessagesUsed,
+            extraMessages: result.limits.extraMessages,
+          });
+          logger.app.debug('[ResponseGenerator] Updated user message limits', {
+            dailyMessagesUsed: result.limits.dailyMessagesUsed,
+            extraMessages: result.limits.extraMessages,
+          });
+        }
       }
     } catch (error) {
       logger.app.error('[ResponseGenerator] Error generating response:', error);
