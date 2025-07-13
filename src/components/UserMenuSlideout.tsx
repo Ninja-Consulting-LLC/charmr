@@ -346,7 +346,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           </View>
         </View>
         <ScrollView style={styles.scrollView}>
+          {/* User Profile Section */}
           <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Profile
+            </List.Subheader>
             {user.email && user.email !== user.installationId ? (
               <View style={styles.infoBox}>
                 <View style={styles.infoRow}>
@@ -403,11 +408,10 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                   </View>
                 </View>
               </View>
-            ) : null}
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            {!user.email || user.email === user.installationId ? (
+            ) : (
               <List.Item
-                title="Register"
+                title="Register Account"
+                description="Create an account to save your progress"
                 left={props => (
                   <List.Icon
                     {...props}
@@ -417,8 +421,24 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 )}
                 onPress={() => setShowLoginModal(true)}
                 titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
               />
-            ) : null}
+            )}
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* App Features Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Features
+            </List.Subheader>
             <List.Item
               title="Archived Matches"
               left={props => (
@@ -431,7 +451,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               onPress={handleOpenArchivedMatches}
               titleStyle={{color: theme.colors.surface}}
             />
-            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Contact Support"
               left={props => (
@@ -444,11 +463,25 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               onPress={onOpenSupport}
               titleStyle={{color: theme.colors.surface}}
             />
-            <Divider style={{backgroundColor: theme.colors.surface}} />
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* Subscription Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Subscription
+            </List.Subheader>
             {userPlan === SubscriptionTier.PRO ? (
               <>
                 <List.Item
-                  title="Subscription"
+                  title="Current Plan"
                   description={`${userPlan}`}
                   left={props => (
                     <List.Icon
@@ -494,70 +527,95 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 )}
               </>
             ) : (
-              <List.Item
-                title="Subscription"
-                description={`${userPlan}`}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="card-account-details"
-                    color={theme.colors.surface}
-                  />
-                )}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
-              />
-            )}
-            {userPlan !== SubscriptionTier.PRO && (
-              <List.Item
-                title="Upgrade Plan"
-                description="Get unlimited messages and more features"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="star"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={handleUpgradePress}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
-              />
-            )}
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            <View style={styles.legalSection}>
-              <List.Item
-                title="Terms of Service"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="file-document"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() =>
-                  Linking.openURL('https://example.invalid/terms.html')
-                }
-                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
-              />
-              <List.Item
-                title="Privacy Policy"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="shield-account"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() =>
-                  Linking.openURL('https://example.invalid/privacy.html')
-                }
-                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
-              />
-            </View>
-            {isAuthenticated && (
               <>
-                <Divider style={{backgroundColor: theme.colors.surface}} />
+                <List.Item
+                  title="Current Plan"
+                  description={`${userPlan}`}
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="card-account-details"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+                <List.Item
+                  title="Upgrade Plan"
+                  description="Get unlimited messages and more features"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="star"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={handleUpgradePress}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+              </>
+            )}
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* Legal Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Legal
+            </List.Subheader>
+            <List.Item
+              title="Terms of Service"
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="file-document"
+                  color={theme.colors.surface}
+                />
+              )}
+              onPress={() =>
+                Linking.openURL('https://example.invalid/terms.html')
+              }
+              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
+            />
+            <List.Item
+              title="Privacy Policy"
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="shield-account"
+                  color={theme.colors.surface}
+                />
+              )}
+              onPress={() =>
+                Linking.openURL('https://example.invalid/privacy.html')
+              }
+              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
+            />
+          </List.Section>
+
+          {/* Account Actions Section */}
+          {isAuthenticated && (
+            <>
+              <Divider
+                style={[
+                  styles.sectionDivider,
+                  {backgroundColor: theme.colors.surface},
+                ]}
+              />
+              <List.Section>
+                <List.Subheader
+                  style={[styles.subheader, {color: theme.colors.surface}]}>
+                  Account
+                </List.Subheader>
                 <List.Item
                   title="Delete Account"
                   left={props => (
@@ -583,9 +641,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                   onPress={handleSignOut}
                   titleStyle={{color: theme.colors.surface}}
                 />
-              </>
-            )}
-          </List.Section>
+              </List.Section>
+            </>
+          )}
         </ScrollView>
       </Animated.View>
 
@@ -742,12 +800,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
   registerText: {
     fontSize: 16,
     marginLeft: 32,
@@ -791,6 +843,15 @@ const styles = StyleSheet.create({
   infoDivider: {
     marginVertical: 8,
     opacity: 0.2,
+  },
+  subheader: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  sectionDivider: {
+    marginVertical: 8,
   },
 });
 
