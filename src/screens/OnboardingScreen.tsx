@@ -2,8 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useState} from 'react';
-import {Image, Linking, StyleSheet, View} from 'react-native';
-import {Button, Modal, Portal, Text} from 'react-native-paper';
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {Modal, Portal} from 'react-native-paper';
 import LoginModal from '../components/LoginModal';
 import {RootStackParamList} from '../navigation/types';
 import {useStore} from '../store/StoreProvider';
@@ -80,10 +87,8 @@ const OnboardingScreen = () => {
       case 1:
         return (
           <View style={styles.stepContent}>
-            <Text variant="headlineSmall" style={styles.stepTitle}>
-              Enable Dating Keyboard
-            </Text>
-            <Text variant="bodyLarge" style={styles.stepDescription}>
+            <Text style={styles.stepTitle}>Enable Dating Keyboard</Text>
+            <Text style={styles.stepDescription}>
               Follow these steps to enable Charmr keyboard:
             </Text>
             <View style={styles.stepsList}>
@@ -95,36 +100,44 @@ const OnboardingScreen = () => {
               <Text style={styles.stepItem}>6. Select Charmr</Text>
             </View>
             <View style={styles.actionButtons}>
-              <Button
-                mode="contained"
-                onPress={openKeyboardSettings}
+              <TouchableOpacity
                 style={[
                   styles.actionButton,
+                  styles.primaryActionButton,
                   {backgroundColor: theme.colors.onPrimary},
                 ]}
-                textColor={theme.colors.primary}>
-                Go to Settings
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={handleShowHelp}
+                onPress={openKeyboardSettings}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    {color: theme.colors.primary},
+                  ]}>
+                  Go to Settings
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
                   styles.actionButton,
+                  styles.secondaryActionButton,
                   {borderColor: theme.colors.onPrimary},
                 ]}
-                textColor={theme.colors.onPrimary}>
-                Need Help?
-              </Button>
+                onPress={handleShowHelp}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    {color: theme.colors.onPrimary},
+                  ]}>
+                  Need Help?
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         );
       case 2:
         return (
           <View style={styles.stepContent}>
-            <Text variant="headlineSmall" style={styles.stepTitle}>
-              Select Charmr Keyboard
-            </Text>
-            <Text variant="bodyLarge" style={styles.stepDescription}>
+            <Text style={styles.stepTitle}>Select Charmr Keyboard</Text>
+            <Text style={styles.stepDescription}>
               To use Charmr, you need to select it as your keyboard:
             </Text>
             <View style={styles.stepsList}>
@@ -143,28 +156,29 @@ const OnboardingScreen = () => {
               </Text>
             </View>
             <View style={styles.actionButtons}>
-              <Button
-                mode="outlined"
-                onPress={handleShowHelp}
+              <TouchableOpacity
                 style={[
                   styles.actionButton,
+                  styles.secondaryActionButton,
                   {borderColor: theme.colors.onPrimary},
                 ]}
-                textColor={theme.colors.onPrimary}>
-                Need Help?
-              </Button>
+                onPress={handleShowHelp}>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    {color: theme.colors.onPrimary},
+                  ]}>
+                  Need Help?
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         );
       case 3:
         return (
           <View style={styles.stepContent}>
-            <Text variant="headlineSmall" style={styles.stepTitle}>
-              Register for Better Experience
-            </Text>
-            <Text variant="bodyLarge" style={styles.stepDescription}>
-              Create an account to:
-            </Text>
+            <Text style={styles.stepTitle}>Register for Better Experience</Text>
+            <Text style={styles.stepDescription}>Create an account to:</Text>
             <View style={styles.stepsList}>
               <Text style={styles.stepItem}>• Save your matches</Text>
               <Text style={styles.stepItem}>• Track your conversations</Text>
@@ -182,22 +196,20 @@ const OnboardingScreen = () => {
       <View style={styles.content}>
         {renderStep()}
         <View style={styles.footer}>
-          <Button
-            mode="outlined"
-            onPress={handleSkip}
+          <TouchableOpacity
             style={styles.skipButton}
-            textColor={theme.colors.onPrimary}
+            onPress={handleSkip}
             testID="skip-button">
-            Skip
-          </Button>
-          <Button
-            mode="contained"
-            onPress={handleNext}
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.nextButton}
-            textColor={theme.colors.primary}
+            onPress={handleNext}
             testID={currentStep === 3 ? 'register-button' : 'next-button'}>
-            {currentStep === 3 ? 'Register' : 'Next'}
-          </Button>
+            <Text style={styles.nextButtonText}>
+              {currentStep === 3 ? 'Register' : 'Next'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
       <LoginModal
@@ -211,7 +223,7 @@ const OnboardingScreen = () => {
           onDismiss={() => setShowHelpModal(false)}
           contentContainerStyle={styles.helpModal}>
           <View style={styles.helpContent}>
-            <Text variant="headlineSmall" style={styles.helpTitle}>
+            <Text style={styles.helpTitle}>
               {currentStep === 2
                 ? 'Charmr Keyboard Tutorial'
                 : 'How to Enable Keyboard'}
@@ -223,13 +235,11 @@ const OnboardingScreen = () => {
                 resizeMode="contain"
               />
             </View>
-            <Button
-              mode="contained"
-              onPress={() => setShowHelpModal(false)}
+            <TouchableOpacity
               style={styles.closeHelpButton}
-              textColor={theme.colors.primary}>
-              Close
-            </Button>
+              onPress={() => setShowHelpModal(false)}>
+              <Text style={styles.closeHelpButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </Modal>
       </Portal>
@@ -256,11 +266,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
     color: theme.colors.onPrimary,
+    fontSize: 24,
+    fontWeight: '600',
   },
   stepDescription: {
     marginBottom: 24,
     textAlign: 'center',
     color: theme.colors.onPrimary,
+    fontSize: 16,
   },
   stepsList: {
     width: '100%',
@@ -283,9 +296,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 24,
-    paddingVertical: 0,
-    backgroundColor: 'transparent',
+    borderWidth: 1,
     borderColor: theme.colors.onPrimary,
+    backgroundColor: 'transparent',
+  },
+  skipButtonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   nextButton: {
     flex: 1,
@@ -294,8 +312,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 24,
-    paddingVertical: 0,
     backgroundColor: theme.colors.onPrimary,
+  },
+  nextButtonText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   stepRow: {
     flexDirection: 'row',
@@ -318,6 +340,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 24,
   },
+  primaryActionButton: {
+    backgroundColor: theme.colors.onPrimary,
+  },
+  secondaryActionButton: {
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   helpModal: {
     backgroundColor: theme.colors.primary,
     margin: 0,
@@ -331,6 +364,8 @@ const styles = StyleSheet.create({
   helpTitle: {
     color: theme.colors.onPrimary,
     marginBottom: 24,
+    fontSize: 24,
+    fontWeight: '600',
   },
   gifContainer: {
     flex: 1,
@@ -348,8 +383,17 @@ const styles = StyleSheet.create({
   },
   closeHelpButton: {
     width: '100%',
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 24,
     backgroundColor: theme.colors.onPrimary,
     marginTop: 24,
+  },
+  closeHelpButtonText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
