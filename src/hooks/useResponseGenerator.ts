@@ -106,8 +106,6 @@ export const useResponseGenerator = ({
         prompt: prompt || '',
         images: base64Images,
         mode,
-        regenerate,
-        previousMessage: regenerate ? prompt : undefined,
       });
 
       if (result.error) {
