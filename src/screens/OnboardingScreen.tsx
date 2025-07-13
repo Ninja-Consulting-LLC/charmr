@@ -222,25 +222,22 @@ const OnboardingScreen = () => {
           visible={showHelpModal}
           onDismiss={() => setShowHelpModal(false)}
           contentContainerStyle={styles.helpModal}>
-          <View style={styles.helpContent}>
-            <Text style={styles.helpTitle}>
-              {currentStep === 2
-                ? 'Charmr Keyboard Tutorial'
-                : 'How to Enable Keyboard'}
-            </Text>
-            <View style={styles.gifContainer}>
-              <Image
-                source={helpGifSource}
-                style={styles.gif}
-                resizeMode="contain"
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.closeHelpButton}
-              onPress={() => setShowHelpModal(false)}>
-              <Text style={styles.closeHelpButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.helpTitle}>
+            {currentStep === 2
+              ? 'Charmr Keyboard Tutorial'
+              : 'How to Enable Keyboard'}
+          </Text>
+          <Image
+            source={helpGifSource}
+            style={styles.gif}
+            resizeMode="contain"
+          />
+
+          <TouchableOpacity
+            style={styles.closeHelpButton}
+            onPress={() => setShowHelpModal(false)}>
+            <Text style={styles.closeHelpButtonText}>Close</Text>
+          </TouchableOpacity>
         </Modal>
       </Portal>
     </View>
@@ -355,14 +352,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     margin: 0,
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   helpContent: {
     flex: 1,
     padding: 24,
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   helpTitle: {
+    justifyContent: 'center',
+    alignItems: 'center',
     color: theme.colors.onPrimary,
+    paddingTop: 24,
     marginBottom: 24,
     fontSize: 24,
     fontWeight: '600',
@@ -372,17 +375,18 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 5,
-    borderColor: theme.colors.secondary,
-    borderRadius: 8,
     overflow: 'hidden',
   },
   gif: {
-    width: '100%',
-    height: '100%',
+    width: '90%',
+    borderWidth: 5,
+    borderColor: theme.colors.secondary,
+    borderRadius: 8,
+    margin: 0,
+    padding: 0,
   },
   closeHelpButton: {
-    width: '100%',
+    width: '95%',
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
