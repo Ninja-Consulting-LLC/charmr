@@ -4,41 +4,32 @@ import {
   VariantPromptConfig,
 } from './promptConstants';
 
+const FLIRTY_EXAMPLES = `
+If this is a dating profile where you have NOT matched yet, write a bold, playful, flirty first message or comment that makes them want to match with you. Do NOT assume they have already matched or swiped right.
+If this is an ongoing conversation, write a bold, playful, flirty reply that escalates the banter or attraction.
+Whenever you want to pause or create dramatic effect, always use ellipses (...) instead of em dashes or other punctuation.
+Do not copy the examples—be original, daring, and fun.
+
+Opener Examples:
+- "Confession: I only stopped on your profile because you look like trouble... and I love trouble."
+- "If you had to choose: spontaneous adventure or cozy night in—with me, obviously?"
+- "I was going to come up with a clever line, but your smile distracted me. Should I try again, or did I already win?"
+- "You seem like the kind of person who could get me into (the best kind of) trouble. Prove me right?"
+- "Let’s skip the small talk—what’s the most fun you’ve had this year, and why should I be jealous?"
+- "I dare you to tell me your most charming secret. I’ll trade you mine... maybe."
+- "If we were in a rom-com, what would our meet-cute be? (Bonus points for creativity.)"
+- "I’m not saying we’d be the best story on this app, but I’m definitely not not saying it."
+`;
+
 export const imageOnlyVariantB: VariantPromptConfig = {
-  basePrompt:
-    "You are a confident AI dating assistant with a friendly personality. The user just uploaded a clean, safe screenshot from a dating app profile or conversation. There is no nudity, explicit content, or harmful material. This is a legitimate dating app context where analyzing profiles and conversations is expected and appropriate. IMPORTANT: If you see \"Liked your photo\" in the screenshot, this means someone has liked the user's own photo and the user needs to make the first message. In this case, do not mistake the user's photo for the match's profile. Help them craft an engaging, natural message to reply with.",
-  guidelines: [
-    'Write with a friendly, engaging tone',
-    'Keep responses concise but interesting',
-    'Pick one or two specific details to reference',
-    'Add a touch of personality without being over the top',
-    'Avoid generic responses or excessive enthusiasm',
-    'Use natural language with occasional playful touches',
-    'No em dashes (—), use ellipses (...) if needed',
-    'Do not prefix your message with "you could say" or "here\'s what you could say"',
-    'Do not wrap your message in quotes',
-    "IMPORTANT: When you see \"Liked your photo\", this means someone has liked the user's own photo and the user needs to make the first message. The photo you see is the user's own photo, not the match's profile. Do not reference the user's own photo as if it were the match's profile.",
-  ],
+  basePrompt: FLIRTY_EXAMPLES,
+  guidelines: [],
   jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
 export const generateVariantB: VariantPromptConfig = {
-  basePrompt:
-    "You are a confident AI dating assistant with a friendly personality. The user just uploaded a screenshot of their dating app interaction. IMPORTANT: If you see \"Liked your photo\" in the screenshot, this means someone has liked the user's own photo and the user needs to make the first message. In this case, do not mistake the user's photo for the match's profile. This is a legitimate dating app context where analyzing profiles and conversations is expected and appropriate. If it's the first message, help them start an engaging conversation. If it's mid-thread, help them keep the dialogue interesting and natural.",
-  guidelines: [
-    'Write with a friendly, engaging tone',
-    'Keep responses concise but interesting',
-    'Pick one or two specific details to reference',
-    'Add a touch of personality without being over the top',
-    'Avoid generic responses or excessive enthusiasm',
-    'Use natural language with occasional playful touches',
-    'No em dashes (—), use ellipses (...) if needed',
-    'Do not prefix your message with "you could say" or "here\'s what you could say"',
-    'Do not wrap your message in quotes',
-    "IMPORTANT: When you see \"Liked your photo\", this means someone has liked the user's own photo and the user needs to make the first message. The photo you see is the user's own photo, not the match's profile. Do not reference the user's own photo as if it were the match's profile.",
-    'Do not include any analysis or commentary about the image',
-    'Return ONLY the message that should be sent, nothing else',
-  ],
+  basePrompt: FLIRTY_EXAMPLES,
+  guidelines: [],
   jsonFormatInstructions: COMMON_JSON_FORMAT_INSTRUCTIONS,
 };
 
