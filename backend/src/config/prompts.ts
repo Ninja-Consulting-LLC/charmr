@@ -2,6 +2,7 @@ import {PromptVariant} from '../types';
 import {MessageMode} from '../types/enums';
 import {
   CHAT_SCREEN_FORMAT_INSTRUCTIONS,
+  COACH_MODE_FORMAT_INSTRUCTIONS,
   HOME_SCREEN_FORMAT_INSTRUCTIONS,
   PromptConfig,
   VariantPromptConfig,
@@ -92,12 +93,13 @@ function formatJsonResponse(
   // Only include JSON format instructions for chat screen (with matchId)
   if (!hasMatchId) return '';
 
-  // For coach mode, only include the coach-specific instructions
+  // For coach mode, always include the coach-specific instructions that contain "json"
   if (mode === MessageMode.COACH) {
-    return `\n\n${config.jsonFormatInstructions}`;
+    return `\n\n${COACH_MODE_FORMAT_INSTRUCTIONS}`;
   }
 
-  // For other modes, include the generic instructions and the variant's instructions
+  // For all other modes (including imageOnly), include the generic instructions and the variant's instructions
+  // This ensures the word "json" is always present when using response_format: json_object
   return `\n\n${CHAT_SCREEN_FORMAT_INSTRUCTIONS}\n\n${config.jsonFormatInstructions}`;
 }
 
