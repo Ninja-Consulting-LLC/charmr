@@ -10,7 +10,21 @@ describe('Cost Tracking System', () => {
   });
 
   beforeEach(async () => {
-    await db.clearDatabase();
+    // Clean up test users instead of clearing entire database
+    const testUserIds = [
+      'test-user-1',
+      'test-user-2',
+      'test-user-3',
+      'test-user-4',
+      'test-user-5',
+    ];
+    for (const userId of testUserIds) {
+      try {
+        await db.deleteUser(userId);
+      } catch (error) {
+        // User might not exist, ignore
+      }
+    }
   });
 
   describe('User Cost Tracking', () => {

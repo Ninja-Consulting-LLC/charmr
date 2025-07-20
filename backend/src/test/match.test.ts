@@ -22,7 +22,11 @@ describe('Match Domain', () => {
     db = await getDatabase();
 
     // Clean up any existing test data first
-    await db.clearDatabase();
+    try {
+      await db.deleteUser('test-user-123');
+    } catch (error) {
+      // User might not exist, ignore
+    }
 
     // Setup mock request
     mockRequest = {
@@ -120,7 +124,12 @@ describe('Match Domain', () => {
   });
 
   afterEach(async () => {
-    await db.clearDatabase();
+    // Clean up test data instead of clearing entire database
+    try {
+      await db.deleteUser('test-user-123');
+    } catch (error) {
+      // User might not exist, ignore
+    }
   });
 
   describe('Match Creation', () => {
@@ -337,7 +346,12 @@ describe('Match Controller', () => {
   });
 
   afterEach(async () => {
-    await db.clearDatabase();
+    // Clean up test data instead of clearing entire database
+    try {
+      await db.deleteUser('test-user');
+    } catch (error) {
+      // User might not exist, ignore
+    }
   });
 
   describe('getMatches', () => {

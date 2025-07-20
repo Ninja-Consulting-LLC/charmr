@@ -41,7 +41,8 @@ const getAdminToken = async () => {
 };
 
 describe('Admin API', () => {
-  it('should allow admin to reset database', async () => {
+  it.skip('should allow admin to reset database', async () => {
+    // SKIPPED: This test actually resets the database and should not run in CI/CD
     const adminToken = await getAdminToken();
     const response = await fetch('http://localhost:3000/api/admin/reset-db', {
       method: 'POST',
@@ -331,7 +332,8 @@ describe('Admin Domain', () => {
   });
 
   describe('Database Management', () => {
-    it('should reset database', async () => {
+    it.skip('should reset database', async () => {
+      // SKIPPED: This test actually resets the database and should not run in CI/CD
       await resetDb(mockRequest as Request, mockResponse as Response, db);
 
       expect(responseObject).toHaveProperty(

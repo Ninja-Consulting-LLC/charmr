@@ -11,7 +11,6 @@ describe('Reply Controller', () => {
 
   beforeEach(async () => {
     db = await getDatabase();
-    await db.clearDatabase();
     replyController = await createReplyController(db);
 
     // Setup mock request
@@ -56,7 +55,12 @@ describe('Reply Controller', () => {
   });
 
   afterEach(async () => {
-    await db.clearDatabase();
+    // Clean up test data instead of clearing entire database
+    try {
+      await db.deleteUser('test-user-123');
+    } catch (error) {
+      // User might not exist, ignore
+    }
   });
 
   describe('generateReply', () => {

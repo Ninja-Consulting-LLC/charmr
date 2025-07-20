@@ -22,8 +22,12 @@ describe('Match Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await db.clearDatabase();
+    // Clean up test data instead of clearing entire database
+    try {
+      await db.deleteUser('test-user');
+    } catch (error) {
+      // User might not exist, ignore
+    }
   });
 
   it('should create a new match', async () => {
