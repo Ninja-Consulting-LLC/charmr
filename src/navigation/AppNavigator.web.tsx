@@ -1,142 +1,65 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import {createStackNavigator} from '@react-navigation/stack';
+import React, {useEffect, useRef} from 'react';
+import {DeepLinkHandler} from '../components/DeepLinkHandler';
 import CoachChatScreen from '../screens/CoachChatScreen';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import {useStore} from '../store/StoreProvider';
 import {RootStackParamList} from './types';
 
-type RouteEntry<T extends keyof RootStackParamList = keyof RootStackParamList> = {
-  name: T;
-  params: RootStackParamList[T];
-};
+const Stack = createStackNavigator<RootStackParamList>();
 
-const defaultCoachChatParams: RootStackParamList['CoachChat'] = {
-  match: {
-    id: 'web-preview',
-    name: 'Preview Match',
-    platform: 'web',
+const linking = {
+  prefixes: [],
+  config: {
+    screens: {
+      Login: 'login',
+      Home: 'home',
+      Onboarding: 'onboarding',
+      CoachChat: 'coach-chat',
+    },
   },
 };
 
-const toPath = (routeName: keyof RootStackParamList) => {
-  switch (routeName) {
-    case 'Home':
-      return '/home';
-    case 'Onboarding':
-      return '/onboarding';
-    case 'CoachChat':
-      return '/coach-chat';
-    default:
-      return '/login';
-  }
-};
-
-const fromPath = (): RouteEntry => {
-  if (typeof window === 'undefined') {
-    return {name: 'Login', params: undefined};
-  }
-
-  const path = window.location.pathname.toLowerCase();
-
-  if (path.startsWith('/home')) {
-    return {name: 'Home', params: undefined};
-  }
-
-  if (path.startsWith('/onboarding')) {
-    return {name: 'Onboarding', params: undefined};
-  }
-
-  if (path.startsWith('/coach-chat')) {
-    return {name: 'CoachChat', params: defaultCoachChatParams};
-  }
-
-  return {name: 'Login', params: undefined};
-};
-
 const AppNavigator = () => {
-  const [stack, setStack] = useState<RouteEntry[]>([fromPath()]);
-  const current = stack[stack.length - 1];
+  const {isAuthenticated} = useStore();
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (isInitializedRef.current) {
       return;
     }
+    isInitializedRef.current = true;
 
-    const targetPath = toPath(current.name);
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({name: current.name}, '', targetPath);
-    }
-  }, [current.name]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const onPopState = () => {
-      setStack([fromPath()]);
-    };
-
-    window.addEventListener('popstate', onPopState);
     return () => {
-      window.removeEventListener('popstate', onPopState);
+      isInitializedRef.current = false;
     };
   }, []);
 
-  const navigation = useMemo(
-    () => ({
-      navigate: <T extends keyof RootStackParamList>(
-        name: T,
-        params?: RootStackParamList[T],
-      ) => {
-        const nextParams =
-          typeof params === 'undefined'
-            ? (undefined as RootStackParamList[T])
-            : params;
-        setStack(prev => [...prev, {name, params: nextParams}]);
-      },
-      goBack: () => {
-        setStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
-      },
-    }),
-    [],
-  );
-
-  if (current.name === 'Home') {
-    return (
-      <HomeScreen
-        navigation={navigation}
-        route={{name: 'Home', params: undefined}}
-      />
-    );
-  }
-
-  if (current.name === 'Onboarding') {
-    return (
-      <OnboardingScreen
-        navigation={navigation}
-        route={{name: 'Onboarding', params: undefined}}
-      />
-    );
-  }
-
-  if (current.name === 'CoachChat') {
-    return (
-      <CoachChatScreen
-        navigation={navigation}
-        route={{
-          name: 'CoachChat',
-          params: current.params || defaultCoachChatParams,
-        }}
-      />
-    );
-  }
-
   return (
-    <LoginScreen
-      navigation={navigation}
-      route={{name: 'Login', params: undefined}}
-    />
+    <NavigationContainer linking={linking}>
+      <Stack.Navigator
+        initialRouteName={isAuthenticated ? 'Home' : 'Login'}
+        screenOptions={{
+          headerShown: false,
+          animationEnabled: true,
+        }}>
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen
+          name="CoachChat"
+          component={CoachChatScreen}
+          options={{
+            headerShown: true,
+            title: 'Coach Chat',
+          }}
+        />
+      </Stack.Navigator>
+      <DeepLinkHandler />
+    </NavigationContainer>
   );
 };
 

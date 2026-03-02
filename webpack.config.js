@@ -7,6 +7,7 @@ const appDirectory = __dirname;
 const babelInclude = [
   path.resolve(appDirectory, 'index.web.js'),
   path.resolve(appDirectory, 'App.web.tsx'),
+  path.resolve(appDirectory, 'App.tsx'),
   path.resolve(appDirectory, 'src'),
   path.resolve(appDirectory, 'node_modules/react-native'),
   path.resolve(appDirectory, 'node_modules/react-native-web'),
@@ -52,6 +53,18 @@ module.exports = (_, argv) => {
       ],
       alias: {
         'react-native$': 'react-native-web',
+        'react-native-linear-gradient$': path.resolve(
+          appDirectory,
+          'src/web/shims/LinearGradient.tsx',
+        ),
+        '@react-native-google-signin/google-signin$': path.resolve(
+          appDirectory,
+          'src/web/shims/GoogleSignin.ts',
+        ),
+        'react-native-safe-area-context$': path.resolve(
+          appDirectory,
+          'src/web/shims/SafeAreaContext.tsx',
+        ),
       },
       fallback: {
         fs: false,

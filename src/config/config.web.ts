@@ -1,7 +1,11 @@
+const env =
+  typeof globalThis !== 'undefined' &&
+  typeof (globalThis as any).process !== 'undefined'
+    ? (globalThis as any).process.env || {}
+    : {};
+
 const apiBaseUrl =
-  process.env.API_BASE_URL ||
-  process.env.REACT_APP_API_BASE_URL ||
-  'http://localhost:3001';
+  env.API_BASE_URL || env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
 
 export const config = {
   apiBaseUrl,
