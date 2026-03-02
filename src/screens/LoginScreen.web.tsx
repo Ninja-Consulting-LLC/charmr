@@ -1,65 +1,86 @@
 import React, {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {
-  signInWithFacebookLimited,
-  signInWithGoogle,
-} from '../config/firebase';
-import type {RootStackScreenProps} from '../navigation/types';
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import LoginModal from '../components/LoginModal';
+import {RootStackScreenProps} from '../navigation/types';
+import {theme} from '../theme/theme';
+
+const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 type Props = RootStackScreenProps<'Login'>;
 
 const LoginScreen: React.FC<Props> = ({navigation}) => {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const handleGooglePreviewLogin = async () => {
-    try {
-      setErrorMessage(null);
-      await signInWithGoogle();
-      navigation.navigate('Home');
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'Google preview login failed.',
-      );
-    }
+  const handleLogin = () => {
+    setShowLoginModal(true);
   };
 
-  const handleFacebookPreviewLogin = async () => {
-    try {
-      setErrorMessage(null);
-      await signInWithFacebookLimited();
-      navigation.navigate('Home');
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'Facebook preview login failed.',
-      );
-    }
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    navigation.navigate('Home');
+  };
+
+  const handleGetStarted = async () => {
+    navigation.navigate('Onboarding');
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Charmr</Text>
-        <Text style={styles.subtitle}>
-          Browser preview mode is enabled. Native sign-in SDKs are replaced with
-          safe web stubs.
-        </Text>
+      <LinearGradient
+        colors={[theme.colors.primary, theme.colors.primaryContainer]}
+        style={styles.gradientBackground}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      />
 
-        <Pressable style={[styles.button, styles.primary]} onPress={handleGooglePreviewLogin}>
-          <Text style={styles.primaryText}>Continue with Google (Preview)</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, styles.secondary]}
-          onPress={handleFacebookPreviewLogin}>
-          <Text style={styles.secondaryText}>Continue with Facebook (Preview)</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.button, styles.ghost]}
-          onPress={() => navigation.navigate('Onboarding')}>
-          <Text style={styles.ghostText}>View onboarding preview</Text>
-        </Pressable>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          <View style={styles.logoSection}>
+            <Image
+              source={require('../../assets/logo-with-name.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      </View>
+          <View style={styles.bottomSection}>
+            <TouchableOpacity
+              style={styles.getStartedButton}
+              onPress={handleGetStarted}
+              testID="get-started-button">
+              <Text style={styles.getStartedButtonText}>Get Started</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              testID="login-button">
+              <Text style={styles.loginButtonText}>Log In</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.termsText}>
+              By clicking above, you agree to our{' '}
+              <Text style={styles.linkText}>Terms of Use</Text> and{' '}
+              <Text style={styles.linkText}>Privacy Policy</Text>.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </View>
   );
 };
@@ -67,65 +88,74 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1f0835',
+    overflow: 'hidden',
+  },
+  safeArea: {
+    flex: 1,
+    zIndex: 2,
+  },
+  gradientBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+    paddingTop: 0,
+    paddingBottom: 40,
+  },
+  logoSection: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    marginTop: SCREEN_HEIGHT * 0.02,
   },
-  card: {
+  logo: {
+    width: Math.min(SCREEN_WIDTH * 0.8, 400),
+    height: Math.min(SCREEN_WIDTH * 0.8, 400),
+  },
+  bottomSection: {
+    gap: 12,
+    paddingHorizontal: 20,
+  },
+  getStartedButton: {
+    backgroundColor: theme.colors.secondary,
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
     width: '100%',
-    maxWidth: 460,
-    padding: 24,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
   },
-  title: {
-    color: '#7E22CE',
-    fontWeight: '700',
-    fontSize: 34,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: 10,
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  primary: {
-    backgroundColor: '#40E0D0',
-  },
-  primaryText: {
+  getStartedButtonText: {
     color: '#111',
+    fontSize: 16,
     fontWeight: '600',
   },
-  secondary: {
-    backgroundColor: '#e6e0f3',
-  },
-  secondaryText: {
-    color: '#3f2b5f',
-    fontWeight: '600',
-  },
-  ghost: {
-    backgroundColor: 'transparent',
+  loginButton: {
     borderWidth: 1,
-    borderColor: '#cdbfe5',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
-  ghostText: {
-    color: '#7E22CE',
-    fontWeight: '600',
+  loginButtonText: {
+    color: theme.colors.surface,
+    fontSize: 16,
+    fontWeight: '500',
   },
-  error: {
-    color: '#d32f2f',
-    marginTop: 8,
+  termsText: {
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
+    fontSize: 13,
+    paddingTop: 20,
+  },
+  linkText: {
+    color: theme.colors.surface,
+    textDecorationLine: 'underline',
   },
 });
 
