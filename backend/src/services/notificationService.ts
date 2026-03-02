@@ -20,21 +20,21 @@ export const NOTIFICATION_CONFIGS: Record<
     title: 'Your Dating Coach is Here!',
     body: 'Ready to improve your dating game? Your coach is available to help!',
     type: 'coach',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 15 * 60 * 1000, // Check every 15 minutes
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
   match: {
     title: 'New Match Alert!',
     body: 'You have a new match waiting for you!',
     type: 'match',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 365 * 24 * 60 * 60 * 1000, // Check once a year (effectively disabled)
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
   message: {
     title: 'New Message Received',
     body: 'You have a new message from your match!',
     type: 'message',
-    checkInterval: 60 * 1000, // Check every minute
+    checkInterval: 365 * 24 * 60 * 60 * 1000, // Check once a year (effectively disabled)
     minInterval: 3 * 24 * 60 * 60 * 1000, // Minimum 3 days between notifications
   },
 };
@@ -46,14 +46,28 @@ export const createNotificationService = (db: Database) => {
   ) => {
     try {
       const user = await db.getUser(userId);
-      if (!user || !user.deviceToken) {
-        logger.warn(
-          'Cannot send notification - user not found or no device token',
-          {
-            userId,
-            notificationType,
-          },
-        );
+      if (!user) {
+        logger.warning('Cannot send notification - user not found', {
+          userId,
+          notificationType,
+        });
+        return;
+      }
+
+      // Skip notifications for anonymous users
+      if (user.email === user.installationId) {
+        logger.info('Skipping notification for anonymous user', {
+          userId,
+          notificationType,
+        });
+        return;
+      }
+
+      if (!user.deviceToken) {
+        logger.warning('Cannot send notification - no device token', {
+          userId,
+          notificationType,
+        });
         return;
       }
 
@@ -94,12 +108,14 @@ export const createNotificationService = (db: Database) => {
         users = await (db as any).getUsersWithDeviceToken();
       } else {
         users = await db.all(
-          'SELECT id, deviceToken, notificationDates FROM users WHERE deviceToken IS NOT NULL',
+          'SELECT id, deviceToken, notificationDates, email, installationId FROM users WHERE deviceToken IS NOT NULL',
         );
       }
 
-      // Filter out users with null device tokens
-      users = users.filter(user => user.deviceToken);
+      // Filter out users with null device tokens and anonymous users
+      users = users.filter(
+        user => user.deviceToken && user.email !== user.installationId,
+      );
 
       logger.info('Checking notifications', {
         notificationType,
@@ -124,14 +140,6 @@ export const createNotificationService = (db: Database) => {
           timeSinceLastNotification >= config.minInterval
         ) {
           await sendNotification(user.id, notificationType);
-        } else {
-          // logger.debug('Skipping notification - too soon', {
-          //   userId: user.id,
-          //   notificationType,
-          //   lastNotification,
-          //   timeSinceLastNotification,
-          //   requiredInterval: config.minInterval,
-          // });
         }
       }
     } catch (error) {

@@ -1,18 +1,20 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
-  Dimensions,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Dimensions,
+    Image,
+    Linking,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
-import {RootStackScreenProps} from '../navigation/types';
-import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import { RootStackScreenProps } from '../navigation/types';
+import { useStore } from '../store/StoreProvider';
+import { theme } from '../theme/theme';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -20,6 +22,7 @@ type Props = RootStackScreenProps<'Login'>;
 
 const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const {createNewUser} = useStore();
 
   const handleLogin = () => {
@@ -71,8 +74,16 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 
             <Text style={styles.termsText}>
               By clicking above, you agree to our{' '}
-              <Text style={styles.linkText}>Terms of Use</Text> and{' '}
-              <Text style={styles.linkText}>Privacy Policy</Text>.
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://example.invalid/terms.html')}>
+                Terms of Use
+              </Text> and{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://example.invalid/privacy.html')}>
+                Privacy Policy
+              </Text>.
             </Text>
           </View>
         </View>
@@ -82,7 +93,15 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onLoginSuccess={handleLoginSuccess}
+        onLoadingChange={setIsLoading}
       />
+
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={theme.colors.surface} />
+          <Text style={styles.loadingText}>Signing in...</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -90,82 +109,77 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: 'hidden',
+  },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   safeArea: {
     flex: 1,
-    zIndex: 2,
-  },
-  gradientBackground: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 0,
-    paddingBottom: 40,
+    paddingHorizontal: 24,
   },
   logoSection: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SCREEN_HEIGHT * 0.02,
+    alignItems: 'center',
   },
   logo: {
-    width: Math.min(SCREEN_WIDTH * 0.8, 400),
-    height: Math.min(SCREEN_WIDTH * 0.8, 400),
+    width: SCREEN_WIDTH * 0.7,
+    height: SCREEN_WIDTH * 0.7,
   },
   bottomSection: {
-    gap: 12,
-    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 16,
   },
   getStartedButton: {
     backgroundColor: theme.colors.secondary,
-    paddingVertical: 16,
-    borderRadius: 100,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    shadowColor: theme.colors.secondary,
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
   },
   getStartedButtonText: {
     color: theme.colors.onSurface,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   loginButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    paddingVertical: 16,
-    borderRadius: 100,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.surface,
   },
   loginButtonText: {
     color: theme.colors.surface,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   termsText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: theme.colors.surface,
     textAlign: 'center',
-    fontSize: 13,
-    paddingTop: 20,
+    fontSize: 12,
+    opacity: 0.8,
   },
   linkText: {
-    color: theme.colors.surface,
     textDecorationLine: 'underline',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    color: theme.colors.surface,
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

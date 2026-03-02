@@ -4,7 +4,7 @@ name: Deploy static content to Pages
 on:
   # Runs on pushes to main when website content changes
   push:
-    branches: ["main"]
+    branches: ["main", "develop", "staging", "gh-pages"]
     paths:
       - "website/**"
       - ".github/workflows/static.yml"
@@ -21,14 +21,14 @@ permissions:
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
   # Single deploy job since we're just deploying
   deploy:
     environment:
-      name: github-pages
+      name: ${{ github.ref == 'refs/heads/main' && 'github-pages' || 'github-pages-dev' }}
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:

@@ -1,20 +1,39 @@
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
-import {Animated, ScrollView, StyleSheet, Text, View} from 'react-native';
-import {Divider, IconButton, List, useTheme} from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {Divider, IconButton, List, Portal, useTheme} from 'react-native-paper';
+import Purchases from 'react-native-purchases';
+import RevenueCatUI from 'react-native-purchases-ui';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
 import {clearAuthData} from '../services/authService';
 import axiosInstance from '../services/axiosInstance';
 import {deleteMatch, restoreMatch} from '../services/matchService';
+import {
+  cancelSubscription,
+  syncSubscriptionState,
+} from '../services/revenueCatService';
+import {deleteUserAccount, updateUserPlan} from '../services/userService';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
+import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
+import DeleteAccountModal from './DeleteAccountModal';
+import EditUserDetailsModal from './EditUserDetailsModal';
 import HiddenMatchesModal from './HiddenMatchesModal';
 import LoginModal from './LoginModal';
-import SubscriptionSlideout from './SubscriptionSlideout';
+import PurchaseSuccessModal from './PurchaseSuccessModal';
 import UpgradeModal from './UpgradeModal';
 
 interface UserMenuSlideoutProps {
@@ -33,16 +52,27 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const theme = useTheme();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const {user, setUser, isAuthenticated, setIsAuthenticated} = useStore();
+  const {
+    user,
+    setUser,
+    isAuthenticated,
+    setIsAuthenticated,
+    handleProviderLogin,
+  } = useStore();
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showPresetPaywall, setShowPresetPaywall] = useState(false);
   const [showArchivedMatchesModal, setShowArchivedMatchesModal] =
     useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showSubscriptionSlideout, setShowSubscriptionSlideout] =
-    useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showSubscriptionSection, setShowSubscriptionSection] = useState(false);
   const [archivedMatches, setArchivedMatches] = useState<Match[]>([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(400)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -78,6 +108,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       });
     }
   }, [visible, slideAnim, fadeAnim]);
+
+  useEffect(() => {
+    // Load archived matches when component mounts
+    loadArchivedMatches();
+  }, []);
 
   const loadArchivedMatches = async () => {
     if (!user.id) {
@@ -141,6 +176,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         email: '',
         name: '',
         installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
 
@@ -160,7 +196,118 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     setShowUpgradeModal(false);
   };
 
+  const handleUpgradePress = async () => {
+    try {
+      console.log('[UserMenuSlideout] Checking RevenueCat offerings...');
+      const offerings = await Purchases.getOfferings();
+      console.log('[UserMenuSlideout] Offerings:', {
+        hasCurrent: !!offerings.current,
+        currentOffering: offerings.current?.identifier,
+        availablePackages: offerings.current?.availablePackages?.length || 0,
+      });
+
+      if (offerings.current) {
+        console.log('[UserMenuSlideout] Setting showPresetPaywall to true');
+        setShowUpgradeModal(false);
+        setShowPresetPaywall(true);
+      } else {
+        console.log(
+          '[UserMenuSlideout] No current offering, showing custom modal',
+        );
+        setShowPresetPaywall(false);
+        setShowUpgradeModal(true);
+      }
+    } catch (error) {
+      console.error('[UserMenuSlideout] Error checking offerings:', error);
+      setShowPresetPaywall(false);
+      setShowUpgradeModal(true);
+    }
+  };
+
+  const handlePurchaseSuccess = () => {
+    setShowPresetPaywall(false);
+    setShowUpgradeModal(false);
+    if (user) {
+      // Immediately update the user's plan state
+      setUser({
+        ...user,
+        plan: SubscriptionTier.PRO,
+        getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.PRO),
+      });
+      // Then sync with the backend, forcing sync after purchase
+      syncSubscriptionState(updateUserPlan, setUser, user, true).catch(
+        error => {
+          logger.revenueCat.error('Failed to sync subscription state:', error);
+        },
+      );
+    }
+    setShowPurchaseSuccess(true);
+    if (user?.email === user?.installationId) {
+      setShowRegistrationPrompt(true);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      const result = await cancelSubscription();
+      if (result === 'SANDBOX') {
+        Alert.alert(
+          'Sandbox Subscription',
+          'This is a sandbox subscription. To manage it:\n\n1. Go to RevenueCat dashboard\n2. Navigate to Customers\n3. Find your test user\n4. Use the sandbox testing tools to manage the subscription',
+          [{text: 'OK'}],
+        );
+      } else if (result) {
+        await Linking.openURL(result);
+      } else {
+        Alert.alert(
+          'Subscription Management',
+          'Unable to open subscription management. Please try again later or contact support if the issue persists.',
+          [{text: 'OK'}],
+        );
+      }
+    } catch (error) {
+      logger.revenueCat.error('Failed to open subscription management:', error);
+      Alert.alert(
+        'Error',
+        'Unable to open subscription management. Please try again later.',
+        [{text: 'OK'}],
+      );
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      if (!user.id) {
+        Alert.alert('Error', 'No user ID available');
+        return;
+      }
+
+      await deleteUserAccount(user.id);
+
+      // Sign out after successful deletion
+      await handleSignOut();
+
+      Alert.alert(
+        'Account Deleted',
+        'Your account has been successfully deleted. You can restore it by logging in with the same email address.',
+        [{text: 'OK'}],
+      );
+    } catch (error) {
+      logger.app.error('Failed to delete account:', error);
+      Alert.alert(
+        'Error',
+        'Failed to delete account. Please try again later or contact support.',
+        [{text: 'OK'}],
+      );
+    }
+  };
+
   if (!isVisible && !visible) return null;
+
+  const userPlan = user?.plan || SubscriptionTier.FREE;
+  const dailyMessagesUsed = user?.dailyMessagesUsed || 0;
+  const dailyMessageLimit =
+    user?.getDailyMessageLimit?.() || getPlanLimits(userPlan);
 
   return (
     <>
@@ -199,58 +346,99 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           </View>
         </View>
         <ScrollView style={styles.scrollView}>
+          {/* User Profile Section */}
           <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Profile
+            </List.Subheader>
             {user.email && user.email !== user.installationId ? (
-              <List.Item
-                title={user.name || 'Guest'}
-                description={user.email}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="account"
-                    color={theme.colors.surface}
-                  />
-                )}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
-              />
-            ) : null}
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            <List.Item
-              title="Daily Messages"
-              description={
-                user.plan === SubscriptionTier.PRO
-                  ? 'Unlimited'
-                  : `${user.dailyMessagesUsed}/${(
-                      user.getDailyMessageLimit ||
-                      (() => getPlanLimits(user.plan))
-                    )()} used`
-              }
-              left={props => (
-                <List.Icon
-                  {...props}
-                  icon="message"
-                  color={theme.colors.surface}
+              <View style={styles.infoBox}>
+                <View style={styles.infoRow}>
+                  <List.Icon icon="account" color={theme.colors.surface} />
+                  <View style={styles.infoContent}>
+                    <Text
+                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                      {user.name || 'Guest'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.infoDescription,
+                        {color: theme.colors.surface},
+                      ]}>
+                      {user.email}
+                    </Text>
+                  </View>
+                  {(!user.email ||
+                    user.email === user.installationId ||
+                    user.email.includes('privaterelay')) && (
+                    <IconButton
+                      icon="pencil"
+                      size={20}
+                      onPress={() => setShowEditUserModal(true)}
+                      iconColor={theme.colors.surface}
+                    />
+                  )}
+                </View>
+                <Divider
+                  style={[
+                    styles.infoDivider,
+                    {backgroundColor: theme.colors.surface},
+                  ]}
                 />
-              )}
-              titleStyle={{color: theme.colors.surface}}
-              descriptionStyle={{color: theme.colors.surface}}
-            />
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            {!user.email || user.email === user.installationId ? (
+                <View style={styles.infoRow}>
+                  <List.Icon icon="message" color={theme.colors.surface} />
+                  <View style={styles.infoContent}>
+                    <Text
+                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                      Daily Messages
+                    </Text>
+                    <Text
+                      style={[
+                        styles.infoDescription,
+                        {color: theme.colors.surface},
+                      ]}>
+                      {user.plan === SubscriptionTier.PRO
+                        ? 'Unlimited'
+                        : `${user.dailyMessagesUsed}/${(
+                            user.getDailyMessageLimit ||
+                            (() => getPlanLimits(user.plan))
+                          )()} used`}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
               <List.Item
-                title="Register"
+                title="Register Account"
+                description="Create an account to save your progress"
                 left={props => (
                   <List.Icon
                     {...props}
-                    icon="login"
+                    icon="account-plus"
                     color={theme.colors.surface}
                   />
                 )}
                 onPress={() => setShowLoginModal(true)}
                 titleStyle={{color: theme.colors.surface}}
+                descriptionStyle={{color: theme.colors.surface}}
               />
-            ) : null}
+            )}
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* App Features Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Features
+            </List.Subheader>
             <List.Item
               title="Archived Matches"
               left={props => (
@@ -263,7 +451,6 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               onPress={handleOpenArchivedMatches}
               titleStyle={{color: theme.colors.surface}}
             />
-            <Divider style={{backgroundColor: theme.colors.surface}} />
             <List.Item
               title="Contact Support"
               left={props => (
@@ -276,66 +463,172 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               onPress={onOpenSupport}
               titleStyle={{color: theme.colors.surface}}
             />
-            <Divider style={{backgroundColor: theme.colors.surface}} />
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* Subscription Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Subscription
+            </List.Subheader>
+            {userPlan === SubscriptionTier.PRO ? (
+              <>
+                <List.Item
+                  title="Current Plan"
+                  description={`${userPlan}`}
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="card-account-details"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  right={props => (
+                    <List.Icon
+                      {...props}
+                      icon={
+                        showSubscriptionSection ? 'chevron-up' : 'chevron-down'
+                      }
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={() =>
+                    setShowSubscriptionSection(!showSubscriptionSection)
+                  }
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+                {showSubscriptionSection && (
+                  <List.Item
+                    title="Cancel Subscription"
+                    description={
+                      __DEV__
+                        ? 'Sandbox: Use RevenueCat dashboard to manage'
+                        : undefined
+                    }
+                    left={props => (
+                      <List.Icon
+                        {...props}
+                        icon="cancel"
+                        color={theme.colors.surface}
+                      />
+                    )}
+                    onPress={handleManageSubscription}
+                    titleStyle={{color: theme.colors.surface}}
+                    descriptionStyle={{color: theme.colors.surface}}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <List.Item
+                  title="Current Plan"
+                  description={`${userPlan}`}
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="card-account-details"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+                <List.Item
+                  title="Upgrade Plan"
+                  description="Get unlimited messages and more features"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="star"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={handleUpgradePress}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
+              </>
+            )}
+          </List.Section>
+
+          <Divider
+            style={[
+              styles.sectionDivider,
+              {backgroundColor: theme.colors.surface},
+            ]}
+          />
+
+          {/* Legal Section */}
+          <List.Section>
+            <List.Subheader
+              style={[styles.subheader, {color: theme.colors.surface}]}>
+              Legal
+            </List.Subheader>
             <List.Item
-              title="Manage Subscription"
+              title="Terms of Service"
               left={props => (
-                <List.Icon {...props} icon="cog" color={theme.colors.surface} />
-              )}
-              right={props => (
                 <List.Icon
                   {...props}
-                  icon="chevron-right"
+                  icon="file-document"
                   color={theme.colors.surface}
                 />
               )}
-              onPress={() => setShowSubscriptionSlideout(true)}
-              titleStyle={{color: theme.colors.surface}}
+              onPress={() =>
+                Linking.openURL('https://example.invalid/terms.html')
+              }
+              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
             />
-            {user.plan !== SubscriptionTier.PRO && (
-              <List.Item
-                title="Upgrade Plan"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="star"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() => setShowUpgradeModal(true)}
-                titleStyle={{color: theme.colors.surface}}
+            <List.Item
+              title="Privacy Policy"
+              left={props => (
+                <List.Icon
+                  {...props}
+                  icon="shield-account"
+                  color={theme.colors.surface}
+                />
+              )}
+              onPress={() =>
+                Linking.openURL('https://example.invalid/privacy.html')
+              }
+              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
+            />
+          </List.Section>
+
+          {/* Account Actions Section */}
+          {isAuthenticated && (
+            <>
+              <Divider
+                style={[
+                  styles.sectionDivider,
+                  {backgroundColor: theme.colors.surface},
+                ]}
               />
-            )}
-            <Divider style={{backgroundColor: theme.colors.surface}} />
-            <View style={styles.legalSection}>
-              <List.Item
-                title="Terms of Service"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="file-document"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() => navigation.navigate('Terms')}
-                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
-              />
-              <List.Item
-                title="Privacy Policy"
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="shield-account"
-                    color={theme.colors.surface}
-                  />
-                )}
-                onPress={() => navigation.navigate('Privacy')}
-                titleStyle={[styles.legalText, {color: theme.colors.surface}]}
-              />
-            </View>
-            {isAuthenticated && (
-              <>
-                <Divider style={{backgroundColor: theme.colors.surface}} />
+              <List.Section>
+                <List.Subheader
+                  style={[styles.subheader, {color: theme.colors.surface}]}>
+                  Account
+                </List.Subheader>
+                <List.Item
+                  title="Delete Account"
+                  left={props => (
+                    <List.Icon
+                      {...props}
+                      icon="delete"
+                      color={theme.colors.surface}
+                    />
+                  )}
+                  onPress={() => setShowDeleteAccountModal(true)}
+                  titleStyle={{color: theme.colors.surface}}
+                  descriptionStyle={{color: theme.colors.surface}}
+                />
                 <List.Item
                   title="Logout"
                   left={props => (
@@ -348,9 +641,9 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                   onPress={handleSignOut}
                   titleStyle={{color: theme.colors.surface}}
                 />
-              </>
-            )}
-          </List.Section>
+              </List.Section>
+            </>
+          )}
         </ScrollView>
       </Animated.View>
 
@@ -360,33 +653,77 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         currentBalance={user.extraMessages}
       /> */}
 
-      <UpgradeModal
-        visible={showUpgradeModal}
-        onDismiss={() => setShowUpgradeModal(false)}
-        onUpgrade={handleUpgrade}
-      />
+      <Portal>
+        <UpgradeModal
+          visible={showUpgradeModal}
+          onDismiss={() => setShowUpgradeModal(false)}
+          onUpgrade={handleUpgrade}
+          onPurchaseSuccess={handlePurchaseSuccess}
+        />
+        <LoginModal
+          visible={showLoginModal}
+          onClose={() => {
+            logger.auth.info('LoginModal closed');
+            setShowLoginModal(false);
+          }}
+          onLoginSuccess={() => {
+            logger.auth.info('Login successful, navigating to Home');
+            setShowLoginModal(false);
+            navigation.navigate('Home');
+          }}
+          onLoadingChange={loading => {
+            logger.auth.info('Login loading state changed:', {loading});
+            setIsLoading(loading);
+          }}
+          handleProviderLogin={handleProviderLogin}
+        />
+        <EditUserDetailsModal
+          visible={showEditUserModal}
+          onDismiss={() => setShowEditUserModal(false)}
+        />
+        <DeleteAccountModal
+          visible={showDeleteAccountModal}
+          onDismiss={() => setShowDeleteAccountModal(false)}
+          onConfirm={handleDeleteAccount}
+          isLoading={isLoading}
+        />
+        <HiddenMatchesModal
+          visible={showArchivedMatchesModal}
+          onDismiss={() => setShowArchivedMatchesModal(false)}
+          hiddenMatches={archivedMatches}
+          onRestoreMatch={handleRestoreMatch}
+          onDeleteMatch={handleDeleteMatch}
+        />
+        <PurchaseSuccessModal
+          visible={showPurchaseSuccess}
+          onDismiss={() => {
+            setShowPurchaseSuccess(false);
+            setShowRegistrationPrompt(false);
+          }}
+          showRegistrationPrompt={showRegistrationPrompt}
+          onRegisterPress={() => {
+            setShowPurchaseSuccess(false);
+            setShowLoginModal(true);
+          }}
+        />
+        {showPresetPaywall && (
+          <RevenueCatUI.Paywall
+            onDismiss={() => setShowPresetPaywall(false)}
+            onPurchaseCompleted={() => {
+              handlePurchaseSuccess();
+            }}
+          />
+        )}
+      </Portal>
 
-      <HiddenMatchesModal
-        visible={showArchivedMatchesModal}
-        onDismiss={() => setShowArchivedMatchesModal(false)}
-        hiddenMatches={archivedMatches}
-        onRestoreMatch={handleRestoreMatch}
-        onDeleteMatch={handleDeleteMatch}
-      />
-
-      <LoginModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={() => {
-          setShowLoginModal(false);
-          navigation.navigate('Home');
-        }}
-      />
-
-      <SubscriptionSlideout
-        visible={showSubscriptionSlideout}
-        onDismiss={() => setShowSubscriptionSlideout(false)}
-      />
+      {isLoading && (
+        <View style={[styles.overlay, {backgroundColor: 'rgba(0, 0, 0, 0.7)'}]}>
+          <ActivityIndicator size="large" color={theme.colors.surface} />
+          <Text style={[styles.loadingText, {color: theme.colors.surface}]}>
+            Signing in...
+          </Text>
+        </View>
+      )}
     </>
   );
 };
@@ -463,15 +800,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
   registerText: {
     fontSize: 16,
     marginLeft: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  clickableItem: {
+    opacity: 0.9,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  infoItem: {
+    opacity: 0.7,
+    backgroundColor: 'transparent',
+  },
+  infoBox: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    margin: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  infoContent: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  infoDescription: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  infoDivider: {
+    marginVertical: 8,
+    opacity: 0.2,
+  },
+  subheader: {
+    fontSize: 14,
+    fontWeight: '600',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  sectionDivider: {
+    marginVertical: 8,
   },
 });
 

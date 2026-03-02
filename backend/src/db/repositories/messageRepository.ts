@@ -134,7 +134,7 @@ export class SQLiteMessageRepository implements MessageRepository {
         }
       }
 
-      query += ' ORDER BY timestamp ASC';
+      query += ' ORDER BY timestamp DESC';
 
       if (pagination) {
         query += ' LIMIT ? OFFSET ?';
@@ -173,23 +173,39 @@ export class SQLiteMessageRepository implements MessageRepository {
     total: number;
   }> {
     try {
+      logger.debug('[Repository] Getting conversation timeline:', {
+        userId,
+        matchId,
+        pagination,
+      });
+
       // Get all messages
       const {messages} = await this.getMessagesByMatch(userId, matchId);
 
-      // Sort by timestamp
-      const sortedMessages = messages.sort(
-        (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-      );
+      logger.debug('[Repository] Retrieved messages from database:', {
+        userId,
+        matchId,
+        totalMessages: messages.length,
+        messageIds: messages.map(m => m.id),
+      });
 
-      // Apply pagination
+      // DO NOT sort ascending. Paginate on the original (DESC) order from DB.
       const start = pagination?.offset || 0;
       const end = pagination?.limit ? start + pagination.limit : undefined;
-      const paginatedMessages = sortedMessages.slice(start, end);
+      const paginatedMessages = messages.slice(start, end);
+
+      logger.debug('[Repository] Paginated messages:', {
+        userId,
+        matchId,
+        start,
+        end,
+        paginatedCount: paginatedMessages.length,
+        paginatedIds: paginatedMessages.map(m => m.id),
+      });
 
       return {
         items: paginatedMessages,
-        total: sortedMessages.length,
+        total: messages.length,
       };
     } catch (error) {
       logger.error('Failed to get conversation timeline', {

@@ -29,7 +29,11 @@ export interface User {
   };
   deviceToken?: string;
   installationId?: string;
-  createdAt: string;
+  deleted?: boolean;
+  createdAt?: string;
+  totalCost?: number;
+  totalTokens?: number;
+  lastCostUpdate?: string;
 }
 
 export interface Message {
@@ -45,6 +49,14 @@ export interface Message {
   timestamp: string;
   imageData?: string;
   promptVariant?: PromptVariant;
+  model?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  inputCost?: number;
+  outputCost?: number;
+  totalCost?: number;
+  costTimestamp?: string;
 }
 
 export interface MessageCost {
@@ -106,11 +118,24 @@ export interface Database {
     installationId?: string;
   }) => Promise<User | null>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
   incrementMessageCount: (userId: string) => Promise<boolean>;
   resetDailyMessageCounts: () => Promise<void>;
   addExtraMessages: (userId: string, count: number) => Promise<void>;
   updateUserPlan: (userId: string, plan: SubscriptionTier) => Promise<void>;
   getUsersWithDeviceToken: () => Promise<User[]>;
+  updateUserCosts: (
+    userId: string,
+    cost: {
+      totalCost: number;
+      totalTokens: number;
+    },
+  ) => Promise<void>;
+  getUserCosts: (userId: string) => Promise<{
+    totalCost: number;
+    totalTokens: number;
+    lastCostUpdate?: string;
+  }>;
   saveMessage: (
     userId: string,
     matchId: string,
@@ -124,6 +149,37 @@ export interface Database {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
+    },
+  ) => Promise<Message>;
+  createMessage: (
+    userId: string,
+    matchId: string,
+    message: {
+      role: MessageRole;
+      type?: MessageType;
+      mode?: MessageMode;
+      used?: boolean;
+      replyTo?: number;
+      content: string;
+      timestamp: string;
+      imageData?: string;
+      promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ) => Promise<Message>;
   getMessages: (
@@ -191,4 +247,9 @@ export interface Database {
       status: SupportTicket['status'],
     ) => Promise<void>;
   };
+
+  linkUsers: (
+    anonymousUserId: string,
+    registeredUserId: string,
+  ) => Promise<void>;
 }

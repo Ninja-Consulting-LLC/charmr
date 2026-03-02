@@ -2,6 +2,7 @@ import express from 'express';
 import {createSupportTicket} from '../controllers/supportController';
 import {getDatabase} from '../db';
 import {authenticateUser} from '../middleware';
+import logger from '../utils/logger';
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
 router.post(
   '/',
   (req, res, next) => {
-    console.log(`[${new Date().toISOString()}] [Support] Support route hit:`, {
+    logger.debug(`[${new Date().toISOString()}] [Support] Support route hit:`, {
       path: req.path,
       method: req.method,
       body: req.body,
@@ -18,7 +19,7 @@ router.post(
   },
   authenticateUser,
   async (req, res, next) => {
-    console.log(
+    logger.debug(
       `[${new Date().toISOString()}] [Support] Route handler reached`,
     );
     try {

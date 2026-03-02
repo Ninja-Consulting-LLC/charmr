@@ -1,14 +1,14 @@
-import {createApp} from './app';
-import {config} from './config/config';
-import {resetMessageCounts} from './cron/resetMessageCounts';
-import {getDatabase} from './db';
-import {logEnvironmentVariables} from './utils/envUtils';
+import { createApp } from './app';
+import { config } from './config/config';
+import { resetMessageCounts } from './cron/resetMessageCounts';
+import { getDatabase } from './db';
+import { getEnvironmentInfo } from './utils/envUtils';
 import logger from './utils/logger';
 
 const startServer = async () => {
   try {
     // Log environment variables and configuration
-    logEnvironmentVariables();
+    getEnvironmentInfo();
 
     const app = await createApp();
     const port = config.server.port;

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createUser,
+  deleteUser,
   getMessageCosts,
   getUser,
   getUserByInstallationId,
@@ -12,6 +13,7 @@ import {
   resetDb,
   resetUserMessageLimit,
   testContext,
+  updateUser,
   updateUserPlan,
 } from '../controllers/adminController';
 import {Database} from '../db/types';
@@ -44,6 +46,8 @@ const createAdminRouter = (db: Database) => {
       res.status(400).json({error: 'Failed to create user'});
     }
   });
+  router.put('/users/:userId', (req, res) => updateUser(req, res, db));
+  router.delete('/users/:userId', (req, res) => deleteUser(req, res, db));
   router.put('/users/:userId/plan', (req, res) => updateUserPlan(req, res, db));
   router.post('/users/link', (req, res) => linkAnonymousUser(req, res, db));
   router.post('/users/:userId/reset-message-limit', (req, res) =>

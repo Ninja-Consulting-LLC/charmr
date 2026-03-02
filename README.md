@@ -8,6 +8,13 @@ A React Native keyboard extension that uses AI to help users craft better dating
 - `backend/` - Backend server code
 - `ios/` - iOS native code
 - `android/` - Android native code
+- `docs/` - Project documentation
+
+## Documentation
+
+- [Keyboard Implementation](docs/KEYBOARD_IMPLEMENTATION.md) - Details about keyboard extension implementation
+- [API Documentation](docs/API.md) - Backend API endpoints and functionality
+- [Response Generation Scenarios](docs/response-generation-scenarios.md) - AI response generation scenarios
 
 ## Prerequisites
 
@@ -178,19 +185,12 @@ npm run android
 
 ### Development Features
 
-#### Sandbox Mode
-
-- Mock API responses
-- Simulated rate limits
-- Development data generation
-- Test user creation
-
 #### Dev Menu
 
-- Toggle development features
 - Clear local storage
 - Reset message counts
 - View debug information
+- Test rate limiting
 
 ## Conversation Context
 

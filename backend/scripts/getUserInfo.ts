@@ -1,7 +1,7 @@
 import {Firestore} from 'firebase-admin/firestore';
-import {firebaseAdmin} from '../config/firebase-admin';
-import {createSqliteDatabase} from '../db/sqlite';
-import {Database} from '../db/types';
+import {firebaseAdmin} from '../src/config/firebase-admin';
+import {createSqliteDatabase} from '../src/db/sqlite';
+import {Database} from '../src/db/types';
 
 const userId = process.argv[2];
 const useFirestore = process.argv.includes('--firestore');
@@ -24,19 +24,19 @@ const fetchUserInfoFromSqlite = async () => {
       process.exit(1);
     }
 
-    // Get messages with their costs
+    // Get messages with their embedded cost data
     const messages = await db.all(
       `SELECT
         m.id, m.userId, m.matchId, m.role, m.content, m.timestamp,
-        COALESCE(mc.model, '') as model,
-        COALESCE(mc.promptTokens, 0) as promptTokens,
-        COALESCE(mc.completionTokens, 0) as completionTokens,
-        COALESCE(mc.totalTokens, 0) as totalTokens,
-        COALESCE(mc.inputCost, 0) as inputCost,
-        COALESCE(mc.outputCost, 0) as outputCost,
-        COALESCE(mc.totalCost, 0) as totalCost
+        COALESCE(m.model, '') as model,
+        COALESCE(m.promptTokens, 0) as promptTokens,
+        COALESCE(m.completionTokens, 0) as completionTokens,
+        COALESCE(m.totalTokens, 0) as totalTokens,
+        COALESCE(m.inputCost, 0) as inputCost,
+        COALESCE(m.outputCost, 0) as outputCost,
+        COALESCE(m.totalCost, 0) as totalCost,
+        COALESCE(m.costTimestamp, '') as costTimestamp
        FROM messages m
-       LEFT JOIN message_costs mc ON m.id = mc.messageId
        WHERE m.userId = ?
        ORDER BY m.timestamp DESC`,
       [userId],
@@ -81,14 +81,16 @@ const fetchUserInfoFromSqlite = async () => {
       [userId],
     );
 
-    // Calculate total costs
-    const [totalCosts] = await db.all(
+    // Get user cost totals from the new user-level tracking
+    const userCosts = await db.getUserCosts(userId);
+
+    // Also calculate costs from embedded message data for comparison
+    const [embeddedCosts] = await db.all(
       `SELECT
-         COALESCE(SUM(mc.totalCost), 0) as totalCost,
-         COALESCE(SUM(mc.totalTokens), 0) as totalTokens,
-         COUNT(DISTINCT mc.messageId) as messageCount
+         COALESCE(SUM(m.totalCost), 0) as totalCost,
+         COALESCE(SUM(m.totalTokens), 0) as totalTokens,
+         COUNT(DISTINCT CASE WHEN m.totalCost > 0 THEN m.id END) as messageCount
        FROM messages m
-       LEFT JOIN message_costs mc ON m.id = mc.messageId
        WHERE m.userId = ?`,
       [userId],
     );
@@ -106,6 +108,9 @@ const fetchUserInfoFromSqlite = async () => {
         extraMessages: user.extraMessages,
         lastResetDate: user.lastResetDate,
         installationId: user.installationId,
+        totalCost: userCosts.totalCost,
+        totalTokens: userCosts.totalTokens,
+        lastCostUpdate: userCosts.lastCostUpdate,
         firebaseData: {
           email: firebaseUser.email,
           emailVerified: firebaseUser.emailVerified,
@@ -119,8 +124,8 @@ const fetchUserInfoFromSqlite = async () => {
         userMessages: totalUserMessages,
         assistantMessages: totalAssistantMessages,
         systemMessages: totalSystemMessages,
-        totalCost: totalCosts?.totalCost || 0,
-        totalTokens: totalCosts?.totalTokens || 0,
+        totalCost: userCosts.totalCost,
+        totalTokens: userCosts.totalTokens,
         dailyUsage,
         matchStats,
       },
@@ -138,11 +143,15 @@ const fetchUserInfoFromSqlite = async () => {
         inputCost: msg.inputCost || 0,
         outputCost: msg.outputCost || 0,
         totalCost: msg.totalCost || 0,
+        costTimestamp: msg.costTimestamp || '',
       })),
       costs: {
-        total: totalCosts?.totalCost || 0,
-        totalTokens: totalCosts?.totalTokens || 0,
-        messageCount: totalCosts?.messageCount || 0,
+        user: userCosts,
+        embedded: {
+          total: embeddedCosts?.totalCost || 0,
+          totalTokens: embeddedCosts?.totalTokens || 0,
+          messageCount: embeddedCosts?.messageCount || 0,
+        },
       },
     };
 
@@ -165,6 +174,7 @@ const fetchUserInfoFromFirestore = async () => {
       process.exit(1);
     }
     const user = userDoc.data();
+
     // Get matches subcollection
     const matchesSnap = await firestore
       .collection('users')
@@ -172,8 +182,44 @@ const fetchUserInfoFromFirestore = async () => {
       .collection('matches')
       .get();
     const matches = matchesSnap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    // Get Firebase Auth user
-    const firebaseUser = await firebaseAdmin.auth().getUser(userId);
+
+    // Get messages from all matches
+    const allMessages: any[] = [];
+    for (const match of matches) {
+      const messagesSnap = await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('matches')
+        .doc(match.id)
+        .collection('messages')
+        .get();
+      const matchMessages = messagesSnap.docs.map(doc => ({
+        id: doc.id,
+        matchId: match.id,
+        ...doc.data(),
+      }));
+      allMessages.push(...matchMessages);
+    }
+
+    // Calculate message counts
+    const totalUserMessages = allMessages.filter(m => m.role === 'user').length;
+    const totalAssistantMessages = allMessages.filter(
+      m => m.role === 'assistant',
+    ).length;
+    const totalSystemMessages = allMessages.filter(
+      m => m.role === 'system',
+    ).length;
+
+    // Get Firebase Auth user (optional - user might not exist in Auth)
+    let firebaseUser = null;
+    try {
+      firebaseUser = await firebaseAdmin.auth().getUser(userId);
+    } catch (error) {
+      console.log(
+        'User not found in Firebase Auth (this is normal for test users)',
+      );
+    }
+
     // Compose output similar to SQLite
     const userInfo = {
       user: {
@@ -185,18 +231,62 @@ const fetchUserInfoFromFirestore = async () => {
         extraMessages: user?.extraMessages,
         lastResetDate: user?.lastResetDate,
         installationId: user?.installationId,
-        firebaseData: {
-          email: firebaseUser.email,
-          emailVerified: firebaseUser.emailVerified,
-          disabled: firebaseUser.disabled,
-          metadata: firebaseUser.metadata,
-          customClaims: firebaseUser.customClaims,
-        },
+        totalCost: user?.totalCost || 0,
+        totalTokens: user?.totalTokens || 0,
+        lastCostUpdate: user?.lastCostUpdate,
+        firebaseData: firebaseUser
+          ? {
+              email: firebaseUser.email,
+              emailVerified: firebaseUser.emailVerified,
+              disabled: firebaseUser.disabled,
+              metadata: firebaseUser.metadata,
+              customClaims: firebaseUser.customClaims,
+            }
+          : null,
       },
       usage: {
-        // Firestore doesn't have messages/costs unless you store them, so just show matches count
+        totalMessages: allMessages.length,
+        userMessages: totalUserMessages,
+        assistantMessages: totalAssistantMessages,
+        systemMessages: totalSystemMessages,
+        totalCost: user?.totalCost || 0,
+        totalTokens: user?.totalTokens || 0,
         totalMatches: matches.length,
         matches,
+      },
+      messages: allMessages.map(msg => ({
+        id: msg.id,
+        userId: msg.userId,
+        matchId: msg.matchId,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        model: msg.model || '',
+        promptTokens: msg.promptTokens || 0,
+        completionTokens: msg.completionTokens || 0,
+        totalTokens: msg.totalTokens || 0,
+        inputCost: msg.inputCost || 0,
+        outputCost: msg.outputCost || 0,
+        totalCost: msg.totalCost || 0,
+        costTimestamp: msg.costTimestamp || '',
+      })),
+      costs: {
+        user: {
+          totalCost: user?.totalCost || 0,
+          totalTokens: user?.totalTokens || 0,
+          lastCostUpdate: user?.lastCostUpdate,
+        },
+        embedded: {
+          total: allMessages.reduce(
+            (sum, msg) => sum + (msg.totalCost || 0),
+            0,
+          ),
+          totalTokens: allMessages.reduce(
+            (sum, msg) => sum + (msg.totalTokens || 0),
+            0,
+          ),
+          messageCount: allMessages.filter(msg => msg.totalCost > 0).length,
+        },
       },
     };
     console.log(JSON.stringify(userInfo, null, 2));

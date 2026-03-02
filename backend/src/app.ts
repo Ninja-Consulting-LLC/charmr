@@ -6,14 +6,20 @@ import morgan from 'morgan';
 import {config} from './config/config';
 import {
   createUser,
+  deleteUser,
   getUser,
   getUserByInstallationId,
   linkAnonymousUser,
+  updateUser,
   updateUserPlan,
 } from './controllers/adminController';
 import {checkSchemaHealth} from './controllers/devController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
+import {
+  createDeviceTokenLimiter,
+  createUserCreationLimiter,
+} from './middleware';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
 import {requestLogger} from './middleware/requestLogger';
@@ -126,18 +132,41 @@ export const createApp = async () => {
   const notificationService = createNotificationService(db);
 
   // Schedule notification checks for each type
-  Object.keys(NOTIFICATION_CONFIGS).forEach(notificationType => {
-    setInterval(() => {
+  Object.entries(NOTIFICATION_CONFIGS).forEach(([type, config]) => {
+    // Skip disabled notification types (those with very long intervals)
+    if (config.checkInterval >= 365 * 24 * 60 * 60 * 1000) {
+      logger.debug('Skipping notification check scheduling for disabled type', {
+        type,
+        checkInterval: config.checkInterval,
+      });
+      return;
+    }
+
+    // Schedule the first check after the initial interval
+    setTimeout(() => {
       notificationService
-        .checkAndSendNotifications(notificationType as NotificationType)
+        .checkAndSendNotifications(type as NotificationType)
         .catch(error => {
           logger.error('Failed to run notification check', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
-            notificationType,
+            notificationType: type,
           });
         });
-    }, NOTIFICATION_CONFIGS[notificationType as NotificationType].checkInterval);
+
+      // Then set up the recurring interval
+      setInterval(() => {
+        notificationService
+          .checkAndSendNotifications(type as NotificationType)
+          .catch(error => {
+            logger.error('Failed to run notification check', {
+              error: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined,
+              notificationType: type,
+            });
+          });
+      }, config.checkInterval);
+    }, config.checkInterval);
   });
 
   // Initialize controllers
@@ -152,12 +181,19 @@ export const createApp = async () => {
   app.get('/api/users/:userId', authenticateUser, (req, res) =>
     getUser(req, res, db),
   );
+  app.put('/api/users/:userId', authenticateUser, (req, res) =>
+    updateUser(req, res, db),
+  );
+  app.delete('/api/users/:userId', authenticateUser, (req, res) =>
+    deleteUser(req, res, db),
+  );
   app.put('/api/users/:userId/plan', authenticateUser, (req, res) =>
     updateUserPlan(req, res, db),
   );
   app.put(
     '/api/users/:userId/device-token',
     authenticateUser,
+    createDeviceTokenLimiter(),
     async (req, res) => {
       try {
         const {deviceToken} = req.body;
@@ -189,28 +225,33 @@ export const createApp = async () => {
   app.post('/api/users/link', authenticateUser, (req, res) =>
     linkAnonymousUser(req, res, db),
   );
-  app.post('/api/users', authenticateUser, async (req, res) => {
-    const user = await createUser(db, {
-      id: req.body.id,
-      email: req.body.email,
-      name: req.body.name,
-      plan: req.body.plan,
-      installationId: req.body.installationId,
-    });
-    if (user) {
-      res.status(201).json(user);
-    } else {
-      res.status(400).json({error: 'Failed to create user'});
-    }
-  });
+  app.post(
+    '/api/users',
+    authenticateUser,
+    createUserCreationLimiter(),
+    async (req, res) => {
+      const user = await createUser(db, {
+        id: req.body.id,
+        email: req.body.email,
+        name: req.body.name,
+        plan: req.body.plan,
+        installationId: req.body.installationId,
+      });
+      if (user) {
+        res.status(201).json(user);
+      } else {
+        res.status(400).json({error: 'Failed to create user'});
+      }
+    },
+  );
   app.post('/api/generate-reply', authenticateUser, (req, res) => {
-    logger.info('Route instantiated: POST /api/generate-reply');
+    logger.debug('Route instantiated: POST /api/generate-reply');
     return replyController.generateReplyHandler(req, res);
   });
 
   app.post('/api/support', authenticateUser, async (req, res) => {
-    console.log('RAW SUPPORT REQUEST BODY:', req.body);
-    logger.info('Route instantiated: POST /api/support');
+    logger.debug('RAW SUPPORT REQUEST BODY:', req.body);
+    logger.debug('Route instantiated: POST /api/support');
     try {
       const supportRequest: SupportRequest = req.body;
       await supportEmailService.sendSupportRequest(supportRequest);
@@ -263,7 +304,7 @@ export const createApp = async () => {
       return `${methods} ${r.route.path}`;
     });
 
-  logger.info('Available routes:', {routes});
+  logger.debug('Available routes:', {routes});
 
   // Error handling middleware
   app.use(

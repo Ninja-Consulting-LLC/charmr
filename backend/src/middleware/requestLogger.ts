@@ -10,7 +10,7 @@ export const requestLogger = (
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logger.info('Request completed', {
+    logger.debug('Request completed', {
       method: req.method,
       url: req.url,
       status: res.statusCode,

@@ -9,7 +9,6 @@ import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply, resetDb, testContext} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
-import {simulateProEntitlement} from '../services/revenueCatService';
 import {useStore} from '../store';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
@@ -100,7 +99,7 @@ const DevMenu = () => {
   const handleResetOnboarding = async () => {
     try {
       await DevUtils.resetOnboarding();
-      Alert.alert('Development', 'Onboarding status reset');
+      Alert.alert('Development', 'Onboarding reset successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to reset onboarding');
     }
@@ -128,23 +127,12 @@ const DevMenu = () => {
   const handleInspectStorage = async () => {
     try {
       await DevUtils.inspectStorage();
-      Alert.alert('Development', 'Storage contents logged to console');
-    } catch (error) {
-      Alert.alert('Development Error', 'Failed to inspect storage');
-    }
-  };
-
-  const handleToggleSandboxMode = async (value: boolean) => {
-    try {
-      await DevUtils.toggleSandboxMode();
-      const newMode = await DevUtils.isSandboxMode();
-      setIsSandboxMode(newMode);
       Alert.alert(
         'Development',
-        `Sandbox mode ${newMode ? 'enabled' : 'disabled'}`,
+        'Storage inspection completed. Check logs for details.',
       );
     } catch (error) {
-      Alert.alert('Development Error', 'Failed to toggle sandbox mode');
+      Alert.alert('Development Error', 'Failed to inspect storage');
     }
   };
 
@@ -233,7 +221,7 @@ const DevMenu = () => {
         },
       );
 
-      logger.app.info('Reset message limit response', response.data);
+      logger.app.debug('Reset message limit response', response.data);
 
       // Fetch fresh user data from backend
       const userResponse = await axiosInstance.get(
@@ -284,22 +272,6 @@ const DevMenu = () => {
       Alert.alert('Development', 'Firestore database reset successfully');
     } catch (error) {
       Alert.alert('Development Error', 'Failed to reset Firestore database');
-    }
-  };
-
-  const handleSimulateProEntitlement = async () => {
-    if (!userId) {
-      Alert.alert('Error', 'No user ID available');
-      return;
-    }
-
-    try {
-      await simulateProEntitlement(userId);
-      await updateUserPlan(SubscriptionTier.PRO);
-      Alert.alert('Success', 'Pro entitlement simulated successfully');
-    } catch (error) {
-      console.error('Failed to simulate pro entitlement:', error);
-      Alert.alert('Error', 'Failed to simulate pro entitlement');
     }
   };
 
@@ -390,10 +362,7 @@ const DevMenu = () => {
 
             <View style={styles.toggleContainer}>
               <Text>Sandbox Mode (No ChatGPT)</Text>
-              <Switch
-                value={isSandboxMode}
-                onValueChange={handleToggleSandboxMode}
-              />
+              <Switch value={isSandboxMode} onValueChange={() => {}} />
             </View>
 
             <View style={styles.buttonContainer}>
@@ -488,16 +457,6 @@ const DevMenu = () => {
                     Pro
                   </Button>
                 </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>RevenueCat Testing</Text>
-                <Button
-                  mode="contained"
-                  onPress={handleSimulateProEntitlement}
-                  style={styles.button}>
-                  Simulate Pro Subscription
-                </Button>
               </View>
 
               <View style={styles.section}>

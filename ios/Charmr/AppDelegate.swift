@@ -7,6 +7,15 @@ import FirebaseMessaging
 import GoogleSignIn
 import FBSDKCoreKit
 import UserNotifications
+import StoreKit
+
+// Dummy usage to satisfy StoreKit 2 API presence
+@available(iOS 15.0, *)
+func _dummyStoreKit2Usage() {
+    Task {
+        let _ = try? await Product.products(for: ["com.ninjadating.charmr.Monthly"])
+    }
+}
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {

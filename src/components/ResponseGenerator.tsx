@@ -26,12 +26,16 @@ import {theme} from '../theme/theme';
 import {MessageMode, SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
+import {getPlanLimits} from '../utils/planLimits';
 import ImageSelector from './ImageSelector';
+import LoginModal from './LoginModal';
 import MatchSelectorModal from './MatchSelector';
 import MessagePackModal from './MessagePackModal';
 import PermissionHelpModal from './PermissionHelpModal';
 import PhotoAccessBanner from './PhotoAccessBanner';
+import PurchaseSuccessModal from './PurchaseSuccessModal';
 import ReplyModal from './ReplyModal';
+import TryAgainModal from './TryAgainModal';
 import UpgradeModal from './UpgradeModal';
 
 export interface ResponseGeneratorRef {
@@ -74,7 +78,7 @@ const DATING_COACH_ENABLED_KEY = '@charmr/dating_coach_enabled';
 const ResponseGenerator = forwardRef<
   ResponseGeneratorRef,
   ResponseGeneratorProps
->(({navigation}, ref) => {
+>(({navigation}: ResponseGeneratorProps, ref) => {
   const {
     userId,
     skipRateLimiting,
@@ -90,6 +94,7 @@ const ResponseGenerator = forwardRef<
     deleteScreenshots,
     setDeleteScreenshots,
     setMatches,
+    handleProviderLogin,
   } = useStore();
   const {images, setImages, pickImages, openSettings} = useImagePicker();
 
@@ -105,7 +110,12 @@ const ResponseGenerator = forwardRef<
   const [showMessagePackModal, setShowMessagePackModal] = useState(false);
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showPermissionHelp, setShowPermissionHelp] = useState(false);
+  const [showPurchaseSuccess, setShowPurchaseSuccess] = useState(false);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showTryAgainModal, setShowTryAgainModal] = useState(false);
 
   // Custom hooks
   const {response, loading, error, errorType, generateResponse, resetResponse} =
@@ -114,6 +124,11 @@ const ResponseGenerator = forwardRef<
       selectedMatch,
       userPlan: user?.plan || SubscriptionTier.FREE,
       mode: MessageMode.GENERATE,
+      onMessageLimitReached: () => {
+        setShowUpgradeModal(true);
+        setShowMessagePackModal(false);
+        setShowReplyModal(false);
+      },
     });
 
   useImperativeHandle(ref, () => ({
@@ -131,6 +146,9 @@ const ResponseGenerator = forwardRef<
       setShowUpgradeModal(true);
       setShowMessagePackModal(false);
       setShowReplyModal(false);
+    } else if (errorType === 'TIMEOUT_ERROR') {
+      setShowTryAgainModal(true);
+      setShowReplyModal(false);
     } else if (response) {
       setShowReplyModal(true);
       setShowMessagePackModal(false);
@@ -143,21 +161,6 @@ const ResponseGenerator = forwardRef<
     }
   }, [response, error, errorType]);
 
-  // Log when matches change
-  useEffect(() => {
-    console.log(
-      '[DEBUG] matches updated:',
-      matches.map(m => ({id: m.id, name: m.name, lastUsed: m.lastUsed})),
-    );
-  }, [matches]);
-
-  // Log when modal is opened
-  useEffect(() => {
-    if (showMatchSelector) {
-      console.log('[DEBUG] MatchSelectorModal opened');
-    }
-  }, [showMatchSelector]);
-
   const handleAddMatchFromSelector = async (name: string, platform: string) => {
     try {
       const newMatch = await addMatchUtil(name, platform);
@@ -165,7 +168,7 @@ const ResponseGenerator = forwardRef<
         await loadMatches(); // Reload matches to ensure UI is in sync
       }
     } catch (error) {
-      console.error('Error adding match:', error);
+      logger.app.error('Error adding match:', error);
     }
   };
 
@@ -179,7 +182,7 @@ const ResponseGenerator = forwardRef<
         }
       }
     } catch (error) {
-      console.error('Error deleting match:', error);
+      logger.app.error('Error deleting match:', error);
     }
   };
 
@@ -283,7 +286,13 @@ const ResponseGenerator = forwardRef<
     }
 
     try {
-      setShowReplyModal(true);
+      // Check if user has hit their message limit
+      if (user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)) {
+        setShowUpgradeModal(true);
+        return;
+      }
+
+      setShowReplyModal(true); // Only show reply modal if user hasn't hit their limit
       await generateResponse(prompt);
     } catch (error) {
       console.error('Error generating response:', error);
@@ -307,7 +316,16 @@ const ResponseGenerator = forwardRef<
   };
 
   const handleUpgrade = (tier: SubscriptionTier) => {
+    setUser({
+      ...user,
+      plan: tier,
+      getDailyMessageLimit: () => getPlanLimits(tier),
+    });
     setShowUpgradeModal(false);
+    setShowPurchaseSuccess(true);
+    if (user?.email === user?.installationId) {
+      setShowRegistrationPrompt(true);
+    }
   };
 
   const handleGenerateNew = () => {
@@ -383,6 +401,11 @@ const ResponseGenerator = forwardRef<
     }
   };
 
+  const handleTryAgain = () => {
+    setShowTryAgainModal(false);
+    generateResponse(prompt);
+  };
+
   return (
     <View style={styles.container} testID="response-generator-container">
       <PhotoAccessBanner
@@ -402,7 +425,7 @@ const ResponseGenerator = forwardRef<
               />
             )}
             style={styles.datingCoachButton}
-            textColor={theme.colors.surface}>
+            textColor={theme.colors.primary}>
             Try Our Dating Coach
           </Button>
           <IconButton
@@ -446,7 +469,8 @@ const ResponseGenerator = forwardRef<
             <Button
               mode="contained"
               onPress={handleSubmit}
-              style={styles.generateButton}>
+              style={styles.generateButton}
+              textColor={theme.colors.primary}>
               Generate Response
             </Button>
           )}
@@ -461,9 +485,7 @@ const ResponseGenerator = forwardRef<
           setShowScreenshotUpgrade(false);
         }}
         onUpgrade={handleUpgrade}
-        showRateLimitMessage={
-          user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)
-        }
+        showRateLimitMessage={errorType === 'MESSAGE_LIMIT'}
         showScreenshotMessage={showScreenshotUpgrade}
       />
 
@@ -495,6 +517,35 @@ const ResponseGenerator = forwardRef<
       <PermissionHelpModal
         visible={showPermissionHelp}
         onDismiss={() => setShowPermissionHelp(false)}
+      />
+
+      <PurchaseSuccessModal
+        visible={showPurchaseSuccess}
+        onDismiss={() => {
+          setShowPurchaseSuccess(false);
+          setShowRegistrationPrompt(false);
+        }}
+        showRegistrationPrompt={showRegistrationPrompt}
+        onRegisterPress={() => {
+          setShowPurchaseSuccess(false);
+          setShowLoginModal(true);
+        }}
+      />
+
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+          navigation.navigate('Home');
+        }}
+        onLoadingChange={setIsLoading}
+        handleProviderLogin={handleProviderLogin}
+      />
+
+      <TryAgainModal
+        visible={showTryAgainModal}
+        onDismiss={() => setShowTryAgainModal(false)}
       />
 
       <Snackbar
