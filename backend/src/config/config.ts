@@ -3,6 +3,17 @@ import {PromptVariant} from '../types';
 
 dotenv.config();
 
+const resolvedEmailPort = process.env.SMTP_PORT || process.env.EMAIL_PORT || '1025';
+const resolvedEmailUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+const resolvedEmailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+const resolvedEmailAuth =
+  resolvedEmailUser && resolvedEmailPass
+    ? {
+        user: resolvedEmailUser,
+        pass: resolvedEmailPass,
+      }
+    : undefined;
+
 export const config = {
   server: {
     port: process.env.PORT || 3001,
@@ -34,15 +45,21 @@ export const config = {
     },
   },
   email: {
-    host: process.env.EMAIL_HOST || 'mailhog',
-    port: parseInt(process.env.EMAIL_PORT || '1025', 10),
-    secure: process.env.EMAIL_SECURE === 'true',
-    auth: {
-      user: process.env.EMAIL_USER || 'test',
-      pass: process.env.EMAIL_PASS || 'test',
-    },
-    defaultFrom: process.env.EMAIL_DEFAULT_FROM || 'noreply@charmr.app',
-    defaultReplyTo: process.env.EMAIL_DEFAULT_REPLY_TO || 'support@charmr.app',
+    host: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'mailhog',
+    port: parseInt(resolvedEmailPort, 10),
+    secure:
+      process.env.EMAIL_SECURE === 'true' ||
+      process.env.SMTP_SECURE === 'true' ||
+      resolvedEmailPort === '465',
+    auth: resolvedEmailAuth,
+    defaultFrom:
+      process.env.SMTP_FROM ||
+      process.env.EMAIL_DEFAULT_FROM ||
+      'noreply@charmr.app',
+    defaultReplyTo:
+      process.env.EMAIL_DEFAULT_REPLY_TO ||
+      process.env.SMTP_FROM ||
+      'support@charmr.app',
   },
   limits: {
     proDailyMessageLimit: parseInt(
