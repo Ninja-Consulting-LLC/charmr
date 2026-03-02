@@ -33,11 +33,27 @@ export const authenticateUser = async (
     headers: {
       authorization: req.headers.authorization ? 'Bearer [REDACTED]' : 'none',
       'x-anonymous-user': req.headers['x-anonymous-user'] || 'none',
+      'x-auth-bypass': req.headers['x-auth-bypass'] || 'none',
       'content-type': req.headers['content-type'],
     },
     cookies: req.cookies,
     body: truncatedBody,
   });
+
+  // Allow public website contact form submissions to hit support endpoint.
+  const isPublicSupportBypassRequest =
+    req.method === 'POST' &&
+    (req.path === '/api/support' || req.path === '/api/support/') &&
+    req.headers['x-auth-bypass'] === 'true';
+
+  if (isPublicSupportBypassRequest) {
+    logger.info('Auth bypass granted for public support request', {
+      path: req.path,
+      method: req.method,
+      origin: req.headers.origin || 'none',
+    });
+    return next();
+  }
 
   // Skip auth in development
   if (config.server.environment === 'development') {
