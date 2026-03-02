@@ -142,7 +142,7 @@ export class FirestoreMatchRepository {
         throw new Error('Match not found');
       }
 
-      logger.info('Found match in Firestore, updating hidden flag', {
+      logger.debug('Found match in Firestore, updating hidden flag', {
         userId,
         matchId,
         currentData: doc.data(),
@@ -153,7 +153,10 @@ export class FirestoreMatchRepository {
         updatedAt: new Date().toISOString(),
       });
 
-      logger.info('Successfully updated match in Firestore', {userId, matchId});
+      logger.debug('Successfully updated match in Firestore', {
+        userId,
+        matchId,
+      });
     } catch (error) {
       logger.error('Failed to hide match in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -210,7 +213,7 @@ export class FirestoreMatchRepository {
     updates: Partial<Match>,
   ): Promise<void> {
     try {
-      logger.info('Attempting to update match in Firestore', {
+      logger.debug('Attempting to update match in Firestore', {
         userId,
         matchId,
         updates,
@@ -239,7 +242,7 @@ export class FirestoreMatchRepository {
         return;
       }
 
-      logger.info('Found match in Firestore, updating fields', {
+      logger.debug('Found match in Firestore, updating fields', {
         userId,
         matchId,
         currentData: doc.data(),
@@ -251,7 +254,7 @@ export class FirestoreMatchRepository {
         updatedAt: new Date().toISOString(),
       });
 
-      logger.info('Successfully updated match in Firestore', {
+      logger.debug('Successfully updated match in Firestore', {
         userId,
         matchId,
         updates: filteredUpdates,

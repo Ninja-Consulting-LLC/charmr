@@ -11,6 +11,7 @@ import {MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
+import {sanitizeImage} from '../utils/sanitizeImage';
 
 interface ChatGptImage {
   type: 'image_url';
@@ -38,30 +39,28 @@ const truncateImageData = (image: string): string => {
 export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
   const openaiService = createOpenAIService();
-  const geminiService = createGeminiService();
+  // const geminiService = createGeminiService();
   const messageRepository = getMessageRepository(db);
   const summaryService = createSummaryService(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
-    const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
+    try {
+      const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-    // 1. Validate prompt
-    if (
-      (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
-      (!images || images.length === 0)
-    ) {
-      return res.status(400).json({error: 'Prompt is required.'});
-    }
+      // 1. Validate prompt
+      if (
+        (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
+        (!images || images.length === 0)
+      ) {
+        return res.status(400).json({error: 'Prompt is required.'});
+      }
 
-    // Main logic as a promise
-    const mainLogic = (async () => {
+      // Main logic
       logger.debug('Generating reply - request payload', {
         userId,
         hasImages: images?.length > 0,
         prompt,
         imageCount: images?.length,
-        sandboxMode: config.openai.sandboxMode,
-        images: images?.map(truncateImageData),
         mode: req.body.mode,
         regenerate: req.body.regenerate,
       });
@@ -73,7 +72,7 @@ export const createReplyController = async (db: Database) => {
           messageLimits.dailyMessagesUsed < messageLimits.dailyMessageLimit ||
           messageLimits.extraMessages > 0;
         if (!canSendMessage) {
-          logger.warn('Message limit reached', {userId, messageLimits});
+          logger.warning('Message limit reached', {userId, messageLimits});
           return res.status(429).json({
             error: 'Message limit reached',
             limits: messageLimits,
@@ -86,8 +85,63 @@ export const createReplyController = async (db: Database) => {
       const user = await db.getUser(userId);
       logger.debug('ReplyController: user lookup', {userId, user});
       if (!user) {
-        logger.error('User not found in generateReplyHandler', {userId, user});
+        logger.error('User not found in generateReplyHandler', {
+          userId,
+          user,
+        });
         return res.status(404).json({error: 'User not found'});
+      }
+
+      // Sanitize images if present
+      let sanitizedImages: string[] = [];
+      let storedImages: string[] = [];
+      if (images?.length > 0) {
+        try {
+          const imagePromises = images.map(async (base64Image: string) => {
+            try {
+              // Convert base64 to buffer
+              const base64Data = base64Image.split(',')[1];
+              const imageBuffer = Buffer.from(base64Data, 'base64');
+
+              // Sanitize image for AI service (strip metadata)
+              const aiSanitized = await sanitizeImage(imageBuffer, {
+                stripMetadata: true,
+              });
+
+              // Sanitize image for storage (preserve metadata)
+              const storedSanitized = await sanitizeImage(imageBuffer, {
+                stripMetadata: false,
+              });
+
+              return {
+                aiImage: `data:image/png;base64,${aiSanitized.buffer.toString(
+                  'base64',
+                )}`,
+                storedImage: `data:image/png;base64,${storedSanitized.buffer.toString(
+                  'base64',
+                )}`,
+              };
+            } catch (error) {
+              logger.error('Error sanitizing image:', error);
+              throw new Error(
+                'Failed to process image. Please try again with a different image.',
+              );
+            }
+          });
+
+          const results = await Promise.all(imagePromises);
+          sanitizedImages = results.map(r => r.aiImage);
+          storedImages = results.map(r => r.storedImage);
+        } catch (error) {
+          logger.error('Error processing images:', error);
+          return res.status(400).json({
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to process images',
+            type: 'IMAGE_PROCESSING_ERROR',
+          });
+        }
       }
 
       // Load conversation history for the specified match if matchId is provided
@@ -146,12 +200,13 @@ export const createReplyController = async (db: Database) => {
         matchSummary = await summaryService.getMatchSummary(userId, matchId);
       }
 
-      // Always use OpenAI service
-      const service = 'openai';
+      // Determine which AI service to use
+      const service = config.ai.defaultService;
+
       logger.debug('Using AI service', {
         service,
-        hasImages: images?.length > 0,
-        imageCount: images?.length,
+        hasImages: sanitizedImages.length > 0,
+        imageCount: sanitizedImages.length,
         requestedModel: req.body.model,
       });
 
@@ -159,7 +214,7 @@ export const createReplyController = async (db: Database) => {
         service === 'openai'
           ? await openaiService.generateReply({
               prompt,
-              images: images || [],
+              images: sanitizedImages,
               userId,
               matchId,
               model: req.body.model,
@@ -168,7 +223,7 @@ export const createReplyController = async (db: Database) => {
               previousMessage: req.body.regenerate ? prompt : undefined,
               matchSummary,
             })
-          : await geminiService.generateReply({
+          : await createGeminiService().generateReply({
               prompt,
               images: [],
               userId,
@@ -207,15 +262,36 @@ export const createReplyController = async (db: Database) => {
         const db = await getDatabase();
         const timestamp = new Date().toISOString();
 
-        // Save the message and its costs
+        // Calculate costs
+        const costBreakdown = calculateCost(
+          req.body.model || config.openai.model,
+          {
+            prompt_tokens: response.usage?.prompt_tokens || 0,
+            completion_tokens: response.usage?.completion_tokens || 0,
+            total_tokens: response.usage?.total_tokens || 0,
+            image_count: sanitizedImages.length || 0,
+          },
+        );
+
+        // Save the message with cost data embedded
         const savedMessage = await appendConversation(
           userId,
           matchId,
           response.reply,
-          images,
+          storedImages, // Use images with preserved metadata for storage
           prompt,
           req.body.mode || MessageMode.GENERATE,
           response.promptVariant,
+          {
+            model: req.body.model || config.openai.model,
+            promptTokens: response.usage?.prompt_tokens || 0,
+            completionTokens: response.usage?.completion_tokens || 0,
+            totalTokens: response.usage?.total_tokens || 0,
+            inputCost: costBreakdown.inputCost,
+            outputCost: costBreakdown.outputCost,
+            totalCost: costBreakdown.totalCost,
+            costTimestamp: timestamp,
+          },
         );
 
         // Save the summary if we have one and a matchId
@@ -227,31 +303,14 @@ export const createReplyController = async (db: Database) => {
           );
         }
 
-        // Calculate costs
-        const costBreakdown = calculateCost(
-          req.body.model || config.openai.model,
-          {
-            prompt_tokens: response.usage?.prompt_tokens || 0,
-            completion_tokens: response.usage?.completion_tokens || 0,
-            total_tokens: response.usage?.total_tokens || 0,
-            image_count: images?.length || 0,
-          },
-        );
-
-        // Save message cost
-        await db.saveMessageCost(savedMessage.id, {
-          model: req.body.model || config.openai.model,
-          promptTokens: response.usage?.prompt_tokens || 0,
-          completionTokens: response.usage?.completion_tokens || 0,
-          totalTokens: response.usage?.total_tokens || 0,
-          inputCost: costBreakdown.inputCost,
-          outputCost: costBreakdown.outputCost,
+        // Update user cost totals
+        await db.updateUserCosts(userId, {
           totalCost: costBreakdown.totalCost,
-          timestamp: new Date().toISOString(),
+          totalTokens: response.usage?.total_tokens || 0,
         });
       }
 
-      logger.info('Reply generated successfully', {
+      logger.debug('Reply generated successfully', {
         userId,
         matchId,
         replyLength: response.reply.length,
@@ -260,7 +319,7 @@ export const createReplyController = async (db: Database) => {
       // Increment message count after successful assistant reply
       const success = await messageLimitService.incrementMessageCount(userId);
       if (!success) {
-        logger.warn('Failed to increment message count', {userId});
+        logger.warning('Failed to increment message count', {userId});
         return res.status(500).json({
           error: 'Failed to update message count',
           type: 'MESSAGE_COUNT_ERROR',
@@ -279,22 +338,10 @@ export const createReplyController = async (db: Database) => {
         usage: response.usage,
         limits: updatedLimits,
       });
-    })();
-
-    // Handle any errors in the main logic
-    mainLogic.catch(error => {
-      logger.error('Error in generateReplyHandler', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-
-      if (res.headersSent) return;
-
-      res.status(500).json({
-        error: 'An unexpected error occurred',
-        type: 'UNKNOWN_ERROR',
-      });
-    });
+    } catch (error) {
+      console.error('Error generating reply:', error);
+      return res.status(500).json({error: 'Failed to generate reply'});
+    }
   };
 
   return {

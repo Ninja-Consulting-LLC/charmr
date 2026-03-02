@@ -17,11 +17,12 @@ target 'Charmr' do
   )
 
   # Specify the version of PurchasesHybridCommon
-  pod 'PurchasesHybridCommon', '13.29.1'
+  pod 'PurchasesHybridCommon', '13.29.1' # react-native-purchases v8.9.6 required
 
   # 🔐 Firebase Auth + Google Sign-In (NO modular headers!)
   pod 'Firebase/Auth'
   pod 'Firebase/Messaging'
+  pod 'Firebase/RemoteConfig'
   pod 'GoogleSignIn'
 
   # Facebook SDK

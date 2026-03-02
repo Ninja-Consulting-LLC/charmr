@@ -107,7 +107,7 @@ export const clearAuthData = async (): Promise<void> => {
       '@charmr/lastResetDate',
     ]);
 
-    logger.app.info('Cleared all auth-related data');
+    logger.app.debug('Cleared all auth-related data');
   } catch (error) {
     logger.app.error('Error clearing auth data:', {
       error: error instanceof Error ? error.message : 'Unknown error',

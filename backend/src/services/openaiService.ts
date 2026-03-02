@@ -11,26 +11,18 @@ import {ErrorType, MessageMode, SubscriptionTier} from '../types/enums';
 import {loadConversation, Message} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
-import {createSandboxService} from './sandboxService';
+import {createSummaryService} from './summaryService';
 
 export const createOpenAIService = () => {
-  if (!config.openai.apiKey && !config.openai.sandboxMode) {
-    throw new Error('OPENAI_API_KEY is required when not in sandbox mode');
+  if (!config.openai.apiKey) {
+    throw new Error('OPENAI_API_KEY is required');
   }
 
-  const openai = config.openai.sandboxMode
-    ? null
-    : new OpenAI({apiKey: config.openai.apiKey});
-
-  const sandboxService = createSandboxService();
+  const openai = new OpenAI({apiKey: config.openai.apiKey});
 
   const generateReply = async (
     request: GenerateReplyRequest,
   ): Promise<GenerateReplyResponse> => {
-    if (config.openai.sandboxMode) {
-      return sandboxService.generateReply(request);
-    }
-
     if (!openai) throw new Error('OpenAI client not initialized');
 
     try {
@@ -44,36 +36,56 @@ export const createOpenAIService = () => {
           )
         : [];
 
-      // For COACH mode, limit conversation history and only include user/assistant messages
+      // For both COACH and GENERATE modes, include user/assistant messages and summary
       let contextMessage = '';
-      if (request.mode === MessageMode.COACH) {
-        const recentMessages = conversationHistory
-          .filter(
-            (msg: Message) => msg.role === 'user' || msg.role === 'assistant',
-          )
-          .slice(-config.openai.maxCoachMessages);
 
-        contextMessage = recentMessages
-          .map(
-            (msg: Message) =>
-              `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`,
-          )
-          .join('\n\n');
-      } else {
-        // For other modes, keep existing behavior
-        const previousAssistantMessages = conversationHistory
-          .filter((msg: Message) => msg.role === 'assistant')
-          .map((msg, i) => `Assistant ${i + 1}: ${msg.content}`)
-          .join('\n');
+      // Get the match summary if we have a matchId and we're in chat screen
+      let matchSummary: string | undefined;
+      if (request.matchId) {
+        const summaryService = createSummaryService(db);
+        matchSummary = await summaryService.getMatchSummary(
+          request.userId,
+          request.matchId,
+        );
+      }
 
-        const previousSummaries = conversationHistory
-          .filter((msg: Message) => msg.role === 'system')
-          .map((msg, i) => `Summary ${i + 1}: ${msg.content}`)
-          .join('\n');
+      // Format the conversation history if we have any messages
+      const recentMessages = conversationHistory
+        .filter(
+          (msg: Message) => msg.role === 'user' || msg.role === 'assistant',
+        )
+        .slice(-config.openai.maxCoachMessages);
 
-        contextMessage = [previousSummaries, previousAssistantMessages]
-          .filter(Boolean)
-          .join('\n\n');
+      const conversationText =
+        recentMessages.length > 0
+          ? recentMessages
+              .map((msg: Message) => {
+                if (msg.role === 'user') {
+                  if (msg.type === 'image') {
+                    return `User shared a screenshot of a dating app profile or conversation${
+                      msg.content ? ` with the message: "${msg.content}"` : ''
+                    }`;
+                  }
+                  return `User: ${msg.content}`;
+                }
+                if (msg.role === 'assistant') {
+                  return `AI Assistant: ${msg.content}`;
+                }
+                return ''; // Should never happen due to filter above
+              })
+              .filter(Boolean) // Remove any empty strings
+              .join('\n\n')
+          : '';
+
+      // Only include summary and conversation if they exist and we're in chat screen
+      if (request.matchId) {
+        if (matchSummary && conversationText) {
+          contextMessage = `Match Summary:\n${matchSummary}\n\nConversation History:\n${conversationText}`;
+        } else if (matchSummary) {
+          contextMessage = `Match Summary:\n${matchSummary}`;
+        } else if (conversationText) {
+          contextMessage = `Conversation History:\n${conversationText}`;
+        }
       }
 
       const hasImages = request.images?.length > 0;
@@ -96,22 +108,18 @@ export const createOpenAIService = () => {
             request.regenerate ? request.prompt : undefined,
             request.matchSummary,
             variant,
+            !!request.matchId,
           ),
         },
       ];
 
-      logger.debug('System prompt generated', {
-        userId: request.userId,
-        mode: request.mode || MessageMode.GENERATE,
-        hasImages,
-        hasText,
-        regenerate: request.regenerate,
-        previousMessage: request.regenerate ? request.prompt : undefined,
-        systemPrompt: messages[0].content,
-      });
+      // Add fallback prompt for image-only requests (when user uploads images but provides no text)
+      const fallbackPrompt =
+        "This is a screenshot of a dating app interaction. Please analyze the screenshot carefully to determine if this is a new match where the user needs to make the first message (look for 'You matched' or 'Liked your photo' indicators) or if it's an existing conversation. Help craft an appropriate message based on the context.";
+      const userPrompt = request.prompt || (hasImages ? fallbackPrompt : '');
 
-      if (hasText) {
-        messages.push({role: 'user', content: request.prompt!});
+      if (userPrompt) {
+        messages.push({role: 'user', content: userPrompt});
       }
 
       if (contextMessage) {
@@ -125,7 +133,10 @@ export const createOpenAIService = () => {
         messages.push({
           role: 'user',
           content: [
-            {type: 'text', text: 'Here are the screenshots to consider:'},
+            {
+              type: 'text',
+              text: 'Here are the screenshots of conversations or dating profiles to consider:',
+            },
             ...request.images.map(img => ({
               type: 'image_url' as const,
               image_url: {url: img, detail: 'low' as const},
@@ -134,21 +145,13 @@ export const createOpenAIService = () => {
         });
       }
 
-      logger.debug('OpenAI API request payload', {
+      // Log the exact messages being sent to OpenAI
+      // TODO: change to info
+      logger.debug('OpenAI request:', {
         userId: request.userId,
+        matchId: request.matchId,
         model,
-        messageCount: messages.length,
-        regenerate: request.regenerate,
-        hasImages,
-        hasText,
-        previousMessage: request.regenerate ? request.prompt : undefined,
-        systemPrompt: messages[0].content,
-        promptVariant: variant,
-      });
-
-      // Add detailed logging of full context
-      logger.debug('Full context being sent to OpenAI', {
-        userId: request.userId,
+        mode: request.mode || MessageMode.GENERATE,
         messages: messages.map(msg => ({
           role: msg.role,
           content:
@@ -156,113 +159,42 @@ export const createOpenAIService = () => {
               ? msg.content
               : Array.isArray(msg.content)
               ? msg.content.map(item => {
-                  if (item.type === 'text') return item;
-                  if (item.type === 'image_url') {
-                    return {
-                      type: 'image_url',
-                      url: item.image_url.url.substring(0, 50) + '...',
-                      detail: item.image_url.detail,
-                    };
-                  }
+                  if (item.type === 'text') return item.text;
+                  if (item.type === 'image_url') return '[IMAGE]';
                   return item;
                 })
               : 'Unknown content type',
         })),
-        conversationHistory: conversationHistory.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        })),
       });
-
-      // Log request context
-      logger.info('OpenAI request context:', {
-        userId: request.userId,
-        matchId: request.matchId,
-        model,
-        mode: request.mode || MessageMode.GENERATE,
-        hasImages: request.images?.length > 0,
-        hasText: Boolean(request.prompt),
-        regenerate: request.regenerate,
-        promptVariant: variant,
-      });
-
-      // Log system prompt
-      logger.info('OpenAI system prompt:', {
-        userId: request.userId,
-        matchId: request.matchId,
-        systemPrompt: messages[0].content,
-        promptVariant: variant,
-      });
-
-      // Log conversation history
-      if (contextMessage) {
-        logger.info('OpenAI conversation history:', {
-          userId: request.userId,
-          matchId: request.matchId,
-          conversationHistory: conversationHistory.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-        });
-      }
-
-      // Log user input
-      if (hasText) {
-        logger.info('OpenAI user input:', {
-          userId: request.userId,
-          matchId: request.matchId,
-          prompt: request.prompt,
-        });
-      }
-
-      if (hasImages) {
-        logger.info('OpenAI image input:', {
-          userId: request.userId,
-          matchId: request.matchId,
-          imageCount: request.images?.length,
-        });
-      }
 
       const response = await openai.chat.completions.create({
         model,
         messages,
         max_tokens: config.openai.maxTokens,
         temperature: config.openai.temperature,
-        response_format:
-          request.mode === MessageMode.COACH
-            ? undefined
-            : {type: 'json_object'},
+        response_format: {type: 'json_object'},
       });
 
       const text = response.choices[0]?.message?.content || '';
       if (!text) throw new Error('Empty response from OpenAI');
 
-      // Log raw response
-      logger.info('OpenAI raw response:', {
+      // Log the exact response from OpenAI
+      logger.info('OpenAI response:', {
         userId: request.userId,
         matchId: request.matchId,
         model,
-        rawResponse: {
-          id: response.id,
-          model: response.model,
-          usage: response.usage,
-          choices: response.choices.map(choice => ({
-            index: choice.index,
-            message: choice.message,
-            finish_reason: choice.finish_reason,
-          })),
-        },
-        rawText: text,
-        promptVariant: variant,
+        response: text,
+        usage: response.usage,
       });
 
-      // For COACH mode, return the raw response without JSON parsing
-      if (request.mode === MessageMode.COACH) {
+      // For home screen (no matchId), require strict JSON format
+      if (!request.matchId) {
+        const {message: reply} = JSON.parse(text);
+
         return {
-          reply: text,
-          summary: undefined,
+          reply,
           usage: response.usage,
-          mode: MessageMode.COACH,
+          mode: request.mode || MessageMode.GENERATE,
           style: request.style,
           cost: calculateCost(model, {
             prompt_tokens: response.usage?.prompt_tokens || 0,
@@ -274,30 +206,8 @@ export const createOpenAIService = () => {
         };
       }
 
-      // For other modes, parse the JSON response
-      let parsedResponse;
-      try {
-        parsedResponse = JSON.parse(text);
-      } catch (error) {
-        logger.error('Failed to parse OpenAI response', {
-          error,
-          response: text,
-        });
-        throw new Error('Invalid response format');
-      }
-
-      const {summary, message: reply} = parsedResponse;
-
-      // Log processed response
-      logger.info('OpenAI processed response:', {
-        userId: request.userId,
-        matchId: request.matchId,
-        model,
-        summary,
-        reply,
-        promptVariant: variant,
-      });
-
+      // For chat screen (with matchId)
+      const {summary, message: reply} = JSON.parse(text);
       return {
         reply,
         summary,
@@ -331,7 +241,7 @@ export const createOpenAIService = () => {
 function selectModel(request: GenerateReplyRequest): string {
   const isImageOnly = request.images?.length && !request.prompt;
   if (isImageOnly) return config.openai.model; // vision support
-  if (request.mode === MessageMode.COACH) return 'gpt-4o-mini'; // cost-optimized
+  if (request.mode === MessageMode.COACH) return config.openai.model; // cost-optimized
   return config.openai.model;
 }
 
@@ -354,6 +264,7 @@ function getSystemPrompt(
   previousMessage?: string,
   matchSummary?: string,
   variant?: PromptVariant,
+  hasMatchId: boolean = false,
 ): string {
   const promptConfig = getPromptConfig(
     mode,
@@ -361,5 +272,21 @@ function getSystemPrompt(
     hasText,
     variant || 'A',
   );
-  return formatPrompt(promptConfig, mode, regenerate, previousMessage);
+
+  // For home screen (no matchId), don't include first message context
+  if (!matchSummary) {
+    const basePrompt = promptConfig.basePrompt.replace(
+      "If it's the first message, help them break the ice. If it's mid-thread, help them flirt, escalate, or keep it fun.",
+      'Help them break the ice.',
+    );
+    promptConfig.basePrompt = basePrompt;
+  }
+
+  return formatPrompt(
+    promptConfig,
+    mode,
+    regenerate,
+    previousMessage,
+    hasMatchId,
+  );
 }

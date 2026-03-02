@@ -66,9 +66,19 @@ export const appendConversation = async (
   prompt?: string,
   mode: MessageMode = MessageMode.GENERATE,
   promptVariant?: PromptVariant,
+  costData?: {
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    inputCost: number;
+    outputCost: number;
+    totalCost: number;
+    costTimestamp: string;
+  },
 ): Promise<Message> => {
   try {
-    logger.info('Appending conversation with promptVariant:', {
+    logger.debug('Appending conversation with promptVariant:', {
       userId,
       matchId,
       promptVariant,
@@ -82,7 +92,7 @@ export const appendConversation = async (
 
     // Save user message first (either text, images, or both)
     if (images && images.length > 0) {
-      // Save screenshots with or without prompt
+      // Save screenshots of conversations or dating profiles with or without prompt
       for (let i = 0; i < images.length; i++) {
         const timestamp = new Date(baseTimestamp + i * 1000).toISOString();
         const message = await messageRepository.createMessage(userId, matchId, {
@@ -94,7 +104,7 @@ export const appendConversation = async (
           imageData: images[i],
           promptVariant,
         });
-        logger.info('Saved user image message with promptVariant:', {
+        logger.debug('Saved user image message with promptVariant:', {
           messageId: message.id,
           promptVariant: message.promptVariant,
         });
@@ -130,44 +140,24 @@ export const appendConversation = async (
         content: reply,
         timestamp: replyTimestamp,
         promptVariant,
+        // Include cost data if provided
+        ...(costData && {
+          model: costData.model,
+          promptTokens: costData.promptTokens,
+          completionTokens: costData.completionTokens,
+          totalTokens: costData.totalTokens,
+          inputCost: costData.inputCost,
+          outputCost: costData.outputCost,
+          totalCost: costData.totalCost,
+          costTimestamp: costData.costTimestamp,
+        }),
       },
     );
-    logger.info('Saved assistant message with promptVariant:', {
+    logger.debug('Saved assistant message with promptVariant:', {
       messageId: assistantMessage.id,
       promptVariant: assistantMessage.promptVariant,
+      hasCostData: !!costData,
     });
-    baseTimestamp += 1000;
-
-    // Get the match summary
-    const summaryService = createSummaryService(db);
-    const summary = matchId
-      ? await summaryService.getMatchSummary(userId, matchId)
-      : undefined;
-
-    // Save the summary if provided and not in COACH mode
-    if (summary && mode !== MessageMode.COACH) {
-      const summaryTimestamp = new Date(baseTimestamp).toISOString();
-      const summaryMessage = await messageRepository.createMessage(
-        userId,
-        matchId,
-        {
-          role: MessageRole.SYSTEM,
-          type: MessageType.SUMMARY,
-          mode: mode,
-          content: summary,
-          timestamp: summaryTimestamp,
-          replyTo:
-            typeof assistantMessage.id === 'string'
-              ? parseInt(assistantMessage.id, 10)
-              : assistantMessage.id,
-          promptVariant,
-        },
-      );
-      logger.info('Saved summary message with promptVariant:', {
-        messageId: summaryMessage.id,
-        promptVariant: summaryMessage.promptVariant,
-      });
-    }
 
     return assistantMessage;
   } catch (error) {

@@ -9,50 +9,18 @@ import React, {
 import {signOut as firebaseSignOut, getAuthToken} from '../config/firebase';
 import {useStoreState} from '../hooks/useStoreState';
 import * as authService from '../services/authService';
+import {installationService} from '../services/installationService';
 import * as matchService from '../services/matchService';
+import {
+  setSubscriptionUpdateCallback,
+  syncSubscriptionState,
+} from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import {SubscriptionTier} from '../types/enums';
-import {User} from '../types/user';
 import {logger} from '../utils/logger';
 import {Match} from '../utils/matchUtils';
 import {getPlanLimits} from '../utils/planLimits';
-
-interface StoreContextType {
-  showKeyboardModal: boolean;
-  setShowKeyboardModal: (show: boolean) => void;
-  userId: string;
-  setUserId: (userId: string) => void;
-  showDevMenu: boolean;
-  setShowDevMenu: (show: boolean) => void;
-  skipRateLimiting: boolean;
-  setSkipRateLimiting: (skip: boolean) => void;
-  authBypass: boolean;
-  setAuthBypass: (bypass: boolean) => void;
-  user: any;
-  setUser: (user: any) => void;
-  isAuthenticated: boolean;
-  setIsAuthenticated: (isAuthenticated: boolean) => void;
-  isLoading: boolean;
-  setIsLoading: (isLoading: boolean) => void;
-  updateUserPlan: (plan: SubscriptionTier) => Promise<void>;
-  showUpgradeModal: boolean;
-  setShowUpgradeModal: (show: boolean) => void;
-  createNewUser: () => Promise<User>;
-  linkAnonymousUser: (registeredUserId: string) => Promise<void>;
-  handleGoogleLogin: (firebaseUser: any) => Promise<void>;
-  matches: Match[];
-  setMatches: (matches: Match[]) => void;
-  addMatch: (match: Match) => void;
-  updateMatch: (match: Match) => void;
-  removeMatch: (matchId: string) => void;
-  loadMatches: () => Promise<void>;
-  // Dating Coach state
-  selectedMatch: Match | null;
-  setSelectedMatch: (match: Match | null) => void;
-  deleteScreenshots: boolean;
-  setDeleteScreenshots: (value: boolean) => void;
-  signOut: () => Promise<void>;
-}
+import {StoreContextType} from './types';
 
 export const StoreContext = createContext<StoreContextType>(
   {} as StoreContextType,
@@ -101,8 +69,179 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     setIsAuthenticated,
     isLoading,
     setIsLoading,
-    handleGoogleLogin,
   } = useStoreState(false); // Do NOT skip initialization, so user profile is fetched
+
+  // Initialize handleProviderLogin
+  const handleProviderLogin = async (firebaseUser: any) => {
+    try {
+      logger.auth.info('Starting provider login process', {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        providerId: firebaseUser.providerId,
+      });
+
+      // Get the installation ID directly from the service
+      const installationId = await installationService.getInstallationId();
+
+      // Ensure we have a valid Firebase token before proceeding
+      const token = await getAuthToken();
+      if (!token) {
+        logger.auth.error('Failed to get Firebase token after login');
+        throw new Error('Failed to get Firebase token after login');
+      }
+
+      // First, check if there's an anonymous user with this installation ID
+      let anonymousUser = null;
+      try {
+        anonymousUser = await userService.findUserByInstallationId(
+          installationId,
+        );
+        if (__DEV__) {
+          logger.auth.debug('Anonymous user search result', {
+            found: !!anonymousUser,
+            anonymousUserId: anonymousUser?.id,
+          });
+        }
+      } catch (error) {
+        logger.auth.warn('Error finding anonymous user:', error);
+      }
+
+      // Check if user exists in our backend
+      let existingUser;
+      try {
+        existingUser = await userService.getUserProfile(firebaseUser.uid);
+      } catch (error: any) {
+        logger.app.error('Failed to get user profile:', error);
+      }
+
+      // If user exists, update local state
+      if (existingUser) {
+        if (__DEV__) {
+          logger.auth.debug('Found existing user', {
+            userId: firebaseUser.uid,
+            email: existingUser.email,
+          });
+        }
+
+        // Update user's name if it's from Apple login and we have a display name
+        if (
+          firebaseUser.displayName &&
+          (!existingUser.name || existingUser.name === 'Anonymous User')
+        ) {
+          try {
+            await userService.updateUserProfile(firebaseUser.uid, {
+              name: firebaseUser.displayName,
+            });
+            existingUser.name = firebaseUser.displayName;
+          } catch (error) {
+            logger.auth.error('Failed to update user name', error);
+          }
+        }
+
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
+        setUser(existingUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
+      } else {
+        // Create a new user
+        if (__DEV__) {
+          logger.auth.debug('Creating new user', {
+            userId: firebaseUser.uid,
+            email: firebaseUser.email,
+          });
+        }
+
+        const newUser = await userService.createUser({
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || 'Anonymous User',
+          installationId,
+        });
+
+        // Now try to link if we found an anonymous user
+        if (anonymousUser && anonymousUser.id !== newUser.id) {
+          logger.app.debug(
+            'Found anonymous user, attempting to link with newly created registered user',
+            {
+              anonymousUserId: anonymousUser.id,
+              registeredUserId: newUser.id,
+              anonymousUserEmail: anonymousUser.email,
+              registeredUserEmail: newUser.email,
+              installationId,
+              anonymousUserData: {
+                id: anonymousUser.id,
+                email: anonymousUser.email,
+                installationId: anonymousUser.installationId,
+              },
+            },
+          );
+
+          try {
+            // Link users in our backend
+            await userService.linkUsers(anonymousUser.id, newUser.id);
+            logger.app.debug(
+              'Successfully linked anonymous user with newly created registered user in backend',
+              {
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+              },
+            );
+
+            // Fetch the updated user profile after linking
+            const updatedUser = await userService.getUserProfile(newUser.id);
+            if (updatedUser) {
+              setUser(updatedUser);
+              // Sync subscription state after linking
+              await syncSubscriptionState(
+                async (userId: string, plan: SubscriptionTier) => {
+                  await userService.updateUserPlan(userId, plan);
+                  setUser({
+                    ...updatedUser,
+                    plan,
+                    getDailyMessageLimit: () => getPlanLimits(plan),
+                  });
+                },
+                setUser,
+                updatedUser,
+              );
+            }
+          } catch (error) {
+            logger.app.error(
+              'Failed to link anonymous user with newly created registered user',
+              {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+                anonymousUserId: anonymousUser.id,
+                registeredUserId: newUser.id,
+                installationId,
+              },
+            );
+            throw new Error(
+              'Failed to link anonymous user with provider account. Please try again.',
+            );
+          }
+        }
+
+        setUserId(firebaseUser.uid);
+        await AsyncStorage.setItem('@charmr/userId', firebaseUser.uid);
+        setUser(newUser);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
+
+        logger.app.debug('Provider Login Success', {
+          event: 'provider_login_success',
+          userId: firebaseUser.uid,
+          email: firebaseUser.email,
+          wasAnonymous: !!anonymousUser,
+          anonymousUserId: anonymousUser?.id,
+        });
+      }
+    } catch (error) {
+      logger.auth.error('Error in provider login:', error);
+      throw error;
+    }
+  };
 
   // Remove dating coach preference loading since we're not using a toggle anymore
   useEffect(() => {
@@ -115,7 +254,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        logger.app.info('🚀 Starting app initialization...');
+        logger.app.debug('🚀 Starting app initialization...');
 
         // Check authentication state
         const storedIsAuthenticated = await AsyncStorage.getItem(
@@ -124,7 +263,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         const storedUserId = await AsyncStorage.getItem('@charmr/userId');
         const storedUser = await AsyncStorage.getItem('@charmr/user');
 
-        logger.app.info('🔍 Checking authentication state:', {
+        logger.app.debug('🔍 Checking authentication state:', {
           isAuthenticated: storedIsAuthenticated,
           userId: storedUserId,
           hasUserData: !!storedUser,
@@ -136,7 +275,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
             // First check if we have a valid Firebase token
             const token = await getAuthToken();
             if (!token) {
-              logger.app.info(
+              logger.app.debug(
                 '❌ No Firebase token found, falling back to stored user data',
               );
               // If we have stored user data, use it
@@ -158,7 +297,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
               if (storedUser) {
                 setUser(JSON.parse(storedUser));
               }
-              logger.app.info('✅ User is authenticated');
+              logger.app.debug('✅ User is authenticated');
             } else {
               // Only clear auth-related data
               await AsyncStorage.multiRemove([
@@ -176,7 +315,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
                 '@charmr/extraMessages',
                 '@charmr/lastResetDate',
               ]);
-              logger.app.info(
+              logger.app.debug(
                 '❌ Stored credentials are invalid, clearing them',
               );
               setIsAuthenticated(false);
@@ -215,38 +354,6 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     initializeApp();
   }, []);
 
-  // Set device token in Firestore when app loads and user is authenticated
-  useEffect(() => {
-    const setDeviceToken = async () => {
-      if (!isAuthenticated || !userId) return;
-      try {
-        const {pushNotificationService} = await import(
-          '../services/PushNotificationService'
-        );
-        const token = await pushNotificationService.getToken();
-        if (token) {
-          await userService.updateUserProfile(userId, {deviceToken: token});
-          logger.app.info('Device token updated in Firestore', {userId, token});
-        } else {
-          logger.app.warn('No device token available to update in Firestore', {
-            userId,
-          });
-        }
-        // Listen for token refresh and update Firestore
-        pushNotificationService.onTokenRefresh(async (newToken: string) => {
-          await userService.updateUserProfile(userId, {deviceToken: newToken});
-          logger.app.info('Device token refreshed and updated in Firestore', {
-            userId,
-            newToken,
-          });
-        });
-      } catch (error) {
-        logger.app.error('Failed to set device token in Firestore', {error});
-      }
-    };
-    setDeviceToken();
-  }, [isAuthenticated, userId]);
-
   const updateUserPlan = async (plan: SubscriptionTier) => {
     try {
       if (!userId) {
@@ -254,10 +361,11 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       }
       await userService.updateUserPlan(userId, plan);
       setUser({
+        ...user,
         plan,
         getDailyMessageLimit: () => getPlanLimits(plan),
       });
-      logger.app.info('User Plan Updated', {
+      logger.app.debug('User Plan Updated', {
         event: 'update_user_plan',
         userId,
         plan,
@@ -316,7 +424,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setMatches(prevMatches =>
         prevMatches.map(m => (m.id === match.id ? match : m)),
       );
-      logger.app.info('Match Updated', {
+      logger.app.debug('Match Updated', {
         event: 'update_match',
         matchId: match.id,
         userId,
@@ -336,7 +444,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       const success = await matchService.deleteMatch(matchId);
       if (success) {
         setMatches(prevMatches => prevMatches.filter(m => m.id !== matchId));
-        logger.app.info('Match Removed', {
+        logger.app.debug('Match Removed', {
           event: 'remove_match',
           matchId,
           userId,
@@ -390,7 +498,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setIsAuthenticated(true);
       await AsyncStorage.setItem('@charmr/isAuthenticated', 'true');
 
-      logger.app.info('Anonymous User Linked', {
+      logger.app.debug('Anonymous User Linked', {
         event: 'link_anonymous_user',
         oldUserId: userId,
         newUserId: registeredUserId,
@@ -417,6 +525,10 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         extraMessages: 0,
         lastResetDate: new Date().toISOString(),
         getDailyMessageLimit: () => 0,
+        email: '',
+        name: '',
+        installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
       setMatches([]);
@@ -442,7 +554,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       // Sign out from Firebase
       await firebaseSignOut();
 
-      logger.app.info('Successfully signed out and cleared all data');
+      logger.app.debug('Successfully signed out and cleared all data');
     } catch (error) {
       logger.app.error('Error during sign out:', error);
       // Even if there's an error, we should still clear local state
@@ -454,12 +566,34 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
         extraMessages: 0,
         lastResetDate: new Date().toISOString(),
         getDailyMessageLimit: () => 0,
+        email: '',
+        name: '',
+        installationId: '',
+        createdAt: new Date().toISOString(),
       });
       setIsAuthenticated(false);
       setMatches([]);
       setSelectedMatch(null);
     }
   };
+
+  useEffect(() => {
+    // Set up subscription update handler
+    setSubscriptionUpdateCallback(async info => {
+      if (user) {
+        const hasProAccess = info.entitlements.active['Pro']?.isActive;
+        if (!hasProAccess && user.plan === SubscriptionTier.PRO) {
+          // If user no longer has pro access, update their plan
+          await updateUserPlan(SubscriptionTier.FREE);
+          setUser({
+            ...user,
+            plan: SubscriptionTier.FREE,
+            getDailyMessageLimit: () => getPlanLimits(SubscriptionTier.FREE),
+          });
+        }
+      }
+    });
+  }, [user, setUser, updateUserPlan]);
 
   const value = useMemo(
     () => ({
@@ -484,7 +618,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       setShowUpgradeModal,
       createNewUser,
       linkAnonymousUser,
-      handleGoogleLogin,
+      handleProviderLogin,
       matches,
       setMatches,
       addMatch,
@@ -510,6 +644,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
       matches,
       selectedMatch,
       deleteScreenshots,
+      handleProviderLogin,
     ],
   );
 

@@ -1,0 +1,156 @@
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ */
+
+// TypeScript declaration for Firebase modular API warning control
+declare global {
+  var RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS: boolean;
+}
+
+// Silence React Native Firebase modular API migration warnings
+// This can be removed once fully migrated to the modular API
+// See: https://rnfirebase.io/migrating-to-v22
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import React, {useEffect, useRef, useState} from 'react';
+import {Platform, StatusBar, View} from 'react-native';
+import {PaperProvider} from 'react-native-paper';
+import GlobalAlert from './components/GlobalAlert';
+import {SplashScreen} from './components/SplashScreen';
+import {config} from './config/config';
+import {usePushNotifications} from './hooks/usePushNotifications';
+import AppNavigator from './navigation/AppNavigator';
+import {
+  initializeRevenueCat,
+  syncSubscriptionState,
+} from './services/revenueCatService';
+import {updateUserPlan} from './services/userService';
+import {StoreProvider} from './store/StoreProvider';
+import {theme} from './theme/theme';
+import {logger} from './utils/logger';
+import {getPlanLimits} from './utils/planLimits';
+
+const AppContent = () => {
+  usePushNotifications();
+  return <AppNavigator />;
+};
+
+const App = () => {
+  const [isReady, setIsReady] = useState(false);
+  const isInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (isInitializedRef.current) {
+      return;
+    }
+    isInitializedRef.current = true;
+
+    const initializeApp = async () => {
+      try {
+        // ===== App Initialization =====
+        logger.app.debug('Starting app initialization...');
+
+        // ===== Service Configuration =====
+        // Facebook SDK
+        try {
+          if (Platform.OS === 'ios') {
+            // Settings.initializeSDK();
+            // Settings.setAppID('512728425163946');
+            // Settings.setClientToken('c3cbdb800534d3b92eaba7f6d9c1e25a');
+          }
+        } catch (error) {
+          logger.app.error('Failed to initialize Facebook SDK:', error);
+          throw error;
+        }
+
+        // Google Sign-In
+        await GoogleSignin.configure({
+          webClientId: config.googleWebClientId,
+        });
+
+        // RevenueCat
+        await initializeRevenueCat();
+
+        // ===== User State =====
+        const isAuthenticated = await AsyncStorage.getItem(
+          '@charmr/isAuthenticated',
+        );
+        const userId = await AsyncStorage.getItem('@charmr/userId');
+        const userData = await AsyncStorage.getItem('@charmr/user');
+
+        const user = userData ? JSON.parse(userData) : null;
+
+        // Sync subscription state if user is authenticated
+        if (isAuthenticated === 'true' && userId && user) {
+          await syncSubscriptionState(
+            updateUserPlan,
+            async updatedUser => {
+              await AsyncStorage.setItem(
+                '@charmr/user',
+                JSON.stringify(updatedUser),
+              );
+            },
+            user,
+            false, // Don't force sync on startup
+          );
+        }
+
+        if (__DEV__) {
+          const userDetails = user
+            ? {
+                email: user.email || 'Not set',
+                name: user.name || 'Not set',
+                plan: user.plan || 'Free',
+                dailyMessagesUsed: user.dailyMessagesUsed || 0,
+                dailyMessageLimit: getPlanLimits(user.plan),
+                extraMessages: user.extraMessages || 0,
+                lastResetDate: user.lastResetDate || 'Never',
+              }
+            : null;
+
+          logger.app.debug('User State', {
+            authentication: {
+              isAuthenticated,
+              userId,
+            },
+            userDetails,
+          });
+        }
+
+        setIsReady(true);
+      } catch (error) {
+        logger.app.error('Error during initialization:', error);
+        setIsReady(true); // Still set ready to show error state
+      }
+    };
+
+    initializeApp();
+
+    return () => {
+      isInitializedRef.current = false;
+    };
+  }, []); // Empty dependency array ensures this runs only once
+
+  if (!isReady) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <PaperProvider theme={theme}>
+      <StatusBar barStyle="light-content" />
+      <StoreProvider>
+        <View style={{flex: 1}}>
+          <GlobalAlert />
+          <AppContent />
+        </View>
+      </StoreProvider>
+    </PaperProvider>
+  );
+};
+
+export default App;

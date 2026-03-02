@@ -84,6 +84,10 @@ describe('ResponseGenerator', () => {
     localIdentifier: 'test-asset-id',
     mime: 'image/jpeg',
   };
+  const mockNavigation = {
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -114,12 +118,16 @@ describe('ResponseGenerator', () => {
 
   // Snapshot Tests
   it('renders initial state correctly', () => {
-    const {toJSON} = renderWithProviders(<ResponseGenerator />);
+    const {toJSON} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
     expect(toJSON()).toMatchSnapshot();
   });
 
   it('renders with selected images correctly', async () => {
-    const {toJSON, getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {toJSON, getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock image picker
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -135,7 +143,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('renders response modal correctly', async () => {
-    const {toJSON, getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {toJSON, getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock image picker and API
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -154,7 +164,9 @@ describe('ResponseGenerator', () => {
 
   // Existing Tests
   it('renders correctly', () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     expect(getByTestId('response-generator-container')).toBeTruthy();
     expect(getByTestId('image-picker-button')).toBeTruthy();
@@ -163,7 +175,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('shows error when submitting without images', async () => {
-    const {getByTestId, getByText} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId, getByText} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     fireEvent.press(getByTestId('submit-button'));
 
@@ -173,7 +187,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('handles image selection correctly', async () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock the image picker response
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -187,7 +203,7 @@ describe('ResponseGenerator', () => {
 
   it('handles image removal correctly', async () => {
     const {getByTestId, queryByTestId} = renderWithProviders(
-      <ResponseGenerator />,
+      <ResponseGenerator navigation={mockNavigation as any} />,
     );
 
     // Mock the image picker response
@@ -209,7 +225,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('handles response generation correctly', async () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock the image picker response
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -241,7 +259,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('handles clipboard copy correctly', async () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Generate a response first to show the modal
     await act(async () => {
@@ -272,7 +292,9 @@ describe('ResponseGenerator', () => {
   });
 
   it.skip('handles API errors correctly', async () => {
-    const {getByTestId, getByText} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId, getByText} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock image picker and API error
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -305,7 +327,9 @@ describe('ResponseGenerator', () => {
   });
 
   it('handles image deletion correctly', async () => {
-    const {getByTestId} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Mock image picker and successful API response
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -349,7 +373,7 @@ describe('ResponseGenerator', () => {
 
   it.skip('handles modal dismissal correctly', async () => {
     const {getByTestId, queryByTestId} = renderWithProviders(
-      <ResponseGenerator />,
+      <ResponseGenerator navigation={mockNavigation as any} />,
     );
 
     // Mock image picker and successful API response
@@ -400,7 +424,9 @@ describe('ResponseGenerator', () => {
     const errorMessage = 'API Error';
     (generateReply as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-    const {getByTestId, getByText} = renderWithProviders(<ResponseGenerator />);
+    const {getByTestId, getByText} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
 
     // Add an image
     jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
@@ -424,6 +450,62 @@ describe('ResponseGenerator', () => {
       expect(
         getByText('Failed to generate response. Please try again.'),
       ).toBeTruthy();
+    });
+  });
+
+  it('should update user message limits after successful response generation', async () => {
+    const mockSetUser = jest.fn();
+    const mockNavigation = {
+      navigate: jest.fn(),
+      goBack: jest.fn(),
+    };
+
+    (useStore as jest.Mock).mockReturnValue({
+      userId: mockUserId,
+      skipRateLimiting: mockSkipRateLimiting,
+      messageCount: 0,
+      setUser: mockSetUser,
+    });
+
+    // Mock successful API response with updated limits
+    (generateReply as jest.Mock).mockResolvedValue({
+      reply: 'Generated response text',
+      error: null,
+      limits: {
+        dailyMessagesUsed: 3,
+        extraMessages: 2,
+      },
+    });
+
+    const {getByTestId} = renderWithProviders(
+      <ResponseGenerator navigation={mockNavigation as any} />,
+    );
+
+    // Mock image picker and add image
+    jest.spyOn(ImagePicker, 'openPicker').mockResolvedValue(mockImage);
+    await act(async () => {
+      fireEvent.press(getByTestId('image-picker-button'));
+    });
+
+    await waitFor(() => {
+      expect(getByTestId('selected-image-0')).toBeTruthy();
+    });
+
+    // Set prompt and generate response
+    await act(async () => {
+      fireEvent.changeText(getByTestId('prompt-input'), 'Test prompt');
+      fireEvent.press(getByTestId('submit-button'));
+      // Trigger FileReader onload to simulate base64 conversion
+      mockFileReader.onload();
+    });
+
+    // Wait for modal to appear and verify user state was updated
+    await waitFor(() => {
+      expect(getByTestId('modal')).toBeTruthy();
+      expect(mockSetUser).toHaveBeenCalledWith({
+        dailyMessagesUsed: 3,
+        extraMessages: 2,
+      });
     });
   });
 });

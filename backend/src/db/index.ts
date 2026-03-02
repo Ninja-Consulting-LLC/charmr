@@ -7,7 +7,6 @@ import {
   SubscriptionTier,
 } from '../types/enums';
 import logger from '../utils/logger';
-import {getFirestore} from './firestore';
 import {FirestoreMatchRepository} from './repositories/firestoreMatchRepository';
 import {FirestoreMessageCostRepository} from './repositories/firestoreMessageCostRepository';
 import {FirestoreMessageRepository} from './repositories/firestoreMessageRepository';
@@ -33,19 +32,18 @@ let supportRepository: FirestoreSupportRepository | null = null;
 
 export const getDatabase = async (): Promise<Database> => {
   if (!db) {
-    logger.info('Initializing database', {type: databaseConfig.type});
+    logger.debug('Initializing database', {type: databaseConfig.type});
     if (databaseConfig.type === 'firestore') {
       // For Firestore, we return a minimal Database interface implementation
       // that delegates to Firestore. This is needed because some parts of the
       // application expect a Database interface.
-      const firestore = getFirestore();
-      logger.info('Firestore instance obtained, initializing repositories');
+      logger.debug('Firestore instance obtained, initializing repositories');
       userRepository = new FirestoreUserRepository();
       messageRepository = new FirestoreMessageRepository();
       matchRepository = new FirestoreMatchRepository();
       messageCostRepository = new FirestoreMessageCostRepository();
       supportRepository = new FirestoreSupportRepository();
-      logger.info('Firestore repositories initialized successfully');
+      logger.debug('Firestore repositories initialized successfully');
 
       db = {
         // User operations
@@ -71,6 +69,9 @@ export const getDatabase = async (): Promise<Database> => {
           updates: Partial<User>,
         ): Promise<void> => {
           return userRepository!.updateUser(userId, updates);
+        },
+        deleteUser: async (userId: string): Promise<void> => {
+          return userRepository!.deleteUser(userId);
         },
         incrementMessageCount: async (userId: string): Promise<boolean> => {
           return userRepository!.incrementMessageCount(userId);
@@ -108,12 +109,61 @@ export const getDatabase = async (): Promise<Database> => {
             timestamp: string;
             imageData?: string;
             promptVariant?: PromptVariant;
+            // Cost fields
+            model?: string;
+            promptTokens?: number;
+            completionTokens?: number;
+            totalTokens?: number;
+            inputCost?: number;
+            outputCost?: number;
+            totalCost?: number;
+            costTimestamp?: string;
+          },
+        ): Promise<Message> => {
+          return messageRepository!.createMessage(userId, matchId, message);
+        },
+        createMessage: async (
+          userId: string,
+          matchId: string,
+          message: {
+            role: MessageRole;
+            type?: MessageType;
+            mode?: MessageMode;
+            used?: boolean;
+            replyTo?: number;
+            content: string;
+            timestamp: string;
+            imageData?: string;
+            promptVariant?: PromptVariant;
+            // Cost fields
+            model?: string;
+            promptTokens?: number;
+            completionTokens?: number;
+            totalTokens?: number;
+            inputCost?: number;
+            outputCost?: number;
+            totalCost?: number;
+            costTimestamp?: string;
           },
         ): Promise<Message> => {
           return messageRepository!.createMessage(userId, matchId, message);
         },
         getMessages: async (userId: string, matchId: string) => {
           return messageRepository!.getMessagesByMatch(userId, matchId);
+        },
+
+        // Cost tracking operations
+        updateUserCosts: async (
+          userId: string,
+          cost: {
+            totalCost: number;
+            totalTokens: number;
+          },
+        ): Promise<void> => {
+          return userRepository!.updateUserCosts(userId, cost);
+        },
+        getUserCosts: async (userId: string) => {
+          return userRepository!.getUserCosts(userId);
         },
 
         // Message cost operations
@@ -228,6 +278,14 @@ export const getDatabase = async (): Promise<Database> => {
           ) => {
             return supportRepository!.updateTicketStatus(ticketId, status);
           },
+        },
+
+        // User linking
+        linkUsers: async (
+          anonymousUserId: string,
+          registeredUserId: string,
+        ): Promise<void> => {
+          return userRepository!.linkUsers(anonymousUserId, registeredUserId);
         },
 
         // Required by Database interface but not used in Firestore

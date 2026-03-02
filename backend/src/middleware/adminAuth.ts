@@ -25,14 +25,14 @@ export const adminAuth = async (
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    logger.warn('No authorization header in admin request');
+    logger.warning('No authorization header in admin request');
     return res.status(401).json({error: 'No authorization header'});
   }
 
   const [type, token] = authHeader.split(' ');
 
   if (type !== 'Bearer' || !token) {
-    logger.warn('Invalid authorization header format in admin request');
+    logger.warning('Invalid authorization header format in admin request');
     return res.status(401).json({error: 'Invalid authorization header format'});
   }
 
@@ -45,7 +45,7 @@ export const adminAuth = async (
     const isAdmin = user.customClaims?.admin === true;
 
     if (!isAdmin) {
-      logger.warn('User is not an admin', {
+      logger.warning('User is not an admin', {
         uid: decodedToken.uid,
         email: decodedToken.email,
       });

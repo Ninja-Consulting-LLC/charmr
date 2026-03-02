@@ -47,7 +47,7 @@ export const DeepLinkHandler: React.FC = () => {
       } catch (error) {
         errorMessage = error instanceof Error ? error.message : String(error);
       }
-      logger.deepLink.info('Deep Link Event', {
+      logger.deepLink.debug('Deep Link Event', {
         event: 'deep_link_event',
         url,
         includesHomescreen: url.includes('charmr://open/homescreen'),
@@ -57,13 +57,13 @@ export const DeepLinkHandler: React.FC = () => {
       });
     };
 
-    logger.deepLink.info('Deep Link Handler Setup', {
+    logger.deepLink.debug('Deep Link Handler Setup', {
       event: 'deep_link_handler_setup',
     });
 
     // Clean up any existing subscription
     if (subscriptionRef.current) {
-      logger.deepLink.info('Deep Link Handler Cleanup', {
+      logger.deepLink.debug('Deep Link Handler Cleanup', {
         event: 'deep_link_handler_cleanup',
       });
       subscriptionRef.current.remove();
@@ -76,7 +76,7 @@ export const DeepLinkHandler: React.FC = () => {
 
     // Check for initial deep link that launched the app
     Linking.getInitialURL().then(url => {
-      logger.deepLink.info('Deep Link Initial URL Check', {
+      logger.deepLink.debug('Deep Link Initial URL Check', {
         event: 'deep_link_initial_url_check',
         url,
       });
@@ -86,7 +86,7 @@ export const DeepLinkHandler: React.FC = () => {
     });
 
     return () => {
-      logger.deepLink.info('Deep Link Handler Cleanup', {
+      logger.deepLink.debug('Deep Link Handler Cleanup', {
         event: 'deep_link_handler_cleanup',
       });
       if (subscriptionRef.current) {

@@ -82,6 +82,10 @@ export class FirestoreUserRepository {
         deviceToken: user.deviceToken || null,
         installationId: user.installationId || null,
         createdAt: new Date().toISOString(),
+        // Initialize cost tracking
+        totalCost: 0,
+        totalTokens: 0,
+        lastCostUpdate: new Date().toISOString(),
       };
 
       const docRef = this.db.collection(this.usersCollection).doc(user.id);
@@ -109,6 +113,21 @@ export class FirestoreUserRepository {
       logger.error('Failed to update user in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      const docRef = this.db.collection(this.usersCollection).doc(userId);
+      await docRef.update({deleted: true});
+      logger.info('Marked user as deleted in Firestore', {userId});
+    } catch (error) {
+      logger.error('Failed to delete user in Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
       });
       throw error;
     }
@@ -180,6 +199,61 @@ export class FirestoreUserRepository {
       logger.error('Failed to update user plan in Firestore', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  async updateUserCosts(
+    userId: string,
+    cost: {
+      totalCost: number;
+      totalTokens: number;
+    },
+  ): Promise<void> {
+    try {
+      const docRef = this.db.collection(this.usersCollection).doc(userId);
+      await docRef.update({
+        totalCost: firebaseAdmin.firestore.FieldValue.increment(cost.totalCost),
+        totalTokens: firebaseAdmin.firestore.FieldValue.increment(
+          cost.totalTokens,
+        ),
+        lastCostUpdate: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Failed to update user costs in Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        cost,
+      });
+      throw error;
+    }
+  }
+
+  async getUserCosts(userId: string): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    lastCostUpdate?: string;
+  }> {
+    try {
+      const user = await this.getUser(userId);
+      if (!user) {
+        return {
+          totalCost: 0,
+          totalTokens: 0,
+        };
+      }
+      return {
+        totalCost: user.totalCost || 0,
+        totalTokens: user.totalTokens || 0,
+        lastCostUpdate: user.lastCostUpdate,
+      };
+    } catch (error) {
+      logger.error('Failed to get user costs from Firestore', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
       });
       throw error;
     }
@@ -437,11 +511,29 @@ export class FirestoreUserRepository {
 
       // Delete anonymous user after successful linking
       try {
+        // Delete all matches and messages from the anonymous user
+        const matchesSnapshot = await this.db
+          .collection(this.usersCollection)
+          .doc(anonymousUserId)
+          .collection('matches')
+          .get();
+        for (const matchDoc of matchesSnapshot.docs) {
+          const messagesSnapshot = await matchDoc.ref
+            .collection('messages')
+            .get();
+          for (const messageDoc of messagesSnapshot.docs) {
+            await messageDoc.ref.delete();
+          }
+          await matchDoc.ref.delete();
+        }
         await this.db
           .collection(this.usersCollection)
           .doc(anonymousUserId)
           .delete();
-        logger.info('Anonymous user deleted after linking', {anonymousUserId});
+        logger.info(
+          'Anonymous user and associated data deleted after linking',
+          {anonymousUserId},
+        );
       } catch (error) {
         logger.error('Failed to delete anonymous user after linking', {
           error: error instanceof Error ? error.message : 'Unknown error',

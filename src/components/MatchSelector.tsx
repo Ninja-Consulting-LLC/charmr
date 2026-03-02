@@ -13,6 +13,7 @@ import {SubscriptionTier} from '../types/enums';
 import {Match} from '../utils/matchUtils';
 import AddEditMatchModal from './AddEditMatchModal';
 import ArchiveMatchDialog from './ArchiveMatchDialog';
+import LoadingOverlay from './LoadingOverlay';
 
 interface MatchSelectorModalProps {
   visible: boolean;
@@ -51,6 +52,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
   );
   const [showAddMatchModal, setShowAddMatchModal] = React.useState(false);
   const [matchToEdit, setMatchToEdit] = React.useState<Match | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleArchivePress = (match: Match) => {
     setMatchToArchive(match);
@@ -62,28 +64,38 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
     setShowAddMatchModal(true);
   };
 
-  const handleConfirmArchive = () => {
+  const handleConfirmArchive = async () => {
     if (matchToArchive) {
-      onHideMatch(matchToArchive);
-      setArchiveDialogVisible(false);
-      setMatchToArchive(null);
+      setIsLoading(true);
+      try {
+        await onHideMatch(matchToArchive);
+        setArchiveDialogVisible(false);
+        setMatchToArchive(null);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleAddMatch = async (name: string, platform: string) => {
-    if (matchToEdit) {
-      console.log('[DEBUG] MatchSelectorModal onUpdateMatch', {
-        id: matchToEdit.id,
-        name,
-        platform,
-      });
-      await onUpdateMatch(String(matchToEdit.id), name, platform);
-      setMatchToEdit(null);
-    } else {
-      console.log('[DEBUG] MatchSelectorModal onAddMatch', {name, platform});
-      await onAddMatch(name, platform);
+    setIsLoading(true);
+    try {
+      if (matchToEdit) {
+        console.log('[DEBUG] MatchSelectorModal onUpdateMatch', {
+          id: matchToEdit.id,
+          name,
+          platform,
+        });
+        await onUpdateMatch(String(matchToEdit.id), name, platform);
+        setMatchToEdit(null);
+      } else {
+        console.log('[DEBUG] MatchSelectorModal onAddMatch', {name, platform});
+        await onAddMatch(name, platform);
+      }
+      setShowAddMatchModal(false);
+    } finally {
+      setIsLoading(false);
     }
-    setShowAddMatchModal(false);
   };
 
   return (
@@ -109,7 +121,10 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                 <List.Item
                   key={match.id}
                   title={match.name}
-                  description={match.platform}
+                  description={
+                    match.platform.charAt(0).toUpperCase() +
+                    match.platform.slice(1)
+                  }
                   style={[
                     styles.matchItem,
                     selectedMatch?.id === match.id && styles.selectedMatch,
@@ -181,6 +196,8 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
             : undefined
         }
       />
+
+      <LoadingOverlay visible={isLoading} message="Updating match..." />
     </Portal>
   );
 };

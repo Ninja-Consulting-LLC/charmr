@@ -80,6 +80,7 @@ yarn-error.log
 
 # Testing
 coverage/
+backend/test-results/*
 
 # Backend
 backend/dist/
@@ -92,4 +93,4 @@ assets/pro_paywall.png
 service-account.json
 assets/screenshots/*
 keys/*
-assets/app_store_screenshots/*
+firestore-debug.log

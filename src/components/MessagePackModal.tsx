@@ -5,6 +5,7 @@ import {
   getMessagePackPaywall,
   handlePurchase as purchaseProduct,
 } from '../services/revenueCatService';
+import {useStore} from '../store';
 import {theme} from '../theme/theme';
 
 interface MessagePackModalProps {
@@ -22,6 +23,7 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
   errorMessage,
   onUpgrade,
 }) => {
+  const {user, setUser} = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [packages, setPackages] = useState<any[] | null>(null);
@@ -53,17 +55,25 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
   }, [visible]);
 
   const handleMessagePackPurchase = async (productId: string) => {
+    console.log(
+      '[MessagePackModal] handleMessagePackPurchase called with',
+      productId,
+    );
     setIsLoading(true);
     setError(null);
     try {
-      const success = await purchaseProduct(productId);
+      const success = await purchaseProduct(productId, user, setUser);
+      console.log('[MessagePackModal] purchaseProduct returned', success);
       if (success) {
         onDismiss();
-      } else {
-        setError('Failed to complete purchase');
       }
     } catch (err) {
-      setError('Failed to complete purchase');
+      console.log('[MessagePackModal] handleMessagePackPurchase error', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }
