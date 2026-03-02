@@ -16,17 +16,6 @@ const resolvedEmailAuth =
       }
     : undefined;
 
-const resolvedEmailPort = process.env.SMTP_PORT || '1025';
-const resolvedEmailUser = process.env.SMTP_USER;
-const resolvedEmailPass = process.env.SMTP_PASS;
-const resolvedEmailAuth =
-  resolvedEmailUser && resolvedEmailPass
-    ? {
-        user: resolvedEmailUser,
-        pass: resolvedEmailPass,
-      }
-    : undefined;
-
 export const config = {
   server: {
     port: process.env.PORT || 3001,
