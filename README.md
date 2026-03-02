@@ -59,6 +59,26 @@ npm run ios
 npm run android
 ```
 
+### Running in Browser (Preview)
+
+This repo now includes a React Native Web preview target intended for Cursor Cloud desktop/browser validation.
+
+```sh
+# Start web dev server (port 8080)
+npm run web
+
+# Create production web bundle
+npm run web:build
+```
+
+Preview limitations (web stubs / no-ops):
+
+- Native Google/Facebook login SDKs are replaced with web preview mock auth flows.
+- Push notifications (Firebase Messaging) are disabled on web.
+- RevenueCat purchases/subscription APIs are disabled on web.
+- Mobile image picker is replaced with browser file upload.
+- iOS/Android native keyboard-specific UX is not available in browser preview.
+
 ## Features
 
 - AI-powered message suggestions
