@@ -3,9 +3,9 @@ import {PromptVariant} from '../types';
 
 dotenv.config();
 
-const resolvedEmailPort = process.env.SMTP_PORT || process.env.EMAIL_PORT || '1025';
-const resolvedEmailUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-const resolvedEmailPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+const resolvedEmailPort = process.env.SMTP_PORT || '1025';
+const resolvedEmailUser = process.env.SMTP_USER;
+const resolvedEmailPass = process.env.SMTP_PASS;
 const resolvedEmailAuth =
   resolvedEmailUser && resolvedEmailPass
     ? {
@@ -45,19 +45,15 @@ export const config = {
     },
   },
   email: {
-    host: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'mailhog',
+    host: process.env.SMTP_HOST || 'mailhog',
     port: parseInt(resolvedEmailPort, 10),
     secure:
-      process.env.EMAIL_SECURE === 'true' ||
       process.env.SMTP_SECURE === 'true' ||
       resolvedEmailPort === '465',
     auth: resolvedEmailAuth,
-    defaultFrom:
-      process.env.SMTP_FROM ||
-      process.env.EMAIL_DEFAULT_FROM ||
-      'noreply@example.invalid',
+    defaultFrom: process.env.SMTP_FROM || 'noreply@example.invalid',
     defaultReplyTo:
-      process.env.EMAIL_DEFAULT_REPLY_TO ||
+      process.env.SMTP_REPLY_TO ||
       process.env.SMTP_FROM ||
       'support@example.invalid',
   },
