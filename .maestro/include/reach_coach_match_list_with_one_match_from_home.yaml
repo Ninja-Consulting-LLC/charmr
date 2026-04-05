@@ -1,0 +1,27 @@
+# Same as `reach_coach_match_list_with_one_match` but **no** launch/clearState/onboarding.
+# Caller must already be on Home (e.g. after dev menu actions on the same anonymous user).
+appId: com.ninjadating.charmr
+---
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn: 'Add New Match'
+- extendedWaitUntil:
+    visible: 'Add New Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- inputText: 'Maestro E2E Match'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'platform-hinge-button'
+- tapOn:
+    id: 'add-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 35000

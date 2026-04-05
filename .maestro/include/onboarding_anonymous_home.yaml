@@ -1,0 +1,18 @@
+# Cold install → Get Started → skip onboarding → Home (“Try Our Dating Coach”).
+# Use via runFlow from flows that need a fresh anonymous user (needs API for /api/users).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000

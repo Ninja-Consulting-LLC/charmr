@@ -1,0 +1,35 @@
+# D2 (smoke): Contact Support from menu → modal → dismiss with X (no submit; needs API for skip home).
+# Same menu scroll pattern as `05_support_feedback_exhaustive`.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/onboarding_anonymous_home.yaml
+- tapOn:
+    id: 'user-menu-button'
+- extendedWaitUntil:
+    visible: 'Profile'
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: 'user-menu-contact-support'
+    direction: DOWN
+    timeout: 15000
+    speed: 40
+    visibilityPercentage: 50
+- tapOn:
+    id: 'user-menu-contact-support'
+- extendedWaitUntil:
+    visible:
+      id: 'support-contact-modal'
+    timeout: 12000
+- assertVisible:
+    id: 'support-contact-close'
+- tapOn:
+    id: 'support-contact-close'
+- assertNotVisible:
+    id: 'support-contact-modal'
+- tapOn:
+    id: 'user-menu-close-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

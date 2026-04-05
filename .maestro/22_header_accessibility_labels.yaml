@@ -1,0 +1,20 @@
+# H1 (spot): Header exposes a11y labels for account and dev controls (__DEV__).
+appId: com.ninjadating.charmr
+---
+- stopApp
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- assertVisible: 'Open account menu'
+- assertVisible: 'Open development menu'

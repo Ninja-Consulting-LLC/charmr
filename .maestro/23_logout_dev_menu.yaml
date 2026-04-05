@@ -1,0 +1,16 @@
+# L1: Dev menu → Logout → Login shell (Get Started). __DEV__ only; no-op in release.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/onboarding_anonymous_home.yaml
+- tapOn:
+    id: 'dev-menu-button'
+- extendedWaitUntil:
+    visible:
+      id: 'dev-menu-logout-button'
+    timeout: 12000
+- tapOn:
+    id: 'dev-menu-logout-button'
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 15000

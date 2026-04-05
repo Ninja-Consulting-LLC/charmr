@@ -1,0 +1,19 @@
+# Optional: Home → **native** Photos picker → select first asset → `selected-image-0` visible.
+# Requires app built with **ENVFILE=.env.e2e.native-picker** (RELAX=false, NATIVE_PICKER_TEST=true).
+# Prerequisite: `npm run test:e2e:native-picker` runs `simctl` grant + addmedia before Maestro.
+# Tap position targets the first grid thumbnail (fragile across iOS / screen sizes).
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: ../include/onboarding_anonymous_home.yaml
+- tapOn:
+    id: 'image-picker-button'
+- waitForAnimationToEnd
+# Single-album "Recently Added" + patch → asset grid; first cell ~upper-left of collection.
+- tapOn:
+    point: '28%, 36%'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'selected-image-0'
+    timeout: 25000

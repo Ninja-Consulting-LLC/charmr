@@ -1,0 +1,33 @@
+# B5: Onboarding step 3 → Register opens login modal (OAuth UI only; no provider completion).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'next-button'
+- extendedWaitUntil:
+    visible: 'Select Charmr Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'next-button'
+- extendedWaitUntil:
+    visible: 'Register for Better Experience'
+    timeout: 12000
+- tapOn:
+    id: 'register-button'
+- extendedWaitUntil:
+    visible:
+      id: 'google-login-button'
+    timeout: 12000
+- tapOn:
+    id: 'login-modal-cancel'
+- extendedWaitUntil:
+    visible: 'Register for Better Experience'
+    timeout: 12000

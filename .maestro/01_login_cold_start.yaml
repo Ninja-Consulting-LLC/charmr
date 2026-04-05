@@ -1,0 +1,13 @@
+# A1: Cold install state → Login screen (primary CTAs by testID + visible copy).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- assertVisible:
+    id: 'get-started-button'
+- assertVisible:
+    id: 'login-button'
+- assertVisible: 'Log In'

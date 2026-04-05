@@ -1,0 +1,18 @@
+# C6b: Home image strip — add screenshot (E2E bundled inject) → remove → back to Add Screenshot.
+# Requires `.env.e2e` / `CHARMR_E2E_RELAX_IMAGE_PICKER=true` (same as `stub/02`); no stub LLM.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/onboarding_anonymous_home.yaml
+- tapOn:
+    id: 'image-picker-button'
+- extendedWaitUntil:
+    visible:
+      id: 'selected-image-0'
+    timeout: 20000
+- tapOn:
+    id: 'remove-image-0'
+- extendedWaitUntil:
+    visible:
+      id: 'image-picker-button'
+    timeout: 15000

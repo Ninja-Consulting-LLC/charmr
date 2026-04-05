@@ -1,0 +1,39 @@
+# F3 / compliance UI: Account menu shows Terms and Privacy rows (does not open Safari).
+appId: com.ninjadating.charmr
+---
+- stopApp
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'user-menu-button'
+- extendedWaitUntil:
+    visible: 'Account Settings'
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: 'user-menu-terms-of-service'
+    direction: DOWN
+    timeout: 20000
+    speed: 40
+    visibilityPercentage: 50
+- assertVisible:
+    id: 'user-menu-terms-of-service'
+- assertVisible:
+    id: 'user-menu-privacy-policy'
+- tapOn:
+    id: 'user-menu-close-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

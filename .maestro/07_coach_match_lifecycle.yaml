@@ -1,0 +1,194 @@
+# C2–C5 + E1–E3 + E5 (exhaustive single session): match list → select → coach (header + composer) → back → edit name → archive → restore → recency (two matches).
+# Needs API. Replaces former 07, 08, 10, 13, 21.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match.yaml
+# Open coach chat for default match — assert header + composer
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-chat-message-input'
+    timeout: 35000
+- assertVisible:
+    id: 'coach-chat-screen'
+- assertVisible:
+    id: 'coach-chat-match-name'
+- assertVisible:
+    id: 'coach-chat-message-input'
+- tapOn:
+    id: 'coach-chat-back-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
+# Edit match name from picker
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn:
+    id: 'match-edit-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Edit Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- eraseText: 40
+- inputText: 'E2E Edited Name'
+# Blur name field so Paper TextInput commits before save (same as add-match include).
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'update-match-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 45000
+- waitForAnimationToEnd
+# Re-open same match — assert edited name in coach header
+- extendedWaitUntil:
+    visible:
+      id: match-row-select-button
+    timeout: 15000
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-chat-message-input'
+    timeout: 35000
+- assertVisible:
+    id: 'coach-chat-match-name'
+- tapOn:
+    id: 'coach-chat-back-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
+# Archive from picker
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn:
+    id: 'match-archive-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Archive Match'
+    timeout: 10000
+- tapOn:
+    id: 'archive-match-confirm-button'
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: match-list-first-row
+- tapOn:
+    id: 'match-selector-close'
+# Restore from Archived Matches
+- tapOn:
+    id: 'user-menu-button'
+- tapOn:
+    id: 'user-menu-archived-matches'
+- extendedWaitUntil:
+    visible: 'Archived Matches'
+    timeout: 12000
+- tapOn:
+    id: 'hidden-match-restore-button'
+    index: 0
+- waitForAnimationToEnd
+- tapOn:
+    id: 'archived-matches-close'
+# Slideout was left open from opening Archived Matches; close it before coach CTA.
+- tapOn:
+    id: 'user-menu-close-button'
+# Coach list shows restored match
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 25000
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 45000
+- tapOn:
+    id: 'match-selector-close'
+# E5: recency — add A, open coach (updates lastUsed), add B, Select first row → B
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn: 'Add New Match'
+- extendedWaitUntil:
+    visible: 'Add New Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- inputText: 'E2E Order A'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'platform-hinge-button'
+- tapOn:
+    id: 'add-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 45000
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-chat-message-input'
+    timeout: 35000
+- assertVisible:
+    id: 'coach-chat-match-name'
+- tapOn:
+    id: 'coach-chat-back-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn: 'Add New Match'
+- extendedWaitUntil:
+    visible: 'Add New Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- inputText: 'E2E Order B'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'platform-hinge-button'
+- tapOn:
+    id: 'add-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 45000
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-chat-message-input'
+    timeout: 35000
+- assertVisible:
+    id: 'coach-chat-match-name'
+- tapOn:
+    id: 'coach-chat-back-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

@@ -1,0 +1,33 @@
+# G4: Dev menu lists E2E helper actions (__DEV__ only).
+appId: com.ninjadating.charmr
+---
+- stopApp
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'dev-menu-button'
+- extendedWaitUntil:
+    visible:
+      id: 'dev-menu-e2e-simulate-registered'
+    timeout: 12000
+- extendedWaitUntil:
+    visible:
+      id: 'dev-menu-e2e-saturate-limit'
+    timeout: 12000
+- tapOn:
+    id: 'dev-menu-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

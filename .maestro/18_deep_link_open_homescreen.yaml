@@ -1,0 +1,32 @@
+# G3: In-app deep link charmr://open/homescreen dismisses coach UI and shows Home.
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- openLink: charmr://open/homescreen
+# Deep link only calls navigation.navigate('Home'); it may not dismiss the match modal — close if still open.
+- tapOn:
+    id: 'match-selector-close'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 25000
+- assertNotVisible:
+    text: 'Select Match'

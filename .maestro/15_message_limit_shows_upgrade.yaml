@@ -1,0 +1,54 @@
+# F1 / F2 (partial): Saturate daily quota (dev API) → coach send hits limit → upgrade UI.
+# Local backend: NODE_ENV=development so POST /api/dev/e2e/saturate-message-limit exists.
+# Do NOT set CHARMR_E2E_STUB_LLM (stub bypasses real limit path).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'dev-menu-button'
+- extendedWaitUntil:
+    visible:
+      id: 'dev-menu-e2e-saturate-limit'
+    timeout: 12000
+- tapOn:
+    id: 'dev-menu-e2e-saturate-limit'
+- extendedWaitUntil:
+    visible: 'OK'
+    timeout: 12000
+- tapOn:
+    text: 'OK'
+- tapOn:
+    id: 'dev-menu-button'
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match_from_home.yaml
+- tapOn:
+    text: 'Select'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-free-upgrade-banner'
+    timeout: 20000
+- tapOn:
+    id: 'coach-chat-message-input'
+- inputText: 'should hit limit'
+- tapOn:
+    id: 'coach-chat-send-button'
+- extendedWaitUntil:
+    visible:
+      id: 'upgrade-modal'
+    timeout: 25000
+- tapOn:
+    id: 'upgrade-modal-close'
