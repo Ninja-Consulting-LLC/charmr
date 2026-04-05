@@ -32,6 +32,7 @@
     "test:e2e:stub-api-server": "bash scripts/start-backend-e2e-stub.sh",
     "test:e2e:scripts": "bash -n scripts/run-maestro-e2e.sh scripts/run-maestro-one.sh scripts/run-maestro-stub-llm.sh scripts/verify-e2e-support-api.sh scripts/verify-e2e-stub-llm-api.sh scripts/start-backend-e2e-stub.sh scripts/run-ios-manual-picker.sh scripts/run-maestro-native-picker.sh",
     "test:e2e:install-ios-runtime": "xcodebuild -downloadPlatform iOS",
+    "deploy:website": "npm run deploy -w website",
     "clean": "rm -rf node_modules && npm install",
     "reset": "npm run clean && npm start -- --reset-cache",
     "install:fast": "npm ci --no-audit --no-fund --prefer-offline",

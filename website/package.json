@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "echo 'No build step required for static site'",
-    "deploy": "gh-pages -d .",
+    "deploy": "gh-pages -d . --dest website",
     "start": "http-server -p 3000 -c-1"
   },
   "devDependencies": {
