@@ -1,0 +1,29 @@
+in flight:
+- handle canceling subscription with grace period
+
+- Productionize logging and clean up debug logging
+- Consider data tagging for future ai model creation
+- Update android app in firebase
+- Offer to open reply modal in dating coach mode to regenerate
+- Friend referral
+- Leave feedback in App Store
+- Redo keyboard activation gif
+- Notification to update keyboard permissions
+- Notification to update push notifications permissions
+- delete screenshot toggle on reply modal state does not work well
+- Fix apple sign in linking to existing account
+- Test google sign in linking to existing account
+- Handle failing api calls gracefully with a centralized component
+- Background generation and update even if you leave the app
+
+Future Features
+- Coach continuity between app and texting
+- Allow multiple photos
+- Customized dating coach instructions or dating coach personas (spicy coach, serious coach, etc)
+- Offer way to organize women and schedule dates
+- Coach should monitor the conversation and guide to move it to a date or to switch to texting and move off the platform
+- voting on messages
+- dynamic temperature controls
+- Have multiple language options, especially if it detects another language
+- History of previously generated openers
+- Dating playbooks
