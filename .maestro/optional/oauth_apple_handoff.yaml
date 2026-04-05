@@ -1,0 +1,14 @@
+# A4 — Optional / manual: reaches Apple Sign-In entry only. Complete ASAuthorizationController by hand.
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Log In'
+- extendedWaitUntil:
+    visible:
+      id: 'apple-login-button'
+    timeout: 15000
+# Manual: tap apple-login-button and complete Face ID / password flow.

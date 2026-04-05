@@ -1,0 +1,39 @@
+# C3b: Add match with Platform "Other" + custom platform text (AddEditMatchModal).
+# Needs API. Depends on reach_coach_match_list_with_one_match (seed row).
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match.yaml
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn: 'Add New Match'
+- extendedWaitUntil:
+    visible: 'Add New Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- inputText: 'E2E Other App'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'platform-other-button'
+- extendedWaitUntil:
+    visible:
+      id: 'platform-other-field'
+    timeout: 8000
+- tapOn:
+    id: 'platform-other-field'
+- inputText: 'Coffee Meets Bagel'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'add-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'E2E Other App'
+    timeout: 45000
+- tapOn:
+    id: 'match-selector-close'

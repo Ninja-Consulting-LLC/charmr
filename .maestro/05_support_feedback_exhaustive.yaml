@@ -1,0 +1,101 @@
+# D1–D3 (exhaustive): Contact Support + Feedback FAB — fields visible, filled, submit, success (needs API; CHARMR_DEV_MOCK_EMAIL=1 if no SMTP).
+# Contact runs first so the account menu opens before any feedback modal (avoids touch / focus quirks after modal close).
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/onboarding_anonymous_home.yaml
+# --- Contact Support (menu): assert form + submit + success ---
+- tapOn:
+    id: 'user-menu-button'
+- extendedWaitUntil:
+    visible: 'Profile'
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: 'user-menu-contact-support'
+    direction: DOWN
+    timeout: 15000
+    speed: 40
+    visibilityPercentage: 50
+- tapOn:
+    id: 'user-menu-contact-support'
+- extendedWaitUntil:
+    visible:
+      id: 'send-message-button'
+    timeout: 12000
+- assertVisible:
+    id: 'support-contact-title'
+- assertVisible:
+    id: 'email-input'
+- assertVisible:
+    id: 'phone-input'
+- assertVisible:
+    id: 'message-input'
+- tapOn:
+    id: 'email-input'
+- inputText: 'e2e.contact@charmr.test'
+- tapOn:
+    id: 'phone-input'
+- inputText: '+1 555 010 0199'
+- tapOn:
+    id: 'message-input'
+- eraseText: 120
+- inputText: 'Maestro E2E contact support body; fields visible before send'
+- tapOn:
+    id: 'support-contact-title'
+- tapOn:
+    id: 'send-message-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'support-submit-success'
+    timeout: 60000
+- assertVisible:
+    id: 'support-submit-success-text'
+- tapOn:
+    id: 'support-success-close-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
+- waitForAnimationToEnd
+# --- Feedback (FAB): assert form + submit + success ---
+- tapOn:
+    id: 'feedback-button'
+- extendedWaitUntil:
+    visible:
+      id: 'send-message-button'
+    timeout: 12000
+- assertVisible:
+    id: 'support-contact-title'
+- assertVisible:
+    id: 'email-input'
+- assertVisible:
+    id: 'phone-input'
+- assertVisible:
+    id: 'message-input'
+- tapOn:
+    id: 'email-input'
+- inputText: 'e2e.feedback@charmr.test'
+- tapOn:
+    id: 'phone-input'
+- inputText: '+1 555 010 0299'
+- tapOn:
+    id: 'message-input'
+- eraseText: 120
+- inputText: 'Maestro E2E feedback body; fields visible before send'
+- tapOn:
+    id: 'support-contact-title'
+- tapOn:
+    id: 'send-message-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'support-submit-success'
+    timeout: 60000
+- assertVisible:
+    id: 'support-submit-success-text'
+- tapOn:
+    id: 'support-success-close-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

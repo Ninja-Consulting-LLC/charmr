@@ -1,0 +1,29 @@
+# E3 (platform): Edit seeded match — change platform hinge → tinder, assert list subtitle.
+# Needs API. Same include as 07 edit path.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match.yaml
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn:
+    id: 'match-edit-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Edit Match'
+    timeout: 12000
+- tapOn:
+    id: 'platform-tinder-button'
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'update-match-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: 'Tinder'
+    timeout: 45000
+- tapOn:
+    id: 'match-selector-close'

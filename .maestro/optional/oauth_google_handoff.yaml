@@ -1,0 +1,16 @@
+# A3 — Optional / manual: reaches Google Sign-In entry only. After this, complete the system sheet
+# (account picker / WebView) by hand. Not run by `npm run test:e2e` (non-numbered path).
+# Suggested: `maestro test -p ios .maestro/optional/oauth_google_handoff.yaml`
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Log In'
+- extendedWaitUntil:
+    visible:
+      id: 'google-login-button'
+    timeout: 15000
+# Manual next step: tap google-login-button and finish OAuth in the system UI.

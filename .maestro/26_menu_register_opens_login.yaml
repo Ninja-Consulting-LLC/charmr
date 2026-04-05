@@ -1,0 +1,37 @@
+# B6: Anonymous user — Account menu Register → LoginModal OAuth row → cancel.
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'user-menu-button'
+- extendedWaitUntil:
+    visible: 'Account Settings'
+    timeout: 12000
+- tapOn:
+    id: 'user-menu-register-account'
+- extendedWaitUntil:
+    visible:
+      id: 'google-login-button'
+    timeout: 12000
+- assertVisible:
+    id: 'apple-login-button'
+- tapOn:
+    id: 'login-modal-cancel'
+- tapOn:
+    id: 'user-menu-close-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
