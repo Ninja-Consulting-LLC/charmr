@@ -166,6 +166,7 @@ const createMatchRouter = (db: Database) => {
       const {userId, matchId} = req.params;
       // For debugging, assume admin access
       const conversation = await loadConversation(
+        db,
         userId,
         matchId,
         SubscriptionTier.FREE,

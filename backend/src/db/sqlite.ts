@@ -40,7 +40,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       createdAt TEXT,
       totalCost REAL DEFAULT 0,
       totalTokens INTEGER DEFAULT 0,
-      lastCostUpdate TEXT
+      lastCostUpdate TEXT,
+      linkedFrom TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_installation_id ON users(installationId);
@@ -121,6 +122,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       deleted INTEGER DEFAULT 0,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
+      summary TEXT,
+      summaryLastUpdated TEXT,
       FOREIGN KEY (userId) REFERENCES users(id)
     );
 
@@ -128,6 +131,98 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     CREATE INDEX IF NOT EXISTS idx_matches_last_used ON matches(lastUsed);
     CREATE INDEX IF NOT EXISTS idx_matches_hidden ON matches(hidden);
   `);
+
+  for (const stmt of [
+    'ALTER TABLE users ADD COLUMN linkedFrom TEXT',
+    'ALTER TABLE matches ADD COLUMN summary TEXT',
+    'ALTER TABLE matches ADD COLUMN summaryLastUpdated TEXT',
+  ]) {
+    try {
+      await db.run(stmt);
+    } catch {
+      /* column already exists */
+    }
+  }
+
+  type ConversationMessageInput = {
+    role: 'user' | 'assistant' | 'system';
+    type?: 'text' | 'image' | 'summary';
+    mode?: 'generate' | 'coach';
+    used?: boolean;
+    replyTo?: number;
+    content: string;
+    timestamp: string;
+    imageData?: string;
+    promptVariant?: PromptVariant;
+    model?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    inputCost?: number;
+    outputCost?: number;
+    totalCost?: number;
+    costTimestamp?: string;
+  };
+
+  const persistConversationMessage = async (
+    userId: string,
+    matchId: string,
+    message: ConversationMessageInput,
+  ): Promise<Message> => {
+    try {
+      const defaultMessage = {
+        type: 'text' as const,
+        mode: 'generate' as const,
+        used: false,
+      };
+
+      const messageWithDefaults = {
+        ...defaultMessage,
+        ...message,
+      };
+
+      const result = await db.run(
+        'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant, model, promptTokens, completionTokens, totalTokens, inputCost, outputCost, totalCost, costTimestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          userId,
+          matchId,
+          messageWithDefaults.role,
+          messageWithDefaults.type,
+          messageWithDefaults.mode,
+          messageWithDefaults.used ? 1 : 0,
+          messageWithDefaults.replyTo || null,
+          messageWithDefaults.content,
+          messageWithDefaults.timestamp,
+          messageWithDefaults.imageData || null,
+          messageWithDefaults.promptVariant || null,
+          messageWithDefaults.model || null,
+          messageWithDefaults.promptTokens ?? null,
+          messageWithDefaults.completionTokens ?? null,
+          messageWithDefaults.totalTokens ?? null,
+          messageWithDefaults.inputCost ?? null,
+          messageWithDefaults.outputCost ?? null,
+          messageWithDefaults.totalCost ?? null,
+          messageWithDefaults.costTimestamp || null,
+        ],
+      );
+
+      const insertedMessage = await db.get(
+        'SELECT * FROM messages WHERE id = ?',
+        [result.lastID],
+      );
+
+      return {
+        ...insertedMessage,
+        used: Boolean(insertedMessage.used),
+      };
+    } catch (error) {
+      logger.error('Failed to save message', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  };
 
   return {
     getUser: async (userId: string): Promise<User | null> => {
@@ -263,7 +358,6 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                   ),
                 };
               } catch (error) {
-                await db.run('ROLLBACK');
                 logger.error('Failed to link anonymous user:', {
                   error:
                     error instanceof Error ? error.message : 'Unknown error',
@@ -325,7 +419,6 @@ export const createSqliteDatabase = async (): Promise<Database> => {
                 ),
               };
             } catch (error) {
-              await db.run('ROLLBACK');
               logger.error('Failed to restore deleted user:', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined,
@@ -371,7 +464,6 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             ),
           };
         } catch (error) {
-          await db.run('ROLLBACK');
           logger.error('Failed to create new user:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
@@ -380,7 +472,11 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           throw error;
         }
       } catch (error) {
-        await db.run('ROLLBACK');
+        try {
+          await db.run('ROLLBACK');
+        } catch {
+          /* no active transaction */
+        }
         logger.error('Failed to create user:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
@@ -600,84 +696,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     },
 
     // Conversation storage methods
-    saveMessage: async (
-      userId: string,
-      matchId: string,
-      message: {
-        role: 'user' | 'assistant' | 'system';
-        type?: 'text' | 'image' | 'summary';
-        mode?: 'generate' | 'coach';
-        used?: boolean;
-        replyTo?: number;
-        content: string;
-        timestamp: string;
-        imageData?: string;
-        promptVariant?: PromptVariant;
-        // Cost fields
-        model?: string;
-        promptTokens?: number;
-        completionTokens?: number;
-        totalTokens?: number;
-        inputCost?: number;
-        outputCost?: number;
-        totalCost?: number;
-        costTimestamp?: string;
-      },
-    ): Promise<Message> => {
-      try {
-        const defaultMessage = {
-          type: 'text' as const,
-          mode: 'generate' as const,
-          used: false,
-        };
-
-        const messageWithDefaults = {
-          ...defaultMessage,
-          ...message,
-        };
-
-        const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant, model, promptTokens, completionTokens, totalTokens, inputCost, outputCost, totalCost, costTimestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            userId,
-            matchId,
-            messageWithDefaults.role,
-            messageWithDefaults.type,
-            messageWithDefaults.mode,
-            messageWithDefaults.used ? 1 : 0,
-            messageWithDefaults.replyTo || null,
-            messageWithDefaults.content,
-            messageWithDefaults.timestamp,
-            messageWithDefaults.imageData || null,
-            messageWithDefaults.promptVariant || null,
-            messageWithDefaults.model || null,
-            messageWithDefaults.promptTokens || null,
-            messageWithDefaults.completionTokens || null,
-            messageWithDefaults.totalTokens || null,
-            messageWithDefaults.inputCost || null,
-            messageWithDefaults.outputCost || null,
-            messageWithDefaults.totalCost || null,
-            messageWithDefaults.costTimestamp || null,
-          ],
-        );
-
-        const insertedMessage = await db.get(
-          'SELECT * FROM messages WHERE id = ?',
-          [result.lastID],
-        );
-
-        return {
-          ...insertedMessage,
-          used: Boolean(insertedMessage.used),
-        };
-      } catch (error) {
-        logger.error('Failed to save message', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-        throw error;
-      }
-    },
+    saveMessage: persistConversationMessage,
 
     getMessages: async (
       userId: string,
@@ -965,8 +984,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     ): Promise<Match> => {
       try {
         const result = await db.run(
-          `INSERT INTO matches (userId, name, platform, lastUsed, hidden, deleted, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO matches (userId, name, platform, lastUsed, hidden, deleted, createdAt, updatedAt, summary, summaryLastUpdated)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             match.name,
@@ -976,6 +995,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             0, // deleted = false
             match.createdAt,
             match.updatedAt,
+            match.summary ?? null,
+            match.summaryLastUpdated ?? null,
           ],
         );
         return {
@@ -988,6 +1009,8 @@ export const createSqliteDatabase = async (): Promise<Database> => {
           deleted: false,
           createdAt: match.createdAt,
           updatedAt: match.updatedAt,
+          summary: match.summary,
+          summaryLastUpdated: match.summaryLastUpdated,
         };
       } catch (error) {
         logger.error('Failed to add match to SQLite', {
@@ -1080,7 +1103,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     ): Promise<void> => {
       try {
         const now = new Date().toISOString();
-        const allowedFields = ['name', 'platform'];
+        const allowedFields = [
+          'name',
+          'platform',
+          'summary',
+          'summaryLastUpdated',
+        ];
         const updateFields = Object.entries(updates)
           .filter(([key]) => allowedFields.includes(key))
           .map(([key]) => `${key} = ?`);
@@ -1116,7 +1144,7 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     getMatchById: async (userId: string, matchId: number | string) => {
       try {
         const match = await db.get(
-          'SELECT * FROM matches WHERE id = ? AND userId = ?',
+          'SELECT * FROM matches WHERE id = ? AND userId = ? AND deleted = 0',
           [matchId, userId],
         );
         return match || null;
@@ -1241,64 +1269,30 @@ export const createSqliteDatabase = async (): Promise<Database> => {
       },
     },
 
-    createMessage: async (
-      userId: string,
-      matchId: string,
-      message: {
-        role: 'user' | 'assistant' | 'system';
-        type?: 'text' | 'image' | 'summary';
-        mode?: 'generate' | 'coach';
-        used?: boolean;
-        replyTo?: number;
-        content: string;
-        timestamp: string;
-        imageData?: string;
-        promptVariant?: PromptVariant;
-      },
-    ): Promise<Message> => {
-      // Just call saveMessage
-      return await (async () => {
-        const defaultMessage = {
-          type: 'text' as const,
-          mode: 'generate' as const,
-          used: false,
-        };
-        const messageWithDefaults = {
-          ...defaultMessage,
-          ...message,
-        };
-        const result = await db.run(
-          'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [
-            userId,
-            matchId,
-            messageWithDefaults.role,
-            messageWithDefaults.type,
-            messageWithDefaults.mode,
-            messageWithDefaults.used ? 1 : 0,
-            messageWithDefaults.replyTo || null,
-            messageWithDefaults.content,
-            messageWithDefaults.timestamp,
-            messageWithDefaults.imageData || null,
-            messageWithDefaults.promptVariant || null,
-          ],
-        );
-        const insertedMessage = await db.get(
-          'SELECT * FROM messages WHERE id = ?',
-          [result.lastID],
-        );
-        return {
-          ...insertedMessage,
-          used: Boolean(insertedMessage.used),
-        };
-      })();
-    },
+    createMessage: persistConversationMessage,
 
     linkUsers: async (
       anonymousUserId: string,
       registeredUserId: string,
     ): Promise<void> => {
-      // Transfer all messages, matches, screenshots, then delete the anonymous user
+      const anon = await db.get('SELECT id FROM users WHERE id = ?', [
+        anonymousUserId,
+      ]);
+      const reg = await db.get('SELECT id FROM users WHERE id = ?', [
+        registeredUserId,
+      ]);
+      if (!anon) {
+        throw new Error(`Anonymous user not found: ${anonymousUserId}`);
+      }
+      if (!reg) {
+        throw new Error(`Registered user not found: ${registeredUserId}`);
+      }
+
+      await db.run('UPDATE users SET linkedFrom = ? WHERE id = ?', [
+        anonymousUserId,
+        registeredUserId,
+      ]);
+
       await db.run('UPDATE messages SET userId = ? WHERE userId = ?', [
         registeredUserId,
         anonymousUserId,

@@ -5,7 +5,7 @@ import logger from '../utils/logger';
 export const getMatches = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
-    const {includeHidden} = req.query;
+    const includeHidden = req.query?.includeHidden;
     logger.debug('Getting matches', {
       userId,
       includeHidden,
@@ -42,7 +42,7 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       userId: req.params.userId,
-      includeHidden: req.query.includeHidden,
+      includeHidden: req.query?.includeHidden,
     });
     res.status(500).json({error: 'Failed to fetch matches'});
   }
@@ -51,10 +51,12 @@ export const getMatches = async (req: Request, res: Response, db: Database) => {
 export const addMatch = async (req: Request, res: Response, db: Database) => {
   try {
     // Get userId from either Firebase token or anonymous user header
-    const userId =
-      process.env.NODE_ENV === 'development'
-        ? req.params.userId
-        : req.user?.uid || req.headers['x-anonymous-user'];
+    const useParamsUserId =
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test';
+    const userId = useParamsUserId
+      ? req.params.userId
+      : req.user?.uid || req.headers?.['x-anonymous-user'];
 
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
@@ -69,6 +71,19 @@ export const addMatch = async (req: Request, res: Response, db: Database) => {
     const {name, platform} = req.body;
     if (!name || !platform) {
       return res.status(400).json({error: 'Name and platform are required'});
+    }
+
+    const existing = await db.getMatches(userId, true);
+    const duplicate = existing.find(
+      m =>
+        m.name === name &&
+        m.platform === platform &&
+        !m.deleted,
+    );
+    if (duplicate) {
+      return res
+        .status(400)
+        .json({error: 'A match with this name and platform already exists'});
     }
 
     const now = new Date().toISOString();
@@ -114,11 +129,16 @@ export const updateMatchLastUsed = async (
       return res.status(404).json({error: 'User not found'});
     }
 
+    const existingMatch = await db.getMatchById(userId, matchId);
+    if (!existingMatch) {
+      return res.status(404).json({error: 'Match not found'});
+    }
+
     // Update match last used
     await db.updateMatchLastUsed(userId, matchId);
 
     logger.info('Updated match last used:', {userId, matchId});
-    res.json({message: 'Match updated successfully'});
+    res.status(200).json({message: 'Match updated successfully'});
   } catch (error) {
     logger.error('Error updating match:', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -136,13 +156,20 @@ export const deleteMatch = async (
 ) => {
   try {
     const {matchId} = req.params;
-    const userId =
-      process.env.NODE_ENV === 'development'
-        ? req.params.userId
-        : req.user?.uid;
+    const useParamsUserId =
+      process.env.NODE_ENV === 'development' ||
+      process.env.NODE_ENV === 'test';
+    const userId = useParamsUserId
+      ? req.params.userId
+      : req.user?.uid;
 
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
+    }
+
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({error: 'User not found'});
     }
 
     // Soft delete the match

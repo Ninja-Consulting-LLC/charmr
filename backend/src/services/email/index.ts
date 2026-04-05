@@ -9,6 +9,18 @@ import logger from '../../utils/logger';
 
 // Create email service instance
 export const createEmailService = (config: EmailConfig): EmailService => {
+  if (process.env.CHARMR_DEV_MOCK_EMAIL === '1') {
+    logger.info('CHARMR_DEV_MOCK_EMAIL=1: outbound email is disabled (local E2E / dev)');
+    return {
+      sendEmail: async (options: EmailOptions) => {
+        logger.debug('Mock email (not sent)', {
+          to: options.to,
+          subject: options.subject,
+        });
+      },
+    };
+  }
+
   logger.debug('Creating email service', {
     host: config.host,
     port: config.port,

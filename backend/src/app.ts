@@ -100,15 +100,16 @@ export const createApp = async () => {
     res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
   });
 
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: config.rateLimit.windowMs,
-    max: config.rateLimit.max,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-
-  app.use(limiter);
+  // Rate limiting (skip global limiter in development — local E2E + hot reload exceed low caps quickly)
+  if (config.server.environment !== 'development') {
+    const limiter = rateLimit({
+      windowMs: config.rateLimit.windowMs,
+      max: config.rateLimit.max,
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+    app.use(limiter);
+  }
 
   // Logging middleware
   app.use(morgan('combined', {stream}));

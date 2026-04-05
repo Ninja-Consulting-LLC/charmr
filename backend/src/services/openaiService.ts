@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import {config} from '../config/config';
 import {formatPrompt, getPromptConfig} from '../config/prompts';
-import {getDatabase} from '../db';
+import {Database} from '../db/types';
 import {
   GenerateReplyRequest,
   GenerateReplyResponse,
@@ -13,7 +13,7 @@ import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
 import {createSummaryService} from './summaryService';
 
-export const createOpenAIService = () => {
+export const createOpenAIService = (db: Database) => {
   if (!config.openai.apiKey) {
     throw new Error('OPENAI_API_KEY is required');
   }
@@ -26,10 +26,10 @@ export const createOpenAIService = () => {
     if (!openai) throw new Error('OpenAI client not initialized');
 
     try {
-      const db = await getDatabase();
       const user = await db.getUser(request.userId);
       const conversationHistory = request.matchId
         ? await loadConversation(
+            db,
             request.userId,
             request.matchId,
             user?.plan || SubscriptionTier.FREE,

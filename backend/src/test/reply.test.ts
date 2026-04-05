@@ -2,25 +2,60 @@ import {Request, Response} from 'express';
 import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
 
+jest.mock('../services/llm/llmProvider', () => ({
+  createLlmProvider: jest.fn(() => ({
+    generateReply: jest.fn().mockResolvedValue({
+      reply: 'Short mock reply for unit test.',
+      summary: 'Mock summary of the conversation.',
+      error: null as null,
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    }),
+  })),
+}));
+
 describe('Reply Controller', () => {
   let db: Awaited<ReturnType<typeof getDatabase>>;
   let replyController: Awaited<ReturnType<typeof createReplyController>>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let responseObject: any;
+  let matchId: string;
 
   beforeEach(async () => {
     db = await getDatabase();
     await db.clearDatabase();
     replyController = await createReplyController(db);
 
+    await db.createUser({
+      id: 'test-user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+
+    const now = new Date().toISOString();
+    const match = await db.addMatch('test-user-123', {
+      userId: 'test-user-123',
+      name: 'Test Match',
+      platform: 'test',
+      lastUsed: now,
+      hidden: false,
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    matchId = String(match.id);
+
     // Setup mock request
     mockRequest = {
-      params: {userId: 'test-user-123', matchId: 'test-match-123'},
+      params: {userId: 'test-user-123', matchId},
       body: {
         prompt: 'Test reply',
         userId: 'test-user-123',
-        matchId: 'test-match-123',
+        matchId,
       },
       headers: {},
       cookies: {},
@@ -35,24 +70,6 @@ describe('Reply Controller', () => {
         return mockResponse;
       }),
     };
-
-    // Create test user and match
-    await db.createUser({
-      id: 'test-user-123',
-      email: 'test@example.com',
-      name: 'Test User',
-    });
-
-    await db.addMatch('test-user-123', {
-      userId: 'test-user-123',
-      name: 'Test Match',
-      platform: 'test',
-      lastUsed: new Date().toISOString(),
-      hidden: false,
-      deleted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
   });
 
   afterEach(async () => {
@@ -74,7 +91,7 @@ describe('Reply Controller', () => {
     it('should handle missing prompt', async () => {
       mockRequest.body = {
         userId: 'test-user-123',
-        matchId: 'test-match-123',
+        matchId,
       };
 
       await replyController.generateReplyHandler(
