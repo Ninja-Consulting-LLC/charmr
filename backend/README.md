@@ -1,11 +1,15 @@
 # Charmr Backend
 
+This package is part of the **npm workspace** at the repo root. Install from the repository root (`npm ci`) so `@charmr/shared` links correctly.
+
+**Architecture:** Express app (`src/app.ts`), `Database` facade over Firestore or SQLite (`src/db/`), reply flow via `createReplyController` + `services/llm/llmProvider.ts` (OpenAI / Gemini).
+
 ## Local Development
 
-1. Install dependencies:
+1. Install dependencies from the **repo root**:
 
    ```bash
-   npm install
+   cd .. && npm install
    ```
 
 2. Copy `.env.example` to `.env` and configure your environment variables:
@@ -76,6 +80,8 @@ curl -X POST http://localhost:3000/api/admin/reset-db \
 
 ## Deployment on Render
 
+Blueprint and build settings live at the **repository root** in [`render.yaml`](../render.yaml) (npm workspace: install at repo root, then build shared + backend). Production uses **Firestore** (`DATABASE_TYPE=firestore`); **do not attach a persistent disk** for SQLite unless you intentionally run `DATABASE_TYPE=sqlite` on Render.
+
 ### Prerequisites
 
 1. A Render account
@@ -89,24 +95,21 @@ curl -X POST http://localhost:3000/api/admin/reset-db \
 1. **Link your GitHub repository to Render**
 
    - Go to your Render dashboard
-   - Click "New +" and select "Web Service"
-   - Connect your GitHub repository
-   - Select the repository and branch to deploy
+   - Use **Blueprint** (or a **Web Service** with **root directory** = repository root, not `backend/`), so `packages/shared` is available at build time
+   - If you previously used `backend/render.yaml`, point the Blueprint at **`/render.yaml`** at the repo root
 
 2. **Configure Environment Variables**
 
    - In your Render dashboard, go to your service's "Environment" tab
-   - Add all required environment variables from `.env.example`
-   - Make sure to set `NODE_ENV=production`
+   - Add secrets and config from `backend/.env.example` (OpenAI, Gemini, Firebase, SMTP, `CORS_ORIGIN`, etc.)
+   - `DATABASE_TYPE=firestore` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` (or file-based credentials) are required for production persistence
 
-3. **Configure Persistent Disk**
+3. **Cost hygiene — remove unused disk**
 
-   - The SQLite database will be stored in a persistent disk
-   - The disk is automatically mounted at `/data`
-   - The database file will be stored at `/data/charmr.db`
+   - If the service still has a **persistent disk** left over from an old SQLite setup, remove it in the dashboard (you pay for provisioned disk). Firestore mode does not need it.
 
 4. **Deploy**
-   - The service will automatically deploy when you push to the `main` branch
+   - The service deploys when you push changes under `backend/**`, `packages/shared/**`, or root lockfiles (see `render.yaml` `buildFilter`), and via GitHub Actions on `main` when those paths change
    - You can also manually deploy from the Render dashboard
 
 ### Health Check

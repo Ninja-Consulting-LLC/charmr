@@ -34,6 +34,8 @@ export interface User {
   totalCost?: number;
   totalTokens?: number;
   lastCostUpdate?: string;
+  /** Set when this account was upgraded from an anonymous user (Firestore / SQLite). */
+  linkedFrom?: string;
 }
 
 export interface Message {

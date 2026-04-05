@@ -8,21 +8,41 @@ describe('Message Repository', () => {
   let db: any;
   let messageRepository: any;
   const testUserId = 'test-user-123';
-  const testMatchId = 'test-match-123';
+  let testMatchId: string;
 
   beforeEach(async () => {
     db = await getDatabase();
     messageRepository = getMessageRepository(db);
 
-    // Clean up any existing test data
     await db.run('DELETE FROM messages WHERE userId = ?', testUserId);
     await db.run('DELETE FROM screenshots WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM matches WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM users WHERE id = ?', testUserId);
+
+    await db.createUser({
+      id: testUserId,
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+    const now = new Date().toISOString();
+    const match = await db.addMatch(testUserId, {
+      userId: testUserId,
+      name: 'Seed Match',
+      platform: 'test',
+      lastUsed: now,
+      hidden: false,
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    testMatchId = String(match.id);
   });
 
   afterEach(async () => {
-    // Clean up test data
     await db.run('DELETE FROM messages WHERE userId = ?', testUserId);
     await db.run('DELETE FROM screenshots WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM matches WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM users WHERE id = ?', testUserId);
   });
 
   describe('seedTestData', () => {
@@ -93,7 +113,7 @@ describe('Message Repository', () => {
         testUserId,
         testMatchId,
       );
-      const messages = await messageRepository.getMessagesByMatch(
+      const {messages} = await messageRepository.getMessagesByMatch(
         testUserId,
         testMatchId,
       );
@@ -113,7 +133,7 @@ describe('Message Repository', () => {
         testUserId,
         testMatchId,
       );
-      const messages = await messageRepository.getMessagesByMatch(
+      const {messages} = await messageRepository.getMessagesByMatch(
         testUserId,
         testMatchId,
       );

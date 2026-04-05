@@ -1,4 +1,5 @@
 import {NextFunction, Request, Response} from 'express';
+import {config} from '../config/config';
 import logger from '../utils/logger';
 
 export interface RateLimitResult {
@@ -68,6 +69,10 @@ export const createRateLimiter = () => {
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (config.server.environment === 'development') {
+      next();
+      return;
+    }
     try {
       const ip = req.ip || req.connection.remoteAddress || '';
       const result = await check(ip);

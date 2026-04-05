@@ -1,7 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {Request, Response} from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
 import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
 import {SubscriptionTier} from '../types/enums';
@@ -59,43 +57,65 @@ jest.mock('../config/firebase-admin', () => ({
   },
 }));
 
+jest.mock('../services/llm/llmProvider', () => ({
+  createLlmProvider: jest.fn(() => ({
+    generateReply: jest.fn().mockResolvedValue({
+      reply: 'Short mock reply for unit test.',
+      summary: 'Mock summary of the conversation.',
+      error: null as null,
+      usage: {
+        prompt_tokens: 10,
+        completion_tokens: 20,
+        total_tokens: 30,
+      },
+    }),
+  })),
+}));
+
 describe('Reply Generation Integration', () => {
   let db: Awaited<ReturnType<typeof getDatabase>>;
   let replyController: Awaited<ReturnType<typeof createReplyController>>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let responseObject: any;
-  let testImagePath: string;
+  let matchId: string;
+
+  /** 1×1 transparent PNG — avoids checked-in binary fixtures in CI. */
+  const minimalPngDataUrl =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
   beforeEach(async () => {
     db = await getDatabase();
     await db.clearDatabase();
     replyController = await createReplyController(db);
 
-    // Setup test image path
-    testImagePath = path.join(
-      __dirname,
-      '../../../assets/dating_screenshots/dating-converastion.PNG',
-    );
+    await db.createUser({
+      id: 'test-user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      plan: SubscriptionTier.PRO,
+    });
 
-    // Verify test image exists
-    if (!fs.existsSync(testImagePath)) {
-      throw new Error(`Test image not found at ${testImagePath}`);
-    }
-
-    // Read image file and convert to base64
-    const imageBuffer = fs.readFileSync(testImagePath);
-    const base64Image = `data:image/png;base64,${imageBuffer.toString(
-      'base64',
-    )}`;
+    const now = new Date().toISOString();
+    const match = await db.addMatch('test-user-123', {
+      userId: 'test-user-123',
+      name: 'Sarah',
+      platform: 'tinder',
+      lastUsed: now,
+      hidden: false,
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    matchId = String(match.id);
 
     // Setup mock request
     mockRequest = {
-      params: {userId: 'test-user-123', matchId: 'test-match-123'},
+      params: {userId: 'test-user-123', matchId},
       body: {
         userId: 'test-user-123',
-        matchId: 'test-match-123',
-        images: [base64Image],
+        matchId,
+        images: [minimalPngDataUrl],
         match: {
           name: 'Sarah',
           age: 28,
@@ -119,26 +139,6 @@ describe('Reply Generation Integration', () => {
         return mockResponse;
       }),
     };
-
-    // Create test user
-    await db.createUser({
-      id: 'test-user-123',
-      email: 'test@example.com',
-      name: 'Test User',
-      plan: SubscriptionTier.PRO,
-    });
-
-    // Create test match
-    await db.addMatch('test-user-123', {
-      userId: 'test-user-123',
-      name: 'Sarah',
-      platform: 'tinder',
-      lastUsed: new Date().toISOString(),
-      hidden: false,
-      deleted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
   });
 
   afterEach(async () => {
@@ -308,5 +308,48 @@ describe('Reply Generation Integration', () => {
         throw error;
       }
     }, 30000);
+  });
+
+  describe('CHARMR_E2E_STUB_LLM', () => {
+    let prevStub: string | undefined;
+
+    beforeEach(() => {
+      prevStub = process.env.CHARMR_E2E_STUB_LLM;
+      process.env.CHARMR_E2E_STUB_LLM = 'true';
+    });
+
+    afterEach(() => {
+      if (prevStub === undefined) {
+        delete process.env.CHARMR_E2E_STUB_LLM;
+      } else {
+        process.env.CHARMR_E2E_STUB_LLM = prevStub;
+      }
+    });
+
+    it('returns deterministic reply and limits without LLM or image processing', async () => {
+      mockRequest.body = {
+        userId: 'test-user-123',
+        matchId,
+        mode: 'coach',
+        prompt: 'E2E stub prompt',
+        images: [],
+        skipRateLimiting: true,
+      };
+
+      await replyController.generateReplyHandler(
+        mockRequest as Request,
+        mockResponse as Response,
+      );
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(responseObject.reply).toBe('[E2E_STUB] Deterministic coach reply');
+      expect(responseObject).toMatchObject({
+        limits: expect.objectContaining({
+          dailyMessagesUsed: expect.any(Number),
+          dailyMessageLimit: expect.any(Number),
+        }),
+        mode: 'coach',
+      });
+    });
   });
 });

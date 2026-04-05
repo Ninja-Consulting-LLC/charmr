@@ -1,6 +1,5 @@
-import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
-import {Message} from '../db/types';
+import {Database, Message} from '../db/types';
 import {createSummaryService} from '../services/summaryService';
 import {PromptVariant} from '../types';
 import {MessageMode, MessageRole, MessageType} from '../types/enums';
@@ -9,13 +8,13 @@ import logger from '../utils/logger';
 export type {Message} from '../db/types';
 
 export const loadConversation = async (
+  db: Database,
   userId: string,
   matchId: string,
   userPlan: string,
   limit: number = 10,
 ): Promise<Message[]> => {
   try {
-    const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
     // Get messages for the match
@@ -59,6 +58,7 @@ export const loadConversation = async (
 };
 
 export const appendConversation = async (
+  db: Database,
   userId: string,
   matchId: string | undefined,
   reply: string,
@@ -84,7 +84,6 @@ export const appendConversation = async (
       promptVariant,
     });
 
-    const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
     // Start with current timestamp for this conversation set

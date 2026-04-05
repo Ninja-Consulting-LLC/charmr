@@ -8,9 +8,16 @@ export const createSupportTicket = async (
   db: Database,
 ) => {
   try {
-    const {userId, subject, message} = req.body;
+    const {userId, message} = req.body;
+    const subjectFromBody =
+      typeof req.body.subject === 'string' ? req.body.subject.trim() : '';
+    const email =
+      typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    const subject =
+      subjectFromBody ||
+      (email ? `App contact (${email})` : 'App support request');
 
-    if (!userId || !subject || !message) {
+    if (!userId || !message) {
       return res.status(400).json({
         error: 'Missing required fields',
       });

@@ -127,8 +127,8 @@ describe('Match Domain', () => {
     it('should create a new match successfully', async () => {
       const now = new Date().toISOString();
       mockRequest.body = {
-        name: 'Test Match',
-        platform: 'test-platform',
+        name: 'New Creation Match',
+        platform: 'new-creation-platform',
         lastUsed: now,
         hidden: false,
         deleted: false,
@@ -140,8 +140,8 @@ describe('Match Domain', () => {
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(responseObject).toMatchObject({
-        name: 'Test Match',
-        platform: 'test-platform',
+        name: 'New Creation Match',
+        platform: 'new-creation-platform',
       });
 
       matchId = responseObject.id;
@@ -156,7 +156,7 @@ describe('Match Domain', () => {
 
       await updateMatchLastUsed(updateMatchReq, mockResponse as Response, db);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(responseObject).toHaveProperty(
         'message',
         'Match updated successfully',
@@ -199,8 +199,8 @@ describe('Match Domain', () => {
     it('should prevent duplicate matches', async () => {
       const now = new Date().toISOString();
       mockRequest.body = {
-        name: 'Test Match',
-        platform: 'test-platform',
+        name: 'Unique Dup Match',
+        platform: 'dup-test-platform',
         lastUsed: now,
         hidden: false,
         deleted: false,
@@ -222,6 +222,16 @@ describe('Match Domain', () => {
 
   describe('Match Status Updates', () => {
     it('should update match status correctly', async () => {
+      const now = new Date().toISOString();
+      mockRequest.body = {
+        name: 'Status Flow Match',
+        platform: 'status-flow-platform',
+        lastUsed: now,
+        hidden: false,
+        deleted: false,
+        createdAt: now,
+        updatedAt: now,
+      };
       // First create a match
       await addMatch(mockRequest as Request, mockResponse as Response, db);
       expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -237,7 +247,7 @@ describe('Match Domain', () => {
 
       await updateMatchLastUsed(updateMatchReq, mockResponse as Response, db);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(responseObject).toHaveProperty(
         'message',
         'Match updated successfully',
@@ -278,6 +288,16 @@ describe('Match Domain', () => {
 
   describe('Match Interactions', () => {
     it('should process match interactions correctly', async () => {
+      const now = new Date().toISOString();
+      mockRequest.body = {
+        name: 'Interaction Flow Match',
+        platform: 'interaction-flow-platform',
+        lastUsed: now,
+        hidden: false,
+        deleted: false,
+        createdAt: now,
+        updatedAt: now,
+      };
       // First create a match
       await addMatch(mockRequest as Request, mockResponse as Response, db);
       expect(mockResponse.status).toHaveBeenCalledWith(201);
@@ -296,8 +316,8 @@ describe('Match Domain', () => {
         expect.arrayContaining([
           expect.objectContaining({
             id: matchId,
-            name: 'Test Match',
-            platform: 'test-platform',
+            name: 'Interaction Flow Match',
+            platform: 'interaction-flow-platform',
           }),
         ]),
       );
@@ -326,9 +346,10 @@ describe('Match Controller', () => {
   beforeEach(async () => {
     db = await getDatabase();
     mockReq = {
-      params: {},
+      params: {userId: 'test-user'},
       body: {},
-      user: {id: 'test-user'},
+      query: {},
+      user: {uid: 'test-user'} as any,
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -343,6 +364,7 @@ describe('Match Controller', () => {
   describe('getMatches', () => {
     it('should return 404 if user not found', async () => {
       mockReq.params = {userId: 'non-existent'};
+      mockReq.query = {};
       await getMatches(mockReq as Request, mockRes as Response, db);
       expect(mockRes.status).toHaveBeenCalledWith(404);
       expect(mockRes.json).toHaveBeenCalledWith({error: 'User not found'});
@@ -369,22 +391,36 @@ describe('Match Controller', () => {
       });
 
       mockReq.params = {userId: 'test-user'};
+      mockReq.query = {};
       await getMatches(mockReq as Request, mockRes as Response, db);
       expect(mockRes.status).toHaveBeenCalledWith(200);
       const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
-      expect(responseData).toEqual([match]);
+      expect(responseData).toHaveLength(1);
+      expect(responseData[0]).toMatchObject({
+        id: match.id,
+        userId: 'test-user',
+        name: 'Test Match',
+        platform: 'test',
+      });
     });
   });
 
   describe('addMatch', () => {
     it('should return 401 if not authenticated', async () => {
       mockReq.user = undefined;
+      mockReq.params = {};
       await addMatch(mockReq as Request, mockRes as Response, db);
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({error: 'Unauthorized'});
     });
 
     it('should return 400 if name or platform is missing', async () => {
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+      mockReq.params = {userId: 'test-user'};
       mockReq.body = {};
       await addMatch(mockReq as Request, mockRes as Response, db);
       expect(mockRes.status).toHaveBeenCalledWith(400);
@@ -394,16 +430,22 @@ describe('Match Controller', () => {
     });
 
     it('should add a match successfully', async () => {
+      await db.createUser({
+        id: 'test-user',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+      mockReq.params = {userId: 'test-user'};
       mockReq.body = {
-        name: 'Test Match',
-        platform: 'test',
+        name: 'Controller New Match',
+        platform: 'controller-platform',
       };
 
       await addMatch(mockReq as Request, mockRes as Response, db);
       const responseData = (mockRes.json as jest.Mock).mock.calls[0][0];
       expect(responseData).toMatchObject({
-        name: 'Test Match',
-        platform: 'test',
+        name: 'Controller New Match',
+        platform: 'controller-platform',
       });
     });
   });
