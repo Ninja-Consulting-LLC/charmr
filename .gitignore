@@ -26,6 +26,8 @@ project.xcworkspace
 # Android/IntelliJ
 #
 build/
+android/app/build/
+android/build/
 .idea
 .gradle
 local.properties
@@ -86,11 +88,16 @@ backend/test-results/*
 backend/dist/
 backend/node_modules/
 
+# Workspace shared package build output (rebuilt on postinstall)
+packages/shared/dist/
+
 # Conversation files
 assets/pro_paywall.png
 
 # Firebase
 service-account.json
+# GCP service account JSON downloaded from Cloud Console (never commit)
+ai-dating-keyboard-*.json
 assets/screenshots/*
 keys/*
 firestore-debug.log
