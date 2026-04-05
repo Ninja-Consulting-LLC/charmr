@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Social previews (Facebook/X/LinkedIn) read this HTML without running JS — default English. -->
     <meta
       id="meta-description"
       name="description"
@@ -11,8 +12,12 @@
     <meta
       name="keywords"
       content="dating coach, AI dating coach, dating confidence, texting anxiety, overthinking texts, Hinge, Bumble, Tinder, iOS" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="Charmr" />
     <meta name="theme-color" content="#7e22ce" />
-    <meta property="og:title" content="Charmr — Your AI Dating Coach" />
+    <meta name="color-scheme" content="light" />
+    <meta property="og:site_name" content="Charmr" />
+    <meta property="og:title" content="Charmr — AI Dating Coach for iOS" />
     <meta
       id="meta-og-description"
       property="og:description"
@@ -21,14 +26,24 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://example.invalid/" />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:image" content="https://example.invalid/logo.png" />
+    <meta property="og:image:alt" content="Charmr logo" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Charmr — Your AI Dating Coach" />
+    <meta name="twitter:title" content="Charmr — AI Dating Coach for iOS" />
     <meta
       id="meta-twitter-description"
       name="twitter:description"
       data-i18n-attr="content:metaTwitterDescription"
       content="Text with confidence, stay calm, and stop overthinking every reply." />
+    <meta name="twitter:image" content="https://example.invalid/logo.png" />
+    <meta name="twitter:image:alt" content="Charmr logo" />
     <link rel="canonical" href="https://example.invalid/" />
+    <link rel="alternate" hreflang="en" href="https://example.invalid/" />
+    <link rel="alternate" hreflang="es" href="https://example.invalid/" />
+    <link rel="alternate" hreflang="x-default" href="https://example.invalid/" />
+    <link rel="icon" href="/logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title data-i18n="title">Charmr — AI Dating Coach for Better Dating Texts</title>
@@ -46,17 +61,43 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Charmr",
-        "applicationCategory": "LifestyleApplication",
-        "operatingSystem": "iOS",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "An AI dating coach that helps users write better dating messages, reduce overthinking, and stay calm while texting.",
-        "url": "https://example.invalid/"
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://example.invalid/#organization",
+            "name": "Charmr",
+            "url": "https://example.invalid/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://example.invalid/logo.png"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://example.invalid/#website",
+            "url": "https://example.invalid/",
+            "name": "Charmr",
+            "description": "AI dating coach for iOS — clearer messages, less overthinking, more calm while you date.",
+            "publisher": { "@id": "https://example.invalid/#organization" },
+            "inLanguage": ["en", "es"]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://example.invalid/#app",
+            "name": "Charmr",
+            "applicationCategory": "LifestyleApplication",
+            "operatingSystem": "iOS",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "An AI dating coach that helps users write better dating messages, reduce overthinking, and stay calm while texting.",
+            "url": "https://example.invalid/",
+            "image": "https://example.invalid/logo.png",
+            "publisher": { "@id": "https://example.invalid/#organization" }
+          }
+        ]
       }
     </script>
   </head>
@@ -88,7 +129,7 @@
           Charmr
         </a>
 
-        <nav class="nav-desktop" aria-label="Primary">
+        <nav class="nav-desktop" data-i18n-attr="aria-label:navPrimaryAria" aria-label="Primary navigation">
           <a href="#how-it-works" data-i18n="navHow">How it works</a>
           <a href="#coaching" data-i18n="navWhy">Why it helps</a>
           <a href="#tools" data-i18n="navTools">Tools</a>
@@ -96,9 +137,23 @@
           <a class="nav-cta" href="#contact" data-i18n="navContact">Contact</a>
         </nav>
 
-        <div class="lang-switch" role="group" aria-label="Language selector">
-          <button type="button" class="lang-switch__btn is-active" data-lang-option="en">EN</button>
-          <button type="button" class="lang-switch__btn" data-lang-option="es">ES</button>
+        <div
+          class="lang-switch"
+          role="group"
+          data-i18n-attr="aria-label:langGroupAria"
+          aria-label="Choose language">
+          <button
+            type="button"
+            class="lang-switch__btn is-active"
+            data-lang-option="en"
+            data-i18n-attr="aria-label:langEnAria"
+            aria-label="English">EN</button>
+          <button
+            type="button"
+            class="lang-switch__btn"
+            data-lang-option="es"
+            data-i18n-attr="aria-label:langEsAria"
+            aria-label="Spanish">ES</button>
         </div>
 
         <button
@@ -111,17 +166,31 @@
           <span class="menu-toggle__bar"></span>
         </button>
       </div>
-      <div class="nav-mobile" id="nav-mobile" aria-hidden="true">
-        <div class="lang-switch lang-switch--mobile" role="group" aria-label="Language selector">
-          <button type="button" class="lang-switch__btn is-active" data-lang-option="en">EN</button>
-          <button type="button" class="lang-switch__btn" data-lang-option="es">ES</button>
+      <nav class="nav-mobile" id="nav-mobile" aria-hidden="true" data-i18n-attr="aria-label:navPrimaryAria" aria-label="Primary navigation">
+        <div
+          class="lang-switch lang-switch--mobile"
+          role="group"
+          data-i18n-attr="aria-label:langGroupAria"
+          aria-label="Choose language">
+          <button
+            type="button"
+            class="lang-switch__btn is-active"
+            data-lang-option="en"
+            data-i18n-attr="aria-label:langEnAria"
+            aria-label="English">EN</button>
+          <button
+            type="button"
+            class="lang-switch__btn"
+            data-lang-option="es"
+            data-i18n-attr="aria-label:langEsAria"
+            aria-label="Spanish">ES</button>
         </div>
         <a href="#how-it-works" data-i18n="navHow">How it works</a>
         <a href="#coaching" data-i18n="navWhy">Why it helps</a>
         <a href="#tools" data-i18n="navTools">Tools</a>
         <a href="#faq" data-i18n="navFaq">FAQ</a>
         <a href="#contact" data-i18n="navContact">Contact</a>
-      </div>
+      </nav>
     </header>
 
     <main id="main">
@@ -405,8 +474,8 @@
       <section id="contact" class="contact-band reveal" aria-labelledby="contact-heading">
         <div class="contact-card">
           <h2 id="contact-heading" data-i18n="contactTitle">Contact</h2>
-          <p data-i18n="contactLead">Questions, feedback, or partnership ideas? Send us a message.</p>
-          <form id="contact-form" novalidate>
+          <p id="contact-intro" data-i18n="contactLead">Questions, feedback, or partnership ideas? Send us a message.</p>
+          <form id="contact-form" novalidate aria-describedby="contact-intro">
             <div>
               <label for="contact-name" data-i18n="contactNameLabel">Name</label>
               <input type="text" id="contact-name" name="name" autocomplete="name" required />
@@ -433,12 +502,14 @@
 
     <footer class="site-footer">
       <div class="site-footer__inner">
-        <nav class="site-footer__links" aria-label="Footer">
+        <nav class="site-footer__links" data-i18n-attr="aria-label:footerNavAria" aria-label="Footer">
           <a href="privacy.html" data-i18n="footerPrivacy">Privacy Policy</a>
           <a href="terms.html" data-i18n="footerTerms">Terms of Service</a>
-          <a href="https://apps.apple.com/app/charmr/id6479018000" rel="noopener noreferrer" target="_blank"
-            data-i18n="footerAppStore">App Store</a
-          >
+          <a
+            href="https://apps.apple.com/app/charmr/id6479018000"
+            rel="noopener noreferrer"
+            target="_blank"
+            data-i18n="footerAppStore">App Store</a>
         </nav>
         <div class="site-footer__meta">
           <p class="site-footer__tagline" data-i18n="footerTagline">Text with clarity. Date with confidence.</p>

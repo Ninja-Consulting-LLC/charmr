@@ -15,6 +15,11 @@
       metaTwitterDescription: 'Text with confidence, stay calm, and stop overthinking every reply.',
       skipToMain: 'Skip to main content',
       brandHomeAria: 'Charmr home',
+      navPrimaryAria: 'Primary navigation',
+      footerNavAria: 'Footer',
+      langGroupAria: 'Choose language',
+      langEnAria: 'English',
+      langEsAria: 'Spanish',
       navHow: 'How it works',
       navWhy: 'Why it helps',
       navTools: 'Tools',
@@ -114,6 +119,11 @@
       metaTwitterDescription: 'Escribe con confianza, mantén la calma y deja de sobrepensar cada respuesta.',
       skipToMain: 'Saltar al contenido principal',
       brandHomeAria: 'Inicio de Charmr',
+      navPrimaryAria: 'Navegación principal',
+      footerNavAria: 'Pie de página',
+      langGroupAria: 'Elegir idioma',
+      langEnAria: 'Inglés',
+      langEsAria: 'Español',
       navHow: 'Cómo funciona',
       navWhy: 'Por qué ayuda',
       navTools: 'Herramientas',
@@ -250,7 +260,11 @@
 
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       var key = el.getAttribute('data-i18n');
-      if (key && pack[key]) {
+      if (!key || !pack[key]) return;
+      if (el.tagName === 'TITLE') {
+        el.textContent = pack[key];
+        document.title = pack[key];
+      } else {
         el.textContent = pack[key];
       }
     });
@@ -271,6 +285,16 @@
       } catch (err) {
         // no-op if storage is unavailable
       }
+    }
+
+    var menuToggle = document.getElementById('menu-toggle');
+    var menuPanel = document.getElementById('nav-mobile');
+    if (menuToggle && menuPanel) {
+      var menuOpen = menuPanel.classList.contains('is-open');
+      menuToggle.setAttribute(
+        'aria-label',
+        pack[menuOpen ? 'menuClose' : 'menuOpen'],
+      );
     }
   }
 
@@ -295,12 +319,22 @@
   var toggle = document.getElementById('menu-toggle');
   var panel = document.getElementById('nav-mobile');
   if (toggle && panel) {
+    var menuWasOpen = false;
     function setOpen(open) {
       panel.classList.toggle('is-open', open);
       panel.setAttribute('aria-hidden', open ? 'false' : 'true');
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       var key = open ? 'menuClose' : 'menuOpen';
       toggle.setAttribute('aria-label', MESSAGES[currentLang][key]);
+      if (open) {
+        window.requestAnimationFrame(function () {
+          var first = panel.querySelector('a[href^="#"], button');
+          if (first) first.focus();
+        });
+      } else if (menuWasOpen) {
+        toggle.focus();
+      }
+      menuWasOpen = open;
     }
 
     setOpen(false);
