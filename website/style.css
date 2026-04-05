@@ -154,6 +154,40 @@ a:hover {
   gap: 0.25rem;
 }
 
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.75rem;
+  padding: 0.2rem;
+  border: 1px solid var(--outline);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.lang-switch__btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.lang-switch__btn.is-active {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+  color: var(--on-brand);
+}
+
+.lang-switch__btn:hover:not(.is-active) {
+  color: var(--text);
+  background: rgba(126, 34, 206, 0.08);
+}
+
 .nav-desktop a {
   padding: 0.5rem 0.85rem;
   color: var(--text-muted);
@@ -251,6 +285,10 @@ a:hover {
   background: var(--surface);
 }
 
+.lang-switch--mobile {
+  margin: 0 0 0.5rem auto;
+}
+
 @media (max-width: 768px) {
   .nav-desktop {
     display: none;
@@ -258,6 +296,10 @@ a:hover {
 
   .menu-toggle {
     display: flex;
+  }
+
+  .site-header__inner .lang-switch {
+    display: none;
   }
 }
 

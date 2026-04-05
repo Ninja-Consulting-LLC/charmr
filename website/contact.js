@@ -4,6 +4,32 @@ document.addEventListener('DOMContentLoaded', function () {
   var submitBtn = document.getElementById('contact-submit');
   if (!form || !statusDiv) return;
 
+  function getLang() {
+    var pageLang = document.documentElement.lang || 'en';
+    return String(pageLang).toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+  }
+
+  function t(key) {
+    var lang = getLang();
+    var dict = {
+      en: {
+        fillAll: 'Please fill in all fields.',
+        sending: 'Sending...',
+        sent: 'Thanks - your message was sent.',
+        error: 'Something went wrong. Please try again later.',
+        send: 'Send message',
+      },
+      es: {
+        fillAll: 'Por favor completa todos los campos.',
+        sending: 'Enviando...',
+        sent: 'Gracias. Tu mensaje fue enviado.',
+        error: 'Algo salió mal. Inténtalo de nuevo más tarde.',
+        send: 'Enviar mensaje',
+      },
+    };
+    return dict[lang][key] || dict.en[key];
+  }
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     statusDiv.textContent = '';
@@ -19,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var message = messageEl.value.trim();
 
     if (!name || !email || !message) {
-      statusDiv.textContent = 'Please fill in all fields.';
+      statusDiv.textContent = t('fillAll');
       statusDiv.classList.add('is-error');
       return;
     }
@@ -37,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending…';
+      submitBtn.textContent = t('sending');
     }
 
     try {
@@ -50,20 +76,20 @@ document.addEventListener('DOMContentLoaded', function () {
         body: JSON.stringify(payload),
       });
       if (response.ok) {
-        statusDiv.textContent = 'Thanks — your message was sent.';
+        statusDiv.textContent = t('sent');
         statusDiv.classList.add('is-success');
         form.reset();
       } else {
-        statusDiv.textContent = 'Something went wrong. Please try again later.';
+        statusDiv.textContent = t('error');
         statusDiv.classList.add('is-error');
       }
     } catch (err) {
-      statusDiv.textContent = 'Something went wrong. Please try again later.';
+      statusDiv.textContent = t('error');
       statusDiv.classList.add('is-error');
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Send message';
+        submitBtn.textContent = t('send');
       }
     }
   });

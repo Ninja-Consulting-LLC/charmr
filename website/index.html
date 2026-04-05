@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
+      id="meta-description"
       name="description"
+      data-i18n-attr="content:metaDescription"
       content="Charmr is an AI dating coach for iOS. It helps you write better messages, stop overthinking, and stay calm while you date." />
     <meta
       name="keywords"
@@ -12,7 +14,9 @@
     <meta name="theme-color" content="#7e22ce" />
     <meta property="og:title" content="Charmr — Your AI Dating Coach" />
     <meta
+      id="meta-og-description"
       property="og:description"
+      data-i18n-attr="content:metaOgDescription"
       content="More than a message generator. Charmr helps you text with confidence, stay true to yourself, and worry less about each outcome." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://example.invalid/" />
@@ -20,12 +24,14 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Charmr — Your AI Dating Coach" />
     <meta
+      id="meta-twitter-description"
       name="twitter:description"
+      data-i18n-attr="content:metaTwitterDescription"
       content="Text with confidence, stay calm, and stop overthinking every reply." />
     <link rel="canonical" href="https://example.invalid/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <title>Charmr — AI Dating Coach for Better Dating Texts</title>
+    <title data-i18n="title">Charmr — AI Dating Coach for Better Dating Texts</title>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8N5ZW8WXJ"></script>
     <script>
@@ -55,11 +61,11 @@
     </script>
   </head>
   <body class="has-mobile-cta">
-    <a class="skip-link" href="#main">Skip to main content</a>
+    <a class="skip-link" href="#main" data-i18n="skipToMain">Skip to main content</a>
 
     <header class="site-header" id="site-header">
       <div class="site-header__inner">
-        <a class="brand" href="index.html" aria-label="Charmr home">
+        <a class="brand" href="index.html" data-i18n-attr="aria-label:brandHomeAria" aria-label="Charmr home">
           <svg
             class="brand__mark"
             width="36"
@@ -83,12 +89,17 @@
         </a>
 
         <nav class="nav-desktop" aria-label="Primary">
-          <a href="#how-it-works">How it works</a>
-          <a href="#coaching">Why it helps</a>
-          <a href="#tools">Tools</a>
-          <a href="#faq">FAQ</a>
-          <a class="nav-cta" href="#contact">Contact</a>
+          <a href="#how-it-works" data-i18n="navHow">How it works</a>
+          <a href="#coaching" data-i18n="navWhy">Why it helps</a>
+          <a href="#tools" data-i18n="navTools">Tools</a>
+          <a href="#faq" data-i18n="navFaq">FAQ</a>
+          <a class="nav-cta" href="#contact" data-i18n="navContact">Contact</a>
         </nav>
+
+        <div class="lang-switch" role="group" aria-label="Language selector">
+          <button type="button" class="lang-switch__btn is-active" data-lang-option="en">EN</button>
+          <button type="button" class="lang-switch__btn" data-lang-option="es">ES</button>
+        </div>
 
         <button
           type="button"
@@ -101,11 +112,15 @@
         </button>
       </div>
       <div class="nav-mobile" id="nav-mobile" aria-hidden="true">
-        <a href="#how-it-works">How it works</a>
-        <a href="#coaching">Why it helps</a>
-        <a href="#tools">Tools</a>
-        <a href="#faq">FAQ</a>
-        <a href="#contact">Contact</a>
+        <div class="lang-switch lang-switch--mobile" role="group" aria-label="Language selector">
+          <button type="button" class="lang-switch__btn is-active" data-lang-option="en">EN</button>
+          <button type="button" class="lang-switch__btn" data-lang-option="es">ES</button>
+        </div>
+        <a href="#how-it-works" data-i18n="navHow">How it works</a>
+        <a href="#coaching" data-i18n="navWhy">Why it helps</a>
+        <a href="#tools" data-i18n="navTools">Tools</a>
+        <a href="#faq" data-i18n="navFaq">FAQ</a>
+        <a href="#contact" data-i18n="navContact">Contact</a>
       </div>
     </header>
 
@@ -114,13 +129,10 @@
         <div class="hero__bg" aria-hidden="true"></div>
         <div class="hero__inner">
           <div class="hero__content">
-            <span class="eyebrow">AI dating coach · iOS</span>
-            <h1 id="hero-heading">
-              Stop overthinking every text
-            </h1>
-            <p class="lead">
-              Charmr helps you write messages that sound like you. It also helps you stay calm when
-              you are waiting, guessing, or tempted to spiral.
+            <span class="eyebrow" data-i18n="heroEyebrow">AI dating coach · iOS</span>
+            <h1 id="hero-heading" data-i18n="heroTitle">Stop overthinking every text</h1>
+            <p class="lead" data-i18n="heroLead">
+              Charmr helps you write messages that sound like you. It also helps you stay calm when you are waiting, guessing, or tempted to spiral.
             </p>
             <div class="hero__actions">
               <a
@@ -130,25 +142,26 @@
                 target="_blank">
                 <img
                   src="app-store-badge.png"
+                  data-i18n-attr="alt:appStoreAlt"
                   alt="Download Charmr on the App Store"
                   width="180"
                   height="54"
                   loading="eager"
                   decoding="async" />
               </a>
-              <a class="hero__secondary" href="#coaching">Why this works →</a>
+              <a class="hero__secondary" href="#coaching" data-i18n="heroWhyLink">Why this works →</a>
             </div>
-            <ul class="hero-points" aria-label="Core outcomes">
-              <li>Write clear replies faster</li>
-              <li>Feel less stress between messages</li>
-              <li>Stay true to your voice</li>
+            <ul class="hero-points" data-i18n-attr="aria-label:heroOutcomesAria" aria-label="Core outcomes">
+              <li data-i18n="heroPoint1">Write clear replies faster</li>
+              <li data-i18n="heroPoint2">Feel less stress between messages</li>
+              <li data-i18n="heroPoint3">Stay true to your voice</li>
             </ul>
-            <p class="hero__note">iOS only. Every suggestion is optional and editable.</p>
+            <p class="hero__note" data-i18n="heroNote">iOS only. Every suggestion is optional and editable.</p>
           </div>
           <div class="hero__visual" aria-hidden="true">
             <div class="phone-mock">
               <div class="phone-mock__screen">
-                <span class="phone-mock__chip">Coaching mode</span>
+                <span class="phone-mock__chip" data-i18n="phoneChip">Coaching mode</span>
                 <span class="phone-mock__line"></span>
                 <span class="phone-mock__line"></span>
                 <span class="phone-mock__line phone-mock__line--short"></span>
@@ -167,38 +180,35 @@
       </div>
 
       <div class="trust-strip reveal">
-        <p>Works with conversations from</p>
+        <p data-i18n="trustTitle">Works with conversations from</p>
         <div class="trust-strip__apps">
           <span class="trust-pill">Hinge</span>
           <span class="trust-pill">Bumble</span>
           <span class="trust-pill">Tinder</span>
-          <span class="trust-pill trust-pill--muted">+ more</span>
+          <span class="trust-pill trust-pill--muted" data-i18n="trustMore">+ more</span>
         </div>
       </div>
 
       <section id="coaching" class="section reveal" aria-labelledby="coaching-heading">
         <div class="section__head">
-          <h2 id="coaching-heading">More than a text generator</h2>
-          <p>
-            Most people do not struggle with words. They struggle with pressure, doubt, and
-            overthinking. Charmr is built for that.
-          </p>
+          <h2 id="coaching-heading" data-i18n="coachingTitle">More than a text generator</h2>
+          <p data-i18n="coachingLead">Most people do not struggle with words. They struggle with pressure, doubt, and overthinking. Charmr is built for that.</p>
         </div>
         <div class="positioning-grid">
           <article class="positioning-card">
-            <h3>Most text tools</h3>
+            <h3 data-i18n="compareLeftTitle">Most text tools</h3>
             <ul class="positioning-list">
-              <li>Focus only on the next line</li>
-              <li>Push "perfect" replies</li>
-              <li>Can make you second-guess yourself more</li>
+              <li data-i18n="compareLeft1">Focus only on the next line</li>
+              <li data-i18n="compareLeft2">Push "perfect" replies</li>
+              <li data-i18n="compareLeft3">Can make you second-guess yourself more</li>
             </ul>
           </article>
           <article class="positioning-card positioning-card--highlight">
-            <h3>Charmr coaching approach</h3>
+            <h3 data-i18n="compareRightTitle">Charmr coaching approach</h3>
             <ul class="positioning-list">
-              <li>Helps with what to say and why</li>
-              <li>Helps you pause before reactive texts</li>
-              <li>Builds confidence over time, in your own voice</li>
+              <li data-i18n="compareRight1">Helps with what to say and why</li>
+              <li data-i18n="compareRight2">Helps you pause before reactive texts</li>
+              <li data-i18n="compareRight3">Builds confidence over time, in your own voice</li>
             </ul>
           </article>
         </div>
@@ -206,38 +216,32 @@
 
       <section id="how-it-works" class="section section--tint reveal" aria-labelledby="how-heading">
         <div class="section__head">
-          <h2 id="how-heading">How it works</h2>
-          <p>Simple steps you can use in real conversations.</p>
+          <h2 id="how-heading" data-i18n="howTitle">How it works</h2>
+          <p data-i18n="howLead">Simple steps you can use in real conversations.</p>
         </div>
         <div class="steps">
           <article class="step-card">
             <span class="step-card__num">1</span>
-            <h3>Share the context</h3>
-            <p>
-              Upload a screenshot so Charmr can read the chat tone, timing, and flow.
-            </p>
+            <h3 data-i18n="step1Title">Share the context</h3>
+            <p data-i18n="step1Body">Upload a screenshot so Charmr can read the chat tone, timing, and flow.</p>
           </article>
           <article class="step-card">
             <span class="step-card__num">2</span>
-            <h3>Get coached options</h3>
-            <p>
-              Get message options that match your style and help you stay calm and clear.
-            </p>
+            <h3 data-i18n="step2Title">Get coached options</h3>
+            <p data-i18n="step2Body">Get message options that match your style and help you stay calm and clear.</p>
           </article>
           <article class="step-card">
             <span class="step-card__num">3</span>
-            <h3>Edit, send, or skip</h3>
-            <p>
-              Choose what fits, edit it, or skip it. You stay in control every time.
-            </p>
+            <h3 data-i18n="step3Title">Edit, send, or skip</h3>
+            <p data-i18n="step3Body">Choose what fits, edit it, or skip it. You stay in control every time.</p>
           </article>
         </div>
       </section>
 
       <section id="tools" class="features-band reveal" aria-labelledby="tools-heading">
         <div class="section__head">
-          <h2 id="tools-heading">Tools you can use right away</h2>
-          <p>Made for real dating app chats, not generic text templates.</p>
+          <h2 id="tools-heading" data-i18n="toolsTitle">Tools you can use right away</h2>
+          <p data-i18n="toolsLead">Made for real dating app chats, not generic text templates.</p>
         </div>
         <div class="feature-grid">
           <article class="feature-card">
@@ -253,10 +257,8 @@
                 stroke-width="2"
                 stroke-linecap="round" />
             </svg>
-            <h3>Guidance for your situation</h3>
-            <p>
-              From first messages to follow-ups, get help that fits the moment.
-            </p>
+            <h3 data-i18n="tool1Title">Guidance for your situation</h3>
+            <p data-i18n="tool1Body">From first messages to follow-ups, get help that fits the moment.</p>
           </article>
           <article class="feature-card">
             <svg class="feature-card__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -274,10 +276,8 @@
                 stroke-width="1.75"
                 stroke-linecap="round" />
             </svg>
-            <h3>Voice-preserving rewrites</h3>
-            <p>
-              Improve tone and clarity while keeping your own style.
-            </p>
+            <h3 data-i18n="tool2Title">Voice-preserving rewrites</h3>
+            <p data-i18n="tool2Body">Improve tone and clarity while keeping your own style.</p>
           </article>
           <article class="feature-card">
             <svg class="feature-card__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -293,142 +293,126 @@
                 stroke-linecap="round"
                 stroke-linejoin="round" />
             </svg>
-            <h3>In-the-moment iOS access</h3>
-            <p>
-              Use screenshots and the optional keyboard when you need help fast.
-            </p>
+            <h3 data-i18n="tool3Title">In-the-moment iOS access</h3>
+            <p data-i18n="tool3Body">Use screenshots and the optional keyboard when you need help fast.</p>
           </article>
         </div>
       </section>
 
       <section id="gallery" class="section reveal" aria-labelledby="gallery-heading">
         <div class="section__head">
-          <h2 id="gallery-heading">Inside the app</h2>
-          <p>See the full workflow: home, coach chat, keyboard, and guided replies.</p>
+          <h2 id="gallery-heading" data-i18n="galleryTitle">Inside the app</h2>
+          <p data-i18n="galleryLead">See the full workflow: home, coach chat, keyboard, and guided replies.</p>
         </div>
         <div class="gallery-grid">
           <figure>
             <img
               src="screenshots/home_screen.PNG"
+              data-i18n-attr="alt:galleryAltHome"
               alt="Charmr home screen showing coaching actions and match context"
               width="390"
               height="844"
               loading="lazy"
               decoding="async" />
-            <figcaption>Home</figcaption>
+            <figcaption data-i18n="galleryCapHome">Home</figcaption>
           </figure>
           <figure>
             <img
               src="screenshots/chat_screen.PNG"
+              data-i18n-attr="alt:galleryAltChat"
               alt="Charmr coaching chat helping with messaging strategy"
               width="390"
               height="844"
               loading="lazy"
               decoding="async" />
-            <figcaption>Coach chat</figcaption>
+            <figcaption data-i18n="galleryCapChat">Coach chat</figcaption>
           </figure>
           <figure>
             <img
               src="screenshots/charmr_keyboard.PNG"
+              data-i18n-attr="alt:galleryAltKeyboard"
               alt="Charmr custom keyboard for in-the-moment support"
               width="390"
               height="844"
               loading="lazy"
               decoding="async" />
-            <figcaption>Keyboard</figcaption>
+            <figcaption data-i18n="galleryCapKeyboard">Keyboard</figcaption>
           </figure>
           <figure>
             <img
               src="screenshots/reply_modal.PNG"
+              data-i18n-attr="alt:galleryAltReplies"
               alt="Reply modal with guided options for confident sending"
               width="390"
               height="844"
               loading="lazy"
               decoding="async" />
-            <figcaption>Guided replies</figcaption>
+            <figcaption data-i18n="galleryCapReplies">Guided replies</figcaption>
           </figure>
         </div>
       </section>
 
       <section class="section section--tint reveal" aria-labelledby="moments-heading">
         <div class="section__head">
-          <h2 id="moments-heading">Best times to open Charmr</h2>
-          <p>Use it in moments that usually cause stress.</p>
+          <h2 id="moments-heading" data-i18n="momentsTitle">Best times to open Charmr</h2>
+          <p data-i18n="momentsLead">Use it in moments that usually cause stress.</p>
         </div>
         <div class="moments-grid">
           <article class="moment-card">
-            <h3>When you are stuck on a reply</h3>
-            <p>
-              Get unstuck with clear options that fit your tone.
-            </p>
+            <h3 data-i18n="moment1Title">When you are stuck on a reply</h3>
+            <p data-i18n="moment1Body">Get unstuck with clear options that fit your tone.</p>
           </article>
           <article class="moment-card">
-            <h3>When you are spiraling while waiting</h3>
-            <p>
-              Reset your mindset so one slow reply does not ruin your day.
-            </p>
+            <h3 data-i18n="moment2Title">When you are spiraling while waiting</h3>
+            <p data-i18n="moment2Body">Reset your mindset so one slow reply does not ruin your day.</p>
           </article>
           <article class="moment-card">
-            <h3>When you want to sound like yourself</h3>
-            <p>
-              Rewrite drafts without losing your personality.
-            </p>
+            <h3 data-i18n="moment3Title">When you want to sound like yourself</h3>
+            <p data-i18n="moment3Body">Rewrite drafts without losing your personality.</p>
           </article>
         </div>
       </section>
 
       <section id="faq" class="section reveal" aria-labelledby="faq-heading">
         <div class="section__head">
-          <h2 id="faq-heading">FAQ</h2>
-          <p>Quick answers before you download.</p>
+          <h2 id="faq-heading" data-i18n="faqTitle">FAQ</h2>
+          <p data-i18n="faqLead">Quick answers before you download.</p>
         </div>
         <div class="faq">
           <details>
-            <summary>Is Charmr only a message generator?</summary>
-            <p class="faq__a">
-              No. It helps with words, but it also helps with mindset, timing, and confidence.
-            </p>
+            <summary data-i18n="faq1Q">Is Charmr only a message generator?</summary>
+            <p class="faq__a" data-i18n="faq1A">No. It helps with words, but it also helps with mindset, timing, and confidence.</p>
           </details>
           <details>
-            <summary>Is this therapy?</summary>
-            <p class="faq__a">
-              No. Charmr is a dating communication coach, not a mental health service.
-            </p>
+            <summary data-i18n="faq2Q">Is this therapy?</summary>
+            <p class="faq__a" data-i18n="faq2A">No. Charmr is a dating communication coach, not a mental health service.</p>
           </details>
           <details>
-            <summary>Do you read my dating apps directly?</summary>
-            <p class="faq__a">
-              No. Charmr only uses what you choose to share, like screenshots you select.
-            </p>
+            <summary data-i18n="faq3Q">Do you read my dating apps directly?</summary>
+            <p class="faq__a" data-i18n="faq3A">No. Charmr only uses what you choose to share, like screenshots you select.</p>
           </details>
           <details>
-            <summary>Will this make me sound fake?</summary>
-            <p class="faq__a">
-              It should do the opposite. You can edit every line so your messages still sound like
-              you.
-            </p>
+            <summary data-i18n="faq4Q">Will this make me sound fake?</summary>
+            <p class="faq__a" data-i18n="faq4A">It should do the opposite. You can edit every line so your messages still sound like you.</p>
           </details>
           <details>
-            <summary>Is Charmr free?</summary>
-            <p class="faq__a">
-              You can download and try the app for free. Paid plans and message packs may apply for
-              heavier use. Check the App Store page for current pricing.
-            </p>
+            <summary data-i18n="faq5Q">Is Charmr free?</summary>
+            <p class="faq__a" data-i18n="faq5A">You can download and try the app for free. Paid plans and message packs may apply for heavier use. Check the App Store page for current pricing.</p>
           </details>
         </div>
       </section>
 
       <section id="contact" class="contact-band reveal" aria-labelledby="contact-heading">
         <div class="contact-card">
-          <h2 id="contact-heading">Contact</h2>
-          <p>Questions, feedback, or partnership ideas? Send us a message.</p>
+          <h2 id="contact-heading" data-i18n="contactTitle">Contact</h2>
+          <p data-i18n="contactLead">Questions, feedback, or partnership ideas? Send us a message.</p>
           <form id="contact-form" novalidate>
             <div>
-              <label for="contact-name">Name</label>
+              <label for="contact-name" data-i18n="contactNameLabel">Name</label>
               <input type="text" id="contact-name" name="name" autocomplete="name" required />
             </div>
             <div>
-              <label for="contact-email">Email</label>
+              <label for="contact-email" data-i18n="contactEmailLabel">Email</label>
               <input
                 type="email"
                 id="contact-email"
@@ -437,10 +421,10 @@
                 required />
             </div>
             <div>
-              <label for="contact-message">Message</label>
+              <label for="contact-message" data-i18n="contactMessageLabel">Message</label>
               <textarea id="contact-message" name="message" required></textarea>
             </div>
-            <button type="submit" id="contact-submit">Send message</button>
+            <button type="submit" id="contact-submit" data-i18n="contactSendButton">Send message</button>
             <div id="contact-status" role="status" aria-live="polite"></div>
           </form>
         </div>
@@ -450,14 +434,14 @@
     <footer class="site-footer">
       <div class="site-footer__inner">
         <nav class="site-footer__links" aria-label="Footer">
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
+          <a href="privacy.html" data-i18n="footerPrivacy">Privacy Policy</a>
+          <a href="terms.html" data-i18n="footerTerms">Terms of Service</a>
           <a href="https://apps.apple.com/app/charmr/id6479018000" rel="noopener noreferrer" target="_blank"
-            >App Store</a
+            data-i18n="footerAppStore">App Store</a
           >
         </nav>
         <div class="site-footer__meta">
-          <p class="site-footer__tagline">Text with clarity. Date with confidence.</p>
+          <p class="site-footer__tagline" data-i18n="footerTagline">Text with clarity. Date with confidence.</p>
           <p class="site-footer__copy">© 2026 Charmr. All rights reserved.</p>
         </div>
       </div>
