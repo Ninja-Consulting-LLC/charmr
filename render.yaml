@@ -1,0 +1,25 @@
+# Charmr API — Render Blueprint (repo root; see docs/PERSISTENCE.md)
+# If your dashboard still references backend/render.yaml, switch the Blueprint file to /render.yaml.
+services:
+  - type: web
+    name: charmr-backend
+    runtime: node
+    buildCommand: npm ci && npm run build -w @charmr/shared && npm run build -w charmr-backend
+    startCommand: npm start -w charmr-backend
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
+        - render.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_TYPE
+        value: firestore
