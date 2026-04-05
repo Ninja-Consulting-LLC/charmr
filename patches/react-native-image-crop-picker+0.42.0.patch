@@ -1,0 +1,44 @@
+diff --git a/node_modules/react-native-image-crop-picker/ios/QBImagePicker/QBImagePicker/QBAlbumsViewController.m b/node_modules/react-native-image-crop-picker/ios/QBImagePicker/QBImagePicker/QBAlbumsViewController.m
+index dec556c..92c396e 100644
+--- a/node_modules/react-native-image-crop-picker/ios/QBImagePicker/QBImagePicker/QBAlbumsViewController.m
++++ b/node_modules/react-native-image-crop-picker/ios/QBImagePicker/QBImagePicker/QBAlbumsViewController.m
+@@ -49,6 +49,8 @@ @interface QBAlbumsViewController () <PHPhotoLibraryChangeObserver>
+ 
+ @property (nonatomic, copy) NSArray *fetchResults;
+ @property (nonatomic, copy) NSArray *assetCollections;
++/// When the picker is restricted to a single smart album (e.g. Screenshots), skip the album list and open its grid immediately.
++@property (nonatomic, assign) BOOL didAutoNavigateToSingleAlbum;
+ 
+ @end
+ 
+@@ -90,6 +92,30 @@ - (void)viewWillAppear:(BOOL)animated
+     [self updateSelectionInfo];
+ }
+ 
++- (void)viewDidAppear:(BOOL)animated
++{
++    [super viewDidAppear:animated];
++
++    // iOS 14+ limited library shows a management row first; do not auto-push past that.
++    if (self.didAutoNavigateToSingleAlbum || isLimitedPermission()) {
++        return;
++    }
++    if (self.assetCollections.count != 1) {
++        return;
++    }
++
++    self.didAutoNavigateToSingleAlbum = YES;
++
++    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
++    [self.tableView selectRowAtIndexPath:indexPath animated:NO scrollPosition:UITableViewScrollPositionNone];
++
++    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"QBImagePicker" bundle:self.imagePickerController.assetBundle];
++    QBAssetsViewController *assetsViewController = [storyboard instantiateViewControllerWithIdentifier:@"QBAssetsViewController"];
++    assetsViewController.imagePickerController = self.imagePickerController;
++    assetsViewController.assetCollection = self.assetCollections[0];
++    [self.navigationController pushViewController:assetsViewController animated:YES];
++}
++
+ - (void)dealloc
+ {
+     // Deregister observer
