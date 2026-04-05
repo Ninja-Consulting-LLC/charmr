@@ -54,6 +54,10 @@ Metro watches `packages/shared` for workspace changes.
 - Long-running API calls use **120s** axios timeout (`src/services/axiosInstance.ts`).
 - RN Firebase: auth uses modular-style imports from `@react-native-firebase/auth`; `RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS` in `App.tsx` is temporary — track full migration separately.
 
+## Backlog
+
+- [`TODO.md`](TODO.md) — product and engineering backlog (near-term vs future).
+
 ## Operational docs
 
 - [`docs/DECISION_GATES.md`](docs/DECISION_GATES.md)
@@ -66,7 +70,7 @@ Metro watches `packages/shared` for workspace changes.
 
 ## CI
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — shared build, backend test+build, mobile lint+test (tests may use `continue-on-error` until suite is hardened).
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — shared build, backend test+build, mobile lint+test; `npm audit` uses `continue-on-error` for critical-only reporting.
 - [`.github/workflows/deploy-render.yml`](.github/workflows/deploy-render.yml) — backend deploy to Render (paths-filtered).
 - [`render.yaml`](render.yaml) — Render Blueprint at **repo root** (monorepo build, no SQLite disk; sync or mirror these settings in the dashboard).
 
