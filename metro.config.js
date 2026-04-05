@@ -1,3 +1,4 @@
+const path = require('path');
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const {
   wrapWithReanimatedMetroConfig,
@@ -10,6 +11,7 @@ const {
  * @type {import('@react-native/metro-config').MetroConfig}
  */
 const config = {
+  watchFolders: [path.resolve(__dirname, 'packages/shared')],
   resolver: {
     sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
     assetExts: ['png', 'jpg', 'jpeg', 'gif'],

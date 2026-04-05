@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
+import {Pressable, StyleSheet, Text as RNText, View} from 'react-native';
 import {IconButton, Modal, Portal, Switch, Text} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
 import {theme} from '../theme/theme';
@@ -37,7 +37,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         onDismiss={() => {}}
         contentContainerStyle={styles.modalContainer}>
         <View style={styles.overflowContainer}>
-          <View style={styles.modalContent}>
+          <View testID="reply-modal" style={styles.modalContent}>
             {/* Reply Text */}
             <Pressable onPress={onCopy} style={styles.replyContainer}>
               {loading ? (
@@ -46,9 +46,12 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                 </View>
               ) : (
                 <>
-                  <Text variant="bodyLarge" style={styles.replyText}>
+                  <RNText
+                    testID="reply-modal-text"
+                    accessibilityLabel={reply}
+                    style={styles.replyText}>
                     {reply}
-                  </Text>
+                  </RNText>
                   <IconButton
                     icon="content-copy"
                     size={20}
@@ -83,7 +86,10 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                   </Text>
                 </Pressable>
               )}
-              <Pressable onPress={onDone} style={styles.doneButton}>
+              <Pressable
+                testID="reply-modal-done"
+                onPress={onDone}
+                style={styles.doneButton}>
                 <Text variant="bodyMedium" style={styles.doneText}>
                   {MESSAGES.REPLY_MODAL_DONE}
                 </Text>
@@ -120,6 +126,9 @@ const styles = StyleSheet.create({
   replyText: {
     flex: 1,
     marginRight: 8,
+    fontSize: 16,
+    lineHeight: 22,
+    color: theme.colors.onSurface,
   },
   copyIcon: {
     margin: 0,

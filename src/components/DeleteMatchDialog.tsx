@@ -1,5 +1,4 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
 import {Button, Dialog, Portal, Text} from 'react-native-paper';
 import {theme} from '../theme/theme';
 
@@ -39,7 +38,5 @@ const DeleteMatchDialog: React.FC<DeleteMatchDialogProps> = ({
     </Portal>
   );
 };
-
-const styles = StyleSheet.create({});
 
 export default DeleteMatchDialog;

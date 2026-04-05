@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
+  Text as RNText,
   TextInput,
   TouchableOpacity,
   View,
@@ -83,8 +84,15 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const {userId, matches, user, setUser, setMatches, setSelectedMatch} =
-    useStore();
+  const {
+    userId,
+    matches,
+    user,
+    setUser,
+    setMatches,
+    setSelectedMatch,
+    loadMatches,
+  } = useStore();
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
@@ -104,10 +112,19 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     try {
       const newMatch = await addMatch(name, platform);
       if (newMatch) {
+        setMatches(prev => {
+          const id = newMatch.id;
+          if (prev.some(m => m.id === id)) {
+            return prev.map(m => (m.id === id ? newMatch : m));
+          }
+          return [...prev, newMatch];
+        });
         navigation.setParams({match: newMatch});
       }
     } catch (error) {
       console.error('Error adding match:', error);
+    } finally {
+      await loadMatches();
     }
   };
 
@@ -338,7 +355,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       headerTransparent: true,
       headerTitle: () => (
         <View style={styles.headerTitle}>
-          <Text style={styles.headerName}>{match.name}</Text>
+          <RNText testID="coach-chat-match-name" style={styles.headerName}>
+            {match.name}
+          </RNText>
           <Text style={styles.headerPlatform}>
             {match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
           </Text>
@@ -346,6 +365,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
       ),
       headerLeft: () => (
         <IconButton
+          testID="coach-chat-back-button"
           icon="arrow-left"
           size={24}
           onPress={() => navigation.goBack()}
@@ -547,7 +567,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="coach-chat-screen">
       <LinearGradient
         colors={[theme.colors.primary, theme.colors.primaryContainer]}
         style={styles.gradientBackground}
@@ -564,8 +584,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           onOpenSettings={openSettings}
           topOffset={75} // Standard header height
         />
-        {user?.plan === SubscriptionTier.FREE && (
+        {(!user || user.plan === SubscriptionTier.FREE) && (
           <TouchableOpacity
+            testID="coach-free-upgrade-banner"
             style={styles.promoContainer}
             onPress={() => setShowUpgradeModal(true)}>
             <Text style={styles.promoText}>
@@ -741,6 +762,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 icon={images.length > 0 ? 'close' : 'image'}
                 size={32}
                 onPress={handlePickImages}
+                testID="coach-chat-add-screenshot-button"
                 style={{
                   marginBottom: 0,
                   marginTop: 0,
@@ -822,6 +844,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                     />
                     <View style={styles.inputContainer}>
                       <TextInput
+                        testID="coach-chat-message-input"
                         style={styles.inputText}
                         placeholderTextColor="rgba(255, 255, 255, 0.7)"
                         value={text}
@@ -831,6 +854,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       />
                       {(text.trim().length > 0 || images.length > 0) && (
                         <IconButton
+                          testID="coach-chat-send-button"
                           icon="send"
                           size={28}
                           onPress={() => {

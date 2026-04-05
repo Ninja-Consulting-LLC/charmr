@@ -13,7 +13,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds timeout for coach mode
+  timeout: 120000, // LLM / generate-reply can exceed 30s; coach + vision especially
 });
 
 // Helper to get auth headers

@@ -1,5 +1,5 @@
 import React from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
+import {ScrollView, StyleSheet, Text as RNText, View} from 'react-native';
 import {
   Button,
   IconButton,
@@ -10,7 +10,7 @@ import {
 } from 'react-native-paper';
 import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
-import {Match} from '../utils/matchUtils';
+import {Match, compareMatchesByLastUsedDesc} from '../utils/matchUtils';
 import AddEditMatchModal from './AddEditMatchModal';
 import ArchiveMatchDialog from './ArchiveMatchDialog';
 import LoadingOverlay from './LoadingOverlay';
@@ -108,6 +108,7 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>Select Match</Text>
             <IconButton
+              testID="match-selector-close"
               icon="close"
               size={24}
               onPress={onDismiss}
@@ -117,10 +118,23 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
           <ScrollView style={styles.scrollView}>
             {matches
               .filter(match => !match.hidden && match.name !== 'No Match')
-              .map(match => (
+              .sort(compareMatchesByLastUsedDesc)
+              .map((match, index) => (
                 <List.Item
                   key={match.id}
-                  title={match.name}
+                  testID={
+                    index === 0
+                      ? 'match-list-first-row'
+                      : `match-list-item-${String(match.id)}`
+                  }
+                  accessibilityLabel={match.name}
+                  title={
+                    <RNText
+                      testID="match-list-item-title"
+                      accessibilityLabel={match.name}>
+                      {match.name}
+                    </RNText>
+                  }
                   description={
                     match.platform.charAt(0).toUpperCase() +
                     match.platform.slice(1)
@@ -139,18 +153,21 @@ const MatchSelectorModal: React.FC<MatchSelectorModalProps> = ({
                   right={props => (
                     <View style={styles.itemActions}>
                       <IconButton
+                        testID="match-edit-button"
                         icon="pencil"
                         size={20}
                         onPress={() => handleEditPress(match)}
                         style={styles.actionButton}
                       />
                       <IconButton
+                        testID="match-archive-button"
                         icon="archive"
                         size={20}
                         onPress={() => handleArchivePress(match)}
                         style={styles.actionButton}
                       />
                       <Button
+                        testID="match-row-select-button"
                         mode="text"
                         onPress={() => onSelectMatch(match)}
                         style={styles.selectButton}>

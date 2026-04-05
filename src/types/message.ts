@@ -1,7 +1,7 @@
-import {
-  GenerateReplyRequest as BackendGenerateReplyRequest,
-  GenerateReplyResponse as BackendGenerateReplyResponse,
-} from '../../backend/src/types';
+import type {
+  GenerateReplyRequest as SharedGenerateReplyRequest,
+  GenerateReplyResponse as SharedGenerateReplyResponse,
+} from '@charmr/shared';
 import {MessageMode, MessageRole, MessageType} from './enums';
 
 export interface MessageLimit {
@@ -12,7 +12,7 @@ export interface MessageLimit {
 export interface Message {
   id: number;
   userId: string;
-  matchId?: string; // Optional for direct replies
+  matchId?: string;
   role: MessageRole;
   type: MessageType;
   mode: MessageMode;
@@ -20,19 +20,17 @@ export interface Message {
   replyTo?: number;
   content: string;
   timestamp: string;
-  imageData?: string; // For messages with type 'image'
+  imageData?: string;
 }
 
-// Extend the backend request type for frontend-specific needs
 export interface GenerateReplyRequest
-  extends Omit<BackendGenerateReplyRequest, 'matchId' | 'deleteAfterResponse'> {
-  matchId?: string; // Make matchId optional in frontend
-  deleteAfterResponse?: boolean; // Make deleteAfterResponse optional
+  extends Omit<SharedGenerateReplyRequest, 'matchId' | 'deleteAfterResponse'> {
+  matchId?: string;
+  deleteAfterResponse?: boolean;
 }
 
-// Extend the backend response type for frontend-specific needs
 export interface GenerateReplyResponse
-  extends Omit<BackendGenerateReplyResponse, 'type'> {
-  type?: string; // Keep as string in frontend for backward compatibility
-  limits?: MessageLimit; // Add frontend-specific limits
+  extends Omit<SharedGenerateReplyResponse, 'type'> {
+  type?: string;
+  limits?: MessageLimit;
 }

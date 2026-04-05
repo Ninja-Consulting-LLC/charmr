@@ -1,155 +1,112 @@
-import {fireEvent, render} from '@testing-library/react-native';
+import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import React from 'react';
 import {PaperProvider} from 'react-native-paper';
-import AddMatchModal from '../AddMatchModal';
+import AddEditMatchModal from '../AddEditMatchModal';
+import {theme} from '../../theme/theme';
 
-const renderWithProvider = (component: React.ReactElement) => {
-  return render(<PaperProvider>{component}</PaperProvider>);
-};
+const renderWithProvider = (component: React.ReactElement) =>
+  render(<PaperProvider theme={theme}>{component}</PaperProvider>);
 
-describe('AddMatchModal', () => {
+describe('AddEditMatchModal', () => {
+  const mockOnAddMatch = jest.fn().mockResolvedValue(undefined);
+
   const mockProps = {
     visible: true,
     onDismiss: jest.fn(),
-    onAdd: jest.fn(),
+    onAddMatch: mockOnAddMatch,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOnAddMatch.mockResolvedValue(undefined);
   });
 
   it('renders correctly when visible', () => {
-    const {getByText} = renderWithProvider(<AddMatchModal {...mockProps} />);
+    const {getByText} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
     expect(getByText('Add New Match')).toBeTruthy();
   });
 
   it('handles name input correctly', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-    const nameInput = getByTestId('text-input-flat');
-
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
+    const nameInput = getByTestId('text-input-outlined');
     fireEvent.changeText(nameInput, 'John Doe');
     expect(nameInput.props.value).toBe('John Doe');
   });
 
   it('handles platform selection correctly', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
     const hingeButton = getByTestId('platform-hinge-button');
     fireEvent.press(hingeButton);
-
-    // Button should now be in contained mode
     expect(hingeButton.props.mode).toBe('contained');
   });
 
   it('shows error when trying to add without selecting platform', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-
-    // Add name but don't select platform
-    const nameInput = getByTestId('text-input-flat');
-    fireEvent.changeText(nameInput, 'John Doe');
-
-    // Try to add without selecting platform
-    const addButton = getByTestId('add-button');
-    fireEvent.press(addButton);
-
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
+    fireEvent.changeText(getByTestId('text-input-outlined'), 'John Doe');
+    fireEvent.press(getByTestId('add-button'));
     const errorText = getByTestId('platform-error');
     expect(errorText.props.children).toBe('Please select a platform');
   });
 
-  it('does not call onAdd when name is empty', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-
-    // Select platform but leave name empty
-    const hingeButton = getByTestId('platform-hinge-button');
-    fireEvent.press(hingeButton);
-
-    const addButton = getByTestId('add-button');
-    fireEvent.press(addButton);
-
-    expect(mockProps.onAdd).not.toHaveBeenCalled();
-  });
-
-  it('calls onAdd with correct data when form is valid', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-
-    // Fill in name
-    const nameInput = getByTestId('text-input-flat');
-    fireEvent.changeText(nameInput, 'John Doe');
-
-    // Select platform
-    const hingeButton = getByTestId('platform-hinge-button');
-    fireEvent.press(hingeButton);
-
-    // Submit form
-    const addButton = getByTestId('add-button');
-    fireEvent.press(addButton);
-
-    expect(mockProps.onAdd).toHaveBeenCalledWith('John Doe', 'hinge');
-    expect(mockProps.onDismiss).toHaveBeenCalled();
-  });
-
-  it('clears form and error on successful submission', () => {
-    const {getByTestId, queryByText} = renderWithProvider(
-      <AddMatchModal {...mockProps} />,
+  it('does not call onAddMatch when name is empty', () => {
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
     );
+    fireEvent.press(getByTestId('platform-hinge-button'));
+    fireEvent.press(getByTestId('add-button'));
+    expect(mockOnAddMatch).not.toHaveBeenCalled();
+  });
 
-    // Fill form and submit
-    const nameInput = getByTestId('text-input-flat');
-    fireEvent.changeText(nameInput, 'John Doe');
+  it('calls onAddMatch with correct data when form is valid', async () => {
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
+    fireEvent.changeText(getByTestId('text-input-outlined'), 'John Doe');
+    fireEvent.press(getByTestId('platform-hinge-button'));
+    fireEvent.press(getByTestId('add-button'));
+    await waitFor(() => {
+      expect(mockOnAddMatch).toHaveBeenCalledWith('John Doe', 'hinge');
+    });
+    expect(mockProps.onDismiss).not.toHaveBeenCalled();
+  });
 
-    const hingeButton = getByTestId('platform-hinge-button');
-    fireEvent.press(hingeButton);
-
-    const addButton = getByTestId('add-button');
-    fireEvent.press(addButton);
-
-    // Rerender to check cleared state
-    const {getByTestId: getByTestIdAfter, queryByText: queryByTextAfter} =
-      renderWithProvider(<AddMatchModal {...mockProps} />);
-    const nameInputAfter = getByTestIdAfter('text-input-flat');
-
-    expect(nameInputAfter.props.value).toBe('');
-    expect(queryByTextAfter('Please select a platform')).toBeNull();
+  it('clears form after successful submission', async () => {
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
+    fireEvent.changeText(getByTestId('text-input-outlined'), 'John Doe');
+    fireEvent.press(getByTestId('platform-hinge-button'));
+    fireEvent.press(getByTestId('add-button'));
+    await waitFor(() => {
+      expect(mockOnAddMatch).toHaveBeenCalled();
+      expect(getByTestId('text-input-outlined').props.value).toBe('');
+    });
   });
 
   it('calls onDismiss when close button is pressed', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-    const closeButton = getByTestId('close-button');
-
-    fireEvent.press(closeButton);
-
-    expect(mockProps.onDismiss).toHaveBeenCalled();
-  });
-
-  it('calls onDismiss when Cancel button is pressed', () => {
-    const {getByTestId} = renderWithProvider(<AddMatchModal {...mockProps} />);
-    const cancelButton = getByTestId('cancel-button');
-
-    fireEvent.press(cancelButton);
-
+    const {getByTestId} = renderWithProvider(
+      <AddEditMatchModal {...mockProps} />,
+    );
+    fireEvent.press(getByTestId('add-edit-match-close'));
     expect(mockProps.onDismiss).toHaveBeenCalled();
   });
 
   it('clears platform error when platform is selected', () => {
     const {getByTestId, queryByTestId} = renderWithProvider(
-      <AddMatchModal {...mockProps} />,
+      <AddEditMatchModal {...mockProps} />,
     );
-
-    // Add name but don't select platform
-    const nameInput = getByTestId('text-input-flat');
-    fireEvent.changeText(nameInput, 'John Doe');
-
-    // Trigger error first
-    const addButton = getByTestId('add-button');
-    fireEvent.press(addButton);
-    const errorText = getByTestId('platform-error');
-    expect(errorText.props.children).toBe('Please select a platform');
-
-    // Select platform
-    const hingeButton = getByTestId('platform-hinge-button');
-    fireEvent.press(hingeButton);
-
-    // Error should be cleared
+    fireEvent.changeText(getByTestId('text-input-outlined'), 'Jane');
+    fireEvent.press(getByTestId('add-button'));
+    expect(getByTestId('platform-error')).toBeTruthy();
+    fireEvent.press(getByTestId('platform-hinge-button'));
     expect(queryByTestId('platform-error')).toBeNull();
   });
 });

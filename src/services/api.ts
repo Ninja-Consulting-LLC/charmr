@@ -107,12 +107,14 @@ export const submitSupportRequest = async (
     'Content-Type': 'application/json',
   };
 
-  // Only add auth header if not bypassing auth
-  if (!authBypass) {
-    headers.Authorization = `Bearer ${await getAuthToken()}`;
-  } else {
-    // Add auth bypass header
+  if (authBypass) {
     headers['X-Auth-Bypass'] = 'true';
+  } else {
+    const token = await getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    // No Firebase user: omit Authorization so axios interceptor adds X-Anonymous-User
   }
 
   const response = await axiosInstance.post('/api/support', request, {

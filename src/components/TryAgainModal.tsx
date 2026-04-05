@@ -32,7 +32,8 @@ const TryAgainModal: React.FC<TryAgainModalProps> = ({
             <Button
               mode="contained"
               onPress={onDismiss}
-              style={styles.button}>
+              style={styles.button}
+              testID="try-again-close-button">
               Close
             </Button>
           </View>

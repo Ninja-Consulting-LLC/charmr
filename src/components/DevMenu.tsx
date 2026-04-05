@@ -24,7 +24,6 @@ const DevMenu = () => {
   const [testResults, setTestResults] = useState<
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
-  const [authBypass, setAuthBypass] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const {
     userId,
@@ -37,6 +36,8 @@ const DevMenu = () => {
     updateUserPlan,
     matches,
     setMatches,
+    authBypass,
+    setAuthBypass,
   } = useStore();
 
   const [isVisible, setIsVisible] = useState(false);
@@ -209,6 +210,41 @@ const DevMenu = () => {
     }
   };
 
+  /** Saturate daily quota via dev-only API (local backend NODE_ENV=development). */
+  /** E2E / D4: local store looks like a registered user (locked email in Support); still uses current userId + anonymous API. */
+  const handleE2ESimulateRegisteredProfile = () => {
+    setAuthBypass(false);
+    setUser({
+      ...user,
+      email: 'e2e.registered@charmr.test',
+      name: user.name ?? 'E2E Registered',
+    });
+    setShowDevMenu(false);
+  };
+
+  const handleE2ESaturateMessageLimit = async () => {
+    if (!userId) {
+      Alert.alert('E2E', 'No userId');
+      return;
+    }
+    try {
+      await axiosInstance.post('/api/dev/e2e/saturate-message-limit', {
+        userId,
+      });
+      const userResponse = await axiosInstance.get(`/api/users/${userId}`);
+      if (userResponse.data) {
+        setUser(userResponse.data);
+      }
+      Alert.alert('E2E', 'Daily message limit saturated for this user');
+    } catch (error) {
+      console.error('E2E saturate message limit:', error);
+      Alert.alert(
+        'E2E Error',
+        'Saturate failed (needs local backend with NODE_ENV=development and /api/dev mounted).',
+      );
+    }
+  };
+
   const handleResetMessageLimit = async () => {
     try {
       const response = await axiosInstance.post(
@@ -367,6 +403,7 @@ const DevMenu = () => {
 
             <View style={styles.buttonContainer}>
               <Button
+                testID="dev-menu-logout-button"
                 mode="contained"
                 onPress={handleLogout}
                 style={styles.button}>
@@ -423,6 +460,22 @@ const DevMenu = () => {
                 onPress={handleResetMessageLimit}
                 style={styles.button}>
                 Reset Message Limit (Current User)
+              </Button>
+
+              <Button
+                testID="dev-menu-e2e-simulate-registered"
+                mode="contained"
+                onPress={handleE2ESimulateRegisteredProfile}
+                style={styles.button}>
+                E2E: Simulate registered profile (locked email)
+              </Button>
+
+              <Button
+                testID="dev-menu-e2e-saturate-limit"
+                mode="contained"
+                onPress={handleE2ESaturateMessageLimit}
+                style={styles.button}>
+                E2E: Saturate daily message limit
               </Button>
 
               <Button

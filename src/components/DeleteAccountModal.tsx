@@ -76,7 +76,8 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
                 mode="outlined"
                 onPress={onDismiss}
                 style={styles.cancelButton}
-                disabled={isDeleting || isLoading}>
+                disabled={isDeleting || isLoading}
+                testID="delete-account-cancel-button">
                 Cancel
               </Button>
               <Button
@@ -87,7 +88,8 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
                   {backgroundColor: theme.colors.error},
                 ]}
                 disabled={isDeleting || isLoading}
-                loading={isDeleting || isLoading}>
+                loading={isDeleting || isLoading}
+                testID="delete-account-confirm-button">
                 Delete Account
               </Button>
             </View>

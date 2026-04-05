@@ -457,7 +457,10 @@ const LoginModal: React.FC<LoginModalProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <TouchableOpacity
+                  testID="login-modal-cancel"
+                  style={styles.closeButton}
+                  onPress={onClose}>
                   <Text style={styles.closeButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </LinearGradient>

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   Keyboard,
   StyleSheet,
@@ -46,6 +46,8 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
   const [platformError, setPlatformError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Paper TextInput ref typing vs focus()
+  const nameFieldRef = useRef<any>(null);
 
   // Reset form when modal opens/closes
   React.useEffect(() => {
@@ -107,21 +109,33 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View>
             <View style={styles.header}>
-              <Text style={styles.title}>
+              <Text
+                testID="add-match-modal-title"
+                style={styles.title}>
                 {isEditing ? 'Edit Match' : 'Add New Match'}
               </Text>
-              <IconButton icon="close" size={20} onPress={onDismiss} />
+              <IconButton
+                icon="close"
+                size={20}
+                onPress={onDismiss}
+                testID="add-edit-match-close"
+              />
             </View>
 
             <View style={styles.content}>
-              <TextInput
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                style={styles.input}
-                mode="outlined"
-                disabled={isLoading}
-              />
+              <View
+                testID="add-match-name-input"
+                accessibilityLabel="Match name field">
+                <TextInput
+                  ref={nameFieldRef}
+                  label="Name"
+                  value={name}
+                  onChangeText={setName}
+                  style={styles.input}
+                  mode="outlined"
+                  disabled={isLoading}
+                />
+              </View>
 
               <Text style={styles.platformLabel}>Platform</Text>
               <View style={styles.platformButtons}>
@@ -146,6 +160,7 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
                   style={styles.input}
                   mode="outlined"
                   disabled={isLoading}
+                  testID="platform-other-field"
                 />
               )}
 
@@ -158,9 +173,14 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
               <Button
                 mode="contained"
                 onPress={handleAdd}
-                disabled={!name.trim() || isLoading}
+                disabled={
+                  !name.trim() ||
+                  (!isEditing && !platform) ||
+                  isLoading ||
+                  (platform === 'other' && !otherPlatform.trim())
+                }
                 style={styles.button}
-                testID="add-button">
+                testID={isEditing ? 'update-match-button' : 'add-button'}>
                 {isLoading ? (
                   <ActivityIndicator color={theme.colors.onPrimary} />
                 ) : isEditing ? (

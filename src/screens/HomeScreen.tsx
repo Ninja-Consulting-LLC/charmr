@@ -23,8 +23,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   >('support');
   const responseGeneratorRef = useRef<{loadMatches: () => Promise<void>}>(null);
 
-  const handleMatchesUpdated = () => {
-    responseGeneratorRef.current?.loadMatches();
+  const handleMatchesUpdated = async () => {
+    await responseGeneratorRef.current?.loadMatches();
   };
 
   const handleOpenFeedback = () => {

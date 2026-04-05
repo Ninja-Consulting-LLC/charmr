@@ -1,5 +1,4 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
 import {Button, Dialog, Portal, Text} from 'react-native-paper';
 
 interface ArchiveMatchDialogProps {
@@ -26,8 +25,13 @@ const ArchiveMatchDialog: React.FC<ArchiveMatchDialogProps> = ({
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={onArchive} mode="contained">
+          <Button testID="archive-match-cancel-button" onPress={onDismiss}>
+            Cancel
+          </Button>
+          <Button
+            testID="archive-match-confirm-button"
+            onPress={onArchive}
+            mode="contained">
             Archive
           </Button>
         </Dialog.Actions>
@@ -35,7 +39,5 @@ const ArchiveMatchDialog: React.FC<ArchiveMatchDialogProps> = ({
     </Portal>
   );
 };
-
-const styles = StyleSheet.create({});
 
 export default ArchiveMatchDialog;
