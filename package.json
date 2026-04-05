@@ -1,0 +1,14 @@
+{
+  "name": "charmr-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step required for static site'",
+    "deploy": "gh-pages -d .",
+    "start": "http-server -p 3000 -c-1"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1",
+    "http-server": "^14.1.1"
+  }
+}
