@@ -1,0 +1,8 @@
+---
+description: Express API in backend/
+globs: backend/**/*.ts
+---
+
+- Use injected `Database` / services; avoid new `getDatabase()` calls in request paths when `db` is already available.
+- LLM entry: `backend/src/services/llm/llmProvider.ts` + OpenAI/Gemini services.
+- Shared enums/DTOs: import from `@charmr/shared` or re-export via `backend/src/types`.

@@ -1,0 +1,7 @@
+---
+description: Workspace package @charmr/shared
+globs: packages/shared/**/*.ts
+---
+
+- Keep browser/server-neutral: no `react-native` or `express` imports.
+- Run `npm run build -w @charmr/shared` after changes; mobile consumes `dist/`.
