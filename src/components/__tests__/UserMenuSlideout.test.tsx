@@ -1,13 +1,13 @@
 import React from 'react';
-import {render, screen} from '@testing-library/react-native';
+import {screen} from '@testing-library/react-native';
 import {useStore} from '../../store';
 import {SubscriptionTier} from '../../types/enums';
 import {renderWithProviders} from '../../test/test-utils';
 import UserMenuSlideout from '../UserMenuSlideout';
 
-// Mock the store
 jest.mock('../../store', () => ({
   useStore: jest.fn(),
+  StoreProvider: ({children}: {children: React.ReactNode}) => <>{children}</>,
 }));
 
 describe('UserMenuSlideout', () => {
@@ -41,7 +41,7 @@ describe('UserMenuSlideout', () => {
       handleProviderLogin: jest.fn(),
     });
 
-    render(
+    renderWithProviders(
       <UserMenuSlideout
         visible={true}
         onDismiss={mockOnDismiss}
@@ -76,7 +76,7 @@ describe('UserMenuSlideout', () => {
       handleProviderLogin: jest.fn(),
     });
 
-    render(
+    renderWithProviders(
       <UserMenuSlideout
         visible={true}
         onDismiss={mockOnDismiss}
@@ -113,7 +113,7 @@ describe('UserMenuSlideout', () => {
       handleProviderLogin: jest.fn(),
     });
 
-    const {rerender} = render(
+    const {rerender} = renderWithProviders(
       <UserMenuSlideout
         visible={true}
         onDismiss={mockOnDismiss}

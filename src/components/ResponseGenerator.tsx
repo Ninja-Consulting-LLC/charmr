@@ -165,10 +165,18 @@ const ResponseGenerator = forwardRef<
     try {
       const newMatch = await addMatchUtil(name, platform);
       if (newMatch) {
-        await loadMatches(); // Reload matches to ensure UI is in sync
+        setMatches(prev => {
+          const id = newMatch.id;
+          if (prev.some(m => m.id === id)) {
+            return prev.map(m => (m.id === id ? newMatch : m));
+          }
+          return [...prev, newMatch];
+        });
       }
     } catch (error) {
       logger.app.error('Error adding match:', error);
+    } finally {
+      await loadMatches();
     }
   };
 
@@ -358,7 +366,9 @@ const ResponseGenerator = forwardRef<
       },
     );
 
-    navigation.navigate('CoachChat', {match});
+    // Always push so each open gets a fresh CoachChat mount (navigate can pop to an
+    // existing instance and leave message loading / composer in a bad state for E2E).
+    navigation.push('CoachChat', {match});
   };
 
   const handleDeleteMatchById = (matchId: string) => {
@@ -416,6 +426,7 @@ const ResponseGenerator = forwardRef<
       <View style={styles.contentContainer}>
         <View style={styles.mainContent}>
           <Button
+            testID="dating-coach-button"
             mode="contained"
             onPress={() => setShowMatchSelector(true)}
             icon={({size, color}) => (
@@ -448,10 +459,10 @@ const ResponseGenerator = forwardRef<
 
           {/* Match Selector Modal */}
           <MatchSelectorModal
-            key={matches.map(m => m.id).join(',')}
+            key={(matches ?? []).map(m => m.id).join(',')}
             visible={showMatchSelector}
             onDismiss={() => setShowMatchSelector(false)}
-            matches={matches}
+            matches={matches ?? []}
             selectedMatch={selectedMatch}
             onSelectMatch={handleMatchSelect}
             onAddMatch={handleAddMatchFromSelector}
@@ -467,6 +478,7 @@ const ResponseGenerator = forwardRef<
         <View style={styles.buttonContainer}>
           {images.length > 0 && (
             <Button
+              testID="generate-response-button"
               mode="contained"
               onPress={handleSubmit}
               style={styles.generateButton}

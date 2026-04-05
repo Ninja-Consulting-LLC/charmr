@@ -40,7 +40,7 @@ interface UserMenuSlideoutProps {
   visible: boolean;
   onDismiss: () => void;
   onOpenSupport: () => void;
-  onMatchesUpdated?: () => void;
+  onMatchesUpdated?: () => void | Promise<void>;
 }
 
 const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
@@ -139,14 +139,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   const handleRestoreMatch = async (match: Match) => {
     await restoreMatch(match.id);
     await loadArchivedMatches();
-    onMatchesUpdated?.();
+    await onMatchesUpdated?.();
   };
 
   const handleDeleteMatch = async (match: Match) => {
     try {
       await deleteMatch(String(match.id));
       await loadArchivedMatches();
-      onMatchesUpdated?.();
+      await onMatchesUpdated?.();
     } catch (error) {
       console.error('Error deleting match:', error);
     }
@@ -337,11 +337,13 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
           </View>
           <View style={styles.headerRight}>
             <IconButton
+              testID="user-menu-close-button"
               icon="close"
               size={24}
               onPress={onDismiss}
               style={styles.closeButton}
               iconColor={theme.colors.surface}
+              accessibilityLabel="Close account menu"
             />
           </View>
         </View>
@@ -412,6 +414,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               <List.Item
                 title="Register Account"
                 description="Create an account to save your progress"
+                testID="user-menu-register-account"
                 left={props => (
                   <List.Icon
                     {...props}
@@ -441,6 +444,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             </List.Subheader>
             <List.Item
               title="Archived Matches"
+              testID="user-menu-archived-matches"
               left={props => (
                 <List.Icon
                   {...props}
@@ -453,6 +457,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
             />
             <List.Item
               title="Contact Support"
+              testID="user-menu-contact-support"
               left={props => (
                 <List.Icon
                   {...props}
@@ -573,6 +578,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               Legal
             </List.Subheader>
             <List.Item
+              testID="user-menu-terms-of-service"
               title="Terms of Service"
               left={props => (
                 <List.Icon
@@ -587,6 +593,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
               titleStyle={[styles.legalText, {color: theme.colors.surface}]}
             />
             <List.Item
+              testID="user-menu-privacy-policy"
               title="Privacy Policy"
               left={props => (
                 <List.Icon

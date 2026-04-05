@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text as RNText, View } from 'react-native';
 import {
   Button,
   Dialog,
@@ -51,15 +51,27 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
         contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Archived Matches</Text>
-          <IconButton icon="close" size={20} onPress={onDismiss} />
+          <IconButton
+            testID="archived-matches-close"
+            icon="close"
+            size={20}
+            onPress={onDismiss}
+          />
         </View>
 
         <ScrollView style={styles.content}>
           {hiddenMatches.length > 0 ? (
-            hiddenMatches.map(match => (
+            hiddenMatches.map((match, index) => (
               <List.Item
                 key={`${match.id}`}
-                title={match.name}
+                testID={
+                  index === 0
+                    ? 'archived-match-first-row'
+                    : `archived-match-row-${String(match.id)}`
+                }
+                title={
+                  <RNText accessibilityLabel={match.name}>{match.name}</RNText>
+                }
                 description={match.platform}
                 left={props => (
                   <List.Icon
@@ -71,12 +83,14 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
                 right={props => (
                   <View style={styles.itemActions}>
                     <IconButton
+                      testID="hidden-match-delete-button"
                       icon="delete"
                       size={20}
                       onPress={() => handleDeletePress(match)}
                       style={styles.deleteButton}
                     />
                     <Button
+                      testID="hidden-match-restore-button"
                       mode="text"
                       onPress={() => onRestoreMatch(match)}
                       icon="restore">
@@ -110,8 +124,15 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
-          <Button onPress={handleConfirmDelete} textColor={theme.colors.error}>
+          <Button
+            testID="archived-delete-cancel-button"
+            onPress={() => setDeleteDialogVisible(false)}>
+            Cancel
+          </Button>
+          <Button
+            testID="archived-delete-confirm-button"
+            onPress={handleConfirmDelete}
+            textColor={theme.colors.error}>
             Delete
           </Button>
         </Dialog.Actions>

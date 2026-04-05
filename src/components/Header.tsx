@@ -37,6 +37,8 @@ const Header: React.FC<HeaderProps> = ({
       </View>
       <View style={{flexDirection: 'row'}}>
         <IconButton
+          testID="user-menu-button"
+          accessibilityLabel="Open account menu"
           icon="account-circle"
           size={24}
           onPress={onUserMenuPress}
@@ -45,6 +47,7 @@ const Header: React.FC<HeaderProps> = ({
         {__DEV__ && showDevMenu && (
           <IconButton
             testID="dev-menu-button"
+            accessibilityLabel="Open development menu"
             icon="cog"
             size={24}
             onPress={onDevMenuPress}

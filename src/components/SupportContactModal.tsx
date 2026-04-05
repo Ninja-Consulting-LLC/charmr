@@ -143,30 +143,51 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <View
+              testID="support-contact-modal"
               style={[
                 styles.modalContent,
                 {backgroundColor: theme.colors.surface},
               ]}>
               <View style={styles.header}>
-                <Text variant="headlineSmall">
-                  {isSuccess
-                    ? 'Message Sent'
-                    : mode === 'feedback'
-                    ? 'Provide Feedback'
-                    : 'Contact Support'}
-                </Text>
-                <IconButton icon="close" onPress={onDismiss} />
+                <View
+                  testID="support-contact-title"
+                  accessibilityLabel={
+                    isSuccess
+                      ? 'Message Sent'
+                      : mode === 'feedback'
+                      ? 'Provide Feedback'
+                      : 'Contact Support'
+                  }>
+                  <Text variant="headlineSmall">
+                    {isSuccess
+                      ? 'Message Sent'
+                      : mode === 'feedback'
+                      ? 'Provide Feedback'
+                      : 'Contact Support'}
+                  </Text>
+                </View>
+                <IconButton
+                  testID="support-contact-close"
+                  icon="close"
+                  onPress={onDismiss}
+                />
               </View>
 
               <View style={styles.content}>
                 {isSuccess ? (
-                  <View style={styles.successContainer}>
-                    <Text variant="bodyLarge" style={styles.successMessage}>
+                  <View
+                    testID="support-submit-success"
+                    style={styles.successContainer}>
+                    <Text
+                      testID="support-submit-success-text"
+                      variant="bodyLarge"
+                      style={styles.successMessage}>
                       Your{' '}
                       {mode === 'feedback' ? 'feedback' : 'support request'} has
                       been sent successfully. We'll get back to you soon!
                     </Text>
                     <Button
+                      testID="support-success-close-button"
                       mode="contained"
                       onPress={onDismiss}
                       style={styles.button}>

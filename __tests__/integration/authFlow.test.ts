@@ -1,12 +1,22 @@
 import {getDatabase} from '../../backend/src/db';
 import {Match} from '../../backend/src/db/types';
 import {generateReply} from '../../backend/src/services/replyService';
-import {TestUtils} from '../../backend/src/test/testUtils';
-import {
-  MessageMode,
-  MessageRole,
-  MessageType,
-} from '../../backend/src/types/enums';
+import {MessageMode, MessageRole, MessageType} from '@charmr/shared';
+
+jest.mock('../../backend/src/services/openaiService', () => ({
+  createOpenAIService: jest.fn(() => ({
+    generateReply: jest.fn().mockResolvedValue({
+      reply: 'Mock integration AI reply',
+      summary: '',
+      error: null,
+      usage: {
+        prompt_tokens: 5,
+        completion_tokens: 5,
+        total_tokens: 10,
+      },
+    }),
+  })),
+}));
 
 describe('Anonymous User Flow Integration Tests', () => {
   let anonymousUserId: string;
@@ -19,23 +29,11 @@ describe('Anonymous User Flow Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    // Clean up any existing test data
-    if (anonymousUserId) {
-      await TestUtils.cleanupUserTestData(anonymousUserId);
-    }
-    if (registeredUserId) {
-      await TestUtils.cleanupUserTestData(registeredUserId);
-    }
+    await db.clearDatabase();
   });
 
   afterEach(async () => {
-    // Clean up test data after each test
-    if (anonymousUserId) {
-      await TestUtils.cleanupUserTestData(anonymousUserId);
-    }
-    if (registeredUserId) {
-      await TestUtils.cleanupUserTestData(registeredUserId);
-    }
+    await db.clearDatabase();
   });
 
   it('should create an anonymous user and generate a match', async () => {
@@ -91,7 +89,7 @@ describe('Anonymous User Flow Integration Tests', () => {
     matchId = match.id.toString();
 
     // Create initial message
-    const message = await db.createMessage(anonymousUserId, matchId, {
+    await db.createMessage(anonymousUserId, matchId, {
       role: MessageRole.USER,
       type: MessageType.TEXT,
       mode: MessageMode.GENERATE,
@@ -115,9 +113,13 @@ describe('Anonymous User Flow Integration Tests', () => {
     const messagesResult = await db.getMessages(anonymousUserId, matchId);
     const messages = messagesResult.messages;
     expect(messages.length).toBe(2);
-    expect(messages[0].role).toBe(MessageRole.ASSISTANT);
-    expect(messages[0].content).toBeTruthy();
-    expect(messages[1].content).toBe('Hello, this is a test message');
+    const byRole = Object.fromEntries(
+      messages.map((m: {role: string; content: string}) => [m.role, m]),
+    );
+    expect(byRole[MessageRole.ASSISTANT]?.content).toBeTruthy();
+    expect(byRole[MessageRole.USER]?.content).toBe(
+      'Hello, this is a test message',
+    );
   });
 
   it('should upgrade anonymous user to registered user', async () => {

@@ -1,160 +1,507 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`OnboardingScreen matches snapshot for step 1 1`] = `
-<View
+<RNCSafeAreaProvider
+  onInsetsChange={[Function]}
   style={
-    {
-      "backgroundColor": "#f5f5f5",
-      "flex": 1,
-      "justifyContent": "center",
-      "padding": 16,
-    }
+    [
+      {
+        "flex": 1,
+      },
+      undefined,
+    ]
   }
 >
-  <Surface
+  <View
+    collapsable={false}
+    pointerEvents="box-none"
     style={
       {
-        "borderRadius": 8,
-        "padding": 24,
+        "flex": 1,
       }
     }
   >
     <View
       style={
         {
-          "alignItems": "center",
+          "backgroundColor": "#7E22CE",
+          "flex": 1,
         }
       }
     >
-      <Text
-        style={
-          {
-            "marginBottom": 16,
-            "textAlign": "center",
-          }
-        }
-        variant="headlineSmall"
-      >
-        Enable Dating Keyboard
-      </Text>
-      <Text
-        style={
-          {
-            "color": "#666",
-            "marginBottom": 24,
-            "textAlign": "center",
-          }
-        }
-        variant="bodyLarge"
-      >
-        Follow these steps to enable Charmr keyboard:
-      </Text>
       <View
         style={
           {
-            "marginBottom": 32,
-            "width": "100%",
+            "backgroundColor": "#7E22CE",
+            "flex": 1,
+            "padding": 24,
           }
         }
       >
-        <Text
+        <View
           style={
             {
-              "fontSize": 16,
-              "marginBottom": 8,
+              "alignItems": "center",
+              "flex": 1,
+              "justifyContent": "center",
             }
           }
         >
-          1. Go to Settings
-        </Text>
-        <Text
+          <Text
+            style={
+              {
+                "color": "rgba(255, 255, 255, 1)",
+                "fontSize": 24,
+                "fontWeight": "600",
+                "marginBottom": 16,
+                "textAlign": "center",
+              }
+            }
+          >
+            Enable Dating Keyboard
+          </Text>
+          <Text
+            style={
+              {
+                "color": "rgba(255, 255, 255, 1)",
+                "fontSize": 16,
+                "marginBottom": 24,
+                "textAlign": "center",
+              }
+            }
+          >
+            Follow these steps to enable Charmr keyboard:
+          </Text>
+          <View
+            style={
+              {
+                "marginBottom": 32,
+                "width": "100%",
+              }
+            }
+          >
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              1. Go to Settings
+            </Text>
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              2. Tap General
+            </Text>
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              3. Tap Keyboard
+            </Text>
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              4. Tap Keyboards
+            </Text>
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              5. Tap Add New Keyboard
+            </Text>
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "marginBottom": 8,
+                }
+              }
+            >
+              6. Select Charmr
+            </Text>
+          </View>
+          <View
+            style={
+              {
+                "gap": 12,
+                "marginTop": 24,
+                "width": "100%",
+              }
+            }
+          >
+            <View
+              accessibilityState={
+                {
+                  "busy": undefined,
+                  "checked": undefined,
+                  "disabled": undefined,
+                  "expanded": undefined,
+                  "selected": undefined,
+                }
+              }
+              accessibilityValue={
+                {
+                  "max": undefined,
+                  "min": undefined,
+                  "now": undefined,
+                  "text": undefined,
+                }
+              }
+              accessible={true}
+              collapsable={false}
+              focusable={true}
+              onClick={[Function]}
+              onResponderGrant={[Function]}
+              onResponderMove={[Function]}
+              onResponderRelease={[Function]}
+              onResponderTerminate={[Function]}
+              onResponderTerminationRequest={[Function]}
+              onStartShouldSetResponder={[Function]}
+              style={
+                {
+                  "alignItems": "center",
+                  "backgroundColor": "rgba(255, 255, 255, 1)",
+                  "borderRadius": 24,
+                  "height": 48,
+                  "justifyContent": "center",
+                  "opacity": 1,
+                }
+              }
+            >
+              <Text
+                style={
+                  [
+                    {
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                    },
+                    {
+                      "color": "#7E22CE",
+                    },
+                  ]
+                }
+              >
+                Go to Settings
+              </Text>
+            </View>
+            <View
+              accessibilityState={
+                {
+                  "busy": undefined,
+                  "checked": undefined,
+                  "disabled": undefined,
+                  "expanded": undefined,
+                  "selected": undefined,
+                }
+              }
+              accessibilityValue={
+                {
+                  "max": undefined,
+                  "min": undefined,
+                  "now": undefined,
+                  "text": undefined,
+                }
+              }
+              accessible={true}
+              collapsable={false}
+              focusable={true}
+              onClick={[Function]}
+              onResponderGrant={[Function]}
+              onResponderMove={[Function]}
+              onResponderRelease={[Function]}
+              onResponderTerminate={[Function]}
+              onResponderTerminationRequest={[Function]}
+              onStartShouldSetResponder={[Function]}
+              style={
+                {
+                  "alignItems": "center",
+                  "backgroundColor": "transparent",
+                  "borderColor": "rgba(255, 255, 255, 1)",
+                  "borderRadius": 24,
+                  "borderWidth": 1,
+                  "height": 48,
+                  "justifyContent": "center",
+                  "opacity": 1,
+                }
+              }
+            >
+              <Text
+                style={
+                  [
+                    {
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                    },
+                    {
+                      "color": "rgba(255, 255, 255, 1)",
+                    },
+                  ]
+                }
+              >
+                Need Help?
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View
           style={
             {
-              "fontSize": 16,
-              "marginBottom": 8,
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginTop": 16,
             }
           }
         >
-          2. Tap General
-        </Text>
-        <Text
-          style={
-            {
-              "fontSize": 16,
-              "marginBottom": 8,
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
             }
-          }
-        >
-          3. Tap Keyboard
-        </Text>
-        <Text
-          style={
-            {
-              "fontSize": 16,
-              "marginBottom": 8,
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
             }
-          }
-        >
-          4. Tap Keyboards
-        </Text>
-        <Text
-          style={
-            {
-              "fontSize": 16,
-              "marginBottom": 8,
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "alignItems": "center",
+                "backgroundColor": "transparent",
+                "borderColor": "rgba(255, 255, 255, 1)",
+                "borderRadius": 24,
+                "borderWidth": 1,
+                "flex": 1,
+                "height": 48,
+                "justifyContent": "center",
+                "marginHorizontal": 4,
+                "opacity": 1,
+              }
             }
-          }
-        >
-          5. Tap Add New Keyboard
-        </Text>
-        <Text
-          style={
-            {
-              "fontSize": 16,
-              "marginBottom": 8,
+            testID="skip-button"
+          >
+            <Text
+              style={
+                {
+                  "color": "rgba(255, 255, 255, 1)",
+                  "fontSize": 16,
+                  "fontWeight": "600",
+                }
+              }
+            >
+              Skip
+            </Text>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
             }
-          }
-        >
-          6. Select Charmr
-        </Text>
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "alignItems": "center",
+                "backgroundColor": "rgba(255, 255, 255, 1)",
+                "borderRadius": 24,
+                "flex": 1,
+                "height": 48,
+                "justifyContent": "center",
+                "marginHorizontal": 4,
+                "opacity": 1,
+              }
+            }
+            testID="next-button"
+          >
+            <Text
+              style={
+                {
+                  "color": "#7E22CE",
+                  "fontSize": 16,
+                  "fontWeight": "600",
+                }
+              }
+            >
+              Next
+            </Text>
+          </View>
+        </View>
       </View>
     </View>
-    <View
-      style={
+  </View>
+  <View
+    collapsable={false}
+    pointerEvents="box-none"
+    style={
+      {
+        "bottom": 0,
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      }
+    }
+  >
+    <Modal
+      contentContainerStyle={
         {
-          "flexDirection": "row",
+          "alignItems": "center",
+          "backgroundColor": "#7E22CE",
+          "flex": 1,
           "justifyContent": "space-between",
-          "marginTop": 16,
+          "margin": 0,
         }
       }
+      onDismiss={[Function]}
+      visible={false}
     >
-      <Button
-        mode="outlined"
-        onPress={[Function]}
+      <Text
         style={
           {
-            "flex": 1,
-            "marginHorizontal": 4,
+            "alignItems": "center",
+            "color": "rgba(255, 255, 255, 1)",
+            "fontSize": 24,
+            "fontWeight": "600",
+            "justifyContent": "center",
+            "marginBottom": 24,
+            "paddingTop": 24,
           }
         }
-        testID="skip-button"
       >
-        Skip
-      </Button>
-      <Button
-        mode="contained"
-        onPress={[Function]}
+        How to Enable Keyboard
+      </Text>
+      <Image
+        resizeMode="contain"
+        source="test-file-stub"
         style={
           {
-            "flex": 1,
-            "marginHorizontal": 4,
+            "borderColor": "#40E0D0",
+            "borderRadius": 8,
+            "borderWidth": 5,
+            "margin": 0,
+            "padding": 0,
+            "width": "90%",
           }
         }
-        testID="next-button"
+      />
+      <View
+        accessibilityState={
+          {
+            "busy": undefined,
+            "checked": undefined,
+            "disabled": undefined,
+            "expanded": undefined,
+            "selected": undefined,
+          }
+        }
+        accessibilityValue={
+          {
+            "max": undefined,
+            "min": undefined,
+            "now": undefined,
+            "text": undefined,
+          }
+        }
+        accessible={true}
+        collapsable={false}
+        focusable={true}
+        onClick={[Function]}
+        onResponderGrant={[Function]}
+        onResponderMove={[Function]}
+        onResponderRelease={[Function]}
+        onResponderTerminate={[Function]}
+        onResponderTerminationRequest={[Function]}
+        onStartShouldSetResponder={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "rgba(255, 255, 255, 1)",
+            "borderRadius": 24,
+            "height": 48,
+            "justifyContent": "center",
+            "marginTop": 24,
+            "opacity": 1,
+            "width": "95%",
+          }
+        }
       >
-        Next
-      </Button>
-    </View>
-  </Surface>
-</View>
+        <Text
+          style={
+            {
+              "color": "#7E22CE",
+              "fontSize": 16,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Close
+        </Text>
+      </View>
+    </Modal>
+  </View>
+</RNCSafeAreaProvider>
 `;

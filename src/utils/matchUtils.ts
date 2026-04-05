@@ -16,6 +16,13 @@ export interface Match {
   updatedAt: string;
 }
 
+/** Most recently used first (aligns with API `ORDER BY lastUsed DESC`). */
+export const compareMatchesByLastUsedDesc = (a: Match, b: Match): number => {
+  const ta = new Date(a.lastUsed).getTime();
+  const tb = new Date(b.lastUsed).getTime();
+  return tb - ta;
+};
+
 export const getMatchKey = (match: Match): string => {
   return `${match.platform}::${match.name}`;
 };

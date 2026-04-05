@@ -101,12 +101,16 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
           styles.modal,
           {backgroundColor: theme.colors.surface},
         ]}>
-        <View style={styles.content}>
+        <View testID="upgrade-modal" style={styles.content}>
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.title}>
               Upgrade Your Plan
             </Text>
-            <Button mode="text" onPress={onDismiss} style={styles.closeButton}>
+            <Button
+              mode="text"
+              onPress={onDismiss}
+              style={styles.closeButton}
+              testID="upgrade-modal-close">
               Close
             </Button>
           </View>

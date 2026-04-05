@@ -1,17 +1,27 @@
+import {NavigationContainer} from '@react-navigation/native';
 import {
   NativeStackNavigationProp,
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import {fireEvent, render} from '@testing-library/react-native';
 import React from 'react';
+import {PaperProvider} from 'react-native-paper';
 import {RootStackParamList} from '../../navigation/types';
 import HomeScreen from '../../screens/HomeScreen';
 import {useStore} from '../../store';
+import {theme} from '../../theme/theme';
 
-// Mock the store
 jest.mock('../../store', () => ({
   useStore: jest.fn(),
 }));
+
+jest.mock('../../store/StoreProvider', () => {
+  const {useStore} = jest.requireMock('../../store');
+  return {
+    StoreProvider: ({children}: {children: React.ReactNode}) => children,
+    useStore,
+  };
+});
 
 // Mock the components
 jest.mock('../../components/DevMenu', () => {
@@ -34,12 +44,17 @@ jest.mock('../../components/ResponseGenerator', () => {
   };
 });
 
-// Mock store values
 const mockSetShowDevMenu = jest.fn();
-(useStore as jest.Mock).mockReturnValue({
+
+const defaultHomeStore = () => ({
   setShowDevMenu: mockSetShowDevMenu,
   showDevMenu: false,
+  user: {id: 'test-user-id', email: 'test@example.com'},
+  userId: 'test-user-id',
+  authBypass: false,
 });
+
+(useStore as jest.Mock).mockImplementation(() => defaultHomeStore());
 
 // Mock navigation
 const mockNavigation: Partial<
@@ -72,96 +87,96 @@ const mockProps: NativeStackScreenProps<RootStackParamList, 'Home'> = {
   },
 };
 
+const renderHome = (ui: React.ReactElement) =>
+  render(
+    <NavigationContainer>
+      <PaperProvider theme={theme}>{ui}</PaperProvider>
+    </NavigationContainer>,
+  );
+
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset store mock to default values before each test
-    (useStore as jest.Mock).mockReturnValue({
-      setShowDevMenu: mockSetShowDevMenu,
-      showDevMenu: false,
-    });
+    (useStore as jest.Mock).mockImplementation(() => defaultHomeStore());
   });
 
   it('matches snapshot in production mode', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = false;
-    const {toJSON} = render(<HomeScreen {...mockProps} />);
+    const {toJSON} = renderHome(<HomeScreen {...mockProps} />);
     expect(toJSON()).toMatchSnapshot();
   });
 
   it('matches snapshot in development mode', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
-    const {toJSON} = render(<HomeScreen {...mockProps} />);
+    const {toJSON} = renderHome(<HomeScreen {...mockProps} />);
     expect(toJSON()).toMatchSnapshot();
   });
 
   it('renders title correctly', () => {
-    const {getByText} = render(<HomeScreen {...mockProps} />);
+    const {getByText} = renderHome(<HomeScreen {...mockProps} />);
     expect(getByText('Charmr')).toBeTruthy();
   });
 
   it('shows dev menu button in dev mode', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
-    const {getByTestId} = render(<HomeScreen {...mockProps} />);
+    const {getByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(getByTestId('dev-menu-button')).toBeTruthy();
   });
 
   it('hides dev menu button in production mode', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = false;
-    const {queryByTestId} = render(<HomeScreen {...mockProps} />);
+    const {queryByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(queryByTestId('dev-menu-button')).toBeNull();
   });
 
   it('opens dev menu when clicking dev button', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
-    const {getByTestId} = render(<HomeScreen {...mockProps} />);
+    const {getByTestId} = renderHome(<HomeScreen {...mockProps} />);
 
     fireEvent.press(getByTestId('dev-menu-button'));
     expect(mockSetShowDevMenu).toHaveBeenCalledWith(true);
   });
 
   it('renders ResponseGenerator component', () => {
-    const {getByTestId} = render(<HomeScreen {...mockProps} />);
+    const {getByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(getByTestId('response-generator')).toBeTruthy();
   });
 
   it('renders DevMenu component in dev mode when menu is open', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
-    (useStore as jest.Mock).mockReturnValue({
-      setShowDevMenu: mockSetShowDevMenu,
+    (useStore as jest.Mock).mockImplementation(() => ({
+      ...defaultHomeStore(),
       showDevMenu: true,
-    });
+    }));
 
-    const {getByTestId} = render(<HomeScreen {...mockProps} />);
+    const {getByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(getByTestId('dev-menu')).toBeTruthy();
   });
 
   it('does not render DevMenu component in production mode', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = false;
-    (useStore as jest.Mock).mockReturnValue({
-      setShowDevMenu: mockSetShowDevMenu,
+    (useStore as jest.Mock).mockImplementation(() => ({
+      ...defaultHomeStore(),
       showDevMenu: true,
-    });
+    }));
 
-    const {queryByTestId} = render(<HomeScreen {...mockProps} />);
+    const {queryByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(queryByTestId('dev-menu')).toBeNull();
   });
 
   it('does not render DevMenu component when menu is closed', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
-    (useStore as jest.Mock).mockReturnValue({
-      setShowDevMenu: mockSetShowDevMenu,
-      showDevMenu: false,
-    });
+    (useStore as jest.Mock).mockImplementation(() => defaultHomeStore());
 
-    const {queryByTestId} = render(<HomeScreen {...mockProps} />);
+    const {queryByTestId} = renderHome(<HomeScreen {...mockProps} />);
     expect(queryByTestId('dev-menu')).toBeNull();
   });
 });
