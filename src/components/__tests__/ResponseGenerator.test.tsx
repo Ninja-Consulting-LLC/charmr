@@ -96,7 +96,7 @@ describe('ResponseGenerator', () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
     (CameraRoll.deletePhotos as jest.Mock).mockResolvedValue({success: true});
-    const ax = axios as {
+    const ax = axios as unknown as {
       isAxiosError?: jest.Mock;
       default?: {isAxiosError: jest.Mock};
     };

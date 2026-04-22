@@ -23,4 +23,27 @@ module.exports = {
     '<rootDir>/node_modules/react-native-reanimated/mock.js',
     '<rootDir>/src/test/setup.ts',
   ],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/App.tsx',
+    '!src/**/*.d.ts',
+    '!src/test/**',
+    '!src/**/__tests__/**',
+    '!src/**/*.test.{ts,tsx}',
+    // Type-only barrels / aliases — no executable product logic to cover here.
+    '!src/types/**',
+    '!src/types.ts',
+    '!src/store/types.ts',
+    '!src/store/index.ts',
+    '!src/navigation/types.ts',
+  ],
+  // Raised incrementally as suites grow; large RN surface (screens, StoreProvider) keeps global % modest.
+  coverageThreshold: {
+    global: {
+      statements: 39,
+      branches: 30,
+      functions: 32,
+      lines: 39,
+    },
+  },
 };

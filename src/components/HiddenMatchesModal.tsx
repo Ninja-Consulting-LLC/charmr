@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text as RNText, View } from 'react-native';
+import React, {useState} from 'react';
+import {ScrollView, StyleSheet, useWindowDimensions, View} from 'react-native';
 import {
-  Button,
   Dialog,
   IconButton,
   List,
   Modal,
   Portal,
-  Text,
+  ThemeProvider,
 } from 'react-native-paper';
-import { theme } from '../theme/theme';
-import { Match } from '../utils/matchUtils';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalIconButton,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
+import {Match} from '../utils/matchUtils';
 
 interface HiddenMatchesModalProps {
   visible: boolean;
@@ -27,6 +34,9 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
   onRestoreMatch,
   onDeleteMatch,
 }) => {
+  const {height: windowHeight} = useWindowDimensions();
+  const sheetHeight = Math.min(Math.round(windowHeight * 0.85), 640);
+
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null);
 
@@ -47,136 +57,185 @@ const HiddenMatchesModal: React.FC<HiddenMatchesModalProps> = ({
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Archived Matches</Text>
-          <IconButton
-            testID="archived-matches-close"
-            icon="close"
-            size={20}
-            onPress={onDismiss}
-          />
-        </View>
-
-        <ScrollView style={styles.content}>
-          {hiddenMatches.length > 0 ? (
-            hiddenMatches.map((match, index) => (
-              <List.Item
-                key={`${match.id}`}
-                testID={
-                  index === 0
-                    ? 'archived-match-first-row'
-                    : `archived-match-row-${String(match.id)}`
-                }
-                title={
-                  <RNText accessibilityLabel={match.name}>{match.name}</RNText>
-                }
-                description={match.platform}
-                left={props => (
-                  <List.Icon
-                    {...props}
-                    icon="archive"
-                    color={theme.colors.disabled}
-                  />
-                )}
-                right={props => (
-                  <View style={styles.itemActions}>
-                    <IconButton
-                      testID="hidden-match-delete-button"
-                      icon="delete"
-                      size={20}
-                      onPress={() => handleDeletePress(match)}
-                      style={styles.deleteButton}
-                    />
-                    <Button
-                      testID="hidden-match-restore-button"
-                      mode="text"
-                      onPress={() => onRestoreMatch(match)}
-                      icon="restore">
-                      Restore
-                    </Button>
-                  </View>
-                )}
+        contentContainerStyle={paperModalContent.shell}>
+        <ModalSheet
+          padded={false}
+          fillHeight
+          style={[styles.sheet, {height: sheetHeight, minHeight: 280}]}>
+          <View style={styles.inner}>
+            <View style={styles.header}>
+              <AppText variant="titleSm" color="hero">
+                Archived matches
+              </AppText>
+              <ModalIconButton
+                testID="archived-matches-close"
+                icon="close"
+                size={40}
+                onPress={onDismiss}
+                accessibilityLabel="Close"
               />
-            ))
-          ) : (
-            <View style={styles.emptyContainer}>
-              <IconButton
-                icon="archive-off"
-                size={48}
-                iconColor={theme.colors.disabled}
-              />
-              <Text style={styles.emptyText}>No archived matches</Text>
             </View>
-          )}
-        </ScrollView>
+
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled">
+              {hiddenMatches.length > 0 ? (
+                hiddenMatches.map((match, index) => (
+                  <List.Item
+                    key={`${match.id}`}
+                    testID={
+                      index === 0
+                        ? 'archived-match-first-row'
+                        : `archived-match-row-${String(match.id)}`
+                    }
+                    title={
+                      <AppText
+                        variant="bodyMedium"
+                        color="hero"
+                        accessibilityLabel={match.name}>
+                        {match.name}
+                      </AppText>
+                    }
+                    description={
+                      <AppText variant="caption" color="heroMuted">
+                        {match.platform}
+                      </AppText>
+                    }
+                    style={styles.matchItem}
+                    left={props => (
+                      <List.Icon
+                        {...props}
+                        icon="archive"
+                        color={tokens.color.hero.textMuted}
+                      />
+                    )}
+                    right={() => (
+                      <View style={styles.itemActions}>
+                        <ModalIconButton
+                          testID="hidden-match-delete-button"
+                          icon="delete"
+                          size={36}
+                          onPress={() => handleDeletePress(match)}
+                          style={styles.deleteButton}
+                          accessibilityLabel="Delete match"
+                        />
+                        <CharmrButton
+                          testID="hidden-match-restore-button"
+                          label="Restore"
+                          variant="secondary"
+                          compact
+                          onPress={() => onRestoreMatch(match)}
+                        />
+                      </View>
+                    )}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyContainer}>
+                  <IconButton
+                    icon="archive-off"
+                    size={48}
+                    iconColor={tokens.color.hero.textMuted}
+                  />
+                  <AppText variant="body" color="heroMuted" style={styles.emptyText}>
+                    No archived matches
+                  </AppText>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </ModalSheet>
       </Modal>
 
-      <Dialog
-        visible={deleteDialogVisible}
-        onDismiss={() => setDeleteDialogVisible(false)}>
-        <Dialog.Title>Delete Match</Dialog.Title>
-        <Dialog.Content>
-          <Text>
-            Are you sure you want to delete {matchToDelete?.name}? This action
-            cannot be undone.
-          </Text>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button
-            testID="archived-delete-cancel-button"
-            onPress={() => setDeleteDialogVisible(false)}>
-            Cancel
-          </Button>
-          <Button
-            testID="archived-delete-confirm-button"
-            onPress={handleConfirmDelete}
-            textColor={theme.colors.error}>
-            Delete
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
+      <ThemeProvider theme={darkModalPaperTheme}>
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}>
+          <Dialog.Title>Delete Match</Dialog.Title>
+          <Dialog.Content>
+            <AppText variant="body" color="primary">
+              Are you sure you want to delete {matchToDelete?.name}? This action
+              cannot be undone.
+            </AppText>
+          </Dialog.Content>
+          <View style={styles.dialogActions}>
+            <CharmrButton
+              testID="archived-delete-cancel-button"
+              label="Cancel"
+              variant="outline"
+              compact
+              onPress={() => setDeleteDialogVisible(false)}
+            />
+            <CharmrButton
+              testID="archived-delete-confirm-button"
+              label="Delete"
+              variant="danger"
+              compact
+              onPress={handleConfirmDelete}
+            />
+          </View>
+        </Dialog>
+      </ThemeProvider>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.surface,
-    margin: 20,
-    borderRadius: 8,
-    padding: 16,
-    height: '90%',
+  sheet: {
+    width: '100%',
+  },
+  inner: {
+    flex: 1,
+    minHeight: 0,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tokens.color.hero.glassBorder,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: tokens.space.sm,
   },
-  content: {},
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: tokens.space.xs,
+  },
+  matchItem: {
+    paddingVertical: tokens.space.xs,
+  },
   emptyText: {
     textAlign: 'center',
-    color: theme.colors.disabled,
-    marginTop: 8,
+    marginTop: tokens.space.sm,
   },
   emptyContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: tokens.space['2xl'],
   },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: tokens.space.xxs,
   },
   deleteButton: {
-    marginRight: 8,
+    margin: 0,
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: tokens.space.sm,
+    paddingHorizontal: tokens.space.lg,
+    paddingBottom: tokens.space.lg,
   },
 });
 

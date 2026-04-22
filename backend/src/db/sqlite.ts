@@ -130,6 +130,19 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     CREATE INDEX IF NOT EXISTS idx_matches_user ON matches(userId);
     CREATE INDEX IF NOT EXISTS idx_matches_last_used ON matches(lastUsed);
     CREATE INDEX IF NOT EXISTS idx_matches_hidden ON matches(hidden);
+
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(userId);
   `);
 
   for (const stmt of [
@@ -594,7 +607,6 @@ export const createSqliteDatabase = async (): Promise<Database> => {
     resetDailyMessageCounts: async (): Promise<void> => {
       try {
         const today = new Date().toISOString();
-        const todayDate = new Date(today);
         await db.run(
           'UPDATE users SET dailyMessagesUsed = 0, lastResetDate = ? WHERE date(lastResetDate) != date(?)',
           [today, today],
@@ -1223,7 +1235,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             [result.lastID],
           );
 
-          return insertedTicket;
+          return {
+            ...insertedTicket,
+            id: String(insertedTicket.id),
+            createdAt: new Date(insertedTicket.createdAt as string),
+            updatedAt: new Date(insertedTicket.updatedAt as string),
+          } as SupportTicket;
         } catch (error) {
           logger.error('Failed to create support ticket', {
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -1239,7 +1256,12 @@ export const createSqliteDatabase = async (): Promise<Database> => {
             'SELECT * FROM support_tickets WHERE userId = ? ORDER BY createdAt DESC',
             [userId],
           );
-          return tickets;
+          return tickets.map(t => ({
+            ...t,
+            id: String(t.id),
+            createdAt: new Date(t.createdAt as string),
+            updatedAt: new Date(t.updatedAt as string),
+          })) as SupportTicket[];
         } catch (error) {
           logger.error('Failed to get tickets by user ID', {
             error: error instanceof Error ? error.message : 'Unknown error',

@@ -1,9 +1,10 @@
 import cors from 'cors';
-import express from 'express';
+import express, {Application} from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import {config} from './config/config';
+import {databaseConfig} from './config/database';
 import {
   createUser,
   deleteUser,
@@ -16,27 +17,32 @@ import {
 import {checkSchemaHealth} from './controllers/devController';
 import {createReplyController} from './controllers/replyController';
 import {getDatabase} from './db';
+import {pingDatabase} from './db/pingDatabase';
+import type {Database} from './db/types';
 import {
   createDeviceTokenLimiter,
+  createErrorHandler,
   createUserCreationLimiter,
 } from './middleware';
+import {validateBody} from './middleware/validateBody';
 import {authenticateUser} from './middleware/auth';
 import {createRateLimiter} from './middleware/rateLimit';
+import {correlationId} from './middleware/correlationId';
 import {requestLogger} from './middleware/requestLogger';
 import createAdminRouter from './routes/adminRoutes';
-import devRoutes from './routes/devRoutes';
+import createDevRouter from './routes/devRoutes';
 import matchRoutes from './routes/matchRoutes';
 import createPushNotificationRouter from './routes/pushNotificationRoutes';
+import createSupportTicketsRouter from './routes/supportRoutes';
 import {createEmailService, createSupportEmailService} from './services/email';
-import {
-  createNotificationService,
-  NOTIFICATION_CONFIGS,
-  NotificationType,
-} from './services/notificationService';
 import {SupportRequest} from './types/email';
+import {
+  generateReplyBodySchema,
+  supportRequestBodySchema,
+} from './validation/apiSchemas';
 import logger, {stream} from './utils/logger';
 
-export const createApp = async () => {
+export const createApp = async (): Promise<{app: Application; db: Database}> => {
   const app = express();
 
   // Initialize database
@@ -53,15 +59,22 @@ export const createApp = async () => {
     }),
   );
 
+  app.use(correlationId);
+
   // Root path endpoint - API information and documentation
-  app.get('/', (req, res) => {
+  app.get('/', (_req, res) => {
     const apiInfo = {
       name: 'Charmr API',
       version: '1.0.0',
       description: 'Backend API for the Charmr dating assistant application',
       environment: config.server.environment,
       endpoints: [
-        {method: 'GET', path: '/health', description: 'Health check endpoint'},
+        {method: 'GET', path: '/health', description: 'Liveness (process up)'},
+        {
+          method: 'GET',
+          path: '/health/ready',
+          description: 'Readiness (database reachable)',
+        },
         {
           method: 'GET',
           path: '/api/users/:userId',
@@ -96,8 +109,28 @@ export const createApp = async () => {
   });
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.status(200).json({status: 'ok', timestamp: new Date().toISOString()});
+  });
+
+  app.get('/health/ready', async (_req, res) => {
+    try {
+      await pingDatabase(db);
+      res.status(200).json({
+        status: 'ready',
+        database: databaseConfig.type,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Readiness check failed', {
+        error: error instanceof Error ? error.message : error,
+      });
+      res.status(503).json({
+        status: 'not_ready',
+        database: databaseConfig.type,
+        timestamp: new Date().toISOString(),
+      });
+    }
   });
 
   // Rate limiting (skip global limiter in development — local E2E + hot reload exceed low caps quickly)
@@ -115,7 +148,8 @@ export const createApp = async () => {
   app.use(morgan('combined', {stream}));
 
   // Body parsing middleware
-  app.use(express.json({limit: '50mb'}));
+  // Base64 screenshots can be large; cap to limit accidental huge payloads (DoS).
+  app.use(express.json({limit: '25mb'}));
   app.use(express.urlencoded({extended: true}));
 
   // Initialize middleware
@@ -128,47 +162,6 @@ export const createApp = async () => {
     emailService,
     config.supportEmail,
   );
-
-  // Initialize notification service
-  const notificationService = createNotificationService(db);
-
-  // Schedule notification checks for each type
-  Object.entries(NOTIFICATION_CONFIGS).forEach(([type, config]) => {
-    // Skip disabled notification types (those with very long intervals)
-    if (config.checkInterval >= 365 * 24 * 60 * 60 * 1000) {
-      logger.debug('Skipping notification check scheduling for disabled type', {
-        type,
-        checkInterval: config.checkInterval,
-      });
-      return;
-    }
-
-    // Schedule the first check after the initial interval
-    setTimeout(() => {
-      notificationService
-        .checkAndSendNotifications(type as NotificationType)
-        .catch(error => {
-          logger.error('Failed to run notification check', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined,
-            notificationType: type,
-          });
-        });
-
-      // Then set up the recurring interval
-      setInterval(() => {
-        notificationService
-          .checkAndSendNotifications(type as NotificationType)
-          .catch(error => {
-            logger.error('Failed to run notification check', {
-              error: error instanceof Error ? error.message : 'Unknown error',
-              stack: error instanceof Error ? error.stack : undefined,
-              notificationType: type,
-            });
-          });
-      }, config.checkInterval);
-    }, config.checkInterval);
-  });
 
   // Initialize controllers
   const replyController = await createReplyController(db);
@@ -245,23 +238,39 @@ export const createApp = async () => {
       }
     },
   );
-  app.post('/api/generate-reply', authenticateUser, (req, res) => {
-    logger.debug('Route instantiated: POST /api/generate-reply');
-    return replyController.generateReplyHandler(req, res);
-  });
+  app.post(
+    '/api/generate-reply',
+    authenticateUser,
+    validateBody(generateReplyBodySchema),
+    (req, res) => {
+      logger.debug('Route instantiated: POST /api/generate-reply');
+      return replyController.generateReplyHandler(req, res);
+    },
+  );
 
-  app.post('/api/support', authenticateUser, async (req, res) => {
-    logger.debug('RAW SUPPORT REQUEST BODY:', req.body);
-    logger.debug('Route instantiated: POST /api/support');
-    try {
-      const supportRequest: SupportRequest = req.body;
-      await supportEmailService.sendSupportRequest(supportRequest);
-      res.status(200).json({message: 'Support request received'});
-    } catch (error) {
-      logger.error('Failed to send support email:', {error});
-      res.status(500).json({error: 'Failed to process support request'});
-    }
-  });
+  app.use('/api/support/tickets', createSupportTicketsRouter(db));
+
+  app.post(
+    '/api/support',
+    authenticateUser,
+    validateBody(supportRequestBodySchema),
+    async (req, res) => {
+      logger.debug('Support email request', {
+        bodyKeys:
+          req.body && typeof req.body === 'object'
+            ? Object.keys(req.body as object)
+            : [],
+      });
+      try {
+        const supportRequest: SupportRequest = req.body;
+        await supportEmailService.sendSupportRequest(supportRequest);
+        res.status(200).json({message: 'Support request received'});
+      } catch (error) {
+        logger.error('Failed to send support email:', {error});
+        res.status(500).json({error: 'Failed to process support request'});
+      }
+    },
+  );
 
   // Create admin router
   const adminRouter = createAdminRouter(db);
@@ -280,7 +289,7 @@ export const createApp = async () => {
 
   // Utility routes (only available in development)
   if (process.env.NODE_ENV !== 'production') {
-    utilityRouter.get('/health', (req, res) => {
+    utilityRouter.get('/health', (_req, res) => {
       res.json({status: 'ok', timestamp: new Date().toISOString()});
     });
 
@@ -294,7 +303,7 @@ export const createApp = async () => {
 
   // Dev routes (only in development)
   if (process.env.NODE_ENV === 'development') {
-    app.use('/api/dev', devRoutes);
+    app.use('/api/dev', createDevRouter(db));
   }
 
   // Log all available routes on startup
@@ -307,30 +316,7 @@ export const createApp = async () => {
 
   logger.debug('Available routes:', {routes});
 
-  // Error handling middleware
-  app.use(
-    (
-      err: Error,
-      req: express.Request,
-      res: express.Response,
-      next: express.NextFunction,
-    ) => {
-      logger.error('Unhandled error:', {
-        error: err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-      });
+  app.use(createErrorHandler());
 
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message:
-          process.env.NODE_ENV === 'production'
-            ? 'An unexpected error occurred'
-            : err.message,
-      });
-    },
-  );
-
-  return app;
+  return {app, db};
 };

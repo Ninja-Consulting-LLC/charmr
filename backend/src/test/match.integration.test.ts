@@ -108,7 +108,7 @@ describe('Match Integration Tests', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    const match2 = await db.addMatch(userId, {
+    await db.addMatch(userId, {
       userId,
       name: 'Lucy',
       platform: 'hinge',
@@ -118,7 +118,7 @@ describe('Match Integration Tests', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    const match3 = await db.addMatch(userId, {
+    await db.addMatch(userId, {
       userId,
       name: 'Anna',
       platform: 'tinder',

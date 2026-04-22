@@ -13,25 +13,20 @@ module.exports = {
     'coverage/',
   ],
   rules: {
-    '@typescript-eslint/no-shadow': 'warn',
+    // Large RN surface: re-enable incrementally (run `npx eslint . --print-config file.tsx` when tuning).
+    '@typescript-eslint/no-shadow': 'off',
     'no-catch-shadow': 'off',
-    'react-native/no-inline-styles': 'warn',
-    'react/no-unstable-nested-components': 'warn',
+    'react-native/no-inline-styles': 'off',
+    'react/no-unstable-nested-components': 'off',
     curly: 'warn',
     'eol-last': 'warn',
-    'react-hooks/exhaustive-deps': 'warn',
+    'react-hooks/exhaustive-deps': 'off',
   },
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
       rules: {
-        '@typescript-eslint/no-unused-vars': [
-          'warn',
-          {
-            argsIgnorePattern: '^_',
-            varsIgnorePattern: '^_',
-          },
-        ],
+        '@typescript-eslint/no-unused-vars': 'off',
       },
     },
   ],

@@ -23,50 +23,18 @@ exports[`LoginScreen matches snapshot 1`] = `
   >
     <View
       style={
-        {
-          "flex": 1,
-        }
+        [
+          {
+            "flex": 1,
+          },
+          {
+            "backgroundColor": "transparent",
+          },
+          undefined,
+        ]
       }
     >
       <View
-        colors={
-          [
-            "#7E22CE",
-            "#3B0764",
-          ]
-        }
-        end={
-          {
-            "x": 1,
-            "y": 1,
-          }
-        }
-        start={
-          {
-            "x": 0,
-            "y": 0,
-          }
-        }
-        style={
-          {
-            "bottom": 0,
-            "left": 0,
-            "position": "absolute",
-            "right": 0,
-            "top": 0,
-          }
-        }
-        testID="linear-gradient"
-      />
-      <RNCSafeAreaView
-        edges={
-          {
-            "bottom": "additive",
-            "left": "additive",
-            "right": "additive",
-            "top": "additive",
-          }
-        }
         style={
           {
             "flex": 1,
@@ -74,186 +42,328 @@ exports[`LoginScreen matches snapshot 1`] = `
         }
       >
         <View
+          colors={
+            [
+              "#7E22CE",
+              "#3B0764",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 1,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+          testID="linear-gradient"
+        />
+        <RNCSafeAreaView
+          edges={
+            {
+              "bottom": "additive",
+              "left": "additive",
+              "right": "additive",
+              "top": "additive",
+            }
+          }
           style={
             {
               "flex": 1,
-              "justifyContent": "space-between",
-              "paddingHorizontal": 24,
             }
           }
         >
           <View
             style={
               {
-                "alignItems": "center",
                 "flex": 1,
-                "justifyContent": "center",
-              }
-            }
-          >
-            <Image
-              resizeMode="contain"
-              source="test-file-stub"
-              style={
-                {
-                  "height": 525,
-                  "width": 525,
-                }
-              }
-            />
-          </View>
-          <View
-            style={
-              {
-                "gap": 16,
-                "paddingBottom": 32,
+                "justifyContent": "space-between",
+                "paddingHorizontal": 24,
               }
             }
           >
             <View
-              accessibilityState={
-                {
-                  "busy": undefined,
-                  "checked": undefined,
-                  "disabled": undefined,
-                  "expanded": undefined,
-                  "selected": undefined,
-                }
-              }
-              accessibilityValue={
-                {
-                  "max": undefined,
-                  "min": undefined,
-                  "now": undefined,
-                  "text": undefined,
-                }
-              }
-              accessible={true}
-              collapsable={false}
-              focusable={true}
-              onClick={[Function]}
-              onResponderGrant={[Function]}
-              onResponderMove={[Function]}
-              onResponderRelease={[Function]}
-              onResponderTerminate={[Function]}
-              onResponderTerminationRequest={[Function]}
-              onStartShouldSetResponder={[Function]}
               style={
                 {
                   "alignItems": "center",
-                  "backgroundColor": "#40E0D0",
-                  "borderRadius": 24,
-                  "height": 48,
+                  "flex": 1,
                   "justifyContent": "center",
-                  "opacity": 1,
                 }
               }
-              testID="get-started-button"
             >
-              <Text
+              <Image
+                resizeMode="contain"
+                source="test-file-stub"
                 style={
                   {
-                    "color": "#000000",
-                    "fontSize": 16,
-                    "fontWeight": "600",
+                    "height": 525,
+                    "width": 525,
                   }
                 }
-              >
-                Get Started
-              </Text>
+              />
             </View>
             <View
-              accessibilityState={
-                {
-                  "busy": undefined,
-                  "checked": undefined,
-                  "disabled": undefined,
-                  "expanded": undefined,
-                  "selected": undefined,
-                }
-              }
-              accessibilityValue={
-                {
-                  "max": undefined,
-                  "min": undefined,
-                  "now": undefined,
-                  "text": undefined,
-                }
-              }
-              accessible={true}
-              collapsable={false}
-              focusable={true}
-              onClick={[Function]}
-              onResponderGrant={[Function]}
-              onResponderMove={[Function]}
-              onResponderRelease={[Function]}
-              onResponderTerminate={[Function]}
-              onResponderTerminationRequest={[Function]}
-              onStartShouldSetResponder={[Function]}
               style={
                 {
-                  "alignItems": "center",
-                  "borderColor": "#FFFFFF",
-                  "borderRadius": 24,
-                  "borderWidth": 1,
-                  "height": 48,
-                  "justifyContent": "center",
-                  "opacity": 1,
+                  "gap": 16,
+                  "paddingBottom": 32,
                 }
               }
-              testID="login-button"
             >
-              <Text
-                style={
+              <View
+                accessibilityLabel="Get Started"
+                accessibilityRole="button"
+                accessibilityState={
                   {
-                    "color": "#FFFFFF",
-                    "fontSize": 16,
-                    "fontWeight": "600",
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
                   }
                 }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "#40E0D0",
+                    },
+                    {
+                      "alignSelf": "stretch",
+                    },
+                    undefined,
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="get-started-button"
               >
-                Log In
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#0B0A0F",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Get Started
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Log In"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "transparent",
+                      "borderColor": "#40E0D0",
+                      "borderWidth": 1,
+                    },
+                    {
+                      "alignSelf": "stretch",
+                    },
+                    undefined,
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="login-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Log In
+                  </Text>
+                </View>
+              </View>
+              <Text
+                maxFontSizeMultiplier={1.35}
+                style={
+                  [
+                    {
+                      "color": "#FFFFFF",
+                      "fontSize": 12,
+                      "fontWeight": "400",
+                      "letterSpacing": 0.2,
+                      "lineHeight": 16,
+                    },
+                    {
+                      "opacity": 0.88,
+                      "textAlign": "center",
+                    },
+                  ]
+                }
+              >
+                If you continue, you agree to our
+                 
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  onPress={[Function]}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 12,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.2,
+                        "lineHeight": 16,
+                      },
+                      {
+                        "opacity": 1,
+                        "textDecorationLine": "underline",
+                      },
+                    ]
+                  }
+                >
+                  Terms of Use
+                </Text>
+                 
+                and
+                 
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  onPress={[Function]}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 12,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.2,
+                        "lineHeight": 16,
+                      },
+                      {
+                        "opacity": 1,
+                        "textDecorationLine": "underline",
+                      },
+                    ]
+                  }
+                >
+                  Privacy Policy
+                </Text>
+                .
               </Text>
             </View>
-            <Text
-              style={
-                {
-                  "color": "#FFFFFF",
-                  "fontSize": 12,
-                  "opacity": 0.8,
-                  "textAlign": "center",
-                }
-              }
-            >
-              By clicking above, you agree to our
-               
-              <Text
-                onPress={[Function]}
-                style={
-                  {
-                    "textDecorationLine": "underline",
-                  }
-                }
-              >
-                Terms of Use
-              </Text>
-               and
-               
-              <Text
-                onPress={[Function]}
-                style={
-                  {
-                    "textDecorationLine": "underline",
-                  }
-                }
-              >
-                Privacy Policy
-              </Text>
-              .
-            </Text>
           </View>
-        </View>
-      </RNCSafeAreaView>
+        </RNCSafeAreaView>
+      </View>
     </View>
   </View>
 </RNCSafeAreaProvider>

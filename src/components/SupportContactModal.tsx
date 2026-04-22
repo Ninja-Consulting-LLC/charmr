@@ -1,21 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
+import {Modal, StyleSheet, View} from 'react-native';
+import {TextInput, ThemeProvider} from 'react-native-paper';
 import {
-    Keyboard,
-    Modal,
-    StyleSheet,
-    TouchableWithoutFeedback,
-    View,
-} from 'react-native';
-import {
-    Button,
-    IconButton,
-    Text,
-    TextInput,
-    useTheme,
-} from 'react-native-paper';
-import { submitSupportRequest } from '../services/api';
-import { useStore } from '../store/StoreProvider';
-import { theme } from '../theme/theme';
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalIconButton,
+  ModalSheet,
+  RNModalTransparentOverlay,
+  rnModalOverlay,
+  tokens,
+} from '../design-system';
+import {submitSupportRequest} from '../services/api';
+import {useStore} from '../store/StoreProvider';
 import LoginModal from './LoginModal';
 
 interface SupportContactModalProps {
@@ -29,11 +26,10 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
   onDismiss,
   mode = 'support',
 }) => {
-  const theme = useTheme();
   const {user, userId, authBypass} = useStore();
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
   const [email, setEmail] = useState(
-    userId && user.email && !authBypass ? user.email : ''
+    userId && user.email && !authBypass ? user.email : '',
   );
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState(
@@ -46,14 +42,12 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Update email when user state changes
   useEffect(() => {
     if (userId && user.email && !authBypass) {
       setEmail(user.email);
     }
   }, [user.email, userId, authBypass]);
 
-  // Reset form state when modal becomes visible
   useEffect(() => {
     if (visible) {
       setIsSuccess(false);
@@ -66,25 +60,25 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           : '',
       );
       setEmail(
-        userId && user.email && !authBypass ? user.email : ''
+        userId && user.email && !authBypass ? user.email : '',
       );
     }
   }, [visible, user.email, userId, authBypass]);
 
   const handleSubmit = async () => {
     if (!email) {
-      setError('Email is required');
+      setError('Please add your email so we can reply.');
       return;
     }
 
     if (!message) {
-      setError('Message is required');
+      setError('Please write a short message.');
       return;
     }
 
     if (!userId && !authBypass) {
       setError(
-        'Please register an account to contact support. This helps us better assist you with your inquiry.',
+        'Create a free account first so we can tie this to your profile and help faster.',
       );
       return;
     }
@@ -101,7 +95,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
           message,
           plan: user.plan,
           dailyMessagesUsed: user.dailyMessagesUsed,
-          dailyMessageLimit: user.dailyMessageLimit,
+          dailyMessageLimit: user.getDailyMessageLimit(),
           extraMessages: user.extraMessages,
           name: user.name,
         },
@@ -110,14 +104,15 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
       setIsSuccess(true);
     } catch (err) {
       console.error('Error submitting support request:', err);
-      const error = err as Error;
-      if (error.message === 'User not authenticated' && !authBypass) {
+      const e = err as Error;
+      if (e.message === 'User not authenticated' && !authBypass) {
         setError(
-          'Please register an account to contact support. This helps us better assist you with your inquiry.',
+          'Create a free account first so we can tie this to your profile and help faster.',
         );
       } else {
-        setError('Failed to submit support request. Please try again.');
+        setError('Something went wrong. Please try again in a moment.');
       }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -128,10 +123,7 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
 
   const handleLoginSuccess = () => {
     setShowLoginModal(false);
-    // Don't dismiss the support modal, let the user continue with their request
   };
-
-  if (!visible) return null;
 
   return (
     <>
@@ -140,133 +132,142 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
         transparent
         animationType="fade"
         onRequestClose={onDismiss}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <View
-              testID="support-contact-modal"
-              style={[
-                styles.modalContent,
-                {backgroundColor: theme.colors.surface},
-              ]}>
+        <RNModalTransparentOverlay>
+          <ModalSheet
+            testID="support-contact-modal"
+            padded={false}
+            style={rnModalOverlay.sheet}>
+            <ThemeProvider theme={darkModalPaperTheme}>
               <View style={styles.header}>
-                <View
-                  testID="support-contact-title"
-                  accessibilityLabel={
-                    isSuccess
-                      ? 'Message Sent'
-                      : mode === 'feedback'
-                      ? 'Provide Feedback'
-                      : 'Contact Support'
-                  }>
-                  <Text variant="headlineSmall">
-                    {isSuccess
-                      ? 'Message Sent'
-                      : mode === 'feedback'
-                      ? 'Provide Feedback'
-                      : 'Contact Support'}
-                  </Text>
-                </View>
-                <IconButton
-                  testID="support-contact-close"
-                  icon="close"
-                  onPress={onDismiss}
-                />
-              </View>
-
-              <View style={styles.content}>
-                {isSuccess ? (
-                  <View
-                    testID="support-submit-success"
-                    style={styles.successContainer}>
-                    <Text
-                      testID="support-submit-success-text"
-                      variant="bodyLarge"
-                      style={styles.successMessage}>
-                      Your{' '}
-                      {mode === 'feedback' ? 'feedback' : 'support request'} has
-                      been sent successfully. We'll get back to you soon!
-                    </Text>
-                    <Button
-                      testID="support-success-close-button"
-                      mode="contained"
+                    <AppText
+                      testID="support-contact-title"
+                      variant="titleSm"
+                      color="hero"
+                      accessibilityRole="header"
+                      accessibilityLabel={
+                        isSuccess
+                          ? 'Message sent'
+                          : mode === 'feedback'
+                            ? 'Send feedback'
+                            : 'Get help'
+                      }>
+                      {isSuccess
+                        ? 'Message sent'
+                        : mode === 'feedback'
+                          ? 'Send feedback'
+                          : 'Get help'}
+                    </AppText>
+                    <ModalIconButton
+                      testID="support-contact-close"
+                      icon="close"
+                      size={40}
                       onPress={onDismiss}
-                      style={styles.button}>
-                      Close
-                    </Button>
+                      accessibilityLabel="Close"
+                    />
                   </View>
-                ) : (
-                  <>
-                    {error && (
-                      <View style={styles.errorContainer}>
-                        <Text
-                          style={[styles.error, {color: theme.colors.error}]}>
-                          {error}
-                        </Text>
-                        {error.includes('register') && (
-                          <Button
-                            mode="text"
-                            onPress={handleRegisterPress}
-                            style={styles.registerButton}>
-                            Register Now
-                          </Button>
-                        )}
-                      </View>
-                    )}
 
-                    <TextInput
-                      label="Email *"
-                      value={email}
-                      onChangeText={setEmail}
-                      mode="outlined"
-                      style={styles.input}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      disabled={
-                        !authBypass &&
-                        userId !== '' &&
-                        user.email !== undefined &&
-                        user.email !== ''
-                      }
-                      testID="email-input"
-                    />
+                <View style={styles.content}>
+                  {isSuccess ? (
+                    <View
+                      testID="support-submit-success"
+                      style={styles.successContainer}>
+                      <AppText
+                        testID="support-submit-success-text"
+                        variant="body"
+                        color="heroMuted"
+                        style={styles.successMessage}>
+                        Thanks — your{' '}
+                        {mode === 'feedback' ? 'feedback' : 'message'} is on its
+                        way. We will email you when we have an update.
+                      </AppText>
+                      <CharmrButton
+                        testID="support-success-close-button"
+                        label="Close"
+                        variant="primary"
+                        onPress={onDismiss}
+                        fullWidth
+                      />
+                    </View>
+                  ) : (
+                    <>
+                      {error && (
+                        <View style={styles.errorContainer}>
+                          <AppText
+                            variant="bodyMedium"
+                            color="danger"
+                            style={styles.error}>
+                            {error}
+                          </AppText>
+                          {error.toLowerCase().includes('account') && (
+                            <CharmrButton
+                              label="Create account"
+                              variant="outline"
+                              onPress={handleRegisterPress}
+                              fullWidth
+                            />
+                          )}
+                        </View>
+                      )}
 
-                    <TextInput
-                      label="Phone (optional)"
-                      value={phone}
-                      onChangeText={setPhone}
-                      mode="outlined"
-                      style={styles.input}
-                      keyboardType="phone-pad"
-                      testID="phone-input"
-                    />
+                      <TextInput
+                        label="Email *"
+                        value={email}
+                        onChangeText={setEmail}
+                        mode="outlined"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        editable={
+                          !!(
+                            authBypass ||
+                            !userId ||
+                            user.email === undefined ||
+                            user.email === ''
+                          )
+                        }
+                        testID="email-input"
+                      />
 
-                    <TextInput
-                      label="Message *"
-                      value={message}
-                      onChangeText={setMessage}
-                      mode="outlined"
-                      style={styles.messageInput}
-                      multiline
-                      numberOfLines={6}
-                      textAlignVertical="top"
-                      testID="message-input"
-                    />
+                      <TextInput
+                        label="Phone (optional)"
+                        value={phone}
+                        onChangeText={setPhone}
+                        mode="outlined"
+                        style={styles.input}
+                        outlineStyle={styles.inputOutline}
+                        keyboardType="phone-pad"
+                        testID="phone-input"
+                      />
 
-                    <Button
-                      mode="contained"
-                      onPress={handleSubmit}
-                      style={styles.button}
-                      loading={isSubmitting}
-                      disabled={isSubmitting || !email || !message}
-                      testID="send-message-button">
-                      Send Message
-                    </Button>
-                  </>
-                )}
-              </View>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
+                      <TextInput
+                        label="Message *"
+                        value={message}
+                        onChangeText={setMessage}
+                        mode="outlined"
+                        style={styles.messageInput}
+                        outlineStyle={styles.inputOutline}
+                        multiline
+                        numberOfLines={6}
+                        textAlignVertical="top"
+                        testID="message-input"
+                      />
+
+                      <CharmrButton
+                        label="Send Message"
+                        variant="primary"
+                        onPress={handleSubmit}
+                        loading={isSubmitting}
+                        disabled={isSubmitting || !email || !message}
+                        testID="send-message-button"
+                        fullWidth
+                      />
+                    </>
+                  )}
+                </View>
+              </ThemeProvider>
+            </ModalSheet>
+        </RNModalTransparentOverlay>
       </Modal>
 
       <LoginModal
@@ -279,64 +280,46 @@ const SupportContactModal: React.FC<SupportContactModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: theme.roundness,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tokens.color.border.subtle,
   },
   content: {
-    padding: 20,
+    padding: tokens.space.lg,
+    gap: tokens.space.md,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 0,
+    backgroundColor: tokens.color.brand.primary,
+    borderRadius: tokens.radii.paper,
   },
   messageInput: {
-    marginBottom: 16,
     minHeight: 120,
+    backgroundColor: tokens.color.brand.primary,
+    borderRadius: tokens.radii.paper,
   },
-  button: {
-    marginTop: 8,
+  inputOutline: {
+    borderWidth: 1,
   },
   errorContainer: {
-    marginBottom: 16,
-    alignItems: 'center',
+    alignItems: 'stretch',
+    gap: tokens.space.sm,
   },
   error: {
     textAlign: 'center',
-    marginBottom: 8,
-  },
-  registerButton: {
-    marginTop: 8,
   },
   successContainer: {
-    alignItems: 'center',
-    paddingVertical: 24,
+    alignItems: 'stretch',
+    paddingVertical: tokens.space.lg,
+    gap: tokens.space.lg,
   },
   successMessage: {
     textAlign: 'center',
-    marginBottom: 24,
   },
 });
 

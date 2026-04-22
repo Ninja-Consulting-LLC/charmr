@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useEffect, useState} from 'react';
 import * as userService from '../services/userService';
-import {useStore} from '../store/StoreProvider';
 import {StoreState} from '../store/types';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
@@ -9,7 +8,6 @@ import {getPlanLimits} from '../utils/planLimits';
 import {createDefaultUser, shouldResetDailyCount} from '../utils/storeUtils';
 
 export const useStoreState = (skipInitialization = false): StoreState => {
-  const store = useStore();
   const [userId, setUserId] = useState('');
   const [user, setUserState] = useState<User>(createDefaultUser());
   const [isAuthenticated, setIsAuthenticated] = useState(false);

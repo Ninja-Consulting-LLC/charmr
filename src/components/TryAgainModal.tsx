@@ -1,71 +1,59 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Modal, Portal, Text } from 'react-native-paper';
-import { theme } from '../theme/theme';
+import {StyleSheet, View} from 'react-native';
+import {Modal, Portal} from 'react-native-paper';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
 
 interface TryAgainModalProps {
   visible: boolean;
   onDismiss: () => void;
 }
 
-const TryAgainModal: React.FC<TryAgainModalProps> = ({
-  visible,
-  onDismiss,
-}) => {
+const TryAgainModal: React.FC<TryAgainModalProps> = ({visible, onDismiss}) => {
   return (
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          {backgroundColor: theme.colors.surface},
-        ]}>
-        <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Request Timed Out
-          </Text>
-          <Text variant="bodyLarge" style={styles.message}>
-            The request took too long to complete. To try again, click the Generate Response button.
-          </Text>
-          <View style={styles.buttonContainer}>
-            <Button
-              mode="contained"
-              onPress={onDismiss}
-              style={styles.button}
-              testID="try-again-close-button">
-              Close
-            </Button>
-          </View>
-        </View>
+        contentContainerStyle={paperModalContent.shell}>
+        <ModalSheet padded style={styles.card}>
+          <AppText variant="titleSm" color="hero" style={styles.title}>
+            That took too long
+          </AppText>
+          <AppText variant="body" color="heroMuted" style={styles.message}>
+            Your connection or our servers may be slow. Tap Generate reply to
+            try again.
+          </AppText>
+          <CharmrButton
+            label="Close"
+            variant="primary"
+            onPress={onDismiss}
+            testID="try-again-close-button"
+            fullWidth
+          />
+        </ModalSheet>
       </Modal>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    margin: 20,
-    borderRadius: 16,
-  },
-  content: {
-    padding: 20,
-    alignItems: 'center',
+  card: {
+    alignItems: 'stretch',
+    gap: tokens.space.md,
   },
   title: {
-    marginBottom: 16,
     textAlign: 'center',
   },
   message: {
-    marginBottom: 24,
     textAlign: 'center',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    minWidth: 100,
   },
 });
 

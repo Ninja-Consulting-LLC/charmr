@@ -1,0 +1,5 @@
+# Include after launchApp with clearState: true (top-level flows: runFlow file: include/after_cold_launch.yaml).
+appId: com.ninjadating.charmr
+---
+- runScript:
+    file: post_clear_state_ax_settle.js

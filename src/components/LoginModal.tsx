@@ -8,28 +8,28 @@ import React, {useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {AccessToken, LoginManager} from 'react-native-fbsdk-next';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {signInWithFacebookLimited, signInWithGoogle} from '../config/firebase';
 import {syncSubscriptionState} from '../services/revenueCatService';
 import * as userService from '../services/userService';
 import {updateUserProfile} from '../services/userService';
 import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
+import {
+  AppText,
+  CharmrButton,
+  ModalSheet,
+  RNModalTransparentOverlay,
+  rnModalOverlay,
+  tokens,
+} from '../design-system';
 import {logger} from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 import AccountLinkingModal from './AccountLinkingModal';
-
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const MODAL_WIDTH = Math.min(SCREEN_WIDTH - 48, 280);
 
 interface LoginModalProps {
   visible: boolean;
@@ -38,6 +38,9 @@ interface LoginModalProps {
   onLoadingChange?: (isLoading: boolean) => void;
   handleProviderLogin?: (firebaseUser: any) => Promise<void>;
 }
+
+const authErrorMessage = (provider: 'Google' | 'Facebook' | 'Apple') =>
+  `We couldn't sign you in with ${provider}. Please try again.`;
 
 const LoginModal: React.FC<LoginModalProps> = ({
   visible,
@@ -113,10 +116,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         hasHandleProviderLogin: !!propHandleProviderLogin,
         hasStoreHandleProviderLogin: !!storeHandleProviderLogin,
       });
-      Alert.alert(
-        'Sign In Failed',
-        'There was an error signing in with Google. Please try again.',
-      );
+      Alert.alert('Sign in failed', authErrorMessage('Google'));
     } finally {
       setIsLoading(false);
       onLoadingChange?.(false);
@@ -125,19 +125,14 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleFacebookLogin = async () => {
     try {
+      setIsLoading(true);
+      onLoadingChange?.(true);
       const userCredential = await signInWithFacebookLimited();
       await (propHandleProviderLogin || storeHandleProviderLogin)(
         userCredential.user,
       );
       onLoginSuccess?.();
     } catch (error: any) {
-      console.log('Facebook login error details:', {
-        code: error.code,
-        message: error.message,
-        email: error.email,
-        signInMethods: error.signInMethods,
-      });
-
       if (error.code === 'auth/account-exists-with-different-credential') {
         // Extract email and sign-in methods from the error
         const email = error.email || 'your email';
@@ -147,12 +142,19 @@ const LoginModal: React.FC<LoginModalProps> = ({
           'password',
         ];
 
-        console.log('Setting linking data:', {email, methods});
         setLinkingData({email, methods});
         setShowAccountLinking(true);
         return;
       }
-      console.error('Facebook login error:', error);
+      logger.auth.error('Facebook Sign-In Error:', {
+        code: error?.code,
+        message: error?.message,
+        email: error?.email,
+      });
+      Alert.alert('Sign in failed', authErrorMessage('Facebook'));
+    } finally {
+      setIsLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -231,7 +233,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
               email: appleAuthResponse.email,
               methods: signInMethods,
               credential: appleCredential,
-              displayName,
+              displayName: displayName ?? undefined,
             });
             setShowAccountLinking(true);
             return;
@@ -318,10 +320,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      Alert.alert(
-        'Sign In Failed',
-        'There was an error signing in with Apple. Please try again.',
-      );
+      Alert.alert('Sign in failed', authErrorMessage('Apple'));
     } finally {
       setIsLoading(false);
       onLoadingChange?.(false);
@@ -381,8 +380,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
     } catch (error) {
       logger.auth.error('Error in handleLinkSuccess:', error);
       Alert.alert(
-        'Account Linking Failed',
-        'There was an error linking your accounts. Please try again.',
+        'Linking failed',
+        'We could not link your accounts. Please try again.',
       );
     }
   };
@@ -394,79 +393,82 @@ const LoginModal: React.FC<LoginModalProps> = ({
         transparent
         animationType="fade"
         onRequestClose={onClose}>
-        <View style={styles.modalOverlay}>
+        <RNModalTransparentOverlay onBackdropPress={onClose}>
           {isLoading ? (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={theme.colors.surface} />
-              <Text style={styles.loadingText}>Signing in...</Text>
+              <ActivityIndicator size="large" color={tokens.color.hero.text} />
+              <AppText variant="bodyMedium" color="hero" style={styles.loadingText}>
+                Signing in...
+              </AppText>
             </View>
           ) : (
-            <View style={styles.modalWrapper}>
-              <LinearGradient
-                colors={[theme.colors.primary, theme.colors.primaryContainer]}
-                style={styles.modalContent}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}>
+            <ModalSheet style={rnModalOverlay.sheet}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <AppText variant="titleSm" color="hero" style={styles.modalTitle}>
+                    Sign in
+                  </AppText>
+                  <AppText variant="caption" color="heroMuted" style={styles.modalSubtitle}>
+                    Save your matches and keep your progress.
+                  </AppText>
+                </View>
                 <View style={styles.buttonContainer}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.googleButton]}
+                  <CharmrButton
+                    style={styles.googleButton}
                     onPress={handleGoogleSignIn}
-                    testID="google-login-button">
-                    <View style={styles.buttonContent}>
+                    testID="google-login-button"
+                    label="Continue with Google"
+                    fullWidth
+                    leftIcon={
                       <Icon
                         name="google"
                         size={20}
-                        color={theme.colors.onSurface}
+                        color={tokens.color.text.onAccent}
                       />
-                      <Text style={styles.googleButtonText}>
-                        Continue with Google
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.facebookButton]}
+                    }
+                  />
+                  <CharmrButton
+                    variant="secondary"
+                    style={styles.facebookButton}
                     onPress={handleFacebookLogin}
-                    testID="facebook-login-button">
-                    <View style={styles.buttonContent}>
+                    testID="facebook-login-button"
+                    label="Continue with Facebook"
+                    fullWidth
+                    leftIcon={
                       <Icon
                         name="facebook"
                         size={20}
-                        color={theme.colors.surface}
+                        color={tokens.color.hero.text}
                       />
-                      <Text style={styles.facebookButtonText}>
-                        Continue with Facebook
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.button, styles.appleButton]}
+                    }
+                  />
+                  <CharmrButton
+                    variant="secondary"
+                    style={styles.appleButton}
                     onPress={handleAppleLogin}
-                    testID="apple-login-button">
-                    <View style={styles.buttonContent}>
+                    testID="apple-login-button"
+                    label="Continue with Apple"
+                    fullWidth
+                    leftIcon={
                       <Icon
                         name="apple"
                         size={20}
-                        color={theme.colors.surface}
+                        color={tokens.color.hero.text}
                       />
-                      <Text style={styles.appleButtonText}>
-                        Continue with Apple
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                    }
+                  />
                 </View>
-
-                <TouchableOpacity
+                <CharmrButton
                   testID="login-modal-cancel"
-                  style={styles.closeButton}
-                  onPress={onClose}>
-                  <Text style={styles.closeButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </LinearGradient>
-            </View>
+                  label="Cancel"
+                  variant="ghost"
+                  onPress={onClose}
+                  fullWidth
+                />
+              </View>
+            </ModalSheet>
           )}
-        </View>
+        </RNModalTransparentOverlay>
       </Modal>
 
       {linkingData && (
@@ -486,91 +488,44 @@ const LoginModal: React.FC<LoginModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: tokens.color.overlay.modalBackdrop,
+    borderRadius: tokens.radii.lg,
+    minHeight: 180,
+    alignSelf: 'stretch',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: tokens.space.xl,
   },
   loadingText: {
-    color: theme.colors.surface,
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  modalWrapper: {
-    width: MODAL_WIDTH,
-    borderRadius: 16,
-    overflow: 'hidden',
+    marginTop: tokens.space.md,
   },
   modalContent: {
     width: '100%',
-    minHeight: 300,
-    paddingTop: 24,
-    paddingBottom: 24,
-    borderRadius: 16,
+    gap: tokens.space.md,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    gap: tokens.space.xs,
+    marginBottom: tokens.space.xs,
+  },
+  modalTitle: {
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    textAlign: 'center',
   },
   buttonContainer: {
-    paddingHorizontal: 16,
-    gap: 16,
-    marginBottom: 16,
-  },
-  button: {
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
-  buttonContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
+    gap: tokens.space.sm,
   },
   googleButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: tokens.color.accent.mint,
   },
   appleButton: {
     backgroundColor: '#000000',
   },
   facebookButton: {
     backgroundColor: '#1877F2',
-  },
-  googleButtonText: {
-    color: theme.colors.onSurface,
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  appleButtonText: {
-    color: theme.colors.surface,
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  facebookButtonText: {
-    color: theme.colors.surface,
-    marginLeft: 8,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  closeButton: {
-    width: '100%',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  closeButtonText: {
-    color: theme.colors.surface,
-    fontSize: 15,
-    fontWeight: '500',
   },
 });
 

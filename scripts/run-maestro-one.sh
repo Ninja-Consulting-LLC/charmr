@@ -65,4 +65,6 @@ if [[ ! -f "${FILE}" ]]; then
 fi
 
 echo "Running Maestro: ${FLOW}.yaml"
+# Reduces kAXErrorAPIDisabled flakes when Simulator is backgrounded.
+osascript -e 'tell application "Simulator" to activate' 2>/dev/null || true
 exec maestro test -p ios "${FILE}"

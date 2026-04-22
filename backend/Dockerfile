@@ -13,7 +13,7 @@ WORKDIR /app/backend
 COPY backend/package.json backend/tsconfig.json ./
 COPY backend/src ./src/
 RUN sed -i 's|"@charmr/shared": "\*"|"@charmr/shared": "file:../packages/shared"|' package.json \
-  && npm install \
+  && npm install --legacy-peer-deps \
   && npm run build
 
 EXPOSE 3001

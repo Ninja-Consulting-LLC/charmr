@@ -85,8 +85,8 @@ describe('UserMenuSlideout', () => {
       />,
     );
 
-    // Check that unlimited is displayed for pro users
-    expect(screen.getByText('Unlimited')).toBeTruthy();
+    // "Unlimited" appears in both summary and profile cards.
+    expect(screen.getAllByText('Unlimited').length).toBeGreaterThan(0);
   });
 
   it('should update display when user message count changes', () => {

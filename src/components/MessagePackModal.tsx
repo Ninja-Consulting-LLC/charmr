@@ -1,12 +1,19 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
-import {Button, Modal, Portal, Surface, Text} from 'react-native-paper';
+import {Pressable, StyleSheet, useWindowDimensions, View} from 'react-native';
+import {Modal, Portal, ThemeProvider} from 'react-native-paper';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
 import {
   getMessagePackPaywall,
   handlePurchase as purchaseProduct,
 } from '../services/revenueCatService';
 import {useStore} from '../store';
-import {theme} from '../theme/theme';
 
 interface MessagePackModalProps {
   visible: boolean;
@@ -24,6 +31,8 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
   onUpgrade,
 }) => {
   const {user, setUser} = useStore();
+  const {height: windowHeight} = useWindowDimensions();
+  const sheetMaxHeight = Math.round(windowHeight * 0.88);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [packages, setPackages] = useState<any[] | null>(null);
@@ -38,12 +47,10 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
           if (messagePackPaywall) {
             setPackages(messagePackPaywall);
           } else {
-            // Fallback to default UI
             setPackages([]);
           }
-        } catch (err) {
+        } catch (_err) {
           setError('Failed to load message pack options');
-          // Fallback to default UI
           setPackages([]);
         } finally {
           setIsLoading(false);
@@ -55,20 +62,14 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
   }, [visible]);
 
   const handleMessagePackPurchase = async (productId: string) => {
-    console.log(
-      '[MessagePackModal] handleMessagePackPurchase called with',
-      productId,
-    );
     setIsLoading(true);
     setError(null);
     try {
       const success = await purchaseProduct(productId, user, setUser);
-      console.log('[MessagePackModal] purchaseProduct returned', success);
       if (success) {
         onDismiss();
       }
     } catch (err) {
-      console.log('[MessagePackModal] handleMessagePackPurchase error', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -84,140 +85,151 @@ const MessagePackModal: React.FC<MessagePackModalProps> = ({
     onUpgrade?.();
   };
 
+  const renderPack = (pkg: any) => (
+    <Pressable
+      key={pkg.identifier ?? pkg.product?.identifier}
+      onPress={() => handleMessagePackPurchase(pkg.product.identifier)}
+      style={({pressed}) => [
+        styles.productCard,
+        pressed && styles.productCardPressed,
+      ]}>
+      <View style={styles.productContent}>
+        <AppText variant="titleSm" color="hero">
+          {pkg.product.title}
+        </AppText>
+        <AppText variant="title" color="hero" style={styles.price}>
+          {pkg.product.priceString}
+        </AppText>
+        <AppText variant="body" color="heroMuted" style={styles.desc}>
+          {pkg.product.description}
+        </AppText>
+      </View>
+    </Pressable>
+  );
+
   return (
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          {backgroundColor: theme.colors.surface},
-        ]}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text variant="headlineSmall" style={styles.title}>
-              Message Pack
-            </Text>
-            <Button mode="text" onPress={onDismiss} style={styles.closeButton}>
-              Close
-            </Button>
-          </View>
+        contentContainerStyle={paperModalContent.shell}>
+        <ThemeProvider theme={darkModalPaperTheme}>
+          <ModalSheet padded style={[styles.card, {maxHeight: sheetMaxHeight}]}>
+            <View style={styles.header}>
+              <AppText variant="titleSm" color="hero" style={styles.headerTitle}>
+                Message Pack
+              </AppText>
+              <CharmrButton
+                label="Close"
+                variant="ghost"
+                onPress={onDismiss}
+                style={styles.closeBtn}
+              />
+            </View>
 
-          {errorMessage && (
-            <Text style={[styles.errorMessage, {color: theme.colors.error}]}>
-              {errorMessage}
-            </Text>
-          )}
+            {errorMessage && (
+              <AppText variant="bodyMedium" color="danger" style={styles.centered}>
+                {errorMessage}
+              </AppText>
+            )}
 
-          <Text variant="bodyMedium" style={styles.balanceText}>
-            Current balance: {currentBalance} messages
-          </Text>
+            <AppText variant="body" color="heroMuted" style={styles.centered}>
+              Current balance: {currentBalance} messages
+            </AppText>
 
-          {isLoading && packages === null ? (
-            <Text>Loading message pack options...</Text>
-          ) : error ? (
-            <Text style={{color: theme.colors.error}}>{error}</Text>
-          ) : packages && packages.length > 0 ? (
-            <View style={styles.paywallContainer}>
-              {packages.map((pkg: any) => (
-                <Surface
-                  key={pkg.identifier}
-                  style={styles.productCard}
-                  onTouchEnd={() =>
-                    handleMessagePackPurchase(pkg.product.identifier)
-                  }>
+            {isLoading && packages === null ? (
+              <AppText variant="body" color="heroMuted">
+                Loading message pack options...
+              </AppText>
+            ) : error ? (
+              <AppText variant="bodyMedium" color="danger">
+                {error}
+              </AppText>
+            ) : packages && packages.length > 0 ? (
+              <View style={styles.paywallContainer}>
+                {packages.map((pkg: any) => renderPack(pkg))}
+              </View>
+            ) : (
+              <View style={styles.paywallContainer}>
+                <Pressable
+                  onPress={() =>
+                    handleMessagePackPurchase('com.ninjadating.charmr.MessagePack')
+                  }
+                  style={({pressed}) => [
+                    styles.productCard,
+                    pressed && styles.productCardPressed,
+                  ]}>
                   <View style={styles.productContent}>
-                    <Text variant="titleMedium">{pkg.product.title}</Text>
-                    <Text
-                      variant="headlineMedium"
-                      style={{color: theme.colors.primary}}>
-                      {pkg.product.priceString}
-                    </Text>
-                    <Text variant="bodyMedium">{pkg.product.description}</Text>
+                    <AppText variant="titleSm" color="hero">
+                      Message Pack
+                    </AppText>
+                    <AppText variant="title" color="hero" style={styles.price}>
+                      $4.99
+                    </AppText>
+                    <AppText variant="body" color="heroMuted">
+                      50 additional messages
+                    </AppText>
                   </View>
-                </Surface>
-              ))}
-            </View>
-          ) : (
-            // Fallback UI
-            <View style={styles.paywallContainer}>
-              <Surface
-                style={styles.productCard}
-                onTouchEnd={() =>
-                  handleMessagePackPurchase(
-                    'com.ninjadating.charmr.MessagePack',
-                  )
-                }>
-                <View style={styles.productContent}>
-                  <Text variant="titleMedium">Message Pack</Text>
-                  <Text
-                    variant="headlineMedium"
-                    style={{color: theme.colors.primary}}>
-                    $4.99
-                  </Text>
-                  <Text variant="bodyMedium">50 additional messages</Text>
-                </View>
-              </Surface>
-            </View>
-          )}
+                </Pressable>
+              </View>
+            )}
 
-          <Button
-            mode="outlined"
-            onPress={handleUpgrade}
-            style={styles.upgradeButton}
-            icon="star">
-            Upgrade to Pro
-          </Button>
-        </View>
+            <CharmrButton
+              label="Upgrade to Pro"
+              variant="outline"
+              onPress={handleUpgrade}
+              fullWidth
+            />
+          </ModalSheet>
+        </ThemeProvider>
       </Modal>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    padding: 20,
-    margin: 20,
-    borderRadius: theme.roundness,
-  },
-  content: {
-    gap: 16,
+  card: {
+    gap: tokens.space.md,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: tokens.space.sm,
   },
-  title: {
+  headerTitle: {
     flex: 1,
   },
-  closeButton: {
-    margin: 0,
+  closeBtn: {
+    minHeight: 40,
+    paddingHorizontal: tokens.space.sm,
   },
-  balanceText: {
+  centered: {
     textAlign: 'center',
-    marginBottom: 8,
   },
   paywallContainer: {
-    gap: 8,
+    gap: tokens.space.sm,
   },
   productCard: {
-    borderRadius: theme.roundness,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
-    padding: 12,
+    borderRadius: tokens.radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: tokens.space.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  productCardPressed: {
+    opacity: 0.92,
   },
   productContent: {
     alignItems: 'center',
+    gap: tokens.space.xs,
   },
-  errorMessage: {
+  price: {
+    color: tokens.color.accent.mint,
+  },
+  desc: {
     textAlign: 'center',
-    marginBottom: 8,
-  },
-  upgradeButton: {
-    marginTop: 8,
-    borderColor: theme.colors.primary,
   },
 });
 

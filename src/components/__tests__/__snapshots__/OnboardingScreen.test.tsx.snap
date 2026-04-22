@@ -23,373 +23,704 @@ exports[`OnboardingScreen matches snapshot for step 1 1`] = `
   >
     <View
       style={
-        {
-          "backgroundColor": "#7E22CE",
-          "flex": 1,
-        }
+        [
+          {
+            "flex": 1,
+          },
+          {
+            "backgroundColor": "transparent",
+          },
+          undefined,
+        ]
       }
     >
       <View
         style={
           {
-            "backgroundColor": "#7E22CE",
             "flex": 1,
-            "padding": 24,
           }
         }
       >
-        <View
+        <BVLinearGradient
+          colors={
+            [
+              4286456526,
+              4282058596,
+            ]
+          }
+          endPoint={
+            {
+              "x": 1,
+              "y": 1,
+            }
+          }
+          locations={null}
+          startPoint={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
           style={
             {
-              "alignItems": "center",
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+        />
+        <RNCSafeAreaView
+          edges={
+            {
+              "bottom": "additive",
+              "left": "additive",
+              "right": "additive",
+              "top": "additive",
+            }
+          }
+          style={
+            {
               "flex": 1,
-              "justifyContent": "center",
-            }
-          }
-        >
-          <Text
-            style={
-              {
-                "color": "rgba(255, 255, 255, 1)",
-                "fontSize": 24,
-                "fontWeight": "600",
-                "marginBottom": 16,
-                "textAlign": "center",
-              }
-            }
-          >
-            Enable Dating Keyboard
-          </Text>
-          <Text
-            style={
-              {
-                "color": "rgba(255, 255, 255, 1)",
-                "fontSize": 16,
-                "marginBottom": 24,
-                "textAlign": "center",
-              }
-            }
-          >
-            Follow these steps to enable Charmr keyboard:
-          </Text>
-          <View
-            style={
-              {
-                "marginBottom": 32,
-                "width": "100%",
-              }
-            }
-          >
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              1. Go to Settings
-            </Text>
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              2. Tap General
-            </Text>
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              3. Tap Keyboard
-            </Text>
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              4. Tap Keyboards
-            </Text>
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              5. Tap Add New Keyboard
-            </Text>
-            <Text
-              style={
-                {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "marginBottom": 8,
-                }
-              }
-            >
-              6. Select Charmr
-            </Text>
-          </View>
-          <View
-            style={
-              {
-                "gap": 12,
-                "marginTop": 24,
-                "width": "100%",
-              }
-            }
-          >
-            <View
-              accessibilityState={
-                {
-                  "busy": undefined,
-                  "checked": undefined,
-                  "disabled": undefined,
-                  "expanded": undefined,
-                  "selected": undefined,
-                }
-              }
-              accessibilityValue={
-                {
-                  "max": undefined,
-                  "min": undefined,
-                  "now": undefined,
-                  "text": undefined,
-                }
-              }
-              accessible={true}
-              collapsable={false}
-              focusable={true}
-              onClick={[Function]}
-              onResponderGrant={[Function]}
-              onResponderMove={[Function]}
-              onResponderRelease={[Function]}
-              onResponderTerminate={[Function]}
-              onResponderTerminationRequest={[Function]}
-              onStartShouldSetResponder={[Function]}
-              style={
-                {
-                  "alignItems": "center",
-                  "backgroundColor": "rgba(255, 255, 255, 1)",
-                  "borderRadius": 24,
-                  "height": 48,
-                  "justifyContent": "center",
-                  "opacity": 1,
-                }
-              }
-            >
-              <Text
-                style={
-                  [
-                    {
-                      "fontSize": 16,
-                      "fontWeight": "600",
-                    },
-                    {
-                      "color": "#7E22CE",
-                    },
-                  ]
-                }
-              >
-                Go to Settings
-              </Text>
-            </View>
-            <View
-              accessibilityState={
-                {
-                  "busy": undefined,
-                  "checked": undefined,
-                  "disabled": undefined,
-                  "expanded": undefined,
-                  "selected": undefined,
-                }
-              }
-              accessibilityValue={
-                {
-                  "max": undefined,
-                  "min": undefined,
-                  "now": undefined,
-                  "text": undefined,
-                }
-              }
-              accessible={true}
-              collapsable={false}
-              focusable={true}
-              onClick={[Function]}
-              onResponderGrant={[Function]}
-              onResponderMove={[Function]}
-              onResponderRelease={[Function]}
-              onResponderTerminate={[Function]}
-              onResponderTerminationRequest={[Function]}
-              onStartShouldSetResponder={[Function]}
-              style={
-                {
-                  "alignItems": "center",
-                  "backgroundColor": "transparent",
-                  "borderColor": "rgba(255, 255, 255, 1)",
-                  "borderRadius": 24,
-                  "borderWidth": 1,
-                  "height": 48,
-                  "justifyContent": "center",
-                  "opacity": 1,
-                }
-              }
-            >
-              <Text
-                style={
-                  [
-                    {
-                      "fontSize": 16,
-                      "fontWeight": "600",
-                    },
-                    {
-                      "color": "rgba(255, 255, 255, 1)",
-                    },
-                  ]
-                }
-              >
-                Need Help?
-              </Text>
-            </View>
-          </View>
-        </View>
-        <View
-          style={
-            {
-              "flexDirection": "row",
-              "justifyContent": "space-between",
-              "marginTop": 16,
             }
           }
         >
           <View
-            accessibilityState={
-              {
-                "busy": undefined,
-                "checked": undefined,
-                "disabled": undefined,
-                "expanded": undefined,
-                "selected": undefined,
-              }
-            }
-            accessibilityValue={
-              {
-                "max": undefined,
-                "min": undefined,
-                "now": undefined,
-                "text": undefined,
-              }
-            }
-            accessible={true}
-            collapsable={false}
-            focusable={true}
-            onClick={[Function]}
-            onResponderGrant={[Function]}
-            onResponderMove={[Function]}
-            onResponderRelease={[Function]}
-            onResponderTerminate={[Function]}
-            onResponderTerminationRequest={[Function]}
-            onStartShouldSetResponder={[Function]}
             style={
               {
-                "alignItems": "center",
-                "backgroundColor": "transparent",
-                "borderColor": "rgba(255, 255, 255, 1)",
-                "borderRadius": 24,
-                "borderWidth": 1,
                 "flex": 1,
-                "height": 48,
-                "justifyContent": "center",
-                "marginHorizontal": 4,
-                "opacity": 1,
+                "padding": 24,
               }
             }
-            testID="skip-button"
           >
-            <Text
+            <View
               style={
                 {
-                  "color": "rgba(255, 255, 255, 1)",
-                  "fontSize": 16,
-                  "fontWeight": "600",
+                  "alignItems": "center",
+                  "flex": 1,
+                  "justifyContent": "center",
                 }
               }
             >
-              Skip
-            </Text>
-          </View>
-          <View
-            accessibilityState={
-              {
-                "busy": undefined,
-                "checked": undefined,
-                "disabled": undefined,
-                "expanded": undefined,
-                "selected": undefined,
-              }
-            }
-            accessibilityValue={
-              {
-                "max": undefined,
-                "min": undefined,
-                "now": undefined,
-                "text": undefined,
-              }
-            }
-            accessible={true}
-            collapsable={false}
-            focusable={true}
-            onClick={[Function]}
-            onResponderGrant={[Function]}
-            onResponderMove={[Function]}
-            onResponderRelease={[Function]}
-            onResponderTerminate={[Function]}
-            onResponderTerminationRequest={[Function]}
-            onStartShouldSetResponder={[Function]}
-            style={
-              {
-                "alignItems": "center",
-                "backgroundColor": "rgba(255, 255, 255, 1)",
-                "borderRadius": 24,
-                "flex": 1,
-                "height": 48,
-                "justifyContent": "center",
-                "marginHorizontal": 4,
-                "opacity": 1,
-              }
-            }
-            testID="next-button"
-          >
-            <Text
+              <View
+                accessibilityRole="header"
+                style={
+                  {
+                    "alignItems": "center",
+                    "gap": 8,
+                    "marginBottom": 16,
+                    "width": "100%",
+                  }
+                }
+              >
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "rgba(255, 255, 255, 0.72)",
+                        "fontSize": 12,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.2,
+                        "lineHeight": 16,
+                      },
+                      {
+                        "textAlign": "center",
+                      },
+                    ]
+                  }
+                >
+                  Step 
+                  1
+                   of 
+                  3
+                </Text>
+                <View
+                  accessibilityLabel="Step 1"
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 4,
+                    }
+                  }
+                >
+                  <View
+                    style={
+                      [
+                        {
+                          "borderRadius": 4,
+                          "height": 8,
+                          "width": 8,
+                        },
+                        {
+                          "backgroundColor": "#FFFFFF",
+                        },
+                      ]
+                    }
+                  />
+                  <View
+                    style={
+                      [
+                        {
+                          "borderRadius": 4,
+                          "height": 8,
+                          "width": 8,
+                        },
+                        {
+                          "backgroundColor": "rgba(255,255,255,0.35)",
+                        },
+                      ]
+                    }
+                  />
+                  <View
+                    style={
+                      [
+                        {
+                          "borderRadius": 4,
+                          "height": 8,
+                          "width": 8,
+                        },
+                        {
+                          "backgroundColor": "rgba(255,255,255,0.35)",
+                        },
+                      ]
+                    }
+                  />
+                </View>
+              </View>
+              <Text
+                maxFontSizeMultiplier={1.35}
+                style={
+                  [
+                    {
+                      "color": "#FFFFFF",
+                      "fontSize": 22,
+                      "fontWeight": "600",
+                      "letterSpacing": -0.2,
+                      "lineHeight": 28,
+                    },
+                    {
+                      "marginBottom": 12,
+                      "textAlign": "center",
+                    },
+                  ]
+                }
+              >
+                Set up the Charmr keyboard
+              </Text>
+              <Text
+                maxFontSizeMultiplier={1.35}
+                style={
+                  [
+                    {
+                      "color": "rgba(255, 255, 255, 0.72)",
+                      "fontSize": 16,
+                      "fontWeight": "400",
+                      "letterSpacing": 0.1,
+                      "lineHeight": 22,
+                    },
+                    {
+                      "marginBottom": 16,
+                      "textAlign": "center",
+                    },
+                  ]
+                }
+              >
+                Charmr works from your keyboard like any language keyboard. Add it once in Settings. After that you can use it in dating apps, texts, and more.
+              </Text>
+              <View
+                style={
+                  {
+                    "marginBottom": 16,
+                    "width": "100%",
+                  }
+                }
+              >
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  1. Open Settings
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  2. Tap General
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  3. Tap Keyboard
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  4. Tap Keyboards
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  5. Tap Add New Keyboard
+                </Text>
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 16,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.1,
+                        "lineHeight": 22,
+                      },
+                      {
+                        "marginBottom": 8,
+                      },
+                    ]
+                  }
+                >
+                  6. Choose Charmr, then allow Full Access if asked
+                </Text>
+              </View>
+              <View
+                style={
+                  {
+                    "gap": 12,
+                    "marginTop": 12,
+                    "width": "100%",
+                  }
+                }
+              >
+                <View
+                  accessibilityHint="Opens system settings so you can add the keyboard"
+                  accessibilityLabel="Open your phone Settings app"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": undefined,
+                      "expanded": undefined,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  style={
+                    [
+                      {
+                        "alignItems": "center",
+                        "borderRadius": 9999,
+                        "justifyContent": "center",
+                        "minHeight": 42,
+                        "paddingHorizontal": 16,
+                        "paddingVertical": 4,
+                      },
+                      undefined,
+                      {
+                        "backgroundColor": "rgba(255, 255, 255, 0.14)",
+                        "borderColor": "rgba(255, 255, 255, 0.32)",
+                        "borderWidth": 1,
+                      },
+                      {
+                        "alignSelf": "stretch",
+                      },
+                      undefined,
+                      false,
+                      undefined,
+                    ]
+                  }
+                >
+                  <View
+                    style={
+                      {
+                        "alignItems": "center",
+                        "flexDirection": "row",
+                        "gap": 8,
+                      }
+                    }
+                  >
+                    <Text
+                      maxFontSizeMultiplier={1.35}
+                      style={
+                        [
+                          {
+                            "color": "#40E0D0",
+                            "fontSize": 16,
+                            "fontWeight": "500",
+                            "letterSpacing": 0.1,
+                            "lineHeight": 22,
+                          },
+                          undefined,
+                        ]
+                      }
+                    >
+                      Open Settings
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  accessibilityHint="Opens a short animated guide"
+                  accessibilityLabel="Show me how"
+                  accessibilityRole="button"
+                  accessibilityState={
+                    {
+                      "busy": undefined,
+                      "checked": undefined,
+                      "disabled": undefined,
+                      "expanded": undefined,
+                      "selected": undefined,
+                    }
+                  }
+                  accessibilityValue={
+                    {
+                      "max": undefined,
+                      "min": undefined,
+                      "now": undefined,
+                      "text": undefined,
+                    }
+                  }
+                  accessible={true}
+                  collapsable={false}
+                  focusable={true}
+                  onBlur={[Function]}
+                  onClick={[Function]}
+                  onFocus={[Function]}
+                  onResponderGrant={[Function]}
+                  onResponderMove={[Function]}
+                  onResponderRelease={[Function]}
+                  onResponderTerminate={[Function]}
+                  onResponderTerminationRequest={[Function]}
+                  onStartShouldSetResponder={[Function]}
+                  style={
+                    [
+                      {
+                        "alignItems": "center",
+                        "borderRadius": 9999,
+                        "justifyContent": "center",
+                        "minHeight": 42,
+                        "paddingHorizontal": 16,
+                        "paddingVertical": 4,
+                      },
+                      undefined,
+                      {
+                        "backgroundColor": "transparent",
+                        "borderColor": "#40E0D0",
+                        "borderWidth": 1,
+                      },
+                      {
+                        "alignSelf": "stretch",
+                      },
+                      undefined,
+                      false,
+                      undefined,
+                    ]
+                  }
+                >
+                  <View
+                    style={
+                      {
+                        "alignItems": "center",
+                        "flexDirection": "row",
+                        "gap": 8,
+                      }
+                    }
+                  >
+                    <Text
+                      maxFontSizeMultiplier={1.35}
+                      style={
+                        [
+                          {
+                            "color": "#40E0D0",
+                            "fontSize": 16,
+                            "fontWeight": "500",
+                            "letterSpacing": 0.1,
+                            "lineHeight": 22,
+                          },
+                          undefined,
+                        ]
+                      }
+                    >
+                      Show me how
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <View
               style={
                 {
-                  "color": "#7E22CE",
-                  "fontSize": 16,
-                  "fontWeight": "600",
+                  "alignItems": "stretch",
+                  "flexDirection": "row",
+                  "gap": 8,
+                  "justifyContent": "space-between",
+                  "marginTop": 12,
                 }
               }
             >
-              Next
-            </Text>
+              <View
+                accessibilityHint="Continues without signing in. You can set up the keyboard later in Settings."
+                accessibilityLabel="Skip setup for now"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "transparent",
+                      "borderColor": "#40E0D0",
+                      "borderWidth": 1,
+                    },
+                    undefined,
+                    undefined,
+                    false,
+                    {
+                      "flex": 1,
+                    },
+                  ]
+                }
+                testID="skip-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Skip for now
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Next"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "#40E0D0",
+                    },
+                    undefined,
+                    undefined,
+                    false,
+                    {
+                      "flex": 1,
+                    },
+                  ]
+                }
+                testID="next-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#0B0A0F",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Next
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
-        </View>
+        </RNCSafeAreaView>
       </View>
     </View>
   </View>
@@ -409,97 +740,394 @@ exports[`OnboardingScreen matches snapshot for step 1 1`] = `
     <Modal
       contentContainerStyle={
         {
-          "alignItems": "center",
-          "backgroundColor": "#7E22CE",
-          "flex": 1,
-          "justifyContent": "space-between",
-          "margin": 0,
+          "alignSelf": "center",
+          "backgroundColor": "transparent",
+          "marginVertical": 24,
+          "maxWidth": 400,
+          "width": "86%",
         }
       }
       onDismiss={[Function]}
+      theme={
+        {
+          "animation": {
+            "scale": 1,
+          },
+          "colors": {
+            "backdrop": "#1C102E",
+            "background": "transparent",
+            "elevation": {
+              "level0": "transparent",
+              "level1": "rgb(37, 35, 42)",
+              "level2": "rgb(44, 40, 49)",
+              "level3": "rgb(49, 44, 56)",
+              "level4": "rgb(51, 46, 58)",
+              "level5": "rgb(52, 49, 63)",
+            },
+            "error": "#F87171",
+            "errorContainer": "rgba(140, 29, 24, 1)",
+            "inverseOnSurface": "rgba(49, 48, 51, 1)",
+            "inversePrimary": "rgba(103, 80, 164, 1)",
+            "inverseSurface": "rgba(230, 225, 229, 1)",
+            "onBackground": "rgba(230, 225, 229, 1)",
+            "onError": "#FFFFFF",
+            "onErrorContainer": "rgba(242, 184, 181, 1)",
+            "onPrimary": "#0B0A0F",
+            "onPrimaryContainer": "rgba(234, 221, 255, 1)",
+            "onSecondary": "rgba(51, 45, 65, 1)",
+            "onSecondaryContainer": "rgba(232, 222, 248, 1)",
+            "onSurface": "#FFFFFF",
+            "onSurfaceDisabled": "rgba(230, 225, 229, 0.38)",
+            "onSurfaceVariant": "rgba(255, 255, 255, 0.72)",
+            "onTertiary": "rgba(73, 37, 50, 1)",
+            "onTertiaryContainer": "rgba(255, 216, 228, 1)",
+            "outline": "rgba(255, 255, 255, 0.55)",
+            "outlineVariant": "rgba(255, 255, 255, 0.36)",
+            "primary": "#40E0D0",
+            "primaryContainer": "rgba(79, 55, 139, 1)",
+            "scrim": "rgba(0, 0, 0, 1)",
+            "secondary": "rgba(64, 224, 208, 0.14)",
+            "secondaryContainer": "rgba(74, 68, 88, 1)",
+            "shadow": "rgba(0, 0, 0, 1)",
+            "surface": "rgba(255, 255, 255, 0.18)",
+            "surfaceDisabled": "rgba(230, 225, 229, 0.12)",
+            "surfaceVariant": "rgba(255, 255, 255, 0.12)",
+            "tertiary": "rgba(239, 184, 200, 1)",
+            "tertiaryContainer": "rgba(99, 59, 72, 1)",
+          },
+          "dark": true,
+          "fonts": {
+            "bodyLarge": {
+              "fontFamily": "System",
+              "fontSize": 16,
+              "fontWeight": "400",
+              "letterSpacing": 0.15,
+              "lineHeight": 24,
+            },
+            "bodyMedium": {
+              "fontFamily": "System",
+              "fontSize": 14,
+              "fontWeight": "400",
+              "letterSpacing": 0.25,
+              "lineHeight": 20,
+            },
+            "bodySmall": {
+              "fontFamily": "System",
+              "fontSize": 12,
+              "fontWeight": "400",
+              "letterSpacing": 0.4,
+              "lineHeight": 16,
+            },
+            "default": {
+              "fontFamily": "System",
+              "fontWeight": "400",
+              "letterSpacing": 0,
+            },
+            "displayLarge": {
+              "fontFamily": "System",
+              "fontSize": 57,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 64,
+            },
+            "displayMedium": {
+              "fontFamily": "System",
+              "fontSize": 45,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 52,
+            },
+            "displaySmall": {
+              "fontFamily": "System",
+              "fontSize": 36,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 44,
+            },
+            "headlineLarge": {
+              "fontFamily": "System",
+              "fontSize": 32,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 40,
+            },
+            "headlineMedium": {
+              "fontFamily": "System",
+              "fontSize": 28,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 36,
+            },
+            "headlineSmall": {
+              "fontFamily": "System",
+              "fontSize": 24,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 32,
+            },
+            "labelLarge": {
+              "fontFamily": "System",
+              "fontSize": 14,
+              "fontWeight": "500",
+              "letterSpacing": 0.1,
+              "lineHeight": 20,
+            },
+            "labelMedium": {
+              "fontFamily": "System",
+              "fontSize": 12,
+              "fontWeight": "500",
+              "letterSpacing": 0.5,
+              "lineHeight": 16,
+            },
+            "labelSmall": {
+              "fontFamily": "System",
+              "fontSize": 11,
+              "fontWeight": "500",
+              "letterSpacing": 0.5,
+              "lineHeight": 16,
+            },
+            "titleLarge": {
+              "fontFamily": "System",
+              "fontSize": 22,
+              "fontWeight": "400",
+              "letterSpacing": 0,
+              "lineHeight": 28,
+            },
+            "titleMedium": {
+              "fontFamily": "System",
+              "fontSize": 16,
+              "fontWeight": "500",
+              "letterSpacing": 0.15,
+              "lineHeight": 24,
+            },
+            "titleSmall": {
+              "fontFamily": "System",
+              "fontSize": 14,
+              "fontWeight": "500",
+              "letterSpacing": 0.1,
+              "lineHeight": 20,
+            },
+          },
+          "isV3": true,
+          "mode": "adaptive",
+          "roundness": 10,
+          "version": 3,
+        }
+      }
       visible={false}
     >
-      <Text
-        style={
-          {
-            "alignItems": "center",
-            "color": "rgba(255, 255, 255, 1)",
-            "fontSize": 24,
-            "fontWeight": "600",
-            "justifyContent": "center",
-            "marginBottom": 24,
-            "paddingTop": 24,
-          }
-        }
-      >
-        How to Enable Keyboard
-      </Text>
-      <Image
-        resizeMode="contain"
-        source="test-file-stub"
-        style={
-          {
-            "borderColor": "#40E0D0",
-            "borderRadius": 8,
-            "borderWidth": 5,
-            "margin": 0,
-            "padding": 0,
-            "width": "90%",
-          }
-        }
-      />
       <View
-        accessibilityState={
-          {
-            "busy": undefined,
-            "checked": undefined,
-            "disabled": undefined,
-            "expanded": undefined,
-            "selected": undefined,
-          }
-        }
-        accessibilityValue={
-          {
-            "max": undefined,
-            "min": undefined,
-            "now": undefined,
-            "text": undefined,
-          }
-        }
-        accessible={true}
-        collapsable={false}
-        focusable={true}
-        onClick={[Function]}
-        onResponderGrant={[Function]}
-        onResponderMove={[Function]}
-        onResponderRelease={[Function]}
-        onResponderTerminate={[Function]}
-        onResponderTerminationRequest={[Function]}
-        onStartShouldSetResponder={[Function]}
         style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "rgba(255, 255, 255, 1)",
-            "borderRadius": 24,
-            "height": 48,
-            "justifyContent": "center",
-            "marginTop": 24,
-            "opacity": 1,
-            "width": "95%",
-          }
+          [
+            {
+              "borderColor": "rgba(255, 255, 255, 0.2)",
+              "borderRadius": 16,
+              "borderWidth": 0.5,
+              "overflow": "visible",
+            },
+            {
+              "elevation": 8,
+              "shadowColor": "#000000",
+              "shadowOffset": {
+                "height": 8,
+                "width": 0,
+              },
+              "shadowOpacity": 0.2,
+              "shadowRadius": 16,
+            },
+            [
+              {
+                "alignItems": "stretch",
+                "gap": 16,
+              },
+              {
+                "maxHeight": 1174,
+              },
+            ],
+          ]
         }
       >
-        <Text
+        <View
           style={
             {
-              "color": "#7E22CE",
-              "fontSize": 16,
-              "fontWeight": "600",
+              "borderRadius": 16,
+              "bottom": 0,
+              "left": 0,
+              "overflow": "hidden",
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+              "zIndex": 0,
             }
           }
         >
-          Close
-        </Text>
+          <BVLinearGradient
+            colors={
+              [
+                4286456526,
+                4282058596,
+              ]
+            }
+            endPoint={
+              {
+                "x": 1,
+                "y": 1,
+              }
+            }
+            locations={null}
+            startPoint={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              }
+            }
+          />
+        </View>
+        <View
+          pointerEvents="box-none"
+          style={
+            [
+              {
+                "alignSelf": "stretch",
+                "position": "relative",
+                "zIndex": 1,
+              },
+              {
+                "padding": 16,
+              },
+              undefined,
+            ]
+          }
+        >
+          <Text
+            maxFontSizeMultiplier={1.35}
+            style={
+              [
+                {
+                  "color": "#FFFFFF",
+                  "fontSize": 18,
+                  "fontWeight": "600",
+                  "letterSpacing": -0.1,
+                  "lineHeight": 24,
+                },
+                {
+                  "textAlign": "center",
+                },
+              ]
+            }
+          >
+            How to add the keyboard
+          </Text>
+          <Image
+            resizeMode="contain"
+            source="test-file-stub"
+            style={
+              [
+                {
+                  "borderColor": "rgba(255, 255, 255, 0.08)",
+                  "borderRadius": 12,
+                  "borderWidth": 0.5,
+                  "width": "100%",
+                },
+                {
+                  "height": 280,
+                },
+              ]
+            }
+          />
+          <View
+            accessibilityLabel="Got it"
+            accessibilityRole="button"
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onBlur={[Function]}
+            onClick={[Function]}
+            onFocus={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              [
+                {
+                  "alignItems": "center",
+                  "borderRadius": 9999,
+                  "justifyContent": "center",
+                  "minHeight": 42,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 4,
+                },
+                undefined,
+                {
+                  "backgroundColor": "#40E0D0",
+                },
+                {
+                  "alignSelf": "stretch",
+                },
+                undefined,
+                false,
+                undefined,
+              ]
+            }
+          >
+            <View
+              style={
+                {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 8,
+                }
+              }
+            >
+              <Text
+                maxFontSizeMultiplier={1.35}
+                style={
+                  [
+                    {
+                      "color": "#0B0A0F",
+                      "fontSize": 16,
+                      "fontWeight": "500",
+                      "letterSpacing": 0.1,
+                      "lineHeight": 22,
+                    },
+                    undefined,
+                  ]
+                }
+              >
+                Got it
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
     </Modal>
   </View>

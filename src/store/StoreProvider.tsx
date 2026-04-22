@@ -581,7 +581,7 @@ export const StoreProvider: React.FC<{children: React.ReactNode}> = ({
     // Set up subscription update handler
     setSubscriptionUpdateCallback(async info => {
       if (user) {
-        const hasProAccess = info.entitlements.active['Pro']?.isActive;
+        const hasProAccess = info.entitlements.active.Pro?.isActive;
         if (!hasProAccess && user.plan === SubscriptionTier.PRO) {
           // If user no longer has pro access, update their plan
           await updateUserPlan(SubscriptionTier.FREE);

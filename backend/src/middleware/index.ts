@@ -34,7 +34,7 @@ export const createGeneralLimiter = () =>
     max: config.rateLimit.max,
     standardHeaders: true,
     legacyHeaders: false,
-    skip: req => {
+    skip: _req => {
       const isDevelopment = config.server.environment === 'development';
       return isDevelopment;
     },
@@ -49,7 +49,7 @@ export const createUserCreationLimiter = () =>
     max: 20, // Allow 10 user creation requests per minute
     standardHeaders: true,
     legacyHeaders: false,
-    skip: req => {
+    skip: _req => {
       const isDevelopment = config.server.environment === 'development';
       return isDevelopment;
     },
@@ -76,7 +76,7 @@ export const createDeviceTokenLimiter = () =>
     max: 5, // Allow 5 requests per minute
     standardHeaders: true,
     legacyHeaders: false,
-    skip: req => {
+    skip: _req => {
       const isDevelopment = config.server.environment === 'development';
       return isDevelopment;
     },
@@ -86,8 +86,15 @@ export const createDeviceTokenLimiter = () =>
 
 // Error handling middleware
 export const createErrorHandler =
-  () => (err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error('Error:', err);
+  () => (err: Error, req: Request, res: Response, _next: NextFunction) => {
+    logger.error('Request pipeline error', {
+      requestId: req.requestId,
+      message: err.message,
+      name: err.name,
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+    });
 
     const errorResponse: ErrorResponse = {
       error: err.message || 'Internal Server Error',

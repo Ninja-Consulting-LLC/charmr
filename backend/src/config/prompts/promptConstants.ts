@@ -56,7 +56,7 @@ export interface BasePromptConfig {
   jsonFormatInstructions?: string;
 }
 
-export interface VariantPromptConfig extends BasePromptConfig {}
+export type VariantPromptConfig = BasePromptConfig;
 
 export interface PromptConfig {
   [key: string]: {

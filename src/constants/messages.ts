@@ -1,24 +1,24 @@
 export const MESSAGES = {
   RATE_LIMIT:
-    "You've reached your daily 5 message limit on the free plan . Upgrade your plan to continue or wait for tomorrow.",
+    "You've used all 5 free messages for today. Upgrade to send more, or try again tomorrow.",
   SCREENSHOT_LIMIT:
-    'You can add multiple screenshots to help generate better responses.',
+    'Add more than one screenshot if you want a stronger reply.',
   NO_IMAGES:
-    'Please provide either a screenshot or a prompt to generate a reply.',
+    'Add a screenshot or type a short note so we can draft a reply.',
   MESSAGE_LIMIT:
-    'You have reached your daily message limit. Please purchase more messages to continue.',
+    "You've hit your daily message limit. Buy more messages to keep going.",
   MESSAGE_COPIED:
-    'Message copied to clipboard! Return to your dating app to paste the message.',
-  GENERATION_ERROR: 'Failed to generate reply. Please try again.',
+    'Copied. Open your dating app and paste when you are ready.',
+  GENERATION_ERROR: 'We could not generate a reply. Please try again.',
   SELECT_MATCH_REQUIRED:
-    'Please select a match to maintain conversation context.',
-  TOO_MANY_REQUESTS: 'Too many requests. Please try again later.',
-  IMAGE_SIZE_TOO_LARGE: 'Image size too large. Please try with smaller images.',
-  UNEXPECTED_ERROR: 'An unexpected error occurred. Please try again.',
+    'Pick a match so your coach stays on topic for that chat.',
+  TOO_MANY_REQUESTS: 'Too many tries right now. Please wait a bit and try again.',
+  IMAGE_SIZE_TOO_LARGE: 'That image is too large. Try a smaller screenshot.',
+  UNEXPECTED_ERROR: 'Something went wrong. Please try again.',
 
   // Reply Modal Messages
-  REPLY_MODAL_TITLE: 'Generated Response',
-  REPLY_MODAL_DELETE_HINT: 'Delete screenshot(s) when done',
+  REPLY_MODAL_TITLE: 'Your reply',
+  REPLY_MODAL_DELETE_HINT: 'Remove screenshots from your phone when you are done',
   REPLY_MODAL_DONE: 'Done',
   REPLY_MODAL_COPY: 'Copy',
 } as const;

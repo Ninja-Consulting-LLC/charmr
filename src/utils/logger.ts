@@ -10,8 +10,6 @@ const COLORS = {
   RESET: '\x1b[0m',
 };
 
-type ColorKey = keyof typeof COLORS;
-
 const customTransport = (props: any) => {
   const {level, msg, extension, data} = props;
   const timestamp = new Date().toLocaleTimeString();

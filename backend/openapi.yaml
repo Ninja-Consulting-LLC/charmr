@@ -1,0 +1,147 @@
+openapi: 3.0.3
+info:
+  title: Charmr API
+  version: 1.0.0
+  description: >
+    Express backend for the Charmr mobile app. Machine-readable surface for agents and tools;
+    not guaranteed to list every route — see `src/app.ts` and `src/routes/` for the full set.
+
+servers:
+  - url: http://localhost:3001
+    description: Local default (`PORT` in `.env`)
+
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200':
+          description: Process is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: ok}
+                  timestamp: {type: string, format: date-time}
+  /health/ready:
+    get:
+      summary: Readiness
+      description: Verifies database connectivity (SQLite `SELECT 1` or Firestore users probe).
+      responses:
+        '200':
+          description: Database reachable
+        '503':
+          description: Database not reachable
+  /api/generate-reply:
+    post:
+      summary: Generate dating reply (authenticated)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Generated content
+        '401':
+          description: Missing or invalid Firebase token
+  /api/support:
+    post:
+      summary: Submit support request email (authenticated)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Request accepted
+  /api/users/{userId}:
+    get:
+      summary: Get user (authenticated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+    put:
+      summary: Update user (authenticated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+    delete:
+      summary: Delete user (authenticated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+  /api/users/{userId}/plan:
+    put:
+      summary: Update subscription plan (authenticated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+  /api/users/link:
+    post:
+      summary: Link anonymous account to registered user (authenticated)
+      security:
+        - bearerAuth: []
+  /api/users:
+    post:
+      summary: Create user (authenticated, rate-limited)
+      security:
+        - bearerAuth: []
+  /api/users/installation/{installationId}:
+    get:
+      summary: Resolve user by installation id (authenticated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: installationId
+          in: path
+          required: true
+          schema: {type: string}
+  /api/users/{userId}/matches:
+    get:
+      summary: List matches for user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: includeHidden
+          in: query
+          schema: {type: string, enum: ['true', 'false']}
+    post:
+      summary: Add match
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: {type: string}
+  /api/admin/users:
+    get:
+      summary: Admin — list users (admin JWT)
+      security:
+        - bearerAuth: []
+  /api/admin/reset-db:
+    post:
+      summary: Admin — reset database (allowlisted email)
+      security:
+        - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID token (`Authorization: Bearer <token>`)

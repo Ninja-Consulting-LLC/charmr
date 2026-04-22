@@ -109,7 +109,13 @@ export const createReplyController = async (db: Database) => {
       }
 
       const conversationHistory = matchId
-        ? await loadConversation(db, userId, matchId, user.plan)
+        ? await loadConversation(
+            db,
+            userId,
+            matchId,
+            user.plan,
+            config.openai.maxCoachMessages * 4,
+          )
         : [];
 
       if (matchId) {

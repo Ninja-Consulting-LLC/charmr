@@ -1,4 +1,12 @@
-import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from '@jest/globals';
 import {Request, Response} from 'express';
 import {firebaseAdmin} from '../config/firebase-admin';
 import {
@@ -11,7 +19,6 @@ import {
   resetUserMessageLimit,
   updateUserPlan,
 } from '../controllers/adminController';
-import {createReplyController} from '../controllers/replyController';
 import {getDatabase} from '../db';
 import {SubscriptionTier} from '../types/enums';
 
@@ -68,7 +75,6 @@ describe('Admin Domain', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let responseObject: any;
-  let generateReplyHandler: any;
   let matchId: string;
   let adminToken: string;
 
@@ -141,10 +147,6 @@ describe('Admin Domain', () => {
     if (!match) {
       throw new Error('Failed to create test match');
     }
-
-    // Instantiate reply controller for this db
-    const replyController = await createReplyController(db);
-    generateReplyHandler = replyController.generateReplyHandler;
   });
 
   afterEach(async () => {
@@ -342,6 +344,18 @@ describe('Admin Domain', () => {
   });
 
   describe('Database Management', () => {
+    const savedAllow = process.env.CHARMR_RESET_DB_ALLOWLIST;
+    beforeAll(() => {
+      process.env.CHARMR_RESET_DB_ALLOWLIST = 'mike.doubintchik@gmail.com';
+    });
+    afterAll(() => {
+      if (savedAllow === undefined) {
+        delete process.env.CHARMR_RESET_DB_ALLOWLIST;
+      } else {
+        process.env.CHARMR_RESET_DB_ALLOWLIST = savedAllow;
+      }
+    });
+
     it('should reset database', async () => {
       responseObject = {};
       const req = {

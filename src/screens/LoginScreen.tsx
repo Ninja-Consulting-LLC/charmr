@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    Image,
-    Linking,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  Linking,
+  StyleSheet,
+  View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import LoginModal from '../components/LoginModal';
-import { RootStackScreenProps } from '../navigation/types';
-import { useStore } from '../store/StoreProvider';
-import { theme } from '../theme/theme';
+import {
+  AppText,
+  CharmrButton,
+  LoadingState,
+  Screen,
+  tokens,
+} from '../design-system';
+import {RootStackScreenProps} from '../navigation/types';
 
-const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 type Props = RootStackScreenProps<'Login'>;
 
 const LoginScreen: React.FC<Props> = ({navigation}) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const {createNewUser} = useStore();
-
   const handleLogin = () => {
     setShowLoginModal(true);
   };
@@ -39,75 +39,88 @@ const LoginScreen: React.FC<Props> = ({navigation}) => {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryContainer]}
-        style={styles.gradientBackground}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-      />
+    <Screen safe={false} backgroundColor="transparent">
+      <View style={styles.root}>
+        <LinearGradient
+          colors={[tokens.color.brand.primary, tokens.color.brand.primaryStrong]}
+          style={styles.gradientBackground}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+        />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.content}>
-          <View style={styles.logoSection}>
-            <Image
-              source={require('../../assets/logo-with-name.png')}
-              style={styles.logo}
-              resizeMode="contain"
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+          <View style={styles.content}>
+            <View style={styles.logoSection}>
+              <Image
+                source={require('../../assets/logo-with-name.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+
+            <View style={styles.bottomSection}>
+              <CharmrButton
+                label="Get Started"
+                variant="primary"
+                fullWidth
+                onPress={handleGetStarted}
+                testID="get-started-button"
+              />
+
+              <CharmrButton
+                label="Log In"
+                variant="outline"
+                fullWidth
+                onPress={handleLogin}
+                testID="login-button"
+              />
+
+              <AppText variant="caption" color="hero" style={styles.termsText}>
+                If you continue, you agree to our{' '}
+                <AppText
+                  variant="caption"
+                  color="hero"
+                  onPress={() => Linking.openURL('https://example.invalid/terms.html')}
+                  style={styles.linkText}>
+                  Terms of Use
+                </AppText>{' '}
+                and{' '}
+                <AppText
+                  variant="caption"
+                  color="hero"
+                  onPress={() => Linking.openURL('https://example.invalid/privacy.html')}
+                  style={styles.linkText}>
+                  Privacy Policy
+                </AppText>
+                .
+              </AppText>
+            </View>
+          </View>
+        </SafeAreaView>
+
+        <LoginModal
+          visible={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={handleLoginSuccess}
+          onLoadingChange={setIsLoading}
+        />
+
+        {isLoading ? (
+          <View style={styles.loadingOverlay} pointerEvents="auto">
+            <LoadingState
+              fill={false}
+              label="Signing in..."
+              onHero
             />
           </View>
-
-          <View style={styles.bottomSection}>
-            <TouchableOpacity
-              style={styles.getStartedButton}
-              onPress={handleGetStarted}
-              testID="get-started-button">
-              <Text style={styles.getStartedButtonText}>Get Started</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
-              testID="login-button">
-              <Text style={styles.loginButtonText}>Log In</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.termsText}>
-              By clicking above, you agree to our{' '}
-              <Text
-                style={styles.linkText}
-                onPress={() => Linking.openURL('https://example.invalid/terms.html')}>
-                Terms of Use
-              </Text> and{' '}
-              <Text
-                style={styles.linkText}
-                onPress={() => Linking.openURL('https://example.invalid/privacy.html')}>
-                Privacy Policy
-              </Text>.
-            </Text>
-          </View>
-        </View>
-      </SafeAreaView>
-
-      <LoginModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={handleLoginSuccess}
-        onLoadingChange={setIsLoading}
-      />
-
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.surface} />
-          <Text style={styles.loadingText}>Signing in...</Text>
-        </View>
-      )}
-    </View>
+        ) : null}
+      </View>
+    </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
   },
   gradientBackground: {
@@ -119,7 +132,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
+    paddingHorizontal: tokens.space['2xl'],
   },
   logoSection: {
     flex: 1,
@@ -131,55 +144,23 @@ const styles = StyleSheet.create({
     height: SCREEN_WIDTH * 0.7,
   },
   bottomSection: {
-    paddingBottom: 32,
-    gap: 16,
-  },
-  getStartedButton: {
-    backgroundColor: theme.colors.secondary,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  getStartedButtonText: {
-    color: theme.colors.onSurface,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loginButton: {
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.surface,
-  },
-  loginButtonText: {
-    color: theme.colors.surface,
-    fontSize: 16,
-    fontWeight: '600',
+    paddingBottom: tokens.space['3xl'],
+    gap: tokens.space.lg,
   },
   termsText: {
-    color: theme.colors.surface,
     textAlign: 'center',
-    fontSize: 12,
-    opacity: 0.8,
+    opacity: 0.88,
   },
   linkText: {
     textDecorationLine: 'underline',
+    opacity: 1,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: tokens.color.overlay.heavy,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
-  },
-  loadingText: {
-    color: theme.colors.surface,
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
 

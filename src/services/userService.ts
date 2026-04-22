@@ -1,3 +1,4 @@
+import {isAxiosError} from 'axios';
 import {SubscriptionTier} from '../types/enums';
 import {User} from '../types/user';
 import {logger} from '../utils/logger';
@@ -170,8 +171,8 @@ export const findUserByInstallationId = async (
       ...data,
       getDailyMessageLimit: () => getPlanLimits(data.plan),
     };
-  } catch (error: any) {
-    if (error.response?.status === 404) {
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
     logger.app.error('Error finding user by installation ID:', error);
@@ -191,7 +192,10 @@ export const getUserProfile = async (userId: string) => {
 };
 
 // Update user profile
-export const updateUserProfile = async (userId: string, data: any) => {
+export const updateUserProfile = async (
+  userId: string,
+  data: Record<string, unknown>,
+) => {
   try {
     // If only deviceToken is being updated, use the dedicated endpoint with retry logic
     if (
@@ -208,9 +212,10 @@ export const updateUserProfile = async (userId: string, data: any) => {
             data,
           );
           return response.data;
-        } catch (error: any) {
+        } catch (error: unknown) {
           // If it's not a rate limit error or it's the last attempt, throw the error
-          if (error?.response?.status !== 429 || attempt === maxRetries - 1) {
+          const status = isAxiosError(error) ? error.response?.status : undefined;
+          if (status !== 429 || attempt === maxRetries - 1) {
             throw error;
           }
 
@@ -264,7 +269,10 @@ export const getUserSettings = async (userId: string) => {
 };
 
 // Update user settings
-export const updateUserSettings = async (userId: string, settings: any) => {
+export const updateUserSettings = async (
+  userId: string,
+  settings: Record<string, unknown>,
+) => {
   try {
     const response = await axiosInstance.put(
       `/api/users/${userId}/settings`,

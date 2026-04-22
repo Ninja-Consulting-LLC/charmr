@@ -17,9 +17,11 @@ Canonical guide for humans and coding agents working on Charmr.
 
 ```bash
 npm install                 # installs workspaces; builds @charmr/shared (postinstall)
-npm run lint                # ESLint (mobile + shared TS at root scope; backend ignored — use backend build/test)
-npm test                    # Jest (mobile)
+npm run lint                # ESLint (mobile + shared; `--max-warnings 0`; noisy RN rules are off in `.eslintrc.cjs` pending cleanup)
+npm run lint -w charmr-backend  # Backend ESLint (`backend/eslint.config.mjs`)
+npm test                    # Jest (mobile); strategy + AI workflow: `docs/TESTING_AND_COVERAGE.md`
 npm run test:e2e            # Maestro E2E — numbered flows under `.maestro/` (macOS; `CHARMR_E2E_VERBOSE_IOS=0` for less build log noise; `CHARMR_E2E_SKIP_BUILD=1` still starts Metro for Debug JS)
+npm run test:e2e:each       # Same build+Metro as `test:e2e`, then **one Maestro process per numbered flow** (easier to see which YAML fails). `CHARMR_E2E_SKIP_BUILD=1` skips `run-ios` only.
 npm run test:e2e:stub-llm   # Maestro stub flows under `.maestro/stub/` (API must set `CHARMR_E2E_STUB_LLM=true`)
 npm run test:e2e:native-picker # Optional: system Photos picker on Home (`.env.e2e.native-picker`; not default CI)
 npm run test:e2e:flow -- <name>   # Single flow: `.maestro/<name>.yaml` (see `docs/E2E_FLOWS.md`; Metro unless `CHARMR_E2E_SKIP_METRO=1`)
@@ -44,9 +46,16 @@ Metro watches `packages/shared` for workspace changes.
 
 ## Backend
 
+- **Layout:** `backend/src/` — `app.ts` (Express wiring), `routes/`, `controllers/` (including `controllers/admin/` split), `db/`, `services/`, `middleware/`, `config/`, `validation/`.
 - `DATABASE_TYPE=sqlite` for local dev and CI; `firestore` for production. See [`docs/PERSISTENCE.md`](docs/PERSISTENCE.md).
+- **Health:** `GET /health` (liveness), `GET /health/ready` (readiness — DB ping). Responses include `X-Request-ID` when the correlation-id middleware runs (propagate `x-request-id` for tracing).
+- **API sketch for tools:** [`backend/openapi.yaml`](backend/openapi.yaml) — partial; source of truth remains TypeScript routes.
 - Dummy `backend/service-account.json` may be required for Firebase Admin init (see `.env.example`).
 - **Admin CLI:** `npm run add-admin -- <uid>`, `npm run remove-admin -- <uid>` (in `backend/`).
+- **AI providers:** `AI_SERVICE` (`openai` default) selects the LLM factory. Production `generate-reply` uses OpenAI; Gemini client exists for config/env parity but the Gemini path is not fully wired for vision/chat — see `backend/src/services/geminiService.ts` and `replyController`.
+- **TypeScript:** `backend/tsconfig.json` enables `noUnusedLocals` and `noUnusedParameters` (prefix intentionally unused params with `_`).
+- **Unused deps:** `cd backend && npx depcheck --config .depcheckrc.json` (ignores tooling packages listed in that file). CI runs depcheck + `npm run knip` (unused deps + orphan files; see `backend/knip.json`).
+- **Gemini in production:** `AI_SERVICE=gemini` throws at startup unless `CHARMR_ALLOW_GEMINI_IN_PRODUCTION=true` (see `.env.example`).
 
 ## Mobile
 
@@ -70,7 +79,7 @@ Metro watches `packages/shared` for workspace changes.
 
 ## CI
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — shared build, backend test+build, mobile lint+test; `npm audit` uses `continue-on-error` for critical-only reporting.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — shared build, backend lint+test+build, mobile lint+test; `npm audit` uses `continue-on-error` for critical-only reporting.
 - [`.github/workflows/deploy-render.yml`](.github/workflows/deploy-render.yml) — backend deploy to Render (paths-filtered).
 - [`render.yaml`](render.yaml) — Render Blueprint at **repo root** (monorepo build, no SQLite disk; sync or mirror these settings in the dashboard).
 

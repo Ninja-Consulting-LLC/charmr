@@ -2,27 +2,18 @@ import {NextFunction, Request, Response} from 'express';
 import {firebaseAdmin} from '../config/firebase-admin';
 import logger from '../utils/logger';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
 export const adminAuth = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  // Enhanced logging for admin token debugging
-  logger.info('Admin Auth Debug:', {
-    authHeader: req.headers.authorization,
-    headers: req.headers,
-  });
-
   const authHeader = req.headers.authorization;
+  logger.debug('Admin auth request', {
+    hasAuthorization: Boolean(authHeader),
+    scheme: authHeader?.split(/\s+/)[0]?.toLowerCase() ?? 'none',
+    path: req.path,
+    method: req.method,
+  });
 
   if (!authHeader) {
     logger.warning('No authorization header in admin request');

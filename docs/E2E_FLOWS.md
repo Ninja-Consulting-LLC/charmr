@@ -27,7 +27,7 @@
 | **B3** | Onboarding step 3 (register CTA) | Funnel | ✅ partial | `04_onboarding_step_through` |
 | **B4** | Skip onboarding → anonymous user persisted → Home | Core funnel | ✅ | `03_onboarding_skip_to_home` (needs API) |
 | **B5** | Onboarding **Register** opens login modal (cancel returns) | Registered funnel | ✅ | `11_onboarding_register_opens_login` |
-| **B6** | Account menu **Register Account** → login modal (cancel) | Same as B5 from menu | ✅ | `26_menu_register_opens_login` (`user-menu-register-account`) |
+| **B6** | Account menu **Create account** → login modal (cancel) | Same as B5 from menu | ✅ | `26_menu_register_opens_login` (`user-menu-register-account`) |
 | **C1** | Home: header, coach CTA, feedback FAB | Navigation | ✅ | `03`, `05`, `07`, `08`, `15`, `19`, `26`, `28` |
 | **C2** | Dating Coach → match picker opens | Coach dead | ✅ | `07`, `08`, `15`, includes |
 | **C3** | Add match (name + platform + save) | CRUD | ✅ | `07`, includes (preset **hinge** / **tinder** / **bumble**) |
@@ -38,8 +38,8 @@
 | **C6b** | Home **Add Screenshot** → **remove** image chip | Media strip regression | ✅ | **`28`** — Maestro build uses inject (`run-maestro-e2e.sh` temp env); no LLM |
 | **C7** | Generate reply **image** limits / errors | Edge cases | ✅ partial | Hook: `useResponseGenerator` NO_IMAGES (no screenshot + blank prompt); Home UI hides **Generate** until images exist |
 | **D1** | Feedback FAB → modal open | UX | ✅ | `05_support_feedback_exhaustive` |
-| **D2** | User menu → Contact Support → modal (**open + X dismiss** without submit) | UX | ✅ | **`27_support_contact_open_close`** · full submit still **`05`** |
-| **D3** | Contact + feedback **submit** → success (all fields) | Pipeline / API contract | ✅ | `05_support_feedback_exhaustive`: asserts + fills **`email-input`**, **`phone-input`** (optional), **`message-input`**; `eraseText` clears dev prefilled message; `support-submit-success` + `support-submit-success-text` |
+| **D2** | User menu → Get help → modal (**open + X dismiss** without submit) | UX | ✅ | **`27_support_contact_open_close`** · full submit still **`05`** |
+| **D3** | Contact + feedback **submit** (all fields) | Pipeline / API contract | ✅ | `05_support_feedback_exhaustive`: asserts + fills **`email-input`**, **`phone-input`** (optional), **`message-input`**; `eraseText` clears dev prefilled message; closes via success CTA or header close |
 | **D4** | Support submit (registered email locked) + optional phone | Regression | ✅ | `17_support_registered_profile_submit` + dev **Simulate registered profile** (`phone-input` filled) |
 | **D5** | `POST /api/support` accepts **phone** in JSON | Email template / CRM | ✅ | `npm run test:e2e:verify-api` payload includes `phone`; backend `SupportRequest.phone` |
 | **E1** | Match **archive** from coach picker | Data loss confusion | ✅ | `07_coach_match_lifecycle` |
@@ -88,8 +88,8 @@ Use this section to ensure **nothing is “missing from the doc”** even when s
 3. **Skip** *or* **Next** through steps → **Skip** on register step.  
 4. Backend creates/fetches anonymous user → **Home** (“Try Our Dating Coach”).  
 5. Optional: **Dating Coach** → match list → add match → coach chat.  
-6. Optional: **Feedback** FAB or **Contact Support** from menu.  
-7. Optional: **Register Account** in the account menu → login modal (**B6** / flow **`26`**).  
+6. Optional: **Feedback** FAB or **Get help** from menu.  
+7. Optional: **Create account** in the account menu → login modal (**B6** / flow **`26`**).  
 8. Optional: **Add Screenshot** then clear it (**C6b** / flow **`28`** when E2E image inject is on).
 
 ### J-B — Logged-in (Firebase) user
@@ -100,8 +100,8 @@ Use this section to ensure **nothing is “missing from the doc”** even when s
 
 ### J-C — Coach + matches
 
-1. Open coach → **Select Match**.  
-2. **Add New Match** → name + platform → **Add Match**.  
+1. Open coach → **Your matches**.  
+2. **Add a match** → name + platform → **Add match**.  
 3. **Edit** (pencil) → change name and/or platform → **Update Match** (**`07`** + **`25`**).  
 4. **Select** row → coach chat (free banner, composer).  
 5. **Archive** from row → confirm → row leaves active list.  
@@ -117,7 +117,7 @@ Use this section to ensure **nothing is “missing from the doc”** even when s
 
 1. Open feedback or support modal → validate **email** (required), **phone** (optional), **message** (required).  
 2. **Send Message** → success copy → dismiss.  
-3. Or open **Contact Support** and dismiss with **X** without submitting (**`27`**).  
+3. Or open **Get help** and dismiss with **X** without submitting (**`27`**).  
 4. Backend ticket/email pipeline (verify in staging logs or test inbox); optional phone appears in support email body when provided.
 
 ### J-F — Keyboard extension (manual-heavy)
@@ -131,7 +131,7 @@ Use this section to ensure **nothing is “missing from the doc”** even when s
 
 ### Numbered flows (executed by `npm run test:e2e`)
 
-**21** flows today (merged journeys for speed; see matrix above for capability IDs).
+**23** flows today (merged journeys for speed; see matrix above for capability IDs).
 
 | File | Maps to | Intent |
 |------|---------|--------|
@@ -139,18 +139,18 @@ Use this section to ensure **nothing is “missing from the doc”** even when s
 | `02_login_modal_providers.yaml` | A2 | **Log In** → provider `testID`s → cancel |
 | `03_onboarding_skip_to_home.yaml` | B4 | Skip path → Home |
 | `04_onboarding_step_through.yaml` | B1–B3 | Next through steps → Skip → Home |
-| `05_support_feedback_exhaustive.yaml` | D1–D3, D5 | Feedback + Contact: assert **`email-input`**, **`phone-input`**, **`message-input`**; fill all; blur via `support-contact-title`; **Send** → success |
+| `05_support_feedback_exhaustive.yaml` | D1–D3, D5 | Feedback + Contact: assert **`email-input`**, **`phone-input`**, **`message-input`**; fill all; blur via `support-contact-title`; **Send** → close via success CTA if present, else header close |
 | `07_coach_match_lifecycle.yaml` | C2–C5, E1–E3, E5 | One session: add match → **Select** → coach (`coach-chat-match-name`, composer) → **Edit** → **Archive** → **Restore** → recency **E2E Order A/B** |
-| `24_coach_add_match_other_platform.yaml` | C3b | Seed match → **Add New Match** → **Other** + **`platform-other-field`** → assert **`E2E Other App`** in list |
+| `24_coach_add_match_other_platform.yaml` | C3b | Seed match → **Add a match** → **Other** + **`platform-other-field`** → assert **`E2E Other App`** in list |
 | `25_coach_edit_match_platform.yaml` | E3 | **Edit** seeded row → **tinder** chip → **Update** → assert **Tinder** visible in picker |
 | `26_menu_register_opens_login.yaml` | B6 | Menu **`user-menu-register-account`** → OAuth `testID`s → **Cancel** → close menu → Home |
-| `27_support_contact_open_close.yaml` | D2 | Menu → **Contact Support** → **`support-contact-modal`** → **`support-contact-close`** → menu closed → Home |
+| `27_support_contact_open_close.yaml` | D2 | Menu → **Get help** → **`support-contact-modal`** → **`support-contact-close`** → menu closed → Home |
 | `28_home_screenshot_add_remove.yaml` | C6b | **`image-picker-button`** → **`selected-image-0`** → **`remove-image-0`** → inject path (**`npm run test:e2e`** build) |
 | `08_archived_delete_scenarios.yaml` | E4 | (1) Delete → **Cancel** row remains · (2) fresh user → Delete → **Confirm** → empty |
 | `11_onboarding_register_opens_login.yaml` | B5 | Step 3 **Register** → login modal → cancel |
 | `14_session_restore_home.yaml` | A6 | Skip → Home → `stopApp` → relaunch (`clearState: false`) → Home |
 | `15_message_limit_shows_upgrade.yaml` | F1 / F2 (shell) | Dev **Saturate limit** → coach send → `upgrade-modal` |
-| `17_support_registered_profile_submit.yaml` | D4, D5 | Dev **Simulate registered profile** → Support → locked email + **`phone-input`** + message → **Send** → success |
+| `17_support_registered_profile_submit.yaml` | D4, D5 | Dev **Simulate registered profile** → Support/feedback modal → locked email + **`phone-input`** + message → **Send** → close |
 | `18_deep_link_open_homescreen.yaml` | G3 | `openLink` **`charmr://open/homescreen`** → Home |
 | `19_user_menu_legal_rows_visible.yaml` | F3 (partial) | Legal rows · `user-menu-terms-of-service` / `user-menu-privacy-policy` |
 | `20_dev_menu_e2e_helpers_visible.yaml` | G4 | Dev drawer: simulate + saturate `testID`s |
@@ -185,7 +185,7 @@ Requires API process with **`CHARMR_E2E_STUB_LLM=true`** (see `backend/.env.exam
 | File | Maps to | Intent |
 |------|---------|--------|
 | `stub/01_coach_send_stub_reply.yaml` | C5 | Coach send → assert `[E2E_STUB]` reply |
-| `stub/02_generate_reply_image_stub.yaml` | C6 | Bundled image (see `CHARMR_E2E_RELAX_IMAGE_PICKER`) → **Generate Response** → assert full stub copy **`[E2E_STUB] Deterministic coach reply`** in reply modal |
+| `stub/02_generate_reply_image_stub.yaml` | C6 | Bundled image (see `CHARMR_E2E_RELAX_IMAGE_PICKER`) → **Generate reply** → assert full stub copy **`[E2E_STUB] Deterministic coach reply`** in reply modal |
 
 ### Includes (not run alone)
 
@@ -308,14 +308,38 @@ Quick API check: `POST /api/users` + `POST /api/users/:id/matches` with **`X-Ano
 - **Generate:** `image-picker-button`, `generate-response-button`, reply `reply-modal-text` / `reply-modal-done`. Generate timeout UI: **`try-again-close-button`** (`TryAgainModal`).  
 - **Upgrade:** `upgrade-modal`, close `upgrade-modal-close`.  
 - **Deep links:** `charmr://open/homescreen`, `charmr://open/screenshot` (`DeepLinkHandler.tsx`).  
-- **Account menu:** close `user-menu-close-button`. Anonymous **Register Account** row: **`user-menu-register-account`**.
+- **Account menu:** close `user-menu-close-button`. Anonymous **Create account** row: **`user-menu-register-account`**.
 - **Coach header:** `coach-chat-match-name` mirrors the active match name in navigation.
 - **Support success copy:** `support-submit-success-text` (child of `support-submit-success`).
 - **Reply modal body:** `reply-modal-text` uses **React Native `Text`** (not Paper) so Maestro can read stub / reply strings on iOS.
 - **Support modal dismiss:** **`support-contact-close`** (header X) when **not** submitted — flow **`27`**. After successful submit, prefer **`support-success-close-button`** over `support-contact-close` so touches are not swallowed by leftover modal layers.
-- **Feedback + contact in one flow (`05`):** run **Contact Support from the menu first**, then **Feedback FAB**. Opening the menu after closing the feedback modal can fail to register taps on `user-menu-button` (focus / overlay); order avoids that.
+- **Feedback + contact in one flow (`05`):** run **Get help from the menu first**, then **Feedback FAB**. Opening the menu after closing the feedback modal can fail to register taps on `user-menu-button` (focus / overlay); order avoids that.
 - **Support / feedback form (`SupportContactModal`):** `email-input`, optional **`phone-input`**, `message-input`; order in Maestro **email → phone → message**; tap **`support-contact-title`** to blur before **Send**. In **__DEV__** the modal prefills message — numbered flows use **`eraseText`** on `message-input` before the scripted body so state is deterministic.
 - **Paper TextInput + Maestro:** after `inputText` on support fields, blur via `support-contact-title` so **Send Message** enables (`disabled={!email \|\| !message}`).
 - **Dev logout:** `dev-menu-logout-button` → `Login` route (**Get Started**).
 
 Update **§1 matrix**, **§3 table**, and **§6** whenever you add flows or ship new surfaces.
+
+---
+
+## 8. Triage: Maestro reports “App crashed or stopped”
+
+Maestro uses that message when the app process dies or stops responding during a step—not only for a native segfault.
+
+1. **Maestro / Java** — If the CLI fails with **`JAVA_HOME is set to an invalid directory`**, unset **`JAVA_HOME`** (the per-flow script **`run-maestro-one.sh`** does this when **`JAVA_HOME`** is invalid) or run **`env -u JAVA_HOME npm run test:e2e:flow -- 01_login_cold_start`**.
+
+2. **Confirm the app runs outside Maestro** — Boot the same simulator, launch **Charmr** manually, and reach **Get Started**. If it crashes on cold start, fix that first (Xcode **Run** with breakpoints / exception breakpoint).
+
+3. **Simulator logs** — While reproducing, stream logs (replace `BOOTED` with your UDID if needed):  
+   `xcrun simctl spawn booted log stream --level debug --predicate 'process == "Charmr"'`  
+   Look for **Firebase**, **RevenueCat**, **Hermes**, or **RCTFatal** lines right before exit.
+
+4. **Metro + Debug** — **`run-ios --no-packager`** loads JS from **http://127.0.0.1:8081**. Ensure **`curl -sf http://127.0.0.1:8081/status`** succeeds. Stale packager state: stop Metro, then **`npx react-native start --reset-cache`**, reinstall with **`npm run test:e2e`** (or your usual **`ENVFILE=.env.e2e`** build).
+
+5. **`react-native-config` / E2E env** — The **Xcode** build for E2E uses a **temp** `.env` (from **`.env.e2e`** + injected **`CHARMR_E2E_RELAX_IMAGE_PICKER=true`**). JS reads most keys from the **native** config module built into that binary; Metro does not need to match for those. If you changed native deps or env wiring, do a **clean** build.
+
+6. **Native crash reports** — Host reports live under **`~/Library/Logs/DiagnosticReports/`** (often **`.ips`**). Simulator-only crashes may appear in **Console.app** (select the simulator device) or under **`~/Library/Logs/CoreSimulator/`** for that runtime.
+
+7. **Backend** — Many flows only need the app UI; some need **`API_BASE_URL`** reachable from the simulator (**`127.0.0.1`** in **`.env.e2e`**). A missing API usually causes **red screens or hangs**, not an immediate native crash—still worth having **`npm run dev -w charmr-backend`** (or stub server) running when debugging flaky flows.
+
+8. **`kAXErrorAPIDisabled` / false “App crashed”** — If **`~/.maestro/tests/…/maestro.log`** shows **`Error getting main window kAXErrorAPIDisabled`**, XCTest queried the hierarchy before the window was ready (or the session glitched). After **`launchApp` + `clearState`**, flows run **`include/after_cold_launch.yaml`** (short JS wait); **`run-maestro-*.sh`** also activates **Simulator** before Maestro. Flows use **`waitForAnimationToEnd`** and **`id: get-started-button`** (RN **`testID`**) instead of matching the literal **“Get Started”** string. **Quit Simulator** and retry if it persists; avoid running two Maestro sessions on the same sim.

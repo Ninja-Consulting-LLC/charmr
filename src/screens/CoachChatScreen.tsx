@@ -1,22 +1,22 @@
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Clipboard,
   Image,
   Keyboard,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
-  Text as RNText,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {GiftedChat, IMessage as GiftedIMessage} from 'react-native-gifted-chat';
 import LinearGradient from 'react-native-linear-gradient';
-import {IconButton, SegmentedButtons, Snackbar, Text} from 'react-native-paper';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {Snackbar} from 'react-native-paper';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MatchSelectorModal from '../components/MatchSelector';
 import MessagePackModal from '../components/MessagePackModal';
 import PhotoAccessBanner from '../components/PhotoAccessBanner';
@@ -35,7 +35,14 @@ import {
   updateMatchLastUsed as updateMatchLastUsedService,
 } from '../services/matchService';
 import {useStore} from '../store';
-import {theme} from '../theme/theme';
+import {
+  AppText,
+  CharmrButton,
+  HeroChromeIconButton,
+  ModalIconButton,
+  TopBar,
+  tokens,
+} from '../design-system';
 import {
   MessageMode,
   MessageRole,
@@ -84,6 +91,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showCopiedSnackbar, setShowCopiedSnackbar] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const insets = useSafeAreaInsets();
   const {
     userId,
     matches,
@@ -96,11 +104,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   const [useDebugMatch, setUseDebugMatch] = useState(
     debugMatchId === DEBUG_MATCH_ID,
   );
-  const [copiedMessageId, setCopiedMessageId] = useState<
-    string | number | null
-  >(null);
-  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Clear match selection when navigating back
   useEffect(() => {
     return () => {
@@ -205,13 +208,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           setIsLoadingMore(true);
         }
 
-        console.log('[Message Loading] Starting to load messages:', {
-          offset,
-          matchId: effectiveMatchId,
-          userId,
-          pageSize: PAGE_SIZE,
-        });
-
         const messagesResponse = await axiosInstance.get(
           `/api/users/${userId}/matches/${effectiveMatchId}/messages`,
           {
@@ -223,56 +219,30 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         );
 
         const {messages: messagesData, total} = messagesResponse.data;
-        console.log('[Message Loading] Received messages from API:', {
-          offset,
-          limit: PAGE_SIZE,
-          total,
-          receivedMessages: messagesData.length,
-          hasMore: offset + PAGE_SIZE < total,
-          messageIds: messagesData.map((m: any) => m.id),
-        });
-
         // Check if this is the only page
         const isOnlyPage = total <= PAGE_SIZE;
 
         // Transform messages to chat format
-        const chatMessages: IMessageWithImages[] = messagesData.map(
-          (msg: Message) => {
-            console.log('[Message Transformation] Converting message:', {
-              id: msg.id,
-              type: msg.type,
-              hasImageData: !!msg.imageData,
-              content: msg.content?.substring(0, 50) + '...',
-            });
-
-            return {
-              _id: msg.id,
-              text: msg.content,
-              createdAt: new Date(msg.timestamp),
-              user: {
-                _id: msg.role === MessageRole.USER ? 'user' : 'coach',
-                name: msg.role === MessageRole.USER ? 'You' : 'Coach',
-                avatar: msg.role === MessageRole.USER ? undefined : '👨‍🏫',
-              },
-              type: msg.type,
-              mode: msg.mode,
-              images: msg.imageData ? [msg.imageData] : undefined,
-            };
+        const chatMessages: IMessageWithImages[] = messagesData.map((msg: Message) => ({
+          _id: msg.id,
+          text: msg.content,
+          createdAt: new Date(msg.timestamp),
+          user: {
+            _id: msg.role === MessageRole.USER ? 'user' : 'coach',
+            name: msg.role === MessageRole.USER ? 'You' : 'Coach',
+            avatar: msg.role === MessageRole.USER ? undefined : '👨‍🏫',
           },
-        );
-
-        console.log('[Message Loading] Final processed messages:', {
-          totalProcessed: chatMessages.length,
-          messageIds: chatMessages.map(m => m._id),
-          hasWelcomeMessage: isOnlyPage,
-        });
+          type: msg.type,
+          mode: msg.mode,
+          images: msg.imageData ? [msg.imageData] : undefined,
+        }));
 
         // Add welcome message only on the last page or if it's the only page
         if (offset === 0) {
           if (isOnlyPage) {
             const welcomeMessage: IMessageWithImages = {
               _id: Date.now(),
-              text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+              text: `Hi, I am your dating coach. I can help you write a strong reply for ${match.name}. Tell me what you want to say, or add a screenshot for context.`,
               createdAt: new Date(),
               user: {
                 _id: 'coach',
@@ -282,26 +252,16 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               type: MessageType.TEXT,
               mode: MessageMode.COACH,
             };
-            console.log(
-              '[Message Loading] Adding welcome message to only page',
-            );
-            setMessages(prevMessages => {
-              return [...chatMessages, welcomeMessage];
-            });
+            setMessages([...chatMessages, welcomeMessage]);
           } else {
-            console.log(
-              '[Message Loading] Setting initial messages without welcome',
-            );
-            setMessages(prevMessages => {
-              return chatMessages;
-            });
+            setMessages(chatMessages);
           }
         } else {
           // If this is the last page (no more messages after this), add the welcome message
           const isLastPage = offset + PAGE_SIZE >= total;
           const welcomeMessage: IMessageWithImages = {
             _id: Date.now(),
-            text: `Hi! I'm your dating coach. I'll help you craft the perfect responses for ${match.name}. What would you like to say? (You can also upload a screenshot of the conversation)`,
+            text: `Hi, I am your dating coach. I can help you write a strong reply for ${match.name}. Tell me what you want to say, or add a screenshot for context.`,
             createdAt: new Date(),
             user: {
               _id: 'coach',
@@ -311,12 +271,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             type: MessageType.TEXT,
             mode: MessageMode.COACH,
           };
-
-          console.log('[Message Loading] Loading more messages:', {
-            isLastPage,
-            currentOffset: offset,
-            totalMessages: total,
-          });
 
           setMessages(prevMessages => {
             const messages = GiftedChat.prepend(prevMessages, chatMessages);
@@ -349,42 +303,9 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   }, [isLoadingMore, hasMoreMessages, messages.length, loadMessages]);
 
   useEffect(() => {
-    // Set up the header
-    navigation.setOptions({
-      headerShown: true,
-      headerTransparent: true,
-      headerTitle: () => (
-        <View style={styles.headerTitle}>
-          <RNText testID="coach-chat-match-name" style={styles.headerName}>
-            {match.name}
-          </RNText>
-          <Text style={styles.headerPlatform}>
-            {match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
-          </Text>
-        </View>
-      ),
-      headerLeft: () => (
-        <IconButton
-          testID="coach-chat-back-button"
-          icon="arrow-left"
-          size={24}
-          onPress={() => navigation.goBack()}
-          iconColor={theme.colors.surface}
-        />
-      ),
-      headerRight: () => (
-        <IconButton
-          icon="pencil"
-          size={24}
-          onPress={() => setShowMatchSelector(true)}
-          iconColor={theme.colors.surface}
-        />
-      ),
-    });
-
-    // Load initial messages
+    navigation.setOptions({headerShown: false});
     loadMessages();
-  }, [navigation, match.name, match.platform, loadMessages]);
+  }, [navigation, loadMessages]);
 
   const getModeIcon = (mode: MessageMode) => {
     switch (mode) {
@@ -439,7 +360,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             GiftedChat.append(previousMessages, [
               {
                 _id: Date.now() + 2,
-                text: 'Failed to process images. Please try again.',
+                text: 'We could not process that image. Please try again.',
                 createdAt: new Date(),
                 user: {
                   _id: 'coach',
@@ -484,7 +405,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
 
         const aiResponse: IMessageWithImages = {
           _id: Date.now() + 1,
-          text: response.reply || response.error || 'No reply',
+          text: response.reply || response.error || 'No reply yet.',
           createdAt: new Date(),
           user: {
             _id: 'coach',
@@ -508,7 +429,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
           GiftedChat.append(previousMessages, [
             {
               _id: Date.now() + 2,
-              text: 'Failed to get a reply from the server.',
+              text: 'We could not generate a reply. Please try again.',
               createdAt: new Date(),
               user: {
                 _id: 'coach',
@@ -525,14 +446,10 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
     [images, setImages, selectedMode, userId, effectiveMatchId, setUser],
   );
 
-  const handleCopyMessage = useCallback(
-    (text: string, messageId: string | number) => {
-      Clipboard.setString(text);
-      console.log('Copying message with id:', messageId);
-      setShowCopiedSnackbar(true);
-    },
-    [],
-  );
+  const handleCopyMessage = useCallback((text: string, _messageId: string | number) => {
+    Clipboard.setString(text);
+    setShowCopiedSnackbar(true);
+  }, []);
 
   const handlePickImages = async () => {
     try {
@@ -569,46 +486,99 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
   return (
     <View style={styles.container} testID="coach-chat-screen">
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryContainer]}
+        colors={[
+          tokens.color.brand.primary,
+          tokens.color.brand.primaryStrong,
+        ]}
         style={styles.gradientBackground}
         start={{x: 0, y: 0}}
         end={{x: 1, y: 1}}
       />
-      <SafeAreaView
-        style={styles.safeArea}
-        edges={['top', 'bottom', 'left', 'right']}>
-        <View style={styles.headerSpacer} />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View
+          style={{
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          }}>
+          <TopBar
+            showDivider
+            leading={
+              <HeroChromeIconButton
+                testID="coach-chat-back-button"
+                icon="arrow-left"
+                onPress={() => navigation.goBack()}
+                accessibilityLabel="Back"
+              />
+            }
+            center={
+              <View style={styles.headerTitle}>
+                <AppText
+                  testID="coach-chat-match-name"
+                  variant="titleSm"
+                  color="hero"
+                  numberOfLines={1}
+                  style={styles.headerName}>
+                  {match.name}
+                </AppText>
+                <AppText variant="caption" color="heroMuted" style={styles.headerPlatform}>
+                  {match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
+                </AppText>
+              </View>
+            }
+            trailing={
+              <HeroChromeIconButton
+                icon="pencil"
+                onPress={() => setShowMatchSelector(true)}
+                accessibilityLabel="Change match"
+              />
+            }
+          />
+        </View>
         <PhotoAccessBanner
           visible={showPermissionError}
           onDismiss={() => setShowPermissionError(false)}
           onOpenSettings={openSettings}
-          topOffset={75} // Standard header height
+          topOffset={insets.top + 56}
         />
         {(!user || user.plan === SubscriptionTier.FREE) && (
-          <TouchableOpacity
+          <Pressable
             testID="coach-free-upgrade-banner"
-            style={styles.promoContainer}
-            onPress={() => setShowUpgradeModal(true)}>
-            <Text style={styles.promoText}>
-              Upgrade to Pro to full chat history
-            </Text>
-            <IconButton
-              icon="chevron-right"
+            style={({pressed}) => [
+              styles.promoContainer,
+              pressed && styles.promoPressed,
+              {
+                paddingLeft: tokens.space.lg + insets.left,
+                paddingRight: tokens.space.lg + insets.right,
+              },
+            ]}
+            onPress={() => setShowUpgradeModal(true)}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Upgrade to Pro to unlock full chat history">
+            <AppText variant="label" color="accent" style={styles.promoText}>
+              Upgrade to Pro for full chat history
+            </AppText>
+            <Icon
+              name="chevron-right"
               size={20}
-              iconColor="rgba(255, 255, 255, 0.8)"
+              color={tokens.color.accent.mint}
               style={styles.promoIcon}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
         {isLoadingMessages ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.surface} />
+            <ActivityIndicator size="large" color={tokens.color.hero.text} />
+            <AppText variant="body" color="heroMuted" style={styles.loadingLabel}>
+              Loading chat...
+            </AppText>
           </View>
         ) : (
           <GiftedChat
             messages={messages}
             text={text}
             onInputTextChanged={setText}
+            bottomOffset={insets.bottom}
             user={{
               _id: 'user',
             }}
@@ -620,8 +590,19 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 </View>
               ) : null
             }
+            renderChatEmpty={() => (
+              <View style={styles.emptyChatContainer}>
+                <AppText
+                  variant="bodyMedium"
+                  color="heroMuted"
+                  style={styles.emptyChatText}>
+                  No messages yet. Ask for a draft reply, or ask your coach for help.
+                </AppText>
+              </View>
+            )}
             keyboardShouldPersistTaps="never"
             listViewProps={{
+              keyboardDismissMode: 'on-drag',
               // @ts-ignore - onScroll is a valid prop but not in the type definition
               onScroll: () => {
                 Keyboard.dismiss();
@@ -642,14 +623,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             }}
             renderBubble={props => {
               const {currentMessage} = props;
-              console.log('Rendering bubble for message:', {
-                id: currentMessage?._id,
-                type: currentMessage?.type,
-                hasImages: !!currentMessage?.images,
-                imageCount: currentMessage?.images?.length,
-                text: currentMessage?.text,
-              });
-
               const isCopyable =
                 currentMessage?.user._id === 'coach' &&
                 currentMessage?.mode === MessageMode.GENERATE;
@@ -666,22 +639,17 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                 currentMessage?.user._id === 'coach' &&
                 currentMessage?.mode === MessageMode.COACH;
 
-              let showCopiedText = copiedMessageId === currentMessage?._id;
-              if (showCopiedText) {
-                console.log(
-                  'Rendering copied message text for id:',
-                  currentMessage?._id,
-                );
-              }
-
               return (
-                <TouchableOpacity
+                <Pressable
                   onPress={() =>
                     isCopyable &&
                     currentMessage?.text &&
                     handleCopyMessage(currentMessage.text, currentMessage._id)
                   }
-                  activeOpacity={isCopyable ? 0.7 : 1}>
+                  disabled={!isCopyable}
+                  style={({pressed}) => [
+                    isCopyable && pressed && styles.bubblePressed,
+                  ]}>
                   <View
                     style={[
                       styles.bubble,
@@ -700,39 +668,40 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                           {currentMessage.images.map(
                             (uri: string, idx: number) => {
                               return (
-                                <TouchableOpacity
+                                <Pressable
                                   key={uri + idx}
                                   onPress={() => setPreviewImage(uri)}>
                                   <Image
                                     source={{uri}}
                                     style={styles.bubbleImage}
                                   />
-                                </TouchableOpacity>
+                                </Pressable>
                               );
                             },
                           )}
                         </ScrollView>
                       )}
                     <View style={styles.bubbleContent}>
-                      <Text
+                      <AppText
+                        variant="bodyMedium"
+                        color="hero"
                         style={[
                           styles.bubbleText,
                           currentMessage?.user._id === 'user'
                             ? styles.userBubbleText
                             : styles.coachBubbleText,
-                          // Only apply coachMessageText if it's a coach (assistant) message in coach mode
                           currentMessage?.user._id !== 'user' &&
                             isCoachMessage &&
                             styles.coachMessageText,
                         ]}>
                         {currentMessage?.text}
-                      </Text>
+                      </AppText>
                       {isCopyable && (
-                        <IconButton
-                          icon="content-copy"
+                        <Icon
+                          name="content-copy"
                           size={16}
+                          color={tokens.color.accent.mint}
                           style={styles.copyButton}
-                          iconColor={theme.colors.secondary}
                         />
                       )}
                     </View>
@@ -740,124 +709,149 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                       <View style={styles.obscureOverlay}>
                         <LinearGradient
                           colors={[
-                            `${theme.colors.primary}CC`,
-                            `${theme.colors.primary}FF`,
+                            `${tokens.color.brand.primary}CC`,
+                            `${tokens.color.brand.primary}FF`,
                           ]}
                           style={styles.obscureGradient}>
-                          <IconButton
-                            icon="lock"
+                          <Icon
+                            name="lock"
                             size={20}
-                            iconColor="rgba(255, 255, 255, 0.9)"
+                            color="rgba(255, 255, 255, 0.9)"
                             style={styles.obscureIcon}
                           />
                         </LinearGradient>
                       </View>
                     )}
                   </View>
-                </TouchableOpacity>
+                </Pressable>
               );
             }}
-            renderActions={props => (
-              <IconButton
-                icon={images.length > 0 ? 'close' : 'image'}
-                size={32}
-                onPress={handlePickImages}
-                testID="coach-chat-add-screenshot-button"
-                style={{
-                  marginBottom: 0,
-                  marginTop: 0,
-                  alignSelf: 'center',
-                  padding: 0,
-                  height: 44,
-                  width: 44,
-                }}
-                iconColor={theme.colors.surface}
-                accessibilityLabel={
-                  images.length > 0 ? 'Remove Screenshot' : 'Add Screenshot'
-                }
-              />
-            )}
+            renderActions={() => null}
             renderInputToolbar={props => (
-              <View>
+              <View style={styles.inputToolbarRoot}>
+                {(() => {
+                  const canSend = text.trim().length > 0 || images.length > 0;
+                  return (
+                    <>
                 {images.length > 0 && (
-                  <View style={styles.selectedImagesRow}>
-                    <TouchableOpacity
+                  <View
+                    style={[
+                      styles.selectedImagesRow,
+                      {
+                        paddingLeft: tokens.space.lg + insets.left,
+                        paddingRight: tokens.space.lg + insets.right,
+                      },
+                    ]}>
+                    <Pressable
                       onPress={() => setPreviewImage(images[0].path)}
                       style={styles.selectedImageContainer}>
                       <Image
                         source={{uri: images[0].path}}
                         style={styles.bubbleImage}
                       />
-                      <IconButton
+                      <HeroChromeIconButton
                         icon="close"
-                        size={16}
+                        iconSize={16}
                         style={styles.removeImageButton}
-                        iconColor={theme.colors.secondary}
                         onPress={() => setImages([])}
+                        accessibilityLabel="Remove screenshot"
                       />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 )}
-                <View style={styles.modeSelector}>
-                  <SegmentedButtons
-                    value={selectedMode}
-                    onValueChange={value =>
-                      setSelectedMode(value as MessageMode)
-                    }
-                    buttons={[
-                      {
-                        value: MessageMode.GENERATE,
-                        label: '💬 Generate',
-                        style: styles.modeButton,
-                        labelStyle: styles.modeButtonLabel,
-                      },
-                      {
-                        value: MessageMode.COACH,
-                        label: 'Coach',
-                        style: styles.modeButton,
-                        labelStyle: styles.modeButtonLabel,
-                        icon: () => (
+                <View style={[styles.composerColumn, styles.inputBarBackground]}>
+                  <LinearGradient
+                    colors={[
+                      'rgba(126, 34, 206, 0)',
+                      'rgba(126, 34, 206, 0.06)',
+                      'rgba(126, 34, 206, 0.14)',
+                      'rgba(59, 7, 100, 0.28)',
+                      'rgba(59, 7, 100, 0.52)',
+                      'rgba(59, 7, 100, 0.78)',
+                      tokens.color.brand.primaryStrong,
+                      tokens.color.brand.primaryDeep,
+                    ]}
+                    locations={[0, 0.14, 0.3, 0.46, 0.62, 0.76, 0.9, 1]}
+                    style={styles.inputRowGradient}
+                    start={{x: 0, y: 0}}
+                    end={{x: 0, y: 1}}>
+                    <View
+                      pointerEvents="none"
+                      style={styles.composerGradientTopFeather}
+                    />
+                    <View
+                      style={[
+                        styles.modeSelector,
+                        {
+                          paddingLeft: tokens.space.lg + insets.left,
+                          paddingRight: tokens.space.lg + insets.right,
+                        },
+                      ]}>
+                      <CharmrButton
+                        label="Draft reply"
+                        variant={
+                          selectedMode === MessageMode.GENERATE
+                            ? 'primary'
+                            : 'outline'
+                        }
+                        onPress={() => setSelectedMode(MessageMode.GENERATE)}
+                        compact
+                        style={styles.modeSegment}
+                      />
+                      <CharmrButton
+                        label="Ask coach"
+                        leftIcon={
                           <Image
                             source={require('../../assets/coach-avatar.png')}
                             style={styles.modeButtonIcon}
                           />
-                        ),
-                      },
-                    ]}
-                    theme={{
-                      colors: {
-                        secondaryContainer: 'rgba(255, 255, 255, 0.2)',
-                        onSecondaryContainer: theme.colors.surface,
-                      },
-                    }}
-                  />
-                </View>
-                <View style={styles.inputBarBackground}>
-                  <View style={styles.inputToolbar}>
-                    <IconButton
-                      icon="image"
-                      size={32}
-                      onPress={handlePickImages}
-                      style={styles.inputButton}
-                      iconColor={theme.colors.surface}
-                      accessibilityLabel="Add Screenshot"
-                    />
-                    <View style={styles.inputContainer}>
-                      <TextInput
-                        testID="coach-chat-message-input"
-                        style={styles.inputText}
-                        placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                        value={text}
-                        onChangeText={setText}
-                        placeholder="Type a message or upload screenshot(s)"
-                        multiline
+                        }
+                        variant={
+                          selectedMode === MessageMode.COACH
+                            ? 'primary'
+                            : 'outline'
+                        }
+                        onPress={() => setSelectedMode(MessageMode.COACH)}
+                        compact
+                        style={styles.modeSegment}
                       />
-                      {(text.trim().length > 0 || images.length > 0) && (
-                        <IconButton
+                    </View>
+                    <View
+                      style={[
+                        styles.inputToolbar,
+                        {
+                          paddingLeft: insets.left + tokens.space.sm,
+                          paddingRight: insets.right + tokens.space.sm,
+                          paddingBottom: tokens.space.sm,
+                        },
+                      ]}>
+                      <HeroChromeIconButton
+                        testID="coach-chat-add-screenshot-button"
+                        icon="image"
+                        iconSize={28}
+                        onPress={handlePickImages}
+                        style={styles.inputButton}
+                        accessibilityLabel="Add screenshot"
+                      />
+                      <View
+                        style={styles.inputContainer}
+                        testID="coach-chat-composer-container">
+                        <TextInput
+                          testID="coach-chat-message-input"
+                          style={styles.inputText}
+                          placeholderTextColor={tokens.color.hero.textMuted}
+                          value={text}
+                          onChangeText={setText}
+                          placeholder="Type a message or add a screenshot"
+                          multiline
+                          maxFontSizeMultiplier={tokens.a11y.maxFontSizeMultiplier}
+                        />
+                        <Pressable
                           testID="coach-chat-send-button"
-                          icon="send"
-                          size={28}
                           onPress={() => {
+                            if (!canSend) {
+                              return;
+                            }
                             const message = {
                               _id: Date.now(),
                               text: text,
@@ -870,13 +864,34 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                             };
                             onSend([message]);
                           }}
-                          style={styles.sendButton}
-                          iconColor={theme.colors.surface}
+                          accessibilityRole="button"
                           accessibilityLabel="Send"
-                        />
-                      )}
+                          accessibilityState={{disabled: !canSend}}
+                          style={({pressed}) => [
+                            styles.sendButton,
+                            !canSend && styles.sendButtonDisabled,
+                            pressed && canSend && styles.sendButtonPressed,
+                          ]}>
+                          <Icon
+                            name="send"
+                            size={22}
+                            color={
+                              canSend
+                                ? tokens.color.text.onAccent
+                                : tokens.color.hero.textMuted
+                            }
+                          />
+                        </Pressable>
+                      </View>
                     </View>
-                  </View>
+                  </LinearGradient>
+                  <View
+                    pointerEvents="none"
+                    style={[
+                      styles.homeIndicatorFill,
+                      {height: insets.bottom},
+                    ]}
+                  />
                 </View>
                 <Snackbar
                   visible={showCopiedSnackbar}
@@ -890,8 +905,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
                     label: 'OK',
                     onPress: () => setShowCopiedSnackbar(false),
                   }}>
-                  Message copied!
+                  Copied to clipboard.
                 </Snackbar>
+                    </>
+                  );
+                })()}
               </View>
             )}
             messagesContainerStyle={[
@@ -903,7 +921,7 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
             renderLoading={() => (
               <ActivityIndicator
                 size="small"
-                color={theme.colors.primary}
+                color={tokens.color.hero.text}
                 style={styles.loadingIndicator}
               />
             )}
@@ -928,10 +946,11 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
               resizeMode="contain"
             />
           )}
-          <IconButton
+          <ModalIconButton
             icon="close"
-            size={32}
+            size={44}
             onPress={() => setPreviewImage(null)}
+            accessibilityLabel="Close preview"
             style={styles.previewCloseButton}
           />
         </View>
@@ -943,12 +962,6 @@ const CoachChatScreen: React.FC<CoachChatScreenProps> = ({
         matches={matches}
         selectedMatch={match}
         onSelectMatch={async newMatch => {
-          console.log('Match selected:', {
-            id: newMatch.id,
-            name: newMatch.name,
-            platform: newMatch.platform,
-            lastUsed: newMatch.lastUsed,
-          });
           setShowMatchSelector(false);
           await updateMatchLastUsed(newMatch.id.toString());
 
@@ -1005,25 +1018,21 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 2,
   },
-  headerSpacer: {
-    height: 56, // Standard header height
+  promoPressed: {
+    opacity: 0.92,
   },
   promoContainer: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: tokens.space.sm,
+    backgroundColor: tokens.color.hero.scrim,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tokens.color.border.subtle,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: tokens.space.sm,
   },
   promoText: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
     textAlign: 'center',
-    fontWeight: '500',
   },
   promoIcon: {
     margin: 0,
@@ -1039,65 +1048,60 @@ const styles = StyleSheet.create({
   headerTitle: {
     alignItems: 'center',
     backgroundColor: 'transparent',
-    width: 200,
-    paddingHorizontal: 16,
+    maxWidth: 200,
+    paddingHorizontal: tokens.space.sm,
+  },
+  bubblePressed: {
+    opacity: 0.88,
   },
   headerName: {
-    color: theme.colors.surface,
-    fontWeight: 'bold',
-    fontSize: 24,
-    marginBottom: 2,
+    marginBottom: tokens.space.xxs,
     textAlign: 'center',
   },
   headerPlatform: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
     textAlign: 'center',
-  },
-  headerLeft: {
-    padding: 8,
   },
   messagesContainer: {
     backgroundColor: 'transparent',
   },
   bubble: {
     maxWidth: '85%',
-    padding: 12,
-    borderRadius: 16,
-    marginVertical: 4,
+    padding: tokens.space.md,
+    borderRadius: tokens.radii.lg,
+    marginVertical: tokens.space.xs,
   },
   userBubble: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: tokens.color.accent.mint,
     marginLeft: 'auto',
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: tokens.radii.xs,
     minWidth: 80,
   },
   coachBubble: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: tokens.color.hero.glass,
     marginRight: 'auto',
-    borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderBottomLeftRadius: tokens.radii.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.hero.glassBorder,
   },
   bubbleText: {
-    fontSize: 16,
+    fontSize: tokens.type.body.size,
     flexShrink: 1,
-    marginRight: 8,
+    marginRight: tokens.space.sm,
   },
   userBubbleText: {
-    color: theme.colors.onSurface,
+    color: tokens.color.text.onAccent,
   },
   coachBubbleText: {
-    color: theme.colors.surface,
+    color: tokens.color.hero.text,
   },
   coachAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: tokens.color.brand.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: tokens.space.sm,
     overflow: 'hidden',
   },
   coachAvatarImage: {
@@ -1107,17 +1111,10 @@ const styles = StyleSheet.create({
   inputToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 60,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: -2},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 4,
+    minHeight: 56,
+    paddingHorizontal: tokens.space.sm,
+    paddingVertical: tokens.space.xs,
+    backgroundColor: 'transparent',
   },
   inputButton: {
     height: 44,
@@ -1127,82 +1124,87 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: tokens.space.sm,
+    paddingLeft: tokens.space.sm,
+    paddingRight: tokens.space.xxs,
   },
   inputText: {
     flex: 1,
-    color: theme.colors.surface,
-    fontSize: 16,
-    maxHeight: 80,
+    color: tokens.color.hero.text,
+    fontSize: tokens.type.bodyMedium.size,
+    maxHeight: 96,
     textAlignVertical: 'center',
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: tokens.space.sm,
+    paddingBottom: tokens.space.sm,
+    paddingRight: tokens.space.xs,
+    backgroundColor: 'transparent',
   },
   sendButton: {
-    margin: 0,
-    padding: 0,
-    height: 44,
-    width: 44,
+    height: 34,
+    width: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.color.accent.mint,
   },
-  modeButton: {
+  sendButtonDisabled: {
+    backgroundColor: tokens.color.hero.glass,
+  },
+  sendButtonPressed: {
+    opacity: 0.85,
+  },
+  modeSegment: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: theme.colors.secondary,
-  },
-  modeButtonLabel: {
-    color: theme.colors.surface,
   },
   selectedImagesRow: {
-    paddingVertical: 4,
-    paddingLeft: 16,
-    paddingRight: 16,
-    marginBottom: 12,
+    paddingVertical: tokens.space.xs,
+    marginBottom: tokens.space.md,
     backgroundColor: 'transparent',
   },
   selectedImageContainer: {
     position: 'relative',
-    marginRight: 8,
+    marginRight: tokens.space.sm,
   },
   selectedImage: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderRadius: tokens.radii.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.hero.glassBorder,
   },
   removeImageButton: {
     position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: theme.colors.primary,
+    top: -tokens.space.sm,
+    right: -tokens.space.sm,
+    backgroundColor: tokens.color.brand.primary,
     zIndex: 1,
   },
   bubbleImagesRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: tokens.space.xs,
   },
   bubbleImage: {
     width: 60,
     height: 90,
-    borderRadius: 6,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderRadius: tokens.radii.xs,
+    marginRight: tokens.space.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.hero.glassBorder,
   },
   previewModal: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.97)',
+    backgroundColor: tokens.color.overlay.modalBackdrop,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   gradientBorder: {
-    padding: 8,
+    padding: tokens.space.sm,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 8,
-    shadowColor: theme.colors.secondary,
+    margin: tokens.space.sm,
+    shadowColor: tokens.color.accent.mint,
     shadowOpacity: 0.5,
     shadowRadius: 24,
     shadowOffset: {width: 0, height: 0},
@@ -1210,43 +1212,33 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '90%',
     height: '80%',
-    borderRadius: 20,
-    backgroundColor: '#000',
+    borderRadius: tokens.radii.xl,
+    backgroundColor: tokens.color.canvas.default,
   },
   previewCloseButton: {
     position: 'absolute',
-    top: 40,
-    right: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: tokens.space['4xl'],
+    right: tokens.space.lg,
     zIndex: 1001,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: {width: 0, height: 2},
   },
   typingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    marginLeft: 8,
-    marginBottom: 8,
+    padding: tokens.space.sm,
+    marginLeft: tokens.space.sm,
+    marginBottom: tokens.space.sm,
   },
   typingText: {
-    marginLeft: 8,
-    color: theme.colors.onSurfaceVariant,
-    fontSize: 12,
+    marginLeft: tokens.space.sm,
+    color: tokens.color.hero.textSubtle,
+    fontSize: tokens.type.caption.size,
   },
   modeSelector: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    flexDirection: 'row',
+    gap: tokens.space.sm,
+    paddingTop: tokens.space.sm,
+    paddingBottom: tokens.space.sm,
+    backgroundColor: 'transparent',
   },
   modeButtonIcon: {
     width: 20,
@@ -1265,33 +1257,56 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   inputBarBackground: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    width: '100%',
+    alignSelf: 'stretch',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: tokens.color.border.subtle,
+    paddingTop: tokens.space.xs,
+  },
+  inputRowGradient: {
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  composerGradientTopFeather: {
+    width: '100%',
+    height: tokens.space['2xl'],
+  },
+  inputToolbarRoot: {
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  composerColumn: {
+    width: '100%',
+    alignSelf: 'stretch',
+  },
+  homeIndicatorFill: {
+    width: '100%',
+    alignSelf: 'stretch',
+    backgroundColor: tokens.color.brand.primaryDeep,
   },
   permissionModal: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: tokens.color.overlay.heavy,
     justifyContent: 'center',
     alignItems: 'center',
   },
   permissionContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: tokens.color.surface.inverse,
+    borderRadius: tokens.radii.md,
+    padding: tokens.space['2xl'],
     width: '80%',
     maxWidth: 400,
   },
   permissionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    color: theme.colors.onSurface,
+    fontSize: tokens.type.titleSm.size,
+    fontWeight: '700',
+    marginBottom: tokens.space.md,
+    color: tokens.color.text.onInverse,
   },
   permissionText: {
-    fontSize: 16,
-    marginBottom: 24,
-    color: theme.colors.onSurfaceVariant,
+    fontSize: tokens.type.body.size,
+    marginBottom: tokens.space['2xl'],
+    color: tokens.color.text.onInverseMuted,
   },
   permissionButtons: {
     flexDirection: 'row',
@@ -1302,17 +1317,28 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   devBadge: {
-    color: theme.colors.tertiary,
-    fontSize: 12,
+    color: tokens.color.text.tertiary,
+    fontSize: tokens.type.caption.size,
     textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: tokens.space.sm,
+  },
+  loadingLabel: {
+    textAlign: 'center',
   },
   loadingIndicator: {
     padding: 10,
+  },
+  emptyChatContainer: {
+    paddingHorizontal: tokens.space['2xl'],
+    paddingVertical: tokens.space.lg,
+  },
+  emptyChatText: {
+    textAlign: 'center',
   },
   obscureOverlay: {
     position: 'absolute',
@@ -1320,7 +1346,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 16,
+    borderRadius: tokens.radii.lg,
     overflow: 'hidden',
   },
   obscureGradient: {
@@ -1341,7 +1367,7 @@ const styles = StyleSheet.create({
   },
   coachMessageBubble: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: tokens.color.border.strong,
   },
   coachMessageText: {
     fontStyle: 'italic',

@@ -1,8 +1,13 @@
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import React from 'react';
+import {PaperProvider} from 'react-native-paper';
 import SupportContactModal from '../SupportContactModal';
 import {useStore} from '../../store/StoreProvider';
+import {theme} from '../../theme/theme';
 import {SubscriptionTier} from '../../types/enums';
+
+const renderModal = (ui: React.ReactElement) =>
+  render(<PaperProvider theme={theme}>{ui}</PaperProvider>);
 
 const mockSubmitSupportRequest = jest.fn().mockResolvedValue({});
 
@@ -37,7 +42,7 @@ describe('SupportContactModal', () => {
       authBypass: false,
     });
 
-    render(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
+    renderModal(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
 
     const emailInput = screen.getByTestId('email-input');
     expect(emailInput.props.editable).toBe(false);
@@ -50,7 +55,7 @@ describe('SupportContactModal', () => {
       authBypass: true,
     });
 
-    render(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
+    renderModal(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
 
     const emailInput = screen.getByTestId('email-input');
     expect(emailInput.props.editable).not.toBe(false);
@@ -65,7 +70,7 @@ describe('SupportContactModal', () => {
       authBypass: true,
     });
 
-    render(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
+    renderModal(<SupportContactModal visible onDismiss={jest.fn()} mode="support" />);
 
     expect(screen.getByTestId('phone-input')).toBeTruthy();
 

@@ -8,10 +8,17 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import {Image, Platform, StyleSheet, View} from 'react-native';
+import {Platform, StyleSheet, useWindowDimensions, View} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
-import {Button, IconButton, Snackbar} from 'react-native-paper';
+import {Snackbar} from 'react-native-paper';
 import {MESSAGES} from '../constants/messages';
+import {
+  AppText,
+  CharmrButton,
+  getScreenshotTileDimensions,
+  Section,
+  tokens,
+} from '../design-system';
 import {useImagePicker} from '../hooks/useImagePicker';
 import {useResponseGenerator} from '../hooks/useResponseGenerator';
 import {RootStackParamList} from '../navigation/types';
@@ -22,7 +29,6 @@ import {
   updateMatchLastUsed,
 } from '../services/matchService';
 import {useStore} from '../store';
-import {theme} from '../theme/theme';
 import {MessageMode, SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
 import {Match, addMatch as addMatchUtil} from '../utils/matchUtils';
@@ -40,6 +46,7 @@ import UpgradeModal from './UpgradeModal';
 
 export interface ResponseGeneratorRef {
   loadMatches: () => Promise<void>;
+  openCoach: () => void;
 }
 
 type ResponseGeneratorProps = {
@@ -96,6 +103,9 @@ const ResponseGenerator = forwardRef<
     setMatches,
     handleProviderLogin,
   } = useStore();
+  const {height: windowHeight} = useWindowDimensions();
+  const {tileWidth: screenshotTileWidth} =
+    getScreenshotTileDimensions(windowHeight);
   const {images, setImages, pickImages, openSettings} = useImagePicker();
 
   // State
@@ -133,6 +143,7 @@ const ResponseGenerator = forwardRef<
 
   useImperativeHandle(ref, () => ({
     loadMatches,
+    openCoach: () => setShowMatchSelector(true),
   }));
 
   // Load matches on mount
@@ -252,15 +263,7 @@ const ResponseGenerator = forwardRef<
   };
 
   const deleteScreenshotsFromLibrary = async () => {
-    console.log('Starting deleteScreenshotsFromLibrary');
-    console.log('deleteScreenshots:', deleteScreenshots);
-    console.log('Number of images to delete:', images.length);
-    console.log('Images:', images);
-
     if (!deleteScreenshots || images.length === 0) {
-      console.log(
-        'Skipping deletion - deleteScreenshots is false or no images',
-      );
       return;
     }
 
@@ -270,12 +273,8 @@ const ResponseGenerator = forwardRef<
           .filter(img => img.assetId)
           .map(img => img.assetId!);
 
-        console.log('Asset IDs to delete:', assetIds);
-
         if (assetIds.length > 0) {
-          console.log('Attempting to delete photos from library');
           await CameraRoll.deletePhotos(assetIds);
-          console.log('Successfully deleted photos from library');
         }
       } else {
         // For Android, we clean up the temporary files
@@ -295,7 +294,8 @@ const ResponseGenerator = forwardRef<
 
     try {
       // Check if user has hit their message limit
-      if (user?.dailyMessagesUsed >= (user?.getDailyMessageLimit() || 5)) {
+      const dailyCap = user?.getDailyMessageLimit() ?? 5;
+      if ((user?.dailyMessagesUsed ?? 0) >= dailyCap) {
         setShowUpgradeModal(true);
         return;
       }
@@ -381,11 +381,6 @@ const ResponseGenerator = forwardRef<
     platform: string,
   ) => {
     try {
-      console.log('[DEBUG] handleUpdateMatch called', {
-        matchId,
-        name,
-        platform,
-      });
       await updateMatch({
         ...matches.find(m => String(m.id) === matchId)!,
         name,
@@ -396,10 +391,6 @@ const ResponseGenerator = forwardRef<
         (prevMatches: Match[]) => {
           const updatedMatches = prevMatches.map((m: Match) =>
             String(m.id) === matchId ? {...m, name, platform} : m,
-          );
-          console.log(
-            '[DEBUG] setMatches in handleUpdateMatch',
-            updatedMatches,
           );
           return [...updatedMatches].sort((a, b) =>
             (b.lastUsed || '').localeCompare(a.lastUsed || ''),
@@ -424,40 +415,38 @@ const ResponseGenerator = forwardRef<
         onOpenSettings={openSettings}
       />
       <View style={styles.contentContainer}>
-        <View style={styles.mainContent}>
-          <Button
-            testID="dating-coach-button"
-            mode="contained"
-            onPress={() => setShowMatchSelector(true)}
-            icon={({size, color}) => (
-              <Image
-                source={require('../../assets/coach-avatar.png')}
-                style={[styles.coachAvatar, {width: size, height: size}]}
-              />
-            )}
-            style={styles.datingCoachButton}
-            textColor={theme.colors.primary}>
-            Try Our Dating Coach
-          </Button>
-          <IconButton
-            icon="auto-fix"
-            size={24}
-            iconColor={theme.colors.primary}
-            style={styles.magicWandIcon}
+        <Section style={styles.mainContent} contentStyle={styles.sectionBody}>
+          <ImageSelector
+            images={images}
+            onRemoveImage={removeImage}
+            onPickImages={handlePickImages}
+            userPlan={user?.plan}
+            onPermissionError={() => setShowPermissionError(true)}
           />
 
-          {/* Image Selection */}
-          <View style={styles.imageSection}>
-            <ImageSelector
-              images={images}
-              onRemoveImage={removeImage}
-              onPickImages={handlePickImages}
-              userPlan={user?.plan}
-              onPermissionError={() => setShowPermissionError(true)}
-            />
+          <View
+            style={[
+              styles.actionsContainer,
+              images.length > 0 && {
+                width: screenshotTileWidth,
+                alignSelf: 'center',
+              },
+            ]}>
+            {images.length > 0 ? (
+              <CharmrButton
+                testID="generate-response-button"
+                label="Generate reply"
+                variant="heroEmphasis"
+                fullWidth
+                onPress={handleSubmit}
+              />
+            ) : (
+              <AppText variant="caption" color="heroMuted" style={styles.hintText}>
+                Pick a screenshot first, then tap Generate reply.
+              </AppText>
+            )}
           </View>
 
-          {/* Match Selector Modal */}
           <MatchSelectorModal
             key={(matches ?? []).map(m => m.id).join(',')}
             visible={showMatchSelector}
@@ -472,21 +461,7 @@ const ResponseGenerator = forwardRef<
             onUpdateMatch={handleUpdateMatch}
             userPlan={user?.plan || SubscriptionTier.FREE}
           />
-        </View>
-
-        {/* Generate Button */}
-        <View style={styles.buttonContainer}>
-          {images.length > 0 && (
-            <Button
-              testID="generate-response-button"
-              mode="contained"
-              onPress={handleSubmit}
-              style={styles.generateButton}
-              textColor={theme.colors.primary}>
-              Generate Response
-            </Button>
-          )}
-        </View>
+        </Section>
       </View>
 
       {/* Modals */}
@@ -578,114 +553,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  bannerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    elevation: 9999,
-  },
   contentContainer: {
     flex: 1,
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: tokens.space.lg,
   },
-  buttonContainer: {
-    paddingBottom: Platform.OS === 'ios' ? 8 : 16,
-    paddingHorizontal: 16,
-    gap: 8,
-    width: '100%',
-  },
-  generateButton: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: 8,
-    paddingVertical: 8,
-  },
-  selectedMatchContainer: {
-    marginBottom: 16,
-  },
-  selectedMatchInfo: {
-    marginBottom: 8,
-    padding: 12,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
-  },
-  selectedMatchName: {
-    color: theme.colors.onSurface,
-    fontWeight: 'bold',
-  },
-  selectedMatchPlatform: {
-    color: theme.colors.onSurfaceVariant,
-    textTransform: 'capitalize',
-  },
-  selectedMatchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  matchActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    margin: 0,
-  },
-  datingCoachButton: {
-    marginTop: 16,
-    marginBottom: 8,
-    backgroundColor: theme.colors.secondary,
-    width: '100%',
-  },
-  coachAvatar: {
-    borderRadius: 12,
-  },
-  magicWandIcon: {
-    margin: 0,
-    position: 'absolute',
-    right: 16,
-    top: 16,
-  },
-  notesSection: {
-    marginTop: 16,
-    marginBottom: 8,
-    padding: 12,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
-  },
-  notesContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  notesText: {
-    color: theme.colors.onSurface,
+  sectionBody: {
     flex: 1,
-    marginRight: 8,
+    gap: tokens.space.md,
+    paddingTop: tokens.space.sm,
   },
-  editButton: {
-    margin: 0,
+  actionsContainer: {
+    alignSelf: 'stretch',
+    gap: tokens.space.sm,
+    paddingBottom: Platform.OS === 'ios' ? tokens.space.sm : tokens.space.md,
   },
-  addNotesButton: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderColor: theme.colors.secondary,
-  },
-  imageSection: {
-    flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 24,
-  },
-  typingContainer: {
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+  hintText: {
+    textAlign: 'center',
+    paddingVertical: tokens.space.xs,
   },
 });
 

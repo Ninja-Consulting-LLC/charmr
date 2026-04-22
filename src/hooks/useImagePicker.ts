@@ -1,10 +1,10 @@
 import {useState} from 'react';
-import {Image, Linking, Platform} from 'react-native';
+import {Image as RNImage, Linking, Platform} from 'react-native';
 import Config from 'react-native-config';
 import ImagePicker from 'react-native-image-crop-picker';
 import {useStore} from '../store';
 
-interface Image {
+interface PickerAsset {
   path: string;
   localIdentifier?: string;
   id?: string;
@@ -98,7 +98,7 @@ export const useImagePicker = () => {
   const pickImages = async () => {
     if (Config.CHARMR_E2E_RELAX_IMAGE_PICKER === 'true') {
       try {
-        const src = Image.resolveAssetSource(
+        const src = RNImage.resolveAssetSource(
           require('../../assets/logo.png'),
         );
         if (src?.uri) {

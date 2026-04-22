@@ -37,14 +37,16 @@ describe('UpgradeModal', () => {
   it('renders title when visible', async () => {
     const {getByText} = renderWithProvider(<UpgradeModal {...mockProps} />);
     await waitFor(() => {
-      expect(getByText('Upgrade Your Plan')).toBeTruthy();
+      expect(getByText('Upgrade to Pro')).toBeTruthy();
     });
   });
 
   it('shows empty state when no packages load', async () => {
     const {getByText} = renderWithProvider(<UpgradeModal {...mockProps} />);
     await waitFor(() => {
-      expect(getByText('No subscription options available.')).toBeTruthy();
+      expect(
+        getByText('No plans are available right now. Try again later.'),
+      ).toBeTruthy();
     });
   });
 

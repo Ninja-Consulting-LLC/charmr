@@ -147,6 +147,12 @@ describe('HomeScreen', () => {
     expect(getByTestId('response-generator')).toBeTruthy();
   });
 
+  it('opens support modal when Feedback is pressed', () => {
+    const {getByTestId} = renderHome(<HomeScreen {...mockProps} />);
+    fireEvent.press(getByTestId('feedback-button'));
+    expect(getByTestId('send-message-button')).toBeTruthy();
+  });
+
   it('renders DevMenu component in dev mode when menu is open', () => {
     // @ts-ignore - we're mocking __DEV__
     global.__DEV__ = true;
