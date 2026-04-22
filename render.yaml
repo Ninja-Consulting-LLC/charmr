@@ -23,3 +23,6 @@ services:
         value: "3000"
       - key: DATABASE_TYPE
         value: firestore
+      # Set in Render dashboard: comma-separated emails for POST /api/admin/reset-db (Firebase email claim).
+      - key: CHARMR_RESET_DB_ALLOWLIST
+        sync: false

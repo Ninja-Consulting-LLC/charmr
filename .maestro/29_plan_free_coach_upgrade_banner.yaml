@@ -1,0 +1,42 @@
+# __DEV__ only: Free plan → coach chat shows upgrade promo (needs API for add match).
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match.yaml
+- tapOn:
+    id: match-selector-close
+- extendedWaitUntil:
+    visible:
+      id: response-generator-container
+    timeout: 12000
+- tapOn:
+    id: dev-menu-button
+- scrollUntilVisible:
+    element:
+      id: dev-menu-plan-free
+    direction: DOWN
+    timeout: 12000
+    speed: 40
+    visibilityPercentage: 50
+- tapOn:
+    id: dev-menu-plan-free
+- tapOn:
+    id: dev-menu-close-button
+- extendedWaitUntil:
+    visible:
+      id: response-generator-container
+    timeout: 12000
+- tapOn:
+    id: dating-coach-button
+- extendedWaitUntil:
+    visible: 'Your matches'
+    timeout: 12000
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: coach-chat-message-input
+    timeout: 35000
+- assertVisible:
+    id: coach-free-upgrade-banner

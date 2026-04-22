@@ -25,7 +25,7 @@ describe('AddEditMatchModal', () => {
     const {getByText} = renderWithProvider(
       <AddEditMatchModal {...mockProps} />,
     );
-    expect(getByText('Add New Match')).toBeTruthy();
+    expect(getByText('Add a match')).toBeTruthy();
   });
 
   it('handles name input correctly', () => {
@@ -43,7 +43,7 @@ describe('AddEditMatchModal', () => {
     );
     const hingeButton = getByTestId('platform-hinge-button');
     fireEvent.press(hingeButton);
-    expect(hingeButton.props.mode).toBe('contained');
+    expect(hingeButton.props.accessibilityState?.selected).toBe(true);
   });
 
   it('shows error when trying to add without selecting platform', () => {

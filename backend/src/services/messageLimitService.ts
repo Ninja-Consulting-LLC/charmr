@@ -3,19 +3,6 @@ import {SubscriptionTier} from '../types/enums';
 import logger from '../utils/logger';
 import {getPlanLimits} from '../utils/planLimits';
 
-interface PlanLimits {
-  dailyMessageLimit: number;
-}
-
-const PLAN_LIMITS: Partial<Record<SubscriptionTier, PlanLimits>> = {
-  [SubscriptionTier.FREE]: {
-    dailyMessageLimit: 5,
-  },
-  [SubscriptionTier.PRO]: {
-    dailyMessageLimit: Infinity,
-  },
-};
-
 export const createMessageLimitService = (db: Database) => {
   const getMessageLimits = async (userId: string) => {
     try {

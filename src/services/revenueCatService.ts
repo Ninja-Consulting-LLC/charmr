@@ -136,7 +136,7 @@ export const getMessagePackPaywall = async () => {
 export const handlePurchase = async (
   productId: string,
   user: User | null,
-  setUser: (user: User | null) => void,
+  setUser: (next: Partial<User> | User) => void,
 ): Promise<boolean> => {
   try {
     console.log('[revenueCatService] handlePurchase called with', productId);
@@ -155,7 +155,7 @@ export const handlePurchase = async (
     // Check if user already has an active subscription
     const customerInfo = await Purchases.getCustomerInfo();
     const hasActiveSubscription =
-      customerInfo.entitlements.active['Pro']?.isActive;
+      customerInfo.entitlements.active.Pro?.isActive;
     console.log(
       '[revenueCatService] hasActiveSubscription:',
       hasActiveSubscription,
@@ -179,7 +179,7 @@ export const handlePurchase = async (
     console.log('[revenueCatService] purchasePackage result:', newCustomerInfo);
 
     // Check if purchase was successful
-    if (newCustomerInfo.entitlements.active['Pro']?.isActive) {
+    if (newCustomerInfo.entitlements.active.Pro?.isActive) {
       // Update user's plan in the app
       if (user) {
         const updatedUser = {
@@ -201,7 +201,7 @@ export const handlePurchase = async (
     console.log('[revenueCatService] handlePurchase error:', error);
     // Check if the error is because the purchase was actually successful
     const customerInfo = await Purchases.getCustomerInfo();
-    if (customerInfo.entitlements.active['Pro']?.isActive) {
+    if (customerInfo.entitlements.active.Pro?.isActive) {
       // Purchase was successful despite the error
       if (user) {
         const updatedUser = {
@@ -259,7 +259,7 @@ export const syncSubscriptionState = async (
   try {
     // Only sync if forced or if user has an active subscription
     const customerInfo = await Purchases.getCustomerInfo();
-    const hasProAccess = customerInfo.entitlements.active['Pro']?.isActive;
+    const hasProAccess = customerInfo.entitlements.active.Pro?.isActive;
 
     // If not forcing sync and no active subscription, don't sync
     if (!forceSync && !hasProAccess) {
@@ -320,7 +320,7 @@ export const cancelSubscription = async () => {
     });
 
     // Check if this is a sandbox subscription
-    const proEntitlement = customerInfo.entitlements.active['Pro'];
+    const proEntitlement = customerInfo.entitlements.active.Pro;
     if (proEntitlement?.isSandbox) {
       logger.revenueCat.debug('Sandbox subscription detected');
       return 'SANDBOX';

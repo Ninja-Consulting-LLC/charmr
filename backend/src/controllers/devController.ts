@@ -4,7 +4,7 @@ import {createSummaryService} from '../services/summaryService';
 import logger from '../utils/logger';
 
 export const checkSchemaHealth = async (
-  req: Request,
+  _req: Request,
   res: Response,
   db: Database,
 ) => {

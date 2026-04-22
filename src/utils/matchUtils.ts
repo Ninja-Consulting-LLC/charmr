@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {isAxiosError} from 'axios';
 import axiosInstance from '../services/axiosInstance';
 import {addMatch as addMatchService} from '../services/matchService';
 import {ID} from '../types';
@@ -50,23 +51,29 @@ export const getMatches = async (includeHidden = false): Promise<Match[]> => {
     });
 
     return response.data;
-  } catch (error: any) {
-    // Only treat 404 as an error if it's a user not found error
-    if (
-      error.response?.status === 404 &&
-      error.response?.data?.error === 'User not found'
-    ) {
+  } catch (error: unknown) {
+    const status = isAxiosError(error) ? error.response?.status : undefined;
+    const statusText = isAxiosError(error) ? error.response?.statusText : undefined;
+    const apiErr =
+      isAxiosError(error) &&
+      error.response?.data &&
+      typeof error.response.data === 'object' &&
+      error.response.data !== null &&
+      'error' in error.response.data
+        ? String((error.response.data as {error?: unknown}).error)
+        : undefined;
+
+    if (status === 404 && apiErr === 'User not found') {
       logger.match.error('User not found when getting matches', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
+        status,
+        statusText,
       });
       throw new Error('User not found');
     }
 
-    // For any other error, log it and throw
     logger.match.error('Failed to fetch matches', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
+      status,
+      statusText,
     });
     throw new Error('Failed to fetch matches');
   }

@@ -1,19 +1,11 @@
-import React, {useEffect} from 'react';
-import {
-  Animated,
-  Dimensions,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {Animated, Image, StyleSheet, View, useWindowDimensions} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {theme} from '../theme/theme';
-
-const {width, height} = Dimensions.get('window');
+import {AppText, Screen, tokens} from '../design-system';
 
 export const SplashScreen = () => {
-  const fadeAnim = new Animated.Value(0);
+  const {width, height} = useWindowDimensions();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -21,25 +13,32 @@ export const SplashScreen = () => {
       duration: 1000,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeAnim]);
+
+  const logoW = width * 0.6;
+  const logoH = Math.min(height * 0.2, 160);
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryContainer]}
-        style={styles.gradientBackground}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-      />
-      <Animated.View style={[styles.content, {opacity: fadeAnim}]}>
-        <Image
-          source={require('../../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
+    <Screen safe={false} backgroundColor="transparent">
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[tokens.color.brand.primary, tokens.color.brand.primaryStrong]}
+          style={styles.gradientBackground}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
         />
-        <Text style={styles.text}>Charmr</Text>
-      </Animated.View>
-    </View>
+        <Animated.View style={[styles.content, {opacity: fadeAnim}]}>
+          <Image
+            source={require('../../assets/logo.png')}
+            style={[styles.logo, {width: logoW, height: logoH}]}
+            resizeMode="contain"
+          />
+          <AppText variant="display" color="hero">
+            Charmr
+          </AppText>
+        </Animated.View>
+      </View>
+    </Screen>
   );
 };
 
@@ -50,23 +49,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gradientBackground: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     alignItems: 'center',
+    gap: tokens.space.md,
   },
   logo: {
-    width: width * 0.6,
-    height: height * 0.2,
-    marginBottom: 20,
-  },
-  text: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: theme.colors.surface,
+    marginBottom: tokens.space.sm,
   },
 });

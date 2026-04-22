@@ -8,7 +8,7 @@ export const usePushNotifications = () => {
 
   useEffect(() => {
     const setupPushNotifications = async () => {
-      if (!isAuthenticated || !userId) return;
+      if (!isAuthenticated || !userId) {return;}
 
       // Skip device token updates for anonymous users
       if (user?.email === user?.installationId) {

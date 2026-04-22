@@ -1,8 +1,16 @@
 import React from 'react';
-import {Pressable, StyleSheet, Text as RNText, View} from 'react-native';
-import {IconButton, Modal, Portal, Switch, Text} from 'react-native-paper';
+import {Pressable, StyleSheet, View} from 'react-native';
+import {Modal, Portal, Switch, ThemeProvider} from 'react-native-paper';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalIconButton,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
 import {MESSAGES} from '../constants/messages';
-import {theme} from '../theme/theme';
 import TypingIndicator from './TypingIndicator';
 
 interface ReplyModalProps {
@@ -20,7 +28,7 @@ interface ReplyModalProps {
 
 const ReplyModal: React.FC<ReplyModalProps> = ({
   visible,
-  onDismiss,
+  onDismiss: _onDismiss,
   reply,
   onDone,
   onCopy,
@@ -34,140 +42,128 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={() => {}}
-        contentContainerStyle={styles.modalContainer}>
-        <View style={styles.overflowContainer}>
-          <View testID="reply-modal" style={styles.modalContent}>
-            {/* Reply Text */}
-            <Pressable onPress={onCopy} style={styles.replyContainer}>
+        contentContainerStyle={paperModalContent.shell}>
+        <ModalSheet padded style={styles.card}>
+          <ThemeProvider theme={darkModalPaperTheme}>
+            <Pressable
+              onPress={onCopy}
+              style={styles.replyPressable}
+              accessibilityRole="summary">
               {loading ? (
                 <View style={styles.loadingContainer}>
                   <TypingIndicator />
                 </View>
               ) : (
                 <>
-                  <RNText
+                  <AppText
                     testID="reply-modal-text"
                     accessibilityLabel={reply}
-                    style={styles.replyText}>
+                    variant="body"
+                    color="hero"
+                    style={styles.replyNativeText}>
                     {reply}
-                  </RNText>
-                  <IconButton
+                  </AppText>
+                  <ModalIconButton
                     icon="content-copy"
-                    size={20}
+                    size={36}
                     style={styles.copyIcon}
                     onPress={onCopy}
+                    accessibilityLabel="Copy reply"
                   />
                 </>
               )}
             </Pressable>
 
-            {/* Delete Switch - Only show if screenshots were selected */}
             {hasScreenshots && !loading && (
               <View style={styles.deleteSection}>
-                <Text variant="bodyMedium">
+                <AppText variant="bodyMedium" color="heroMuted" style={styles.deleteHint}>
                   {MESSAGES.REPLY_MODAL_DELETE_HINT}
-                </Text>
+                </AppText>
                 <Switch
                   value={deleteScreenshots}
                   onValueChange={onDeleteScreenshots}
+                  trackColor={{
+                    false: 'rgba(255, 255, 255, 0.28)',
+                    true: tokens.color.accent.mint,
+                  }}
                 />
               </View>
             )}
 
-            {/* Action Buttons */}
             <View style={styles.actionButtons}>
               {!loading && (
-                <Pressable
+                <CharmrButton
+                  label="Regenerate"
+                  variant="outline"
                   onPress={onRegenerate}
-                  style={styles.regenerateButton}>
-                  <Text variant="bodyMedium" style={styles.regenerateText}>
-                    Regenerate
-                  </Text>
-                </Pressable>
+                  style={styles.actionBtn}
+                />
               )}
-              <Pressable
+              <CharmrButton
                 testID="reply-modal-done"
+                label={MESSAGES.REPLY_MODAL_DONE}
+                variant="primary"
                 onPress={onDone}
-                style={styles.doneButton}>
-                <Text variant="bodyMedium" style={styles.doneText}>
-                  {MESSAGES.REPLY_MODAL_DONE}
-                </Text>
-              </Pressable>
+                style={styles.actionBtn}
+              />
             </View>
-          </View>
-        </View>
+          </ThemeProvider>
+        </ModalSheet>
       </Modal>
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    margin: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+  card: {
+    margin: 0,
   },
-  overflowContainer: {
-    overflow: 'hidden',
-  },
-  modalContent: {
-    padding: 20,
-  },
-  replyContainer: {
+  replyPressable: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: tokens.radii.md,
+    padding: tokens.space.md,
+    marginBottom: tokens.space.lg,
     minHeight: 100,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
   },
-  replyText: {
+  replyNativeText: {
     flex: 1,
-    marginRight: 8,
-    fontSize: 16,
-    lineHeight: 22,
-    color: theme.colors.onSurface,
+    marginRight: tokens.space.sm,
   },
   copyIcon: {
     margin: 0,
-    opacity: 0.6,
+    opacity: 0.85,
   },
   deleteSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 16,
+    paddingVertical: tokens.space.sm,
+    marginBottom: tokens.space.lg,
+    gap: tokens.space.md,
+  },
+  deleteHint: {
+    flex: 1,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: tokens.space.md,
   },
-  doneButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  doneText: {
-    color: theme.colors.onPrimary,
-  },
-  regenerateButton: {
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  regenerateText: {
-    color: theme.colors.onSurfaceVariant,
+  actionBtn: {
+    minWidth: 120,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 100,
   },
 });
 

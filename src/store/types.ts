@@ -1,6 +1,7 @@
-import { SubscriptionTier } from '../types/enums';
-import { User } from '../types/user';
-import { Match } from '../utils/matchUtils';
+import type {Dispatch, SetStateAction} from 'react';
+import {SubscriptionTier} from '../types/enums';
+import {User} from '../types/user';
+import {Match} from '../utils/matchUtils';
 
 export interface StoreContextType {
   showKeyboardModal: boolean;
@@ -14,7 +15,7 @@ export interface StoreContextType {
   authBypass: boolean;
   setAuthBypass: (bypass: boolean) => void;
   user: User;
-  setUser: (user: User) => void;
+  setUser: (user: Partial<User>) => void;
   isAuthenticated: boolean;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   isLoading: boolean;
@@ -26,7 +27,7 @@ export interface StoreContextType {
   linkAnonymousUser: (registeredUserId: string) => Promise<void>;
   handleProviderLogin: (firebaseUser: any) => Promise<void>;
   matches: Match[];
-  setMatches: (matches: Match[]) => void;
+  setMatches: Dispatch<SetStateAction<Match[]>>;
   addMatch: (match: Match) => void;
   updateMatch: (match: Match) => void;
   removeMatch: (matchId: string) => void;
@@ -43,7 +44,7 @@ export interface StoreState {
   userId: string;
   setUserId: (userId: string) => void;
   user: User;
-  setUser: (user: User) => void;
+  setUser: (user: Partial<User>) => void;
   isAuthenticated: boolean;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   isLoading: boolean;

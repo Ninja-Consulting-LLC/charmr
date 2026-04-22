@@ -1,0 +1,7 @@
+# Ephemeral probe: warm launch (no clearState) — delete after triage.
+appId: com.ninjadating.charmr
+---
+- launchApp
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 15000

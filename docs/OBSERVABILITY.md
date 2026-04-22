@@ -12,3 +12,31 @@ Track these **before and after** large refactors:
 | Mobile crash-free sessions | Play Console / App Store / crash SDK | If integrated. |
 
 Set **alert thresholds** in your hosting/monitoring tool; this repo does not ship provider-specific config.
+
+## HTTP API (this backend)
+
+| Endpoint | Role |
+|----------|------|
+| `GET /health` | **Liveness** — process is up; use for load balancer “is the Node process responding”. |
+| `GET /health/ready` | **Readiness** — pings the configured database (SQLite `SELECT 1` or Firestore `users` probe). Fails with **503** if storage is unreachable. |
+
+## Request correlation
+
+- Middleware assigns or propagates **`X-Request-ID`** (incoming `x-request-id` is respected when non-empty).
+- Response includes the same **`X-Request-ID`** header.
+- Structured logs on the completion path include **`requestId`** where the request logger runs; the global error handler logs **`requestId`** on uncaught pipeline errors.
+
+When debugging a user report, ask for **`X-Request-ID`** from client or proxy logs and grep server logs for that value.
+
+## Log fields worth standardizing
+
+| Field | Use |
+|-------|-----|
+| `userId` | Authenticated user / `req.body.userId` on generate-reply. |
+| `matchId` | Match context when present. |
+| `requestId` | Correlation (see above). |
+| `duration` / status | Already on debug “Request completed” lines from `requestLogger`. |
+
+## E2E smoke
+
+`npm run test:e2e:verify-api` curls **`/health`**, **`/health/ready`**, checks **`X-Request-ID`** on `/health`, and **`POST /api/support`** (implemented in **`scripts/verify-e2e-support-api.sh`**).

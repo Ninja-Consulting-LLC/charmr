@@ -1,0 +1,15 @@
+{
+  "ignores": [
+    "@types/jest",
+    "@jest/globals",
+    "@eslint/js",
+    "eslint",
+    "globals",
+    "typescript-eslint",
+    "ts-node",
+    "nodemon",
+    "jest",
+    "ts-jest"
+  ],
+  "ignorePatterns": ["dist", "coverage", "scripts"]
+}

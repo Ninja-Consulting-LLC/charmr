@@ -21,20 +21,17 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
       }
     }
   >
-    <RNCSafeAreaView
-      edges={
-        {
-          "bottom": "additive",
-          "left": "additive",
-          "right": "additive",
-          "top": "additive",
-        }
-      }
+    <View
       style={
-        {
-          "backgroundColor": "#7E22CE",
-          "flex": 1,
-        }
+        [
+          {
+            "flex": 1,
+          },
+          {
+            "backgroundColor": "#7E22CE",
+          },
+          undefined,
+        ]
       }
     >
       <View
@@ -44,7 +41,45 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
           }
         }
       >
-        <View
+        <BVLinearGradient
+          colors={
+            [
+              4286456526,
+              4282058596,
+            ]
+          }
+          endPoint={
+            {
+              "x": 1,
+              "y": 1,
+            }
+          }
+          locations={null}
+          startPoint={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+        />
+        <RNCSafeAreaView
+          edges={
+            {
+              "bottom": "off",
+              "left": "additive",
+              "right": "additive",
+              "top": "additive",
+            }
+          }
           style={
             {
               "flex": 1,
@@ -53,15 +88,19 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
         >
           <View
             style={
-              {
-                "alignItems": "center",
-                "borderBottomColor": "rgba(0, 0, 0, 0.12)",
-                "borderBottomWidth": 1,
-                "flexDirection": "row",
-                "justifyContent": "space-between",
-                "paddingHorizontal": 16,
-                "paddingVertical": 12,
-              }
+              [
+                {
+                  "justifyContent": "center",
+                  "minHeight": 56,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 12,
+                },
+                {
+                  "borderBottomColor": "rgba(255, 255, 255, 0.2)",
+                  "borderBottomWidth": 0.5,
+                },
+                undefined,
+              ]
             }
           >
             <View
@@ -69,53 +108,56 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
                 {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "gap": 8,
+                  "gap": 12,
+                  "justifyContent": "space-between",
                 }
               }
             >
-              <Image
-                resizeMode="contain"
-                source="test-file-stub"
+              <View
                 style={
                   {
-                    "height": 50,
-                    "width": 50,
+                    "alignItems": "center",
+                    "flex": 1,
+                    "flexDirection": "row",
+                    "gap": 8,
                   }
                 }
-              />
-              <Text
-                style={
-                  {
-                    "color": "#FFFFFF",
-                  }
-                }
-                variant="headlineSmall"
               >
-                Charmr
-              </Text>
-            </View>
-            <View
-              style={
-                {
-                  "flexDirection": "row",
+                <Image
+                  resizeMode="contain"
+                  source="test-file-stub"
+                  style={
+                    {
+                      "height": 50,
+                      "width": 50,
+                    }
+                  }
+                />
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 18,
+                        "fontWeight": "600",
+                        "letterSpacing": -0.1,
+                        "lineHeight": 24,
+                      },
+                      undefined,
+                    ]
+                  }
+                >
+                  Charmr
+                </Text>
+              </View>
+              <View
+                style={
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                  }
                 }
-              }
-            >
-              <IconButton
-                accessibilityLabel="Open account menu"
-                icon="account-circle"
-                iconColor="#40E0D0"
-                onPress={[Function]}
-                size={24}
-                testID="user-menu-button"
-              />
-              <IconButton
-                accessibilityLabel="Open development menu"
-                icon="cog"
-                iconColor="#40E0D0"
-                onPress={[Function]}
-                size={24}
-                testID="dev-menu-button"
               />
             </View>
           </View>
@@ -126,94 +168,569 @@ exports[`HomeScreen matches snapshot in development mode 1`] = `
           </View>
           <View
             style={
-              {
-                "position": "absolute",
-                "right": 0,
-                "top": "80%",
-                "transform": [
-                  {
-                    "translateY": -50,
-                  },
-                ],
-                "zIndex": 1,
-              }
+              [
+                {
+                  "backgroundColor": "transparent",
+                  "borderTopColor": "rgba(255, 255, 255, 0.16)",
+                  "borderTopWidth": 0.5,
+                },
+                {
+                  "paddingBottom": 4,
+                },
+              ]
             }
           >
             <View
               style={
                 {
-                  "position": "relative",
+                  "alignItems": "stretch",
+                  "flexDirection": "row",
+                  "justifyContent": "space-around",
+                  "paddingBottom": 4,
+                  "paddingHorizontal": 4,
+                  "paddingTop": 4,
                 }
               }
             >
-              <Button
-                labelStyle={
+              <View
+                accessibilityHint="Opens the dating coach chat"
+                accessibilityLabel="Try Coach"
+                accessibilityRole="button"
+                accessibilityState={
                   {
-                    "color": "#000000",
-                    "fontSize": 14,
-                    "fontWeight": "500",
-                    "marginLeft": 8,
-                    "textAlign": "center",
-                    "transform": [
-                      {
-                        "rotate": "0deg",
-                      },
-                    ],
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
                   }
                 }
-                mode="contained"
-                onPress={[Function]}
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
                 style={
                   [
                     {
-                      "borderRadius": 10,
-                      "elevation": 4,
-                      "marginRight": -55,
-                      "paddingHorizontal": 8,
-                      "paddingVertical": 0,
-                      "shadowColor": "#000",
-                      "shadowOffset": {
-                        "height": 0,
-                        "width": -2,
-                      },
-                      "shadowOpacity": 0.25,
-                      "shadowRadius": 3.84,
-                      "transform": [
-                        {
-                          "rotate": "-90deg",
-                        },
-                      ],
-                      "width": 140,
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
                     },
+                    false,
                     {
-                      "backgroundColor": "#40E0D0",
+                      "marginHorizontal": 2,
                     },
+                  ]
+                }
+                testID="dating-coach-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <View
+                    style={
+                      {
+                        "alignItems": "center",
+                        "elevation": 4,
+                        "height": 24,
+                        "justifyContent": "center",
+                        "shadowColor": "#40E0D0",
+                        "shadowOffset": {
+                          "height": 0,
+                          "width": 0,
+                        },
+                        "shadowOpacity": 0.75,
+                        "shadowRadius": 8,
+                        "width": 24,
+                      }
+                    }
+                  >
+                    <Text
+                      accessibilityElementsHidden={true}
+                      allowFontScaling={false}
+                      importantForAccessibility="no-hide-descendants"
+                      pointerEvents="none"
+                      selectable={false}
+                      style={
+                        [
+                          {
+                            "color": "#40E0D0",
+                            "fontSize": 20,
+                          },
+                          [
+                            {
+                              "lineHeight": 20,
+                              "transform": [
+                                {
+                                  "scaleX": 1,
+                                },
+                              ],
+                            },
+                            {
+                              "backgroundColor": "transparent",
+                            },
+                          ],
+                          {
+                            "fontFamily": "Material Design Icons",
+                            "fontStyle": "normal",
+                            "fontWeight": "normal",
+                          },
+                          {},
+                        ]
+                      }
+                    >
+                      󰢙
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#FFFFFF",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Try Coach
+                  </Text>
+                  <View
+                    style={
+                      {
+                        "backgroundColor": "#40E0D0",
+                        "borderRadius": 2.5,
+                        "elevation": 4,
+                        "height": 5,
+                        "shadowColor": "#40E0D0",
+                        "shadowOffset": {
+                          "height": 0,
+                          "width": 0,
+                        },
+                        "shadowOpacity": 0.9,
+                        "shadowRadius": 5,
+                        "width": 5,
+                      }
+                    }
+                  />
+                </View>
+              </View>
+              <View
+                accessibilityHint="Share feedback or contact support"
+                accessibilityLabel="Open Feedback"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
+                    },
+                    false,
+                    undefined,
                   ]
                 }
                 testID="feedback-button"
               >
-                Feedback
-              </Button>
-              <IconButton
-                icon="close"
-                onPress={[Function]}
-                size={14}
-                style={
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 20,
+                        },
+                        [
+                          {
+                            "lineHeight": 20,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰍪
+                  </Text>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "rgba(255, 255, 255, 0.72)",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Feedback
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityHint="Open your account and settings menu"
+                accessibilityLabel="Open Account Menu"
+                accessibilityRole="button"
+                accessibilityState={
                   {
-                    "margin": 0,
-                    "padding": 0,
-                    "position": "absolute",
-                    "right": 0,
-                    "top": -40,
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
                   }
                 }
-                testID="feedback-close-button"
-              />
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
+                    },
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="user-menu-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 20,
+                        },
+                        [
+                          {
+                            "lineHeight": 20,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰀉
+                  </Text>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "rgba(255, 255, 255, 0.72)",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Account
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Open Dev Menu"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
+                    },
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="dev-menu-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 20,
+                        },
+                        [
+                          {
+                            "lineHeight": 20,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰒓
+                  </Text>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "rgba(255, 255, 255, 0.72)",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Dev
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
-        </View>
+        </RNCSafeAreaView>
       </View>
-    </RNCSafeAreaView>
+    </View>
   </View>
 </RNCSafeAreaProvider>
 `;
@@ -239,20 +756,17 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
       }
     }
   >
-    <RNCSafeAreaView
-      edges={
-        {
-          "bottom": "additive",
-          "left": "additive",
-          "right": "additive",
-          "top": "additive",
-        }
-      }
+    <View
       style={
-        {
-          "backgroundColor": "#7E22CE",
-          "flex": 1,
-        }
+        [
+          {
+            "flex": 1,
+          },
+          {
+            "backgroundColor": "#7E22CE",
+          },
+          undefined,
+        ]
       }
     >
       <View
@@ -262,7 +776,45 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
           }
         }
       >
-        <View
+        <BVLinearGradient
+          colors={
+            [
+              4286456526,
+              4282058596,
+            ]
+          }
+          endPoint={
+            {
+              "x": 1,
+              "y": 1,
+            }
+          }
+          locations={null}
+          startPoint={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+        />
+        <RNCSafeAreaView
+          edges={
+            {
+              "bottom": "off",
+              "left": "additive",
+              "right": "additive",
+              "top": "additive",
+            }
+          }
           style={
             {
               "flex": 1,
@@ -271,15 +823,19 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
         >
           <View
             style={
-              {
-                "alignItems": "center",
-                "borderBottomColor": "rgba(0, 0, 0, 0.12)",
-                "borderBottomWidth": 1,
-                "flexDirection": "row",
-                "justifyContent": "space-between",
-                "paddingHorizontal": 16,
-                "paddingVertical": 12,
-              }
+              [
+                {
+                  "justifyContent": "center",
+                  "minHeight": 56,
+                  "paddingHorizontal": 16,
+                  "paddingVertical": 12,
+                },
+                {
+                  "borderBottomColor": "rgba(255, 255, 255, 0.2)",
+                  "borderBottomWidth": 0.5,
+                },
+                undefined,
+              ]
             }
           >
             <View
@@ -287,45 +843,56 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
                 {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "gap": 8,
+                  "gap": 12,
+                  "justifyContent": "space-between",
                 }
               }
             >
-              <Image
-                resizeMode="contain"
-                source="test-file-stub"
+              <View
                 style={
                   {
-                    "height": 50,
-                    "width": 50,
+                    "alignItems": "center",
+                    "flex": 1,
+                    "flexDirection": "row",
+                    "gap": 8,
                   }
                 }
-              />
-              <Text
-                style={
-                  {
-                    "color": "#FFFFFF",
-                  }
-                }
-                variant="headlineSmall"
               >
-                Charmr
-              </Text>
-            </View>
-            <View
-              style={
-                {
-                  "flexDirection": "row",
+                <Image
+                  resizeMode="contain"
+                  source="test-file-stub"
+                  style={
+                    {
+                      "height": 50,
+                      "width": 50,
+                    }
+                  }
+                />
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 18,
+                        "fontWeight": "600",
+                        "letterSpacing": -0.1,
+                        "lineHeight": 24,
+                      },
+                      undefined,
+                    ]
+                  }
+                >
+                  Charmr
+                </Text>
+              </View>
+              <View
+                style={
+                  {
+                    "alignItems": "center",
+                    "flexDirection": "row",
+                  }
                 }
-              }
-            >
-              <IconButton
-                accessibilityLabel="Open account menu"
-                icon="account-circle"
-                iconColor="#40E0D0"
-                onPress={[Function]}
-                size={24}
-                testID="user-menu-button"
               />
             </View>
           </View>
@@ -336,94 +903,446 @@ exports[`HomeScreen matches snapshot in production mode 1`] = `
           </View>
           <View
             style={
-              {
-                "position": "absolute",
-                "right": 0,
-                "top": "80%",
-                "transform": [
-                  {
-                    "translateY": -50,
-                  },
-                ],
-                "zIndex": 1,
-              }
+              [
+                {
+                  "backgroundColor": "transparent",
+                  "borderTopColor": "rgba(255, 255, 255, 0.16)",
+                  "borderTopWidth": 0.5,
+                },
+                {
+                  "paddingBottom": 4,
+                },
+              ]
             }
           >
             <View
               style={
                 {
-                  "position": "relative",
+                  "alignItems": "stretch",
+                  "flexDirection": "row",
+                  "justifyContent": "space-around",
+                  "paddingBottom": 4,
+                  "paddingHorizontal": 4,
+                  "paddingTop": 4,
                 }
               }
             >
-              <Button
-                labelStyle={
+              <View
+                accessibilityHint="Opens the dating coach chat"
+                accessibilityLabel="Try Coach"
+                accessibilityRole="button"
+                accessibilityState={
                   {
-                    "color": "#000000",
-                    "fontSize": 14,
-                    "fontWeight": "500",
-                    "marginLeft": 8,
-                    "textAlign": "center",
-                    "transform": [
-                      {
-                        "rotate": "0deg",
-                      },
-                    ],
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
                   }
                 }
-                mode="contained"
-                onPress={[Function]}
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
                 style={
                   [
                     {
-                      "borderRadius": 10,
-                      "elevation": 4,
-                      "marginRight": -55,
-                      "paddingHorizontal": 8,
-                      "paddingVertical": 0,
-                      "shadowColor": "#000",
-                      "shadowOffset": {
-                        "height": 0,
-                        "width": -2,
-                      },
-                      "shadowOpacity": 0.25,
-                      "shadowRadius": 3.84,
-                      "transform": [
-                        {
-                          "rotate": "-90deg",
-                        },
-                      ],
-                      "width": 140,
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
                     },
+                    false,
                     {
-                      "backgroundColor": "#40E0D0",
+                      "marginHorizontal": 2,
                     },
+                  ]
+                }
+                testID="dating-coach-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <View
+                    style={
+                      {
+                        "alignItems": "center",
+                        "elevation": 4,
+                        "height": 24,
+                        "justifyContent": "center",
+                        "shadowColor": "#40E0D0",
+                        "shadowOffset": {
+                          "height": 0,
+                          "width": 0,
+                        },
+                        "shadowOpacity": 0.75,
+                        "shadowRadius": 8,
+                        "width": 24,
+                      }
+                    }
+                  >
+                    <Text
+                      accessibilityElementsHidden={true}
+                      allowFontScaling={false}
+                      importantForAccessibility="no-hide-descendants"
+                      pointerEvents="none"
+                      selectable={false}
+                      style={
+                        [
+                          {
+                            "color": "#40E0D0",
+                            "fontSize": 20,
+                          },
+                          [
+                            {
+                              "lineHeight": 20,
+                              "transform": [
+                                {
+                                  "scaleX": 1,
+                                },
+                              ],
+                            },
+                            {
+                              "backgroundColor": "transparent",
+                            },
+                          ],
+                          {
+                            "fontFamily": "Material Design Icons",
+                            "fontStyle": "normal",
+                            "fontWeight": "normal",
+                          },
+                          {},
+                        ]
+                      }
+                    >
+                      󰢙
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#FFFFFF",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Try Coach
+                  </Text>
+                  <View
+                    style={
+                      {
+                        "backgroundColor": "#40E0D0",
+                        "borderRadius": 2.5,
+                        "elevation": 4,
+                        "height": 5,
+                        "shadowColor": "#40E0D0",
+                        "shadowOffset": {
+                          "height": 0,
+                          "width": 0,
+                        },
+                        "shadowOpacity": 0.9,
+                        "shadowRadius": 5,
+                        "width": 5,
+                      }
+                    }
+                  />
+                </View>
+              </View>
+              <View
+                accessibilityHint="Share feedback or contact support"
+                accessibilityLabel="Open Feedback"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
+                    },
+                    false,
+                    undefined,
                   ]
                 }
                 testID="feedback-button"
               >
-                Feedback
-              </Button>
-              <IconButton
-                icon="close"
-                onPress={[Function]}
-                size={14}
-                style={
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 20,
+                        },
+                        [
+                          {
+                            "lineHeight": 20,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰍪
+                  </Text>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "rgba(255, 255, 255, 0.72)",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Feedback
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityHint="Open your account and settings menu"
+                accessibilityLabel="Open Account Menu"
+                accessibilityRole="button"
+                accessibilityState={
                   {
-                    "margin": 0,
-                    "padding": 0,
-                    "position": "absolute",
-                    "right": 0,
-                    "top": -40,
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
                   }
                 }
-                testID="feedback-close-button"
-              />
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                hitSlop={8}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 12,
+                      "flex": 1,
+                      "gap": 2,
+                      "justifyContent": "center",
+                      "minHeight": 48,
+                      "paddingVertical": 4,
+                    },
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="user-menu-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                    }
+                  }
+                >
+                  <Text
+                    accessibilityElementsHidden={true}
+                    allowFontScaling={false}
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    selectable={false}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 20,
+                        },
+                        [
+                          {
+                            "lineHeight": 20,
+                            "transform": [
+                              {
+                                "scaleX": 1,
+                              },
+                            ],
+                          },
+                          {
+                            "backgroundColor": "transparent",
+                          },
+                        ],
+                        {
+                          "fontFamily": "Material Design Icons",
+                          "fontStyle": "normal",
+                          "fontWeight": "normal",
+                        },
+                        {},
+                      ]
+                    }
+                  >
+                    󰀉
+                  </Text>
+                </View>
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 2,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "rgba(255, 255, 255, 0.72)",
+                          "fontSize": 14,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.2,
+                          "lineHeight": 20,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Account
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
-        </View>
+        </RNCSafeAreaView>
       </View>
-    </RNCSafeAreaView>
+    </View>
   </View>
 </RNCSafeAreaProvider>
 `;

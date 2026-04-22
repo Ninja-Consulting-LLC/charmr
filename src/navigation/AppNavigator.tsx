@@ -1,14 +1,13 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import React, {useEffect, useRef} from 'react';
-import {ActivityIndicator, View} from 'react-native';
 import {DeepLinkHandler} from '../components/DeepLinkHandler';
+import {LoadingState, Screen} from '../design-system';
 import CoachChatScreen from '../screens/CoachChatScreen';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import {useStore} from '../store/StoreProvider';
-import {theme} from '../theme/theme';
 import {logger} from '../utils/logger';
 import {RootStackParamList} from './types';
 
@@ -35,12 +34,11 @@ const AppNavigator = () => {
     };
   }, [isAuthenticated, isLoading]);
 
-  // Show loading indicator while checking authentication
   if (isLoading) {
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
+      <Screen>
+        <LoadingState />
+      </Screen>
     );
   }
 
@@ -67,14 +65,14 @@ const AppNavigator = () => {
           component={HomeScreen}
           options={{
             headerShown: false,
-            gestureEnabled: false, // Prevent swipe back to login/onboarding
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen
           name="CoachChat"
           component={CoachChatScreen}
           options={{
-            headerShown: true,
+            headerShown: false,
             headerTransparent: true,
             headerShadowVisible: false,
           }}

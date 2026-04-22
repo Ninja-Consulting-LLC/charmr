@@ -33,6 +33,7 @@ export const createOpenAIService = (db: Database) => {
             request.userId,
             request.matchId,
             user?.plan || SubscriptionTier.FREE,
+            config.openai.maxCoachMessages * 4,
           )
         : [];
 
@@ -246,7 +247,7 @@ function selectModel(request: GenerateReplyRequest): string {
 }
 
 // Helper function to get prompt variant for a user
-function getPromptVariantForUser(userId: string): PromptVariant {
+function getPromptVariantForUser(_userId: string): PromptVariant {
   // First try to use the environment variable
   if (config.prompt.variant) {
     return config.prompt.variant;

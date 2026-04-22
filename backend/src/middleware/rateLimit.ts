@@ -16,8 +16,8 @@ export const createRateLimiter = () => {
   const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
   const MAX_REQUESTS = 100; // requests per window
 
-  // In-memory store for rate limiting
-  // In production, this should use Redis or similar
+  // In-memory store: OK for single-node dev; for horizontally scaled production,
+  // use a shared limiter (e.g. Redis + rate-limit-redis) so counts are not per-instance.
   const ipLimits = new Map<string, RateLimitEntry>();
 
   const check = async (ip: string): Promise<RateLimitResult> => {

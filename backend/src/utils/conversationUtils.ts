@@ -7,21 +7,35 @@ import logger from '../utils/logger';
 
 export type {Message} from '../db/types';
 
+const MAX_CONVERSATION_FETCH = 500;
+
 export const loadConversation = async (
   db: Database,
   userId: string,
   matchId: string,
   userPlan: string,
-  limit: number = 10,
+  limit: number = 50,
 ): Promise<Message[]> => {
   try {
     const messageRepository = getMessageRepository(db);
 
-    // Get messages for the match
+    const cap = Math.max(1, Math.min(limit, MAX_CONVERSATION_FETCH));
+
+    // Newest-first from DB; we re-sort ascending below. Cap reduces load for long threads.
     const {messages} = await messageRepository.getMessagesByMatch(
       userId,
       matchId,
+      undefined,
+      {limit: cap, offset: 0},
     );
+
+    logger.debug('loadConversation', {
+      userId,
+      matchId,
+      userPlan,
+      limit: cap,
+      rowCount: messages.length,
+    });
 
     // Get the match summary
     const summaryService = createSummaryService(db);

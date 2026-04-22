@@ -14,7 +14,7 @@
     "ios:device": "react-native run-ios --device 'Ninja phone'",
     "ios:e2e-manual": "bash scripts/run-ios-manual-picker.sh",
     "ios:clean": "rm -rf ios/Pods ios/Podfile.lock && cd ios && pod deintegrate && pod install && cd ..",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "start": "react-native start",
     "test:backend": "DATABASE_TYPE=sqlite npm test -w charmr-backend",
     "test:backend:one": "DATABASE_TYPE=sqlite npm test -w charmr-backend --",

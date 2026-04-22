@@ -4,30 +4,9 @@ import {authenticateUser} from '../middleware/auth';
 import {sendPushNotification} from '../services/pushNotificationService';
 import logger from '../utils/logger';
 
-const createPushNotificationRouter = (db: Database) => {
+const createPushNotificationRouter = (_db: Database) => {
   const router = express.Router();
 
-  // Helper to get user ID from either Firebase token or anonymous user ID
-  const getUserFromRequest = (req: express.Request) => {
-    // In development mode, just use the userId from params
-    if (process.env.NODE_ENV === 'development') {
-      return req.params.userId;
-    }
-
-    // If using Firebase token, get user ID from token
-    if (req.headers.authorization?.startsWith('Bearer ')) {
-      // Use the verified user ID from the token
-      return req.user?.uid;
-    }
-    // If using anonymous user ID (installation ID), use that
-    const anonymousUserId = req.headers['x-anonymous-user'] as string;
-    if (!anonymousUserId) {
-      throw new Error('No user ID found in request');
-    }
-    return anonymousUserId;
-  };
-
-  // Apply authentication middleware to all routes
   router.use(authenticateUser);
 
   // Test endpoint to send a push notification

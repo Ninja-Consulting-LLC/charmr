@@ -11,6 +11,7 @@ export const requestLogger = (
   res.on('finish', () => {
     const duration = Date.now() - start;
     logger.debug('Request completed', {
+      requestId: req.requestId,
       method: req.method,
       url: req.url,
       status: res.statusCode,

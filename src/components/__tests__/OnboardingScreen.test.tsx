@@ -68,30 +68,34 @@ describe('OnboardingScreen', () => {
   it('renders first step content correctly', () => {
     const {getByText} = renderOnboarding();
 
-    expect(getByText('Enable Dating Keyboard')).toBeTruthy();
+    expect(getByText('Set up the Charmr keyboard')).toBeTruthy();
     expect(
-      getByText('Follow these steps to enable Charmr keyboard:'),
+      getByText(
+        'Charmr works from your keyboard like any language keyboard. Add it once in Settings. After that you can use it in dating apps, texts, and more.',
+      ),
     ).toBeTruthy();
-    expect(getByText('1. Go to Settings')).toBeTruthy();
-    expect(getByText('6. Select Charmr')).toBeTruthy();
+    expect(getByText('1. Open Settings')).toBeTruthy();
+    expect(
+      getByText('6. Choose Charmr, then allow Full Access if asked'),
+    ).toBeTruthy();
   });
 
   it('navigates through steps when clicking next', () => {
     const {getByTestId, getByText} = renderOnboarding();
 
-    expect(getByText('Enable Dating Keyboard')).toBeTruthy();
+    expect(getByText('Set up the Charmr keyboard')).toBeTruthy();
 
     const nextButton = getByTestId('next-button');
     fireEvent.press(nextButton);
-    expect(getByText('Select Charmr Keyboard')).toBeTruthy();
+    expect(getByText('Pick Charmr when you type')).toBeTruthy();
 
     fireEvent.press(nextButton);
-    expect(getByText('Register for Better Experience')).toBeTruthy();
+    expect(getByText('Sign in to save your progress')).toBeTruthy();
 
-    expect(() => getByText('Enable Dating Keyboard')).toThrow();
+    expect(() => getByText('Set up the Charmr keyboard')).toThrow();
   });
 
-  it('shows Register button on last step', () => {
+  it('shows create-account button on last step', () => {
     const {getByTestId} = renderOnboarding();
 
     const nextButton = getByTestId('next-button');

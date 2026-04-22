@@ -2,16 +2,18 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useState} from 'react';
 import {
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import {
   ActivityIndicator,
   Alert,
   Animated,
   Linking,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
-import {Divider, IconButton, List, Portal, useTheme} from 'react-native-paper';
+import {Divider, List, Portal} from 'react-native-paper';
 import Purchases from 'react-native-purchases';
 import RevenueCatUI from 'react-native-purchases-ui';
 import {signOut} from '../config/firebase';
@@ -24,6 +26,7 @@ import {
   syncSubscriptionState,
 } from '../services/revenueCatService';
 import {deleteUserAccount, updateUserPlan} from '../services/userService';
+import {AppText, ModalIconButton, tokens} from '../design-system';
 import {useStore} from '../store';
 import {SubscriptionTier} from '../types/enums';
 import {logger} from '../utils/logger';
@@ -49,7 +52,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
   onOpenSupport,
   onMatchesUpdated,
 }) => {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
@@ -302,7 +305,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
     }
   };
 
-  if (!isVisible && !visible) return null;
+  if (!isVisible && !visible) {return null;}
 
   const userPlan = user?.plan || SubscriptionTier.FREE;
   const dailyMessagesUsed = user?.dailyMessagesUsed || 0;
@@ -315,7 +318,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         style={[
           styles.overlay,
           {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: tokens.color.overlay.heavy,
             opacity: fadeAnim,
           },
         ]}
@@ -325,162 +328,163 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
         style={[
           styles.drawer,
           {
-            backgroundColor: theme.colors.primary,
+            backgroundColor: tokens.color.brand.primary,
             transform: [{translateX: slideAnim}],
           },
         ]}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top + 8}]}>
           <View style={styles.headerLeft}>
-            <Text style={[styles.planText, {color: theme.colors.surface}]}>
-              Account Settings
-            </Text>
+            <AppText variant="titleSm" color="hero" style={styles.planText}>
+              Your account
+            </AppText>
           </View>
           <View style={styles.headerRight}>
-            <IconButton
+            <ModalIconButton
               testID="user-menu-close-button"
               icon="close"
-              size={24}
+              size={40}
               onPress={onDismiss}
               style={styles.closeButton}
-              iconColor={theme.colors.surface}
               accessibilityLabel="Close account menu"
             />
           </View>
         </View>
         <ScrollView style={styles.scrollView}>
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryRow}>
+              <AppText variant="label" color="heroMuted">
+                Plan
+              </AppText>
+              <AppText variant="bodyMedium" color="hero">
+                {userPlan}
+              </AppText>
+            </View>
+            <View style={styles.summaryRow}>
+              <AppText variant="label" color="heroMuted">
+                Messages today
+              </AppText>
+              <AppText variant="bodyMedium" color="hero">
+                {userPlan === SubscriptionTier.PRO
+                  ? 'Unlimited'
+                  : `${dailyMessagesUsed}/${dailyMessageLimit}`}
+              </AppText>
+            </View>
+          </View>
           {/* User Profile Section */}
-          <List.Section>
+          <List.Section style={styles.sectionCard}>
             <List.Subheader
-              style={[styles.subheader, {color: theme.colors.surface}]}>
+              style={[styles.subheader, {color: tokens.color.hero.text}]}>
               Profile
             </List.Subheader>
             {user.email && user.email !== user.installationId ? (
               <View style={styles.infoBox}>
                 <View style={styles.infoRow}>
-                  <List.Icon icon="account" color={theme.colors.surface} />
+                  <List.Icon icon="account" color={tokens.color.hero.text} />
                   <View style={styles.infoContent}>
-                    <Text
-                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
+                    <AppText
+                      variant="bodyMedium"
+                      color="hero"
+                      style={styles.infoTitle}>
                       {user.name || 'Guest'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.infoDescription,
-                        {color: theme.colors.surface},
-                      ]}>
+                    </AppText>
+                    <AppText
+                      variant="body"
+                      color="hero"
+                      style={styles.infoDescription}>
                       {user.email}
-                    </Text>
+                    </AppText>
                   </View>
                   {(!user.email ||
                     user.email === user.installationId ||
                     user.email.includes('privaterelay')) && (
-                    <IconButton
+                    <ModalIconButton
                       icon="pencil"
-                      size={20}
+                      size={36}
                       onPress={() => setShowEditUserModal(true)}
-                      iconColor={theme.colors.surface}
+                      accessibilityLabel="Edit profile"
                     />
                   )}
                 </View>
                 <Divider
                   style={[
                     styles.infoDivider,
-                    {backgroundColor: theme.colors.surface},
+                    {backgroundColor: tokens.color.hero.text},
                   ]}
                 />
                 <View style={styles.infoRow}>
-                  <List.Icon icon="message" color={theme.colors.surface} />
+                  <List.Icon icon="message" color={tokens.color.hero.text} />
                   <View style={styles.infoContent}>
-                    <Text
-                      style={[styles.infoTitle, {color: theme.colors.surface}]}>
-                      Daily Messages
-                    </Text>
-                    <Text
-                      style={[
-                        styles.infoDescription,
-                        {color: theme.colors.surface},
-                      ]}>
+                    <AppText variant="bodyMedium" color="hero" style={styles.infoTitle}>
+                      Messages today
+                    </AppText>
+                    <AppText variant="body" color="hero" style={styles.infoDescription}>
                       {user.plan === SubscriptionTier.PRO
                         ? 'Unlimited'
                         : `${user.dailyMessagesUsed}/${(
                             user.getDailyMessageLimit ||
                             (() => getPlanLimits(user.plan))
                           )()} used`}
-                    </Text>
+                    </AppText>
                   </View>
                 </View>
               </View>
             ) : (
               <List.Item
-                title="Register Account"
-                description="Create an account to save your progress"
+                title="Create account"
+                description="Sign in to save matches and settings"
                 testID="user-menu-register-account"
                 left={props => (
                   <List.Icon
                     {...props}
                     icon="account-plus"
-                    color={theme.colors.surface}
+                    color={tokens.color.hero.text}
                   />
                 )}
                 onPress={() => setShowLoginModal(true)}
-                titleStyle={{color: theme.colors.surface}}
-                descriptionStyle={{color: theme.colors.surface}}
+                titleStyle={{color: tokens.color.hero.text}}
+                descriptionStyle={{color: tokens.color.hero.text}}
               />
             )}
           </List.Section>
 
-          <Divider
-            style={[
-              styles.sectionDivider,
-              {backgroundColor: theme.colors.surface},
-            ]}
-          />
-
           {/* App Features Section */}
-          <List.Section>
+          <List.Section style={styles.sectionCard}>
             <List.Subheader
-              style={[styles.subheader, {color: theme.colors.surface}]}>
-              Features
+              style={[styles.subheader, {color: tokens.color.hero.text}]}>
+              In the app
             </List.Subheader>
             <List.Item
-              title="Archived Matches"
+              title="Archived matches"
               testID="user-menu-archived-matches"
               left={props => (
                 <List.Icon
                   {...props}
                   icon="archive"
-                  color={theme.colors.surface}
+                  color={tokens.color.hero.text}
                 />
               )}
               onPress={handleOpenArchivedMatches}
-              titleStyle={{color: theme.colors.surface}}
+              titleStyle={{color: tokens.color.hero.text}}
             />
             <List.Item
-              title="Contact Support"
+              title="Get help"
               testID="user-menu-contact-support"
               left={props => (
                 <List.Icon
                   {...props}
                   icon="help-circle"
-                  color={theme.colors.surface}
+                  color={tokens.color.hero.text}
                 />
               )}
               onPress={onOpenSupport}
-              titleStyle={{color: theme.colors.surface}}
+              titleStyle={{color: tokens.color.hero.text}}
             />
           </List.Section>
 
-          <Divider
-            style={[
-              styles.sectionDivider,
-              {backgroundColor: theme.colors.surface},
-            ]}
-          />
-
           {/* Subscription Section */}
-          <List.Section>
+          <List.Section style={styles.sectionCard}>
             <List.Subheader
-              style={[styles.subheader, {color: theme.colors.surface}]}>
+              style={[styles.subheader, {color: tokens.color.hero.text}]}>
               Subscription
             </List.Subheader>
             {userPlan === SubscriptionTier.PRO ? (
@@ -492,7 +496,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     <List.Icon
                       {...props}
                       icon="card-account-details"
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
                   right={props => (
@@ -501,14 +505,14 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                       icon={
                         showSubscriptionSection ? 'chevron-up' : 'chevron-down'
                       }
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
                   onPress={() =>
                     setShowSubscriptionSection(!showSubscriptionSection)
                   }
-                  titleStyle={{color: theme.colors.surface}}
-                  descriptionStyle={{color: theme.colors.surface}}
+                  titleStyle={{color: tokens.color.hero.text}}
+                  descriptionStyle={{color: tokens.color.hero.text}}
                 />
                 {showSubscriptionSection && (
                   <List.Item
@@ -522,12 +526,12 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                       <List.Icon
                         {...props}
                         icon="cancel"
-                        color={theme.colors.surface}
+                        color={tokens.color.hero.text}
                       />
                     )}
                     onPress={handleManageSubscription}
-                    titleStyle={{color: theme.colors.surface}}
-                    descriptionStyle={{color: theme.colors.surface}}
+                    titleStyle={{color: tokens.color.hero.text}}
+                    descriptionStyle={{color: tokens.color.hero.text}}
                   />
                 )}
               </>
@@ -540,11 +544,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     <List.Icon
                       {...props}
                       icon="card-account-details"
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
-                  titleStyle={{color: theme.colors.surface}}
-                  descriptionStyle={{color: theme.colors.surface}}
+                  titleStyle={{color: tokens.color.hero.text}}
+                  descriptionStyle={{color: tokens.color.hero.text}}
                 />
                 <List.Item
                   title="Upgrade Plan"
@@ -553,28 +557,21 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     <List.Icon
                       {...props}
                       icon="star"
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
                   onPress={handleUpgradePress}
-                  titleStyle={{color: theme.colors.surface}}
-                  descriptionStyle={{color: theme.colors.surface}}
+                  titleStyle={{color: tokens.color.hero.text}}
+                  descriptionStyle={{color: tokens.color.hero.text}}
                 />
               </>
             )}
           </List.Section>
 
-          <Divider
-            style={[
-              styles.sectionDivider,
-              {backgroundColor: theme.colors.surface},
-            ]}
-          />
-
           {/* Legal Section */}
-          <List.Section>
+          <List.Section style={styles.sectionCard}>
             <List.Subheader
-              style={[styles.subheader, {color: theme.colors.surface}]}>
+              style={[styles.subheader, {color: tokens.color.hero.text}]}>
               Legal
             </List.Subheader>
             <List.Item
@@ -584,13 +581,13 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 <List.Icon
                   {...props}
                   icon="file-document"
-                  color={theme.colors.surface}
+                  color={tokens.color.hero.text}
                 />
               )}
               onPress={() =>
                 Linking.openURL('https://charmrapp.com/terms.html')
               }
-              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
+              titleStyle={[styles.legalText, {color: tokens.color.hero.text}]}
             />
             <List.Item
               testID="user-menu-privacy-policy"
@@ -599,28 +596,22 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 <List.Icon
                   {...props}
                   icon="shield-account"
-                  color={theme.colors.surface}
+                  color={tokens.color.hero.text}
                 />
               )}
               onPress={() =>
                 Linking.openURL('https://charmrapp.com/privacy.html')
               }
-              titleStyle={[styles.legalText, {color: theme.colors.surface}]}
+              titleStyle={[styles.legalText, {color: tokens.color.hero.text}]}
             />
           </List.Section>
 
-          {/* Account Actions Section */}
+          {/* Account + session (logout kept separate from destructive account actions) */}
           {isAuthenticated && (
             <>
-              <Divider
-                style={[
-                  styles.sectionDivider,
-                  {backgroundColor: theme.colors.surface},
-                ]}
-              />
-              <List.Section>
+              <List.Section style={styles.sectionCard}>
                 <List.Subheader
-                  style={[styles.subheader, {color: theme.colors.surface}]}>
+                  style={[styles.subheader, {color: tokens.color.hero.text}]}>
                   Account
                 </List.Subheader>
                 <List.Item
@@ -629,24 +620,30 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                     <List.Icon
                       {...props}
                       icon="delete"
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
                   onPress={() => setShowDeleteAccountModal(true)}
-                  titleStyle={{color: theme.colors.surface}}
-                  descriptionStyle={{color: theme.colors.surface}}
+                  titleStyle={{color: tokens.color.hero.text}}
+                  descriptionStyle={{color: tokens.color.hero.text}}
                 />
+              </List.Section>
+              <List.Section style={styles.sectionCard}>
+                <List.Subheader
+                  style={[styles.subheader, {color: tokens.color.hero.text}]}>
+                  Session
+                </List.Subheader>
                 <List.Item
                   title="Logout"
                   left={props => (
                     <List.Icon
                       {...props}
                       icon="logout"
-                      color={theme.colors.surface}
+                      color={tokens.color.hero.text}
                     />
                   )}
                   onPress={handleSignOut}
-                  titleStyle={{color: theme.colors.surface}}
+                  titleStyle={{color: tokens.color.hero.text}}
                 />
               </List.Section>
             </>
@@ -724,11 +721,11 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
       </Portal>
 
       {isLoading && (
-        <View style={[styles.overlay, {backgroundColor: 'rgba(0, 0, 0, 0.7)'}]}>
-          <ActivityIndicator size="large" color={theme.colors.surface} />
-          <Text style={[styles.loadingText, {color: theme.colors.surface}]}>
+        <View style={[styles.overlay, {backgroundColor: tokens.color.overlay.scrim}]}>
+          <ActivityIndicator size="large" color={tokens.color.hero.text} />
+          <AppText variant="bodyMedium" color="hero" style={styles.loadingText}>
             Signing in...
-          </Text>
+          </AppText>
         </View>
       )}
     </>
@@ -755,7 +752,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
@@ -779,6 +777,34 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingHorizontal: tokens.space.md,
+    paddingBottom: tokens.space.lg,
+  },
+  summaryCard: {
+    marginTop: tokens.space.md,
+    marginBottom: tokens.space.sm,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+    borderRadius: tokens.radii.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.hero.glassBorder,
+    gap: tokens.space.sm,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionCard: {
+    marginTop: tokens.space.sm,
+    marginBottom: tokens.space.xs,
+    borderRadius: tokens.radii.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    overflow: 'hidden',
+    paddingVertical: tokens.space.xs,
   },
   legalSection: {
     marginTop: 8,
@@ -854,8 +880,8 @@ const styles = StyleSheet.create({
   subheader: {
     fontSize: 14,
     fontWeight: '600',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: tokens.space.sm,
+    paddingHorizontal: tokens.space.md,
   },
   sectionDivider: {
     marginVertical: 8,

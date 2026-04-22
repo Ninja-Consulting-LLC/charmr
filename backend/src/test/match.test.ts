@@ -63,14 +63,14 @@ describe('Match Domain', () => {
       updatedAt: now,
     };
 
-    const testMatch = await db.addMatch('test-user-123', matchData);
+    await db.addMatch('test-user-123', matchData);
 
     // Create another test match
     const matchData2 = {
       ...matchData,
       name: 'Test Match 2',
     };
-    const testMatch2 = await db.addMatch('test-user-123', matchData2);
+    await db.addMatch('test-user-123', matchData2);
 
     // Create a hidden test match
     const hiddenMatchData = {
@@ -78,34 +78,28 @@ describe('Match Domain', () => {
       name: 'Hidden Match',
       hidden: true,
     };
-    const hiddenMatch = await db.addMatch('test-user-123', hiddenMatchData);
+    await db.addMatch('test-user-123', hiddenMatchData);
 
     // Create test match for duplicate test
     const duplicateMatchData = {
       ...matchData,
       name: 'Duplicate Match',
     };
-    const duplicateMatch = await db.addMatch(
-      'test-user-123',
-      duplicateMatchData,
-    );
+    await db.addMatch('test-user-123', duplicateMatchData);
 
     // Create test match for status update test
     const statusMatchData = {
       ...matchData,
       name: 'Status Match',
     };
-    const statusMatch = await db.addMatch('test-user-123', statusMatchData);
+    await db.addMatch('test-user-123', statusMatchData);
 
     // Create test match for interaction test
     const interactionMatchData = {
       ...matchData,
       name: 'Interaction Match',
     };
-    const interactionMatch = await db.addMatch(
-      'test-user-123',
-      interactionMatchData,
-    );
+    await db.addMatch('test-user-123', interactionMatchData);
 
     // Create test match for hidden test
     const hiddenTestMatchData = {
@@ -113,10 +107,7 @@ describe('Match Domain', () => {
       name: 'Hidden Test Match',
       hidden: true,
     };
-    const hiddenTestMatch = await db.addMatch(
-      'test-user-123',
-      hiddenTestMatchData,
-    );
+    await db.addMatch('test-user-123', hiddenTestMatchData);
   });
 
   afterEach(async () => {

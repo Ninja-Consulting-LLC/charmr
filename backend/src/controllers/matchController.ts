@@ -2,6 +2,15 @@ import {Request, Response} from 'express';
 import {Database} from '../db/types';
 import logger from '../utils/logger';
 
+const asSingleString = (
+  v: string | string[] | undefined,
+): string | undefined => {
+  if (v === undefined) {
+    return undefined;
+  }
+  return Array.isArray(v) ? v[0] : v;
+};
+
 export const getMatches = async (req: Request, res: Response, db: Database) => {
   try {
     const {userId} = req.params;
@@ -55,8 +64,9 @@ export const addMatch = async (req: Request, res: Response, db: Database) => {
       process.env.NODE_ENV === 'development' ||
       process.env.NODE_ENV === 'test';
     const userId = useParamsUserId
-      ? req.params.userId
-      : req.user?.uid || req.headers?.['x-anonymous-user'];
+      ? asSingleString(req.params.userId)
+      : req.user?.uid ||
+        asSingleString(req.headers['x-anonymous-user']);
 
     if (!userId) {
       return res.status(401).json({error: 'Unauthorized'});
@@ -160,7 +170,7 @@ export const deleteMatch = async (
       process.env.NODE_ENV === 'development' ||
       process.env.NODE_ENV === 'test';
     const userId = useParamsUserId
-      ? req.params.userId
+      ? asSingleString(req.params.userId)
       : req.user?.uid;
 
     if (!userId) {

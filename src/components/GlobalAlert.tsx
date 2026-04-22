@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Pressable, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {AppText, tokens} from '../design-system';
 import RemoteConfigService from '../services/remoteConfig';
 import {logger} from '../utils/logger';
 
@@ -32,7 +33,9 @@ const GlobalAlert: React.FC = () => {
     }, REFRESH_INTERVAL_MS);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, []);
 
@@ -51,12 +54,18 @@ const GlobalAlert: React.FC = () => {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.message}>{message}</Text>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => setIsVisible(false)}>
-          <Text style={styles.closeButtonText}>×</Text>
-        </TouchableOpacity>
+        <AppText variant="label" color="hero" style={styles.message}>
+          {message}
+        </AppText>
+        <Pressable
+          style={({pressed}) => [styles.closeButton, pressed && {opacity: 0.7}]}
+          onPress={() => setIsVisible(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss alert">
+          <AppText variant="title" color="hero" style={styles.closeButtonText}>
+            ×
+          </AppText>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -71,17 +80,15 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   container: {
-    backgroundColor: '#FF3B30',
-    padding: 12,
+    backgroundColor: tokens.color.semantic.danger,
+    padding: tokens.space.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   message: {
-    color: '#FFFFFF',
-    fontSize: 14,
     flex: 1,
-    marginRight: 8,
+    marginRight: tokens.space.sm,
   },
   closeButton: {
     width: 24,
@@ -90,9 +97,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    lineHeight: 28,
   },
 });
 
