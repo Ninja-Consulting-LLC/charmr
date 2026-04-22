@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import Animated, {
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -10,8 +11,26 @@ import Animated, {
 } from 'react-native-reanimated';
 import {theme} from '../theme/theme';
 
+const TypingDot: React.FC<{dot: SharedValue<number>}> = ({dot}) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: dot.value * -4,
+        },
+      ],
+      opacity: 0.4 + dot.value * 0.6,
+    };
+  });
+
+  return <Animated.View style={[styles.typingDot, animatedStyle]} />;
+};
+
 const TypingIndicator: React.FC = () => {
-  const dots = [0, 1, 2].map(() => useSharedValue(0));
+  const dot0 = useSharedValue(0);
+  const dot1 = useSharedValue(0);
+  const dot2 = useSharedValue(0);
+  const dots = [dot0, dot1, dot2];
 
   useEffect(() => {
     dots.forEach((dot, index) => {
@@ -35,30 +54,14 @@ const TypingIndicator: React.FC = () => {
         false,
       );
     });
-  }, [dots]);
+  }, [dot0, dot1, dot2]);
 
   return (
     <View style={styles.typingIndicator}>
       <View style={styles.typingBubble}>
-        {dots.map((dot, index) => {
-          const animatedStyle = useAnimatedStyle(() => {
-            return {
-              transform: [
-                {
-                  translateY: dot.value * -4,
-                },
-              ],
-              opacity: 0.4 + dot.value * 0.6,
-            };
-          });
-
-          return (
-            <Animated.View
-              key={index}
-              style={[styles.typingDot, animatedStyle]}
-            />
-          );
-        })}
+        {dots.map((dot, index) => (
+          <TypingDot key={index} dot={dot} />
+        ))}
       </View>
     </View>
   );

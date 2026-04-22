@@ -1,0 +1,14 @@
+# A5 — Optional / manual: reaches Facebook Sign-In entry only. Complete Facebook SDK / Safari by hand.
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Log In'
+- extendedWaitUntil:
+    visible:
+      id: 'facebook-login-button'
+    timeout: 15000
+# Manual: tap facebook-login-button and finish provider UI.

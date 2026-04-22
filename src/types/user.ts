@@ -14,5 +14,5 @@ export interface UserData {
 }
 
 export interface User extends UserData {
-  getDailyMessageLimit: () => number | string;
+  getDailyMessageLimit: () => number;
 }

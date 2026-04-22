@@ -1,4 +1,5 @@
 import {NextFunction, Request, Response} from 'express';
+import {config} from '../config/config';
 import logger from '../utils/logger';
 
 export interface RateLimitResult {
@@ -15,8 +16,8 @@ export const createRateLimiter = () => {
   const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
   const MAX_REQUESTS = 100; // requests per window
 
-  // In-memory store for rate limiting
-  // In production, this should use Redis or similar
+  // In-memory store: OK for single-node dev; for horizontally scaled production,
+  // use a shared limiter (e.g. Redis + rate-limit-redis) so counts are not per-instance.
   const ipLimits = new Map<string, RateLimitEntry>();
 
   const check = async (ip: string): Promise<RateLimitResult> => {
@@ -68,6 +69,10 @@ export const createRateLimiter = () => {
   };
 
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (config.server.environment === 'development') {
+      next();
+      return;
+    }
     try {
       const ip = req.ip || req.connection.remoteAddress || '';
       const result = await check(ip);

@@ -39,6 +39,22 @@ target 'Charmr' do
       :mac_catalyst_enabled => false
     )
 
+    # fmt 11.0.2: Apple Clang defines __cpp_consteval but FMT_STRING/basic_format_string still fails to compile
+    # (command-line FMT_USE_CONSTEVAL=0 is overridden inside base.h). Disable consteval for all Apple Clang.
+    fmt_base_h = File.join(installer.sandbox.root, 'fmt/include/fmt/base.h')
+    if File.exist?(fmt_base_h)
+      File.chmod(0o644, fmt_base_h)
+      original = File.read(fmt_base_h)
+      patched = original.sub(
+        '#elif defined(__apple_build_version__) && __apple_build_version__ < 14000029L',
+        '#elif defined(__apple_build_version__)'
+      ).sub(
+        '#  define FMT_USE_CONSTEVAL 0  // consteval is broken in Apple clang < 14.',
+        '#  define FMT_USE_CONSTEVAL 0  // Apple clang: consteval compile-time checks break FMT_STRING (fmt#4181).'
+      )
+      File.write(fmt_base_h, patched) if patched != original
+    end
+
     installer.pods_project.targets.each do |target|
       if target.name == 'hermes'
         target.build_configurations.each do |config|

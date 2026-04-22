@@ -10,7 +10,7 @@ import { ErrorType, MessageMode } from '../types/enums';
 import logger from '../utils/logger';
 
 // Helper function to get prompt variant for a user
-function getPromptVariantForUser(userId: string): PromptVariant {
+function getPromptVariantForUser(_userId: string): PromptVariant {
   // First try to use the environment variable
   if (config.prompt.variant) {
     return config.prompt.variant;
@@ -74,8 +74,7 @@ export const createGeminiService = () => {
         promptVariant: variant,
       });
 
-      // TODO: Implement Gemini API call here
-      // For now, return an error since Gemini integration is not complete
+      // Product path is OpenAI today; Gemini branch is intentionally stubbed until vision/chat is wired.
       return {
         reply: '',
         error: 'Gemini integration not implemented',

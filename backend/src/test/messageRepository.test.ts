@@ -1,6 +1,7 @@
-import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
+import {afterEach, beforeEach, describe, expect, it, jest} from '@jest/globals';
 import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
+import {SQLiteMessageRepository} from '../db/repositories/messageRepository';
 import {Message} from '../db/types';
 import {MessageMode, MessageRole, MessageType} from '../types/enums';
 
@@ -8,21 +9,41 @@ describe('Message Repository', () => {
   let db: any;
   let messageRepository: any;
   const testUserId = 'test-user-123';
-  const testMatchId = 'test-match-123';
+  let testMatchId: string;
 
   beforeEach(async () => {
     db = await getDatabase();
     messageRepository = getMessageRepository(db);
 
-    // Clean up any existing test data
     await db.run('DELETE FROM messages WHERE userId = ?', testUserId);
     await db.run('DELETE FROM screenshots WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM matches WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM users WHERE id = ?', testUserId);
+
+    await db.createUser({
+      id: testUserId,
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+    const now = new Date().toISOString();
+    const match = await db.addMatch(testUserId, {
+      userId: testUserId,
+      name: 'Seed Match',
+      platform: 'test',
+      lastUsed: now,
+      hidden: false,
+      deleted: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    testMatchId = String(match.id);
   });
 
   afterEach(async () => {
-    // Clean up test data
     await db.run('DELETE FROM messages WHERE userId = ?', testUserId);
     await db.run('DELETE FROM screenshots WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM matches WHERE userId = ?', testUserId);
+    await db.run('DELETE FROM users WHERE id = ?', testUserId);
   });
 
   describe('seedTestData', () => {
@@ -89,11 +110,8 @@ describe('Message Repository', () => {
     });
 
     it('should maintain proper message ordering by timestamp', async () => {
-      const result = await messageRepository.seedTestData(
-        testUserId,
-        testMatchId,
-      );
-      const messages = await messageRepository.getMessagesByMatch(
+      await messageRepository.seedTestData(testUserId, testMatchId);
+      const {messages} = await messageRepository.getMessagesByMatch(
         testUserId,
         testMatchId,
       );
@@ -113,7 +131,7 @@ describe('Message Repository', () => {
         testUserId,
         testMatchId,
       );
-      const messages = await messageRepository.getMessagesByMatch(
+      const {messages} = await messageRepository.getMessagesByMatch(
         testUserId,
         testMatchId,
       );
@@ -129,6 +147,77 @@ describe('Message Repository', () => {
         (m: Message) => m.id === result.summaryMessage.id,
       );
       expect(summaryMessage?.replyTo).toBe(result.screenshot.id);
+    });
+  });
+
+  describe('SQLiteMessageRepository query helpers', () => {
+    it('createMessage defaults type and mode; getMessagesByMatch filters and paginates', async () => {
+      const repo = new SQLiteMessageRepository(db);
+      const ts = new Date().toISOString();
+      const m1 = await repo.createMessage(testUserId, testMatchId, {
+        role: MessageRole.USER,
+        content: 'a',
+        timestamp: ts,
+      });
+      expect(m1.type).toBe(MessageType.TEXT);
+      expect(m1.mode).toBe(MessageMode.GENERATE);
+
+      await repo.createMessage(testUserId, testMatchId, {
+        role: MessageRole.ASSISTANT,
+        type: MessageType.TEXT,
+        mode: MessageMode.GENERATE,
+        used: false,
+        content: 'b',
+        timestamp: ts,
+      });
+
+      const byRole = await repo.getMessagesByMatch(testUserId, testMatchId, {
+        role: MessageRole.USER,
+      });
+      expect(byRole.messages.every(m => m.role === MessageRole.USER)).toBe(
+        true,
+      );
+
+      const page = await repo.getMessagesByMatch(
+        testUserId,
+        testMatchId,
+        {},
+        {limit: 1, offset: 0},
+      );
+      expect(page.messages.length).toBe(1);
+      expect(page.total).toBeGreaterThanOrEqual(2);
+    });
+
+    it('getConversationTimeline paginates slice', async () => {
+      const repo = new SQLiteMessageRepository(db);
+      await repo.seedTestData(testUserId, testMatchId);
+      const tl = await repo.getConversationTimeline(testUserId, testMatchId, {
+        limit: 2,
+        offset: 0,
+      });
+      expect(tl.items.length).toBe(2);
+      expect(tl.total).toBeGreaterThanOrEqual(2);
+    });
+
+    it('markMessageAsUsed sets used flag', async () => {
+      const repo = new SQLiteMessageRepository(db);
+      const {userMessage} = await repo.seedTestData(testUserId, testMatchId);
+      await repo.markMessageAsUsed(userMessage.id);
+      const {messages} = await repo.getMessagesByMatch(
+        testUserId,
+        testMatchId,
+        {used: true},
+      );
+      expect(messages.some(m => m.id === userMessage.id)).toBe(true);
+    });
+
+    it('getMessagesByMatch propagates database errors', async () => {
+      const repo = new SQLiteMessageRepository(db);
+      jest.spyOn(db, 'all').mockRejectedValueOnce(new Error('db down'));
+      await expect(
+        repo.getMessagesByMatch(testUserId, testMatchId),
+      ).rejects.toThrow('db down');
+      jest.restoreAllMocks();
     });
   });
 });

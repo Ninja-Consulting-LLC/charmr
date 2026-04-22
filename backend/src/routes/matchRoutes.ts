@@ -18,19 +18,21 @@ import logger from '../utils/logger';
 const createMatchRouter = (db: Database) => {
   const router = express.Router();
 
-  // Helper to get user ID from either Firebase token or anonymous user ID
+  /**
+   * Resolves the authenticated principal. Never trusts `:userId` from the URL unless
+   * `CHARMR_DEV_INSECURE_MATCH_USER_ID=1` and `NODE_ENV !== 'production'` (local E2E only).
+   */
   const getUserFromRequest = (req: express.Request) => {
-    // In development mode, just use the userId from params
-    if (process.env.NODE_ENV === 'development') {
+    const devOverride =
+      process.env.CHARMR_DEV_INSECURE_MATCH_USER_ID === '1' &&
+      process.env.NODE_ENV !== 'production';
+    if (devOverride) {
       return req.params.userId;
     }
 
-    // If using Firebase token, get user ID from token
     if (req.headers.authorization?.startsWith('Bearer ')) {
-      // Use the verified user ID from the token
       return req.user?.uid;
     }
-    // If using anonymous user ID (installation ID), use that
     const anonymousUserId = req.headers['x-anonymous-user'] as string;
     if (!anonymousUserId) {
       throw new Error('No user ID found in request');
@@ -101,7 +103,10 @@ const createMatchRouter = (db: Database) => {
         total,
       });
     } catch (error) {
-      console.error('[Backend] Error fetching match messages:', error);
+      logger.error('[Backend] Error fetching match messages', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       res.status(500).json({error: 'Failed to fetch match messages'});
     }
   });
@@ -160,12 +165,16 @@ const createMatchRouter = (db: Database) => {
     return updateMatch(req, res, db);
   });
 
-  // Debug endpoint: get full conversation for a user/match
+  // Debug endpoint: get full conversation for a user/match (non-production only)
   router.get('/debug/conversation/:userId/:matchId', async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).end();
+    }
     try {
       const {userId, matchId} = req.params;
       // For debugging, assume admin access
       const conversation = await loadConversation(
+        db,
         userId,
         matchId,
         SubscriptionTier.FREE,

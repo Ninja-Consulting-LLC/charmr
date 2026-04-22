@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {StyleSheet, View} from 'react-native';
-import {Banner, Icon, Text} from 'react-native-paper';
-import {theme} from '../theme/theme';
+import {Banner, Icon} from 'react-native-paper';
+import {AppText, tokens} from '../design-system';
 import PermissionHelpModal from './PermissionHelpModal';
 
 interface PhotoAccessBannerProps {
@@ -25,33 +25,33 @@ const PhotoAccessBanner: React.FC<PhotoAccessBannerProps> = ({
         <Banner
           visible={visible}
           icon={({size, color}) => (
-            <Icon source="camera" size={size} color={theme.colors.primary} />
+            <Icon source="camera" size={size} color={tokens.color.brand.primary} />
           )}
           contentStyle={{paddingVertical: 2, marginBottom: -8}}
           style={{
-            backgroundColor: theme.colors.surface,
+            backgroundColor: tokens.color.surface.inverse,
             minHeight: 30,
           }}
           actions={[
             {
               label: 'Settings',
               onPress: onOpenSettings,
-              textColor: theme.colors.primary,
+              textColor: tokens.color.brand.primary,
             },
             {
               label: 'Help',
               onPress: () => setShowPermissionHelp(true),
-              textColor: theme.colors.primary,
+              textColor: tokens.color.brand.primary,
             },
             {
               label: 'Dismiss',
               onPress: onDismiss,
-              textColor: theme.colors.primary,
+              textColor: tokens.color.brand.primary,
             },
           ]}>
-          <Text style={{color: theme.colors.primary}}>
-            Grant photo access to get the best experience in Charmr
-          </Text>
+          <AppText variant="body" style={{color: tokens.color.brand.primary}}>
+            Allow photos so you can pick chat screenshots from your library
+          </AppText>
         </Banner>
       </View>
 

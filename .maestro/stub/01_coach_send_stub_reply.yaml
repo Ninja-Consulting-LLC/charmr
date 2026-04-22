@@ -1,0 +1,27 @@
+# C5: Coach chat → send text → deterministic stub reply.
+# Backend MUST have CHARMR_E2E_STUB_LLM=true (see docs/E2E_FLOWS.md § stub suite).
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: ../include/reach_coach_match_list_with_one_match.yaml
+- tapOn:
+    id: match-row-select-button
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: 'coach-chat-message-input'
+    timeout: 35000
+- waitForAnimationToEnd
+- tapOn:
+    id: 'coach-chat-message-input'
+- inputText: 'E2E coach ping'
+- tapOn:
+    id: 'coach-chat-send-button'
+- extendedWaitUntil:
+    visible: '[E2E_STUB]'
+    timeout: 25000
+- tapOn:
+    id: 'coach-chat-back-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000

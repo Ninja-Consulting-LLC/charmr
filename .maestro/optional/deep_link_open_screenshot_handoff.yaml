@@ -1,0 +1,20 @@
+# G3 — Optional / flaky: `charmr://open/screenshot` navigates Home and triggers the image picker.
+# Simulator permission dialogs and timing vary; run manually when validating DeepLinkHandler.
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- openLink: charmr://open/screenshot
+# Expect system photo UI or permission alert — dismiss or pick manually.

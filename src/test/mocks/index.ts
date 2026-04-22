@@ -9,6 +9,20 @@ export const registerMocks = () => {
   );
   jest.mock('@react-native-clipboard/clipboard', () => mockClipboard);
   jest.mock('@react-native-camera-roll/camera-roll', () => mockCameraRoll);
+  jest.mock('@react-native-community/netinfo', () => ({
+    __esModule: true,
+    default: {
+      fetch: jest.fn(() =>
+        Promise.resolve({
+          type: 'wifi',
+          isConnected: true,
+          isInternetReachable: true,
+        }),
+      ),
+      addEventListener: jest.fn(() => jest.fn()),
+      configure: jest.fn(),
+    },
+  }));
 
   // Third-party libraries
   jest.mock('react-native-image-crop-picker', () => mockImagePicker);

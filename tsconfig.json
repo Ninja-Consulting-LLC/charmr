@@ -2,6 +2,21 @@
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
     "types": ["node", "jest"],
-    "typeRoots": ["./src/types", "./node_modules/@types"]
-  }
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "paths": {
+      "@charmr/shared": ["./packages/shared/dist/index.d.ts"]
+    },
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["App.tsx", "src/**/*"],
+  "exclude": [
+    "node_modules",
+    "backend",
+    "ios",
+    "android",
+    "website",
+    "packages",
+    "__tests__"
+  ]
 }

@@ -7,6 +7,11 @@ export class DevUtils {
     return __DEV__;
   }
 
+  /** Used by DevMenu UI; wire to a real sandbox flag when backend supports it. */
+  static async isSandboxMode(): Promise<boolean> {
+    return false;
+  }
+
   static async resetOnboarding(): Promise<void> {
     try {
       await AsyncStorage.removeItem('hasOnboarded');

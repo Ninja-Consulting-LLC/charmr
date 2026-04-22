@@ -16,6 +16,7 @@ import {
   updateUser,
   updateUserPlan,
 } from '../controllers/adminController';
+import type {AuthenticatedRequest} from '../controllers/admin/types';
 import {Database} from '../db/types';
 import {adminAuth} from '../middleware/adminAuth';
 import logger from '../utils/logger';
@@ -93,8 +94,12 @@ const createAdminRouter = (db: Database) => {
   router.get('/users/:userId/info', (req, res) => getUserInfo(req, res, db));
 
   // Database management
-  router.post('/reset-db', (req, res) => resetDb(req, res, db));
-  router.post('/test-context', (req, res) => testContext(req, res, db));
+  router.post('/reset-db', (req, res) =>
+    resetDb(req as AuthenticatedRequest, res, db),
+  );
+  router.post('/test-context', (req, res) =>
+    testContext(req as AuthenticatedRequest, res, db),
+  );
 
   return router;
 };

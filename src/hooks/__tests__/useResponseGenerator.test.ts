@@ -1,4 +1,5 @@
 import {act, renderHook} from '@testing-library/react-native';
+import {MESSAGES} from '../../constants/messages';
 import {generateReply} from '../../services/api';
 import {useStore} from '../../store';
 import {MessageMode, SubscriptionTier} from '../../types/enums';
@@ -35,7 +36,28 @@ describe('useResponseGenerator', () => {
     (useStore as jest.Mock).mockReturnValue({
       userId: mockUserId,
       setUser: mockSetUser,
+      user: {},
     });
+  });
+
+  it('does not call API and sets NO_IMAGES when no images and blank prompt', async () => {
+    const {result} = renderHook(() =>
+      useResponseGenerator({
+        images: [],
+        selectedMatch: mockSelectedMatch,
+        userPlan: SubscriptionTier.FREE,
+        onMessageLimitReached: jest.fn(),
+        mode: MessageMode.GENERATE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.generateResponse('   ');
+    });
+
+    expect(generateReply).not.toHaveBeenCalled();
+    expect(result.current.error).toBe(MESSAGES.NO_IMAGES);
+    expect(result.current.errorType).toBe('NO_IMAGES');
   });
 
   it('should update user message limits after successful response generation', async () => {

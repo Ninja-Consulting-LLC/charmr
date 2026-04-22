@@ -1,0 +1,19 @@
+# A2: Login modal shows OAuth entry points (no provider completion).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Log In'
+- extendedWaitUntil:
+    visible:
+      id: 'google-login-button'
+    timeout: 12000
+- assertVisible:
+    id: 'facebook-login-button'
+- assertVisible:
+    id: 'apple-login-button'
+- tapOn:
+    id: 'login-modal-cancel'

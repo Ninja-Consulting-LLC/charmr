@@ -1,12 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Modal, Portal, Surface, Text } from 'react-native-paper';
-import { MESSAGES } from '../constants/messages';
-import { getProPaywall, handlePurchase } from '../services/revenueCatService';
-import { useStore } from '../store';
-import { theme } from '../theme/theme';
-import { SubscriptionTier } from '../types/enums';
-import LoginModal from './LoginModal';
+import React, {useEffect, useState} from 'react';
+import {Pressable, StyleSheet, useWindowDimensions, View} from 'react-native';
+import {Modal, Portal, ThemeProvider} from 'react-native-paper';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
+import {MESSAGES} from '../constants/messages';
+import {getProPaywall, handlePurchase} from '../services/revenueCatService';
+import {useStore} from '../store';
+import {SubscriptionTier} from '../types/enums';
 
 interface UpgradeModalProps {
   visible: boolean;
@@ -21,28 +27,18 @@ interface UpgradeModalProps {
 const UpgradeModal: React.FC<UpgradeModalProps> = ({
   visible,
   onDismiss,
-  onUpgrade,
+  onUpgrade: _onUpgrade,
   showRateLimitMessage,
   showScreenshotMessage,
-  showPresetPaywall,
+  showPresetPaywall: _showPresetPaywall,
   onPurchaseSuccess,
 }) => {
-  const {user, setUser, handleProviderLogin} = useStore();
+  const {user, setUser} = useStore();
+  const {height: windowHeight} = useWindowDimensions();
+  const sheetMaxHeight = Math.round(windowHeight * 0.88);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
   const [packages, setPackages] = useState<any[] | null>(null);
-
-  const isAnonymous = user?.email === user?.installationId;
-
-  // Reset states when modal visibility changes
-  useEffect(() => {
-    if (!visible) {
-      setShowRegistrationPrompt(false);
-      setShowLoginModal(false);
-    }
-  }, [visible]);
 
   useEffect(() => {
     const fetchPaywall = async () => {
@@ -52,8 +48,8 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         try {
           const proPaywall = await getProPaywall();
           setPackages(proPaywall || []);
-        } catch (err) {
-          setError('Failed to load subscription options. Please try again later.');
+        } catch (_err) {
+          setError('We could not load plans. Check your connection and try again.');
           setPackages([]);
         } finally {
           setIsLoading(false);
@@ -69,9 +65,6 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
     try {
       const success = await handlePurchase(productId, user, setUser);
       if (success) {
-        if (isAnonymous) {
-          setShowRegistrationPrompt(true);
-        }
         onPurchaseSuccess?.();
         onDismiss();
       }
@@ -80,142 +73,150 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unexpected error occurred. Please try again later.');
+        setError('Something went wrong. Please try again.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLoginSuccess = () => {
-    setShowLoginModal(false);
-    setShowRegistrationPrompt(false);
-  };
-
   return (
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={[
-          styles.modal,
-          {backgroundColor: theme.colors.surface},
-        ]}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text variant="headlineSmall" style={styles.title}>
-              Upgrade Your Plan
-            </Text>
-            <Button mode="text" onPress={onDismiss} style={styles.closeButton}>
-              Close
-            </Button>
-          </View>
+        contentContainerStyle={paperModalContent.shell}>
+        <ThemeProvider theme={darkModalPaperTheme}>
+          <ModalSheet padded style={[styles.card, {maxHeight: sheetMaxHeight}]}>
+            <View testID="upgrade-modal" style={styles.content}>
+              <View style={styles.header}>
+                <AppText variant="titleSm" color="hero" style={styles.title}>
+                  Upgrade to Pro
+                </AppText>
+                <CharmrButton
+                  label="Close"
+                  variant="ghost"
+                  onPress={onDismiss}
+                  testID="upgrade-modal-close"
+                  style={styles.closeBtn}
+                />
+              </View>
 
-          {showRateLimitMessage && (
-            <Text
-              style={[
-                styles.rateLimitMessage,
-                {color: theme.colors.error},
-              ]}>
-              {MESSAGES.RATE_LIMIT}
-            </Text>
-          )}
+              {showRateLimitMessage && (
+                <AppText variant="bodyMedium" color="danger" style={styles.rateLimitMessage}>
+                  {MESSAGES.RATE_LIMIT}
+                </AppText>
+              )}
 
-          {showScreenshotMessage && (
-            <Text
-              style={[
-                styles.rateLimitMessage,
-                {color: theme.colors.error},
-              ]}>
-              {MESSAGES.SCREENSHOT_LIMIT}
-            </Text>
-          )}
+              {showScreenshotMessage && (
+                <AppText variant="bodyMedium" color="danger" style={styles.rateLimitMessage}>
+                  {MESSAGES.SCREENSHOT_LIMIT}
+                </AppText>
+              )}
 
-          {isLoading ? (
-            <Text>Loading subscription options...</Text>
-          ) : error ? (
-            <Text style={{color: theme.colors.error}}>{error}</Text>
-          ) : packages && packages.length > 0 ? (
-            <View style={styles.paywallContainer}>
-              {packages.map((pkg: any) => (
-                <Surface
-                  key={pkg.identifier}
-                  style={styles.productCard}
-                  onTouchEnd={() => handleUpgrade(pkg.product.identifier)}>
-                  <View style={styles.productContent}>
-                    <Text variant="titleMedium">{pkg.product.title}</Text>
-                    {pkg.product.subscriptionPeriod === 'P1Y' ? (
-                      <>
-                        <Text variant="headlineMedium" style={{color: theme.colors.primary}}>
-                          ${ (pkg.product.price / 12).toFixed(2) }/mo
-                        </Text>
-                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                          Billed annually at {pkg.product.priceString}
-                        </Text>
-                      </>
-                    ) : (
-                      <Text variant="headlineMedium" style={{color: theme.colors.primary}}>
-                        {pkg.product.priceString}
-                      </Text>
-                    )}
-                    <Text variant="bodyMedium">
-                      {pkg.product.description}
-                    </Text>
-                  </View>
-                </Surface>
-              ))}
+              {isLoading ? (
+                <AppText variant="body" color="heroMuted">
+                  Loading plans…
+                </AppText>
+              ) : error ? (
+                <AppText variant="bodyMedium" color="danger">
+                  {error}
+                </AppText>
+              ) : packages && packages.length > 0 ? (
+                <View style={styles.paywallContainer}>
+                  {packages.map((pkg: any) => (
+                    <Pressable
+                      key={pkg.identifier}
+                      onPress={() => handleUpgrade(pkg.product.identifier)}
+                      style={({pressed}) => [
+                        styles.productCard,
+                        pressed && styles.productCardPressed,
+                      ]}>
+                      <View style={styles.productContent}>
+                        <AppText variant="titleSm" color="hero">
+                          {pkg.product.title}
+                        </AppText>
+                        {pkg.product.subscriptionPeriod === 'P1Y' ? (
+                          <>
+                            <AppText variant="title" color="hero" style={styles.price}>
+                              ${(pkg.product.price / 12).toFixed(2)}/mo
+                            </AppText>
+                            <AppText variant="caption" color="heroMuted">
+                              Billed annually at {pkg.product.priceString}
+                            </AppText>
+                          </>
+                        ) : (
+                          <AppText variant="title" color="hero" style={styles.price}>
+                            {pkg.product.priceString}
+                          </AppText>
+                        )}
+                        <AppText variant="body" color="heroMuted" style={styles.desc}>
+                          {pkg.product.description}
+                        </AppText>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <AppText variant="body" color="heroMuted">
+                  No plans are available right now. Try again later.
+                </AppText>
+              )}
             </View>
-          ) : (
-            <Text>No subscription options available.</Text>
-          )}
-        </View>
+          </ModalSheet>
+        </ThemeProvider>
       </Modal>
-
-      <LoginModal
-        visible={showLoginModal}
-        onDismiss={() => setShowLoginModal(false)}
-        onLoginSuccess={handleLoginSuccess}
-        handleProviderLogin={handleProviderLogin}
-      />
     </Portal>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-  },
+  card: {},
   content: {
     width: '100%',
+    gap: tokens.space.md,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: tokens.space.sm,
   },
   title: {
     flex: 1,
   },
-  closeButton: {
-    marginLeft: 10,
+  closeBtn: {
+    minHeight: 40,
+    paddingHorizontal: tokens.space.sm,
   },
   rateLimitMessage: {
-    marginBottom: 20,
     textAlign: 'center',
   },
   paywallContainer: {
-    marginTop: 20,
+    gap: tokens.space.md,
+    marginTop: tokens.space.sm,
   },
   productCard: {
-    padding: 20,
-    borderRadius: 8,
-    elevation: 2,
+    padding: tokens.space.lg,
+    borderRadius: tokens.radii.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...tokens.elevation.sm,
+  },
+  productCardPressed: {
+    opacity: 0.92,
   },
   productContent: {
     alignItems: 'center',
+    gap: tokens.space.xs,
+  },
+  price: {
+    color: tokens.color.accent.mint,
+  },
+  desc: {
+    textAlign: 'center',
   },
 });
 

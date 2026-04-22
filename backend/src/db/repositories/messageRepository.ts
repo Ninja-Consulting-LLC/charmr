@@ -3,6 +3,14 @@ import {MessageMode, MessageRole, MessageType} from '../../types/enums';
 import logger from '../../utils/logger';
 import {ConversationItem, Database, ID, Message, MessageFilter} from '../types';
 
+export type SeedTestDataCustom = {
+  userMessage?: string;
+  assistantMessage?: string;
+  alternateMessage?: string;
+  summaryContent?: string;
+  coachAdvice?: string;
+};
+
 export interface MessageRepository {
   createMessage(
     userId: string,
@@ -17,8 +25,36 @@ export interface MessageRepository {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ): Promise<Message>;
+
+  /** SQLite test helper: seeds messages + one screenshot for a match. */
+  seedTestData?(
+    userId: string,
+    matchId: string,
+    customContent?: SeedTestDataCustom,
+  ): Promise<{
+    userMessage: Message;
+    assistantMessage: Message;
+    alternateMessage: Message;
+    screenshot: {
+      id: number;
+      userId: string;
+      matchId: string;
+      imageData: string;
+      timestamp: string;
+    };
+    summaryMessage: Message;
+    coachMessage: Message;
+  }>;
 
   getMessagesByMatch(
     userId: string,
@@ -64,39 +100,127 @@ export class SQLiteMessageRepository implements MessageRepository {
       timestamp: string;
       imageData?: string;
       promptVariant?: PromptVariant;
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      totalTokens?: number;
+      inputCost?: number;
+      outputCost?: number;
+      totalCost?: number;
+      costTimestamp?: string;
     },
   ): Promise<Message> {
-    try {
-      const result = await this.db.run(
-        'INSERT INTO messages (userId, matchId, role, type, mode, used, replyTo, content, timestamp, imageData, promptVariant) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          userId,
-          matchId || null,
-          message.role,
-          message.type || MessageType.TEXT,
-          message.mode || MessageMode.GENERATE,
-          message.used ? 1 : 0,
-          message.replyTo || null,
-          message.content,
-          message.timestamp,
-          message.imageData || null,
-          message.promptVariant || null,
-        ],
-      );
+    const mid = matchId ?? '';
+    return this.db.saveMessage(userId, mid, {
+      ...message,
+      type: message.type || MessageType.TEXT,
+      mode: message.mode || MessageMode.GENERATE,
+    });
+  }
 
-      const insertedMessage = await this.db.get(
-        'SELECT * FROM messages WHERE id = ?',
-        [result.lastID],
-      );
+  async seedTestData(
+    userId: string,
+    matchId: string,
+    customContent?: SeedTestDataCustom,
+  ): Promise<{
+    userMessage: Message;
+    assistantMessage: Message;
+    alternateMessage: Message;
+    screenshot: {
+      id: number;
+      userId: string;
+      matchId: string;
+      imageData: string;
+      timestamp: string;
+    };
+    summaryMessage: Message;
+    coachMessage: Message;
+  }> {
+    const ts = new Date().toISOString();
+    const c = {
+      userMessage: customContent?.userMessage ?? 'What should I say next?',
+      assistantMessage:
+        customContent?.assistantMessage ?? 'Try asking about their interests',
+      alternateMessage:
+        customContent?.alternateMessage ?? 'Here is an alternate response',
+      summaryContent:
+        customContent?.summaryContent ??
+        'Summary of the conversation context',
+      coachAdvice:
+        customContent?.coachAdvice ?? 'Focus on being genuine and curious',
+    };
+    const placeholderImage = 'base64-placeholder-image-data';
 
-      return insertedMessage;
-    } catch (error) {
-      logger.error('Failed to create message', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw error;
-    }
+    const shotResult = await this.db.run(
+      'INSERT INTO screenshots (userId, matchId, imageData, timestamp) VALUES (?, ?, ?, ?)',
+      [userId, matchId, placeholderImage, ts],
+    );
+    const screenshotId = shotResult.lastID as number;
+
+    const userMessage = await this.db.saveMessage(userId, matchId, {
+      role: MessageRole.USER,
+      type: MessageType.TEXT,
+      mode: MessageMode.GENERATE,
+      content: c.userMessage,
+      timestamp: ts,
+    });
+
+    const assistantMessage = await this.db.saveMessage(userId, matchId, {
+      role: MessageRole.ASSISTANT,
+      type: MessageType.TEXT,
+      mode: MessageMode.GENERATE,
+      used: true,
+      content: c.assistantMessage,
+      timestamp: ts,
+    });
+
+    const alternateMessage = await this.db.saveMessage(userId, matchId, {
+      role: MessageRole.ASSISTANT,
+      type: MessageType.TEXT,
+      mode: MessageMode.GENERATE,
+      used: false,
+      replyTo: Number(assistantMessage.id),
+      content: c.alternateMessage,
+      timestamp: ts,
+    });
+
+    const summaryMessage = await this.db.saveMessage(userId, matchId, {
+      role: MessageRole.SYSTEM,
+      type: MessageType.SUMMARY,
+      mode: MessageMode.GENERATE,
+      replyTo: screenshotId,
+      content: c.summaryContent,
+      timestamp: ts,
+    });
+
+    const coachMessage = await this.db.saveMessage(userId, matchId, {
+      role: MessageRole.ASSISTANT,
+      type: MessageType.TEXT,
+      mode: MessageMode.COACH,
+      used: false,
+      content: c.coachAdvice,
+      timestamp: ts,
+    });
+
+    const norm = (m: Message): Message => ({
+      ...m,
+      used: Boolean(m.used),
+    });
+
+    return {
+      userMessage: norm(userMessage),
+      assistantMessage: norm(assistantMessage),
+      alternateMessage: norm(alternateMessage),
+      screenshot: {
+        id: screenshotId,
+        userId,
+        matchId,
+        imageData: placeholderImage,
+        timestamp: ts,
+      },
+      summaryMessage: norm(summaryMessage),
+      coachMessage: norm(coachMessage),
+    };
   }
 
   async getMessagesByMatch(
@@ -144,13 +268,16 @@ export class SQLiteMessageRepository implements MessageRepository {
 
       const messages = await this.db.all(query, params);
       const total = await this.db.get(
-        'SELECT COUNT(*) FROM messages WHERE userId = ? AND matchId = ?',
+        'SELECT COUNT(*) as cnt FROM messages WHERE userId = ? AND matchId = ?',
         [userId, matchId || null],
       );
 
       return {
-        messages,
-        total: total.count,
+        messages: messages.map(m => ({
+          ...m,
+          used: Boolean(m.used),
+        })),
+        total: total?.cnt ?? 0,
       };
     } catch (error) {
       logger.error('Failed to get messages by match', {
@@ -230,7 +357,3 @@ export class SQLiteMessageRepository implements MessageRepository {
     }
   }
 }
-
-export const getMessageRepository = (db: Database): MessageRepository => {
-  return new SQLiteMessageRepository(db);
-};

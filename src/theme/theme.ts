@@ -1,43 +1,45 @@
 import {MD3LightTheme} from 'react-native-paper';
+import {tokens} from '../design-system/tokens';
 
-// Our custom color palette
-const colors = {
-  primary: '#7E22CE',
-  primaryContainer: '#3B0764',
-  secondary: '#40E0D0', // Light turquoise
-  background: '#FFFFFF',
-  surface: '#FFFFFF',
-  error: '#D32F2F',
-  onSurface: '#000000',
-  onSurfaceVariant: 'rgba(0, 0, 0, 0.6)',
-  outline: 'rgba(0, 0, 0, 0.12)',
-  disabled: 'rgba(0, 0, 0, 0.38)',
-};
+const c = tokens.color;
 
-// Create a custom theme based on the light theme
+// Light Paper theme for unmigrated surfaces; brand colors align with design tokens.
 export const theme = {
   ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    ...colors,
-  },
-  // Disable dark mode
   dark: false,
-  // Customize other theme properties as needed
-  roundness: 8,
+  roundness: tokens.radii.paper,
   animation: {
     scale: 1.0,
   },
-  // Add custom styles for components
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: c.brand.primary,
+    /** Deep purple — used in hero gradients (Login, Coach) */
+    primaryContainer: c.brand.primaryStrong,
+    onPrimary: '#FFFFFF',
+    secondary: c.accent.mint,
+    secondaryContainer: '#CCFBF1',
+    onSecondary: c.text.onAccent,
+    background: '#FFFFFF',
+    surface: '#FFFFFF',
+    surfaceVariant: '#F4F4F5',
+    /** Legacy screens expect true black for primary button labels */
+    onSurface: '#000000',
+    onSurfaceVariant: '#52525B',
+    outline: '#E4E4E7',
+    outlineVariant: '#D4D4D8',
+    error: c.semantic.danger,
+    onError: '#FFFFFF',
+    disabled: 'rgba(0, 0, 0, 0.38)',
+  },
   components: {
-    ...MD3LightTheme.components,
+    ...(MD3LightTheme as {components?: object}).components,
     Snackbar: {
       style: {
-        backgroundColor: 'rgba(49, 48, 51, 0.95)', // Less transparent background
+        backgroundColor: 'rgba(49, 48, 51, 0.95)',
       },
     },
   },
 };
 
-// Export the theme type for TypeScript
 export type AppTheme = typeof theme;

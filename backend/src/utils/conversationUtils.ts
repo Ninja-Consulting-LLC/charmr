@@ -1,6 +1,5 @@
-import {getDatabase} from '../db';
 import {getMessageRepository} from '../db/repositories';
-import {Message} from '../db/types';
+import {Database, Message} from '../db/types';
 import {createSummaryService} from '../services/summaryService';
 import {PromptVariant} from '../types';
 import {MessageMode, MessageRole, MessageType} from '../types/enums';
@@ -8,21 +7,35 @@ import logger from '../utils/logger';
 
 export type {Message} from '../db/types';
 
+const MAX_CONVERSATION_FETCH = 500;
+
 export const loadConversation = async (
+  db: Database,
   userId: string,
   matchId: string,
   userPlan: string,
-  limit: number = 10,
+  limit: number = 50,
 ): Promise<Message[]> => {
   try {
-    const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
-    // Get messages for the match
+    const cap = Math.max(1, Math.min(limit, MAX_CONVERSATION_FETCH));
+
+    // Newest-first from DB; we re-sort ascending below. Cap reduces load for long threads.
     const {messages} = await messageRepository.getMessagesByMatch(
       userId,
       matchId,
+      undefined,
+      {limit: cap, offset: 0},
     );
+
+    logger.debug('loadConversation', {
+      userId,
+      matchId,
+      userPlan,
+      limit: cap,
+      rowCount: messages.length,
+    });
 
     // Get the match summary
     const summaryService = createSummaryService(db);
@@ -59,6 +72,7 @@ export const loadConversation = async (
 };
 
 export const appendConversation = async (
+  db: Database,
   userId: string,
   matchId: string | undefined,
   reply: string,
@@ -84,7 +98,6 @@ export const appendConversation = async (
       promptVariant,
     });
 
-    const db = await getDatabase();
     const messageRepository = getMessageRepository(db);
 
     // Start with current timestamp for this conversation set

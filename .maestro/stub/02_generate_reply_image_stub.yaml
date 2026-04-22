@@ -1,0 +1,38 @@
+# C6: Home → pick image → Generate → stub reply in modal.
+# Backend: CHARMR_E2E_STUB_LLM=true. App: .env.e2e sets CHARMR_E2E_RELAX_IMAGE_PICKER (bundled logo inject).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'image-picker-button'
+- extendedWaitUntil:
+    visible:
+      id: 'selected-image-0'
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: 'generate-response-button'
+    timeout: 20000
+- tapOn:
+    id: 'generate-response-button'
+- extendedWaitUntil:
+    visible:
+      id: 'reply-modal-text'
+    timeout: 25000
+# Full stub body from replyController (RNText + accessibilityLabel).
+- assertVisible: '[E2E_STUB] Deterministic coach reply'
+- tapOn:
+    id: 'reply-modal-done'

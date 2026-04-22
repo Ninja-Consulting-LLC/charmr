@@ -1,0 +1,8 @@
+---
+description: React Native app at repo root
+globs: src/**/*.tsx,src/**/*.ts,*.tsx,*.ts
+---
+
+- Shared contracts: import from `@charmr/shared`, never from `backend/src`.
+- API client: `src/services/axiosInstance.ts` (auth headers, timeouts).
+- After changing DTOs: update `@charmr/shared` and mobile types together.

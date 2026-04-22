@@ -1,7 +1,7 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
-import {Button, Dialog, Portal, Text} from 'react-native-paper';
-import {theme} from '../theme/theme';
+import {StyleSheet, View} from 'react-native';
+import {Dialog, Portal} from 'react-native-paper';
+import {AppText, CharmrButton, tokens} from '../design-system';
 
 interface DeleteMatchDialogProps {
   visible: boolean;
@@ -23,23 +23,32 @@ const DeleteMatchDialog: React.FC<DeleteMatchDialogProps> = ({
       <Dialog visible={visible} onDismiss={onDismiss}>
         <Dialog.Title>Delete Match</Dialog.Title>
         <Dialog.Content>
-          <Text>
+          <AppText
+            variant="body"
+            style={{color: tokens.color.text.onInverse}}>
             Are you sure you want to delete {matchName}? This action cannot be
             undone.
-          </Text>
+          </AppText>
         </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={onArchive}>Archive</Button>
-          <Button onPress={onConfirm} textColor={theme.colors.error}>
-            Delete
-          </Button>
-        </Dialog.Actions>
+        <View style={styles.actions}>
+          <CharmrButton label="Cancel" variant="outline" compact onPress={onDismiss} />
+          <CharmrButton label="Archive" variant="outline" compact onPress={onArchive} />
+          <CharmrButton label="Delete" variant="danger" compact onPress={onConfirm} />
+        </View>
       </Dialog>
     </Portal>
   );
 };
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: tokens.space.sm,
+    paddingHorizontal: tokens.space.md,
+    paddingBottom: tokens.space.md,
+  },
+});
 
 export default DeleteMatchDialog;

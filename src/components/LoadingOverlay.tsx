@@ -1,6 +1,6 @@
 import React from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {theme} from '../theme/theme';
+import {ActivityIndicator, StyleSheet, View} from 'react-native';
+import {AppText, tokens} from '../design-system';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -8,12 +8,18 @@ interface LoadingOverlayProps {
 }
 
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({visible, message}) => {
-  if (!visible) return null;
+  if (!visible) {
+    return null;
+  }
 
   return (
     <View style={styles.overlay}>
-      <ActivityIndicator size="large" color={theme.colors.surface} />
-      {message && <Text style={styles.message}>{message}</Text>}
+      <ActivityIndicator size="large" color={tokens.color.hero.text} />
+      {message ? (
+        <AppText variant="bodyMedium" color="hero" style={styles.message}>
+          {message}
+        </AppText>
+      ) : null}
     </View>
   );
 };
@@ -21,16 +27,13 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({visible, message}) => {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: `${theme.colors.primary}B3`, // B3 is 70% opacity in hex
+    backgroundColor: `${tokens.color.brand.primary}B3`,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   message: {
-    color: theme.colors.surface,
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
+    marginTop: tokens.space.lg,
   },
 });
 

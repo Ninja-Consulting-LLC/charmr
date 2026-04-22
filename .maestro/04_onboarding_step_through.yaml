@@ -1,0 +1,27 @@
+# B1/B3: Walk onboarding steps; skip from step 3 (needs API for Skip).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'next-button'
+- extendedWaitUntil:
+    visible: 'Select Charmr Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'next-button'
+- extendedWaitUntil:
+    visible: 'Register for Better Experience'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000

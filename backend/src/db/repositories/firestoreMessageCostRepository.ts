@@ -2,6 +2,8 @@ import {Firestore} from 'firebase-admin/firestore';
 import {firebaseAdmin} from '../../config/firebase-admin';
 import logger from '../../utils/logger';
 import {ID, MessageCost} from '../types';
+import {FirestoreMatchRepository} from './firestoreMatchRepository';
+import {FirestoreMessageRepository} from './firestoreMessageRepository';
 
 export class FirestoreMessageCostRepository {
   private readonly messageCostsCollection: string = 'messageCosts';
@@ -58,6 +60,92 @@ export class FirestoreMessageCostRepository {
       });
       throw error;
     }
+  }
+
+  /**
+   * Costs are stored on message documents in Firestore (not only in `messageCosts`).
+   * Aggregates embedded cost fields across all of the user's matches.
+   */
+  async listEmbeddedCostsForUser(
+    userId: string,
+    matchRepository: FirestoreMatchRepository,
+    messageRepository: FirestoreMessageRepository,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<MessageCost[]> {
+    const matches = await matchRepository.getMatches(userId, true);
+    const out: MessageCost[] = [];
+    const start = startDate ? new Date(startDate).getTime() : null;
+    const end = endDate ? new Date(endDate).getTime() : null;
+
+    for (const match of matches) {
+      const {messages} = await messageRepository.getMessagesByMatch(
+        userId,
+        String(match.id),
+      );
+      for (const msg of messages) {
+        const totalCost = Number(msg.totalCost);
+        if (!Number.isFinite(totalCost) || totalCost <= 0) {
+          continue;
+        }
+        const tsRaw = msg.costTimestamp || msg.timestamp;
+        const tsMs = new Date(tsRaw).getTime();
+        if (start !== null && tsMs < start) {
+          continue;
+        }
+        if (end !== null && tsMs > end) {
+          continue;
+        }
+        out.push({
+          id: `emb-${msg.id}`,
+          messageId: msg.id,
+          model: msg.model || '',
+          promptTokens: msg.promptTokens ?? 0,
+          completionTokens: msg.completionTokens ?? 0,
+          totalTokens: msg.totalTokens ?? 0,
+          inputCost: msg.inputCost ?? 0,
+          outputCost: msg.outputCost ?? 0,
+          totalCost,
+          timestamp: tsRaw,
+        } as MessageCost);
+      }
+    }
+
+    out.sort((a, b) =>
+      String(b.timestamp).localeCompare(String(a.timestamp)),
+    );
+    return out;
+  }
+
+  async aggregateEmbeddedTotalsForUser(
+    userId: string,
+    matchRepository: FirestoreMatchRepository,
+    messageRepository: FirestoreMessageRepository,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    messageCount: number;
+  }> {
+    const costs = await this.listEmbeddedCostsForUser(
+      userId,
+      matchRepository,
+      messageRepository,
+      startDate,
+      endDate,
+    );
+    let totalCost = 0;
+    let totalTokens = 0;
+    for (const c of costs) {
+      totalCost += c.totalCost || 0;
+      totalTokens += c.totalTokens || 0;
+    }
+    return {
+      totalCost,
+      totalTokens,
+      messageCount: costs.length,
+    };
   }
 
   async getTotalCosts(): Promise<{

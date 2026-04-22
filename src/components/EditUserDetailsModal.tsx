@@ -1,22 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
+import {Alert, Modal, StyleSheet, View} from 'react-native';
+import {TextInput, ThemeProvider} from 'react-native-paper';
 import {
-  Alert,
-  Keyboard,
-  Modal,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
-import {
-  Button,
-  IconButton,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
-import { updateUserProfile } from '../services/userService';
-import { useStore } from '../store';
-import { logger } from '../utils/logger';
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalIconButton,
+  ModalSheet,
+  RNModalTransparentOverlay,
+  rnModalOverlay,
+  tokens,
+} from '../design-system';
+import {updateUserProfile} from '../services/userService';
+import {useStore} from '../store';
+import {logger} from '../utils/logger';
 
 interface EditUserDetailsModalProps {
   visible: boolean;
@@ -30,8 +27,7 @@ const EditUserDetailsModal: React.FC<EditUserDetailsModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user, setUser } = useStore();
-  const theme = useTheme();
+  const {user, setUser} = useStore();
 
   useEffect(() => {
     if (visible && user) {
@@ -64,7 +60,7 @@ const EditUserDetailsModal: React.FC<EditUserDetailsModalProps> = ({
     }
   };
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <Modal
@@ -72,16 +68,19 @@ const EditUserDetailsModal: React.FC<EditUserDetailsModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onDismiss}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: theme.colors.surface },
-            ]}>
+      <RNModalTransparentOverlay>
+        <ModalSheet padded={false} style={rnModalOverlay.sheet}>
+          <ThemeProvider theme={darkModalPaperTheme}>
             <View style={styles.header}>
-              <Text style={styles.title}>Edit Profile</Text>
-              <IconButton icon="close" onPress={onDismiss} />
+              <AppText variant="titleSm" color="hero">
+                Edit Profile
+              </AppText>
+              <ModalIconButton
+                icon="close"
+                size={40}
+                onPress={onDismiss}
+                accessibilityLabel="Close"
+              />
             </View>
 
             <View style={styles.content}>
@@ -91,6 +90,7 @@ const EditUserDetailsModal: React.FC<EditUserDetailsModalProps> = ({
                 onChangeText={setName}
                 style={styles.input}
                 mode="outlined"
+                outlineStyle={styles.inputOutline}
                 disabled={isLoading}
                 testID="name-input"
               />
@@ -101,60 +101,51 @@ const EditUserDetailsModal: React.FC<EditUserDetailsModalProps> = ({
                 onChangeText={setEmail}
                 style={styles.input}
                 mode="outlined"
+                outlineStyle={styles.inputOutline}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 disabled={isLoading}
                 testID="email-input"
               />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Save"
+                variant="primary"
                 onPress={handleSave}
                 disabled={isLoading}
-                style={styles.button}
                 loading={isLoading}
-                testID="save-button">
-                Save
-              </Button>
+                testID="save-button"
+                fullWidth
+              />
             </View>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
+          </ThemeProvider>
+        </ModalSheet>
+      </RNModalTransparentOverlay>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxWidth: 400,
-    borderRadius: 8,
-    padding: 16,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    paddingHorizontal: tokens.space.lg,
+    paddingTop: tokens.space.lg,
+    paddingBottom: tokens.space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tokens.color.border.subtle,
   },
   content: {
-    gap: 16,
+    padding: tokens.space.lg,
+    gap: tokens.space.md,
   },
   input: {
-    backgroundColor: 'transparent',
+    backgroundColor: tokens.color.brand.primary,
+    borderRadius: tokens.radii.paper,
   },
-  button: {
-    marginTop: 8,
+  inputOutline: {
+    borderWidth: 1,
   },
 });
 

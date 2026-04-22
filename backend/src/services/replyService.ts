@@ -1,8 +1,7 @@
+import {getDatabase} from '../db';
 import {GenerateReplyRequest} from '../types';
 import logger from '../utils/logger';
 import {createOpenAIService} from './openaiService';
-
-const openaiService = createOpenAIService();
 
 export const generateReply = async (
   message: string,
@@ -13,6 +12,9 @@ export const generateReply = async (
       messageLength: message.length,
       hasContext: !!context,
     });
+
+    const db = await getDatabase();
+    const openaiService = createOpenAIService(db);
 
     const request: GenerateReplyRequest = {
       prompt: message,

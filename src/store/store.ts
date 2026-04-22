@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type {Dispatch, SetStateAction} from 'react';
 import {fetchUserData} from '../services/api';
 import {ID} from '../types';
 import {SubscriptionTier} from '../types/enums';
@@ -33,7 +34,7 @@ export interface Store {
   handleGoogleLogin: (firebaseUser: any) => Promise<void>;
   // Match management
   matches: Match[];
-  setMatches: (matches: Match[]) => void;
+  setMatches: Dispatch<SetStateAction<Match[]>>;
   addMatch: (match: Match) => void;
   updateMatch: (match: Match) => void;
   removeMatch: (matchId: ID) => void;

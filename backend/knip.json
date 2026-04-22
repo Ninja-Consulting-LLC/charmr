@@ -1,0 +1,33 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/index.ts"],
+  "project": ["src/**/*.ts"],
+  "ignore": [
+    "src/**/*.test.ts",
+    "src/test/**",
+    "src/db/firestore.ts",
+    "src/services/email/types.ts",
+    "src/test/testUtils.ts"
+  ],
+  "ignoreDependencies": [
+    "@charmr/shared",
+    "@google-cloud/firestore",
+    "@eslint/js",
+    "@types/cors",
+    "@types/express",
+    "@types/jest",
+    "@types/morgan",
+    "@types/node",
+    "@types/node-cron",
+    "@types/nodemailer",
+    "eslint",
+    "globals",
+    "jest",
+    "nodemon",
+    "ts-jest",
+    "ts-node",
+    "typescript",
+    "typescript-eslint"
+  ],
+  "ignoreBinaries": ["jest", "nodemon", "ts-node", "tsc", "eslint"]
+}

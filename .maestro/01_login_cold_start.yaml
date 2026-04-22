@@ -1,0 +1,21 @@
+# A1: Cold install state → Login screen (primary CTAs by testID + visible copy).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: include/after_cold_launch.yaml
+- waitForAnimationToEnd
+# kAXErrorAPIDisabled can fail a single hierarchy poll; retry re-queries XCTest.
+- retry:
+    maxRetries: 3
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: get-started-button
+          timeout: 20000
+- assertVisible:
+    id: 'get-started-button'
+- assertVisible:
+    id: 'login-button'
+- assertVisible: 'Log In'

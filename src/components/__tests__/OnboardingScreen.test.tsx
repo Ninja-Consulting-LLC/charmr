@@ -1,25 +1,52 @@
 import {useNavigation} from '@react-navigation/native';
 import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import React from 'react';
+import {PaperProvider} from 'react-native-paper';
 import OnboardingScreen from '../../screens/OnboardingScreen';
+import {theme} from '../../theme/theme';
 import {mockAsyncStorage} from '../../test/mocks';
-import {DevUtils} from '../../utils/devUtils';
 
-// Mock navigation
+jest.mock('../../components/LoginModal', () => {
+  const React = require('react');
+  const {Pressable, Text} = require('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      visible,
+      onLoginSuccess,
+    }: {
+      visible: boolean;
+      onLoginSuccess?: () => void;
+    }) =>
+      visible ? (
+        <Pressable
+          testID="stub-login-success"
+          onPress={() => onLoginSuccess?.()}>
+          <Text>Stub login</Text>
+        </Pressable>
+      ) : null,
+  };
+});
+
+jest.mock('../../store/StoreProvider', () => ({
+  useStore: jest.fn(() => ({
+    createNewUser: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: jest.fn(),
 }));
 
-// Mock DevUtils
-jest.mock('../../utils/devUtils', () => ({
-  DevUtils: {
-    shouldBypassAuth: jest.fn(),
-  },
-}));
-
-// Mock console.error
 const originalConsoleError = console.error;
 console.error = jest.fn();
+
+const renderOnboarding = () =>
+  render(
+    <PaperProvider theme={theme}>
+      <OnboardingScreen />
+    </PaperProvider>,
+  );
 
 describe('OnboardingScreen', () => {
   const mockNavigate = jest.fn();
@@ -27,7 +54,6 @@ describe('OnboardingScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useNavigation as jest.Mock).mockReturnValue({navigate: mockNavigate});
-    (DevUtils.shouldBypassAuth as jest.Mock).mockReturnValue(false);
   });
 
   afterAll(() => {
@@ -35,44 +61,43 @@ describe('OnboardingScreen', () => {
   });
 
   it('matches snapshot for step 1', () => {
-    const {toJSON} = render(<OnboardingScreen />);
+    const {toJSON} = renderOnboarding();
     expect(toJSON()).toMatchSnapshot();
   });
 
   it('renders first step content correctly', () => {
-    const {getByText} = render(<OnboardingScreen />);
+    const {getByText} = renderOnboarding();
 
-    expect(getByText('Enable Dating Keyboard')).toBeTruthy();
+    expect(getByText('Set up the Charmr keyboard')).toBeTruthy();
     expect(
-      getByText('Follow these steps to enable Charmr keyboard:'),
+      getByText(
+        'Charmr works from your keyboard like any language keyboard. Add it once in Settings. After that you can use it in dating apps, texts, and more.',
+      ),
     ).toBeTruthy();
-    expect(getByText('1. Go to Settings')).toBeTruthy();
-    expect(getByText('6. Select Charmr')).toBeTruthy();
+    expect(getByText('1. Open Settings')).toBeTruthy();
+    expect(
+      getByText('6. Choose Charmr, then allow Full Access if asked'),
+    ).toBeTruthy();
   });
 
   it('navigates through steps when clicking next', () => {
-    const {getByTestId, getByText} = render(<OnboardingScreen />);
+    const {getByTestId, getByText} = renderOnboarding();
 
-    // Step 1
-    expect(getByText('Enable Dating Keyboard')).toBeTruthy();
+    expect(getByText('Set up the Charmr keyboard')).toBeTruthy();
 
-    // Go to Step 2
     const nextButton = getByTestId('next-button');
     fireEvent.press(nextButton);
-    expect(getByText('Set as Default Keyboard')).toBeTruthy();
+    expect(getByText('Pick Charmr when you type')).toBeTruthy();
 
-    // Go to Step 3
     fireEvent.press(nextButton);
-    expect(getByText('Register for Better Experience')).toBeTruthy();
+    expect(getByText('Sign in to save your progress')).toBeTruthy();
 
-    // Verify Step 1 content is not visible
-    expect(() => getByText('Enable Dating Keyboard')).toThrow();
+    expect(() => getByText('Set up the Charmr keyboard')).toThrow();
   });
 
-  it('shows Register button on last step', () => {
-    const {getByTestId} = render(<OnboardingScreen />);
+  it('shows create-account button on last step', () => {
+    const {getByTestId} = renderOnboarding();
 
-    // Go to last step
     const nextButton = getByTestId('next-button');
     fireEvent.press(nextButton);
     fireEvent.press(nextButton);
@@ -80,55 +105,32 @@ describe('OnboardingScreen', () => {
     expect(getByTestId('register-button')).toBeTruthy();
   });
 
-  it('handles completion in normal mode', async () => {
-    const {getByTestId} = render(<OnboardingScreen />);
+  it('persists onboarding and navigates home after login success', async () => {
+    const {getByTestId} = renderOnboarding();
 
-    // Go to last step
-    const nextButton = getByTestId('next-button');
-    fireEvent.press(nextButton);
-    fireEvent.press(nextButton);
+    fireEvent.press(getByTestId('next-button'));
+    fireEvent.press(getByTestId('next-button'));
     fireEvent.press(getByTestId('register-button'));
 
-    // Verify AsyncStorage was called
+    await waitFor(() => {
+      expect(getByTestId('stub-login-success')).toBeTruthy();
+    });
+    fireEvent.press(getByTestId('stub-login-success'));
+
     await waitFor(() => {
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
         'hasOnboarded',
         'true',
       );
     });
-
-    // Verify navigation to Login screen
-    expect(mockNavigate).toHaveBeenCalledWith('Login');
-  });
-
-  it('handles completion in dev mode', async () => {
-    (DevUtils.shouldBypassAuth as jest.Mock).mockReturnValue(true);
-    const {getByTestId} = render(<OnboardingScreen />);
-
-    // Go to last step
-    const nextButton = getByTestId('next-button');
-    fireEvent.press(nextButton);
-    fireEvent.press(nextButton);
-    fireEvent.press(getByTestId('register-button'));
-
-    // Verify AsyncStorage was called
-    await waitFor(() => {
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-        'hasOnboarded',
-        'true',
-      );
-    });
-
-    // Verify navigation to Home screen in dev mode
     expect(mockNavigate).toHaveBeenCalledWith('Home');
   });
 
   it('handles skip button press', async () => {
-    const {getByTestId} = render(<OnboardingScreen />);
+    const {getByTestId} = renderOnboarding();
 
     fireEvent.press(getByTestId('skip-button'));
 
-    // Verify AsyncStorage was called
     await waitFor(() => {
       expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
         'hasOnboarded',
@@ -136,27 +138,23 @@ describe('OnboardingScreen', () => {
       );
     });
 
-    // Verify navigation to Login screen
-    expect(mockNavigate).toHaveBeenCalledWith('Login');
+    expect(mockNavigate).toHaveBeenCalledWith('Home');
   });
 
   it('handles AsyncStorage error gracefully', async () => {
-    // Mock AsyncStorage to throw an error
     mockAsyncStorage.setItem.mockRejectedValueOnce(new Error('Storage error'));
 
-    const {getByTestId} = render(<OnboardingScreen />);
+    const {getByTestId} = renderOnboarding();
 
     fireEvent.press(getByTestId('skip-button'));
 
-    // Verify error was logged
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
-        'Error saving onboarding status:',
+        'Error creating user:',
         expect.any(Error),
       );
     });
 
-    // Verify navigation was not called
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

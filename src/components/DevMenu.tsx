@@ -4,16 +4,26 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import axios from 'axios';
 import React, {useEffect, useState} from 'react';
 import {Alert, Animated, ScrollView, StyleSheet, View} from 'react-native';
-import {Button, IconButton, Switch, Text} from 'react-native-paper';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {IconButton, Switch, Text} from 'react-native-paper';
 import {config} from '../config/config';
 import {RootStackParamList} from '../navigation/types';
 import {generateReply, resetDb, testContext} from '../services/api';
 import axiosInstance from '../services/axiosInstance';
+import {CharmrButton, tokens} from '../design-system';
 import {useStore} from '../store';
-import {theme} from '../theme/theme';
 import {SubscriptionTier} from '../types/enums';
 import {DevUtils} from '../utils/devUtils';
 import {logger} from '../utils/logger';
+
+const tc = tokens.color;
+/** Light panel surfaces (dev drawer matches Paper light chrome) */
+const light = {
+  surface: '#FFFFFF',
+  surfaceMuted: '#F4F4F5',
+  outline: '#E4E4E7',
+  primaryTint: 'rgba(126, 34, 206, 0.08)',
+};
 
 type DevMenuNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,7 +34,6 @@ const DevMenu = () => {
   const [testResults, setTestResults] = useState<
     Array<{prompt: string; success: boolean; error?: string}>
   >([]);
-  const [authBypass, setAuthBypass] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
   const {
     userId,
@@ -37,6 +46,8 @@ const DevMenu = () => {
     updateUserPlan,
     matches,
     setMatches,
+    authBypass,
+    setAuthBypass,
   } = useStore();
 
   const [isVisible, setIsVisible] = useState(false);
@@ -209,6 +220,41 @@ const DevMenu = () => {
     }
   };
 
+  /** Saturate daily quota via dev-only API (local backend NODE_ENV=development). */
+  /** E2E / D4: local store looks like a registered user (locked email in Support); still uses current userId + anonymous API. */
+  const handleE2ESimulateRegisteredProfile = () => {
+    setAuthBypass(false);
+    setUser({
+      ...user,
+      email: 'e2e.registered@charmr.test',
+      name: user.name ?? 'E2E Registered',
+    });
+    setShowDevMenu(false);
+  };
+
+  const handleE2ESaturateMessageLimit = async () => {
+    if (!userId) {
+      Alert.alert('E2E', 'No userId');
+      return;
+    }
+    try {
+      await axiosInstance.post('/api/dev/e2e/saturate-message-limit', {
+        userId,
+      });
+      const userResponse = await axiosInstance.get(`/api/users/${userId}`);
+      if (userResponse.data) {
+        setUser(userResponse.data);
+      }
+      Alert.alert('E2E', 'Daily message limit saturated for this user');
+    } catch (error) {
+      console.error('E2E saturate message limit:', error);
+      Alert.alert(
+        'E2E Error',
+        'Saturate failed (needs local backend with NODE_ENV=development and /api/dev mounted).',
+      );
+    }
+  };
+
   const handleResetMessageLimit = async () => {
     try {
       const response = await axiosInstance.post(
@@ -260,8 +306,9 @@ const DevMenu = () => {
   const handleChangePlan = async (plan: SubscriptionTier) => {
     try {
       await updateUserPlan(plan);
-      Alert.alert('Success', `Plan changed to ${plan}`);
+      console.log('[DevMenu] Plan changed to', plan);
     } catch (error) {
+      console.error('[DevMenu] Failed to change plan', error);
       Alert.alert('Error', 'Failed to change plan');
     }
   };
@@ -317,7 +364,7 @@ const DevMenu = () => {
     }
   };
 
-  if (!isVisible && !showDevMenu) return null;
+  if (!isVisible && !showDevMenu) {return null;}
 
   return (
     <>
@@ -335,20 +382,22 @@ const DevMenu = () => {
         style={[
           styles.drawer,
           {
-            backgroundColor: theme.colors.surface,
+            backgroundColor: light.surface,
             transform: [{translateX: slideAnim}],
           },
         ]}>
-        <View style={styles.header}>
-          <IconButton
-            icon="close"
-            size={24}
-            onPress={() => setShowDevMenu(false)}
-            style={styles.closeButton}
-          />
-        </View>
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.content}>
+        <SafeAreaView style={styles.drawerSafe} edges={['top', 'bottom', 'left', 'right']}>
+          <View style={styles.header}>
+            <IconButton
+              icon="close"
+              size={24}
+              onPress={() => setShowDevMenu(false)}
+              testID="dev-menu-close-button"
+              style={styles.closeButton}
+            />
+          </View>
+          <ScrollView style={styles.scrollView}>
+            <View style={styles.content}>
             <View style={styles.header}>
               <Text variant="titleMedium" style={styles.title}>
                 Development Menu
@@ -366,108 +415,143 @@ const DevMenu = () => {
             </View>
 
             <View style={styles.buttonContainer}>
-              <Button
-                mode="contained"
+              <CharmrButton
+                testID="dev-menu-logout-button"
+                label="Logout"
+                variant="primary"
+                fullWidth
                 onPress={handleLogout}
-                style={styles.button}>
-                Logout
-              </Button>
+                style={styles.button}
+              />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Reset Onboarding"
+                variant="primary"
+                fullWidth
                 onPress={handleResetOnboarding}
-                style={styles.button}>
-                Reset Onboarding
-              </Button>
+                style={styles.button}
+              />
 
               <View style={styles.section}>
                 <Text variant="titleSmall" style={styles.sectionTitle}>
                   Storage & Database
                 </Text>
-                <Button
-                  mode="contained"
+                <CharmrButton
+                  label="Clear Storage"
+                  variant="primary"
+                  fullWidth
                   onPress={handleClearStorage}
-                  style={styles.button}>
-                  Clear Storage
-                </Button>
-                <Button
-                  mode="contained"
+                  style={styles.button}
+                />
+                <CharmrButton
+                  label="Reset Database"
+                  variant="primary"
+                  fullWidth
                   onPress={handleResetDb}
-                  style={styles.button}>
-                  Reset Database
-                </Button>
-                <Button
-                  mode="contained"
+                  style={styles.button}
+                />
+                <CharmrButton
+                  label="Inspect Storage"
+                  variant="primary"
+                  fullWidth
                   onPress={handleInspectStorage}
-                  style={styles.button}>
-                  Inspect Storage
-                </Button>
+                  style={styles.button}
+                />
               </View>
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Test Context"
+                variant="primary"
+                fullWidth
                 onPress={handleTestContext}
-                style={styles.button}>
-                Test Context
-              </Button>
+                style={styles.button}
+              />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Test Rate Limiting"
+                variant="primary"
+                fullWidth
                 onPress={handleTestRateLimiting}
-                style={styles.button}>
-                Test Rate Limiting
-              </Button>
+                style={styles.button}
+              />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Reset Message Limit (Current User)"
+                variant="primary"
+                fullWidth
                 onPress={handleResetMessageLimit}
-                style={styles.button}>
-                Reset Message Limit (Current User)
-              </Button>
+                style={styles.button}
+              />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                testID="dev-menu-e2e-simulate-registered"
+                label="E2E: Simulate registered profile (locked email)"
+                variant="primary"
+                fullWidth
+                onPress={handleE2ESimulateRegisteredProfile}
+                style={styles.button}
+              />
+
+              <CharmrButton
+                testID="dev-menu-e2e-saturate-limit"
+                label="E2E: Saturate daily message limit"
+                variant="primary"
+                fullWidth
+                onPress={handleE2ESaturateMessageLimit}
+                style={styles.button}
+              />
+
+              <CharmrButton
+                label="Add Test Messages (+10)"
+                variant="primary"
+                fullWidth
                 onPress={handleAddTestMessages}
-                style={styles.button}>
-                Add Test Messages (+10)
-              </Button>
+                style={styles.button}
+              />
 
-              <Button
-                mode="contained"
+              <CharmrButton
+                label="Remove Test Messages (-10)"
+                variant="primary"
+                fullWidth
                 onPress={handleRemoveTestMessages}
-                style={styles.button}>
-                Remove Test Messages (-10)
-              </Button>
+                style={styles.button}
+              />
 
               <View style={styles.planButtonsContainer}>
                 <Text variant="titleSmall" style={styles.planTitle}>
                   Change Plan
                 </Text>
                 <View style={styles.planButtons}>
-                  <Button
-                    mode="contained"
+                  <CharmrButton
+                    testID="dev-menu-plan-free"
+                    label="Free"
+                    variant="primary"
+                    fullWidth
                     onPress={() => handleChangePlan(SubscriptionTier.FREE)}
-                    style={styles.planButton}>
-                    Free
-                  </Button>
-                  <Button
-                    mode="contained"
+                    style={styles.planButton}
+                  />
+                  <CharmrButton
+                    testID="dev-menu-plan-pro"
+                    label="Pro"
+                    variant="primary"
+                    fullWidth
                     onPress={() => handleChangePlan(SubscriptionTier.PRO)}
-                    style={styles.planButton}>
-                    Pro
-                  </Button>
+                    style={styles.planButton}
+                  />
                 </View>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>API Debugging</Text>
-                <Button
-                  mode="contained"
+                <CharmrButton
+                  label={isTestingApi ? 'Testing API...' : 'Test API Connection'}
+                  variant="primary"
+                  fullWidth
                   onPress={handleTestApiConnection}
                   disabled={isTestingApi}
-                  style={styles.button}>
-                  {isTestingApi ? 'Testing API...' : 'Test API Connection'}
-                </Button>
+                  loading={isTestingApi}
+                  style={styles.button}
+                />
 
                 <View style={styles.infoBox}>
                   <Text>API Base URL: {config.apiBaseUrl}</Text>
@@ -501,8 +585,8 @@ const DevMenu = () => {
                     <Text
                       style={{
                         color: apiDebugResult.success
-                          ? theme.colors.primary
-                          : theme.colors.error,
+                          ? tc.brand.primary
+                          : tc.semantic.danger,
                         fontWeight: 'bold',
                         marginBottom: 8,
                       }}>
@@ -554,8 +638,9 @@ const DevMenu = () => {
                 {error}
               </Text>
             )}
-          </View>
-        </ScrollView>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </Animated.View>
     </>
   );
@@ -584,6 +669,9 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  drawerSafe: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -618,13 +706,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     marginTop: 8,
-    color: theme.colors.onSurfaceVariant,
+    color: tc.text.secondary,
     textAlign: 'center',
   },
   resultsContainer: {
     marginTop: 8,
     padding: 8,
-    backgroundColor: `${theme.colors.primary}10`,
+    backgroundColor: light.primaryTint,
     borderRadius: 4,
   },
   resultsTitle: {
@@ -638,17 +726,17 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   errorText: {
-    color: theme.colors.error,
+    color: tc.semantic.danger,
     textAlign: 'center',
   },
   buttonText: {
-    color: theme.colors.surface,
+    color: light.surface,
     fontWeight: 'bold',
   },
   planButtonsContainer: {
     marginTop: 16,
     padding: 8,
-    backgroundColor: `${theme.colors.primary}10`,
+    backgroundColor: light.primaryTint,
     borderRadius: 4,
   },
   planTitle: {
@@ -666,7 +754,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 16,
     padding: 8,
-    backgroundColor: `${theme.colors.primary}10`,
+    backgroundColor: light.primaryTint,
     borderRadius: 4,
   },
   sectionTitle: {
@@ -677,19 +765,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderColor: light.outline,
     borderRadius: 4,
     marginBottom: 10,
   },
   jsonData: {
     marginTop: 8,
     padding: 8,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: light.surfaceMuted,
     borderRadius: 4,
   },
   infoBox: {
     padding: 8,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: light.surfaceMuted,
     borderRadius: 4,
     marginVertical: 8,
   },

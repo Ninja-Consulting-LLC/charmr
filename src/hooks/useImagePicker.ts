@@ -1,9 +1,10 @@
 import {useState} from 'react';
-import {Linking, Platform} from 'react-native';
+import {Image as RNImage, Linking, Platform} from 'react-native';
+import Config from 'react-native-config';
 import ImagePicker from 'react-native-image-crop-picker';
 import {useStore} from '../store';
 
-interface Image {
+interface PickerAsset {
   path: string;
   localIdentifier?: string;
   id?: string;
@@ -39,6 +40,15 @@ export const useImagePicker = () => {
   };
 
   const openScreenshotPicker = async () => {
+    // Default: Screenshots only (product). Optional Maestro native-picker build uses Recently Added
+    // so `simctl addmedia` seeds a predictable single-album grid (see `.env.e2e.native-picker`).
+    const smartAlbums: Array<
+      'Screenshots' | 'RecentlyAdded'
+    > =
+      Config.CHARMR_E2E_NATIVE_PICKER_TEST === 'true'
+        ? ['RecentlyAdded']
+        : ['Screenshots'];
+
     try {
       const result = await ImagePicker.openPicker({
         mediaType: 'photo',
@@ -47,8 +57,8 @@ export const useImagePicker = () => {
         writeTempFile: true,
         includeBase64: true,
         includeExif: true,
-        smartAlbums: ['Screenshots'],
-        defaultAlbum: 'Screenshots',
+        // iOS: patch-package skips the one-row album list when a single smart album matches (see patches/react-native-image-crop-picker+*.patch).
+        smartAlbums,
         maxFiles: 1,
         selectedAssets: images.map(img => ({
           uri: img.path,
@@ -86,6 +96,20 @@ export const useImagePicker = () => {
   };
 
   const pickImages = async () => {
+    if (Config.CHARMR_E2E_RELAX_IMAGE_PICKER === 'true') {
+      try {
+        const src = RNImage.resolveAssetSource(
+          require('../../assets/logo.png'),
+        );
+        if (src?.uri) {
+          setImages([{path: src.uri, mime: 'image/png'}]);
+        }
+      } catch (e) {
+        console.warn('[E2E] bundled image inject failed', e);
+      }
+      return;
+    }
+
     try {
       const result = await openScreenshotPicker();
 

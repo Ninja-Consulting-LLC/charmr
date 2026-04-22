@@ -1,0 +1,82 @@
+# E4 (exhaustive): (1) Delete archived match → Cancel → row remains. (2) Fresh session → Delete → Confirm → empty.
+# Two cold launches so confirm-delete does not depend on cancel flow state.
+appId: com.ninjadating.charmr
+---
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match.yaml
+- tapOn:
+    id: 'match-archive-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Archive Match'
+    timeout: 10000
+- tapOn:
+    id: 'archive-match-confirm-button'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'match-selector-close'
+- tapOn:
+    id: 'user-menu-button'
+- tapOn:
+    id: 'user-menu-archived-matches'
+- extendedWaitUntil:
+    visible: 'Archived Matches'
+    timeout: 12000
+- tapOn:
+    id: 'hidden-match-delete-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Delete Match'
+    timeout: 12000
+- tapOn:
+    id: 'archived-delete-cancel-button'
+- waitForAnimationToEnd
+- assertVisible: 'Archived Matches'
+- assertVisible:
+    id: archived-match-first-row
+- tapOn:
+    id: 'archived-matches-close'
+- tapOn:
+    id: 'user-menu-button'
+# --- Second scenario: confirm delete (fresh anonymous user; onboarding include clears state) ---
+- runFlow:
+    file: include/onboarding_anonymous_home.yaml
+- runFlow:
+    file: include/reach_coach_match_list_with_one_match_from_home.yaml
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn:
+    id: 'match-archive-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Archive Match'
+    timeout: 10000
+- tapOn:
+    id: 'archive-match-confirm-button'
+- waitForAnimationToEnd
+- tapOn:
+    id: 'match-selector-close'
+- tapOn:
+    id: 'user-menu-button'
+- tapOn:
+    id: 'user-menu-archived-matches'
+- extendedWaitUntil:
+    visible: 'Archived Matches'
+    timeout: 12000
+- tapOn:
+    id: 'hidden-match-delete-button'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Delete Match'
+    timeout: 12000
+- tapOn:
+    id: 'archived-delete-confirm-button'
+- waitForAnimationToEnd
+- assertVisible: 'No archived matches'
+- tapOn:
+    id: 'archived-matches-close'
+- tapOn:
+    id: 'user-menu-button'

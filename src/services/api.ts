@@ -1,16 +1,11 @@
 import NetInfo from '@react-native-community/netinfo';
+import {isAxiosError} from 'axios';
 import {getAuthToken} from '../config/firebase';
 import {MessageMode} from '../types/enums';
 import {GenerateReplyRequest, GenerateReplyResponse} from '../types/message';
 import {UserData} from '../types/user';
 import {logger} from '../utils/logger';
 import axiosInstance from './axiosInstance';
-
-interface MessageLimit {
-  dailyMessagesUsed: number;
-  dailyMessageLimit: number;
-  extraMessages: number;
-}
 
 interface SupportRequest {
   userId: string;
@@ -47,30 +42,43 @@ export const generateReply = async (
       limits: response.data.limits,
     });
     return response.data;
-  } catch (error: any) {
-    logger.app.error('[API] Error generating reply', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      responseData: error.response?.data,
-      isAxiosError: error.isAxiosError,
-      stack: error.stack,
-    });
+  } catch (error: unknown) {
+    const errMeta = isAxiosError(error)
+      ? {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          responseData: error.response?.data,
+          isAxiosError: true as const,
+          stack: error.stack,
+        }
+      : {
+          message: error instanceof Error ? error.message : String(error),
+          isAxiosError: false as const,
+          stack: error instanceof Error ? error.stack : undefined,
+        };
+
+    logger.app.error('[API] Error generating reply', errMeta);
 
     // If we have a response with error data, return it
-    if (error.response?.data) {
-      logger.app.debug('[API] Error response data', error.response.data);
+    if (isAxiosError(error) && error.response?.data) {
+      const data = error.response.data as {
+        error?: string;
+        type?: string;
+        limits?: GenerateReplyResponse['limits'];
+      };
+      logger.app.debug('[API] Error response data', data);
       return {
         reply: '',
-        error: error.response.data.error || 'Failed to generate reply',
-        type: error.response.data.type || 'GENERATION_ERROR',
-        limits: error.response.data.limits,
+        error: data.error || 'Failed to generate reply',
+        type: data.type || 'GENERATION_ERROR',
+        limits: data.limits,
         mode: MessageMode.GENERATE,
       };
     }
 
     // Handle network errors
-    if (error.isAxiosError) {
+    if (isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
         return {
           reply: '',
@@ -107,16 +115,19 @@ export const submitSupportRequest = async (
     'Content-Type': 'application/json',
   };
 
-  // Only add auth header if not bypassing auth
-  if (!authBypass) {
-    headers.Authorization = `Bearer ${await getAuthToken()}`;
-  } else {
-    // Add auth bypass header
+  if (authBypass) {
     headers['X-Auth-Bypass'] = 'true';
+  } else {
+    const token = await getAuthToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    // No Firebase user: omit Authorization so axios interceptor adds X-Anonymous-User
   }
 
   const response = await axiosInstance.post('/api/support', request, {
     headers,
+    timeout: 20000,
   });
   return response.data;
 };
@@ -229,9 +240,9 @@ export const getConfig = async () => {
   }
 };
 
-export const updateConfig = async (config: any) => {
+export const updateConfig = async (payload: Record<string, unknown>) => {
   try {
-    const response = await axiosInstance.put('/api/config', config);
+    const response = await axiosInstance.put('/api/config', payload);
     return response.data;
   } catch (error) {
     logger.app.error('Failed to update config:', error);

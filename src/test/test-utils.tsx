@@ -1,7 +1,9 @@
+import {NavigationContainer} from '@react-navigation/native';
 import {render, RenderOptions} from '@testing-library/react-native';
 import React from 'react';
 import {PaperProvider} from 'react-native-paper';
 import {StoreProvider} from '../store';
+import {theme} from '../theme/theme';
 
 // Custom render function that wraps components with necessary providers
 export function renderWithProviders(
@@ -10,9 +12,11 @@ export function renderWithProviders(
 ) {
   return render(ui, {
     wrapper: ({children}) => (
-      <StoreProvider>
-        <PaperProvider>{children}</PaperProvider>
-      </StoreProvider>
+      <NavigationContainer>
+        <StoreProvider>
+          <PaperProvider theme={theme}>{children}</PaperProvider>
+        </StoreProvider>
+      </NavigationContainer>
     ),
     ...options,
   });

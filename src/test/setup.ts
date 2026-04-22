@@ -4,7 +4,7 @@
  * All mocks are defined in the ./mocks directory and registered here.
  */
 
+import './mocks/firebaseNative';
 import {registerMocks} from './mocks';
 
-// Register all global mocks
 registerMocks();

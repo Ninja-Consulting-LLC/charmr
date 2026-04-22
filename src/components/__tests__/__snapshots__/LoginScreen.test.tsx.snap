@@ -1,306 +1,370 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`LoginScreen matches snapshot in dev mode 1`] = `
-<View
+exports[`LoginScreen matches snapshot 1`] = `
+<RNCSafeAreaProvider
+  onInsetsChange={[Function]}
   style={
-    {
-      "backgroundColor": "#2A1B8C",
-      "flex": 1,
-    }
+    [
+      {
+        "flex": 1,
+      },
+      undefined,
+    ]
   }
-  testID="screen-container"
 >
   <View
+    collapsable={false}
+    pointerEvents="box-none"
     style={
       {
         "flex": 1,
-        "justifyContent": "space-between",
-        "padding": 24,
       }
     }
-    testID="content-container"
   >
     <View
       style={
-        {
-          "alignItems": "center",
-          "marginTop": 80,
-        }
+        [
+          {
+            "flex": 1,
+          },
+          {
+            "backgroundColor": "transparent",
+          },
+          undefined,
+        ]
       }
-      testID="logo-container"
     >
       <View
         style={
           {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderRadius": 60,
-            "elevation": 8,
-            "height": 120,
-            "justifyContent": "center",
-            "marginBottom": 24,
-            "shadowColor": "#000",
-            "shadowOffset": {
-              "height": 4,
-              "width": 0,
-            },
-            "shadowOpacity": 0.3,
-            "shadowRadius": 4.65,
-            "width": 120,
+            "flex": 1,
           }
         }
-        testID="logo-placeholder"
       >
-        <Text
+        <View
+          colors={
+            [
+              "#7E22CE",
+              "#3B0764",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 1,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
           style={
             {
-              "color": "#2A1B8C",
-              "fontSize": 48,
-              "fontWeight": "bold",
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            }
+          }
+          testID="linear-gradient"
+        />
+        <RNCSafeAreaView
+          edges={
+            {
+              "bottom": "additive",
+              "left": "additive",
+              "right": "additive",
+              "top": "additive",
+            }
+          }
+          style={
+            {
+              "flex": 1,
             }
           }
         >
-          DB
-        </Text>
-      </View>
-      <Text
-        style={
-          {
-            "color": "#FFFFFF",
-            "fontWeight": "bold",
-            "marginBottom": 8,
-            "textAlign": "center",
-          }
-        }
-        testID="app-title"
-        variant="headlineMedium"
-      >
-        Charmr
-      </Text>
-      <Text
-        style={
-          {
-            "color": "#FFFFFF",
-            "opacity": 0.9,
-            "textAlign": "center",
-          }
-        }
-        testID="app-subtitle"
-        variant="bodyLarge"
-      >
-        Your AI-powered dating assistant
-      </Text>
-    </View>
-    <View
-      style={
-        {
-          "gap": 16,
-          "marginBottom": 40,
-        }
-      }
-      testID="button-container"
-    >
-      <Button
-        labelStyle={
-          {
-            "fontSize": 16,
-            "fontWeight": "bold",
-          }
-        }
-        mode="contained"
-        onPress={[Function]}
-        style={
-          {
-            "backgroundColor": "#FFFFFF",
-            "paddingVertical": 8,
-          }
-        }
-        testID="login-button"
-        textColor="#4B2EFF"
-      >
-        Login
-      </Button>
-      <Button
-        labelStyle={
-          {
-            "fontSize": 16,
-            "fontWeight": "bold",
-          }
-        }
-        mode="outlined"
-        onPress={[Function]}
-        style={
-          {
-            "borderColor": "#FFFFFF",
-            "borderWidth": 2,
-            "paddingVertical": 8,
-          }
-        }
-        testID="get-started-button"
-        textColor="#FFFFFF"
-      >
-        Get Started
-      </Button>
-      <Button
-        mode="text"
-        onPress={[Function]}
-        style={
-          {
-            "marginTop": 8,
-          }
-        }
-        testID="skip-to-home-button"
-        textColor="#FFFFFF"
-      >
-        Skip to Home (Dev Mode)
-      </Button>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`LoginScreen matches snapshot in normal mode 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": "#2A1B8C",
-      "flex": 1,
-    }
-  }
-  testID="screen-container"
->
-  <View
-    style={
-      {
-        "flex": 1,
-        "justifyContent": "space-between",
-        "padding": 24,
-      }
-    }
-    testID="content-container"
-  >
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "marginTop": 80,
-        }
-      }
-      testID="logo-container"
-    >
-      <View
-        style={
-          {
-            "alignItems": "center",
-            "backgroundColor": "#FFFFFF",
-            "borderRadius": 60,
-            "elevation": 8,
-            "height": 120,
-            "justifyContent": "center",
-            "marginBottom": 24,
-            "shadowColor": "#000",
-            "shadowOffset": {
-              "height": 4,
-              "width": 0,
-            },
-            "shadowOpacity": 0.3,
-            "shadowRadius": 4.65,
-            "width": 120,
-          }
-        }
-        testID="logo-placeholder"
-      >
-        <Text
-          style={
-            {
-              "color": "#2A1B8C",
-              "fontSize": 48,
-              "fontWeight": "bold",
+          <View
+            style={
+              {
+                "flex": 1,
+                "justifyContent": "space-between",
+                "paddingHorizontal": 24,
+              }
             }
-          }
-        >
-          DB
-        </Text>
+          >
+            <View
+              style={
+                {
+                  "alignItems": "center",
+                  "flex": 1,
+                  "justifyContent": "center",
+                }
+              }
+            >
+              <Image
+                resizeMode="contain"
+                source="test-file-stub"
+                style={
+                  {
+                    "height": 525,
+                    "width": 525,
+                  }
+                }
+              />
+            </View>
+            <View
+              style={
+                {
+                  "gap": 16,
+                  "paddingBottom": 32,
+                }
+              }
+            >
+              <View
+                accessibilityLabel="Get Started"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "#40E0D0",
+                    },
+                    {
+                      "alignSelf": "stretch",
+                    },
+                    undefined,
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="get-started-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#0B0A0F",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Get Started
+                  </Text>
+                </View>
+              </View>
+              <View
+                accessibilityLabel="Log In"
+                accessibilityRole="button"
+                accessibilityState={
+                  {
+                    "busy": undefined,
+                    "checked": undefined,
+                    "disabled": undefined,
+                    "expanded": undefined,
+                    "selected": undefined,
+                  }
+                }
+                accessibilityValue={
+                  {
+                    "max": undefined,
+                    "min": undefined,
+                    "now": undefined,
+                    "text": undefined,
+                  }
+                }
+                accessible={true}
+                collapsable={false}
+                focusable={true}
+                onBlur={[Function]}
+                onClick={[Function]}
+                onFocus={[Function]}
+                onResponderGrant={[Function]}
+                onResponderMove={[Function]}
+                onResponderRelease={[Function]}
+                onResponderTerminate={[Function]}
+                onResponderTerminationRequest={[Function]}
+                onStartShouldSetResponder={[Function]}
+                style={
+                  [
+                    {
+                      "alignItems": "center",
+                      "borderRadius": 9999,
+                      "justifyContent": "center",
+                      "minHeight": 42,
+                      "paddingHorizontal": 16,
+                      "paddingVertical": 4,
+                    },
+                    undefined,
+                    {
+                      "backgroundColor": "transparent",
+                      "borderColor": "#40E0D0",
+                      "borderWidth": 1,
+                    },
+                    {
+                      "alignSelf": "stretch",
+                    },
+                    undefined,
+                    false,
+                    undefined,
+                  ]
+                }
+                testID="login-button"
+              >
+                <View
+                  style={
+                    {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "gap": 8,
+                    }
+                  }
+                >
+                  <Text
+                    maxFontSizeMultiplier={1.35}
+                    style={
+                      [
+                        {
+                          "color": "#40E0D0",
+                          "fontSize": 16,
+                          "fontWeight": "500",
+                          "letterSpacing": 0.1,
+                          "lineHeight": 22,
+                        },
+                        undefined,
+                      ]
+                    }
+                  >
+                    Log In
+                  </Text>
+                </View>
+              </View>
+              <Text
+                maxFontSizeMultiplier={1.35}
+                style={
+                  [
+                    {
+                      "color": "#FFFFFF",
+                      "fontSize": 12,
+                      "fontWeight": "400",
+                      "letterSpacing": 0.2,
+                      "lineHeight": 16,
+                    },
+                    {
+                      "opacity": 0.88,
+                      "textAlign": "center",
+                    },
+                  ]
+                }
+              >
+                If you continue, you agree to our
+                 
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  onPress={[Function]}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 12,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.2,
+                        "lineHeight": 16,
+                      },
+                      {
+                        "opacity": 1,
+                        "textDecorationLine": "underline",
+                      },
+                    ]
+                  }
+                >
+                  Terms of Use
+                </Text>
+                 
+                and
+                 
+                <Text
+                  maxFontSizeMultiplier={1.35}
+                  onPress={[Function]}
+                  style={
+                    [
+                      {
+                        "color": "#FFFFFF",
+                        "fontSize": 12,
+                        "fontWeight": "400",
+                        "letterSpacing": 0.2,
+                        "lineHeight": 16,
+                      },
+                      {
+                        "opacity": 1,
+                        "textDecorationLine": "underline",
+                      },
+                    ]
+                  }
+                >
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
+            </View>
+          </View>
+        </RNCSafeAreaView>
       </View>
-      <Text
-        style={
-          {
-            "color": "#FFFFFF",
-            "fontWeight": "bold",
-            "marginBottom": 8,
-            "textAlign": "center",
-          }
-        }
-        testID="app-title"
-        variant="headlineMedium"
-      >
-        Charmr
-      </Text>
-      <Text
-        style={
-          {
-            "color": "#FFFFFF",
-            "opacity": 0.9,
-            "textAlign": "center",
-          }
-        }
-        testID="app-subtitle"
-        variant="bodyLarge"
-      >
-        Your AI-powered dating assistant
-      </Text>
-    </View>
-    <View
-      style={
-        {
-          "gap": 16,
-          "marginBottom": 40,
-        }
-      }
-      testID="button-container"
-    >
-      <Button
-        labelStyle={
-          {
-            "fontSize": 16,
-            "fontWeight": "bold",
-          }
-        }
-        mode="contained"
-        onPress={[Function]}
-        style={
-          {
-            "backgroundColor": "#FFFFFF",
-            "paddingVertical": 8,
-          }
-        }
-        testID="login-button"
-        textColor="#4B2EFF"
-      >
-        Login
-      </Button>
-      <Button
-        labelStyle={
-          {
-            "fontSize": 16,
-            "fontWeight": "bold",
-          }
-        }
-        mode="outlined"
-        onPress={[Function]}
-        style={
-          {
-            "borderColor": "#FFFFFF",
-            "borderWidth": 2,
-            "paddingVertical": 8,
-          }
-        }
-        testID="get-started-button"
-        textColor="#FFFFFF"
-      >
-        Get Started
-      </Button>
     </View>
   </View>
-</View>
+</RNCSafeAreaProvider>
 `;

@@ -100,19 +100,8 @@ export const createNotificationService = (db: Database) => {
     notificationType: NotificationType,
   ) => {
     try {
-      let users: any[] = [];
-      if (
-        process.env.DATABASE_TYPE === 'firestore' &&
-        typeof (db as any).getUsersWithDeviceToken === 'function'
-      ) {
-        users = await (db as any).getUsersWithDeviceToken();
-      } else {
-        users = await db.all(
-          'SELECT id, deviceToken, notificationDates, email, installationId FROM users WHERE deviceToken IS NOT NULL',
-        );
-      }
+      let users = await db.getUsersWithDeviceToken();
 
-      // Filter out users with null device tokens and anonymous users
       users = users.filter(
         user => user.deviceToken && user.email !== user.installationId,
       );

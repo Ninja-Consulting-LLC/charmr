@@ -1,0 +1,67 @@
+# D4: Dev “simulate registered profile” → Support → locked email visible → submit → success (needs API).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'dev-menu-button'
+- extendedWaitUntil:
+    visible:
+      id: 'dev-menu-e2e-simulate-registered'
+    timeout: 12000
+- tapOn:
+    id: 'dev-menu-e2e-simulate-registered'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 12000
+- tapOn:
+    id: 'user-menu-button'
+- extendedWaitUntil:
+    visible: 'Account Settings'
+    timeout: 12000
+- scrollUntilVisible:
+    element:
+      id: 'user-menu-contact-support'
+    direction: DOWN
+    timeout: 15000
+    speed: 40
+    visibilityPercentage: 50
+- tapOn:
+    id: 'user-menu-contact-support'
+- extendedWaitUntil:
+    visible:
+      id: 'send-message-button'
+    timeout: 12000
+- assertVisible: 'e2e.registered@charmr.test'
+- assertVisible:
+    id: 'phone-input'
+- tapOn:
+    id: 'phone-input'
+- inputText: '+1 555 010 0399'
+- tapOn:
+    id: 'message-input'
+- eraseText: 120
+- inputText: 'Maestro E2E registered support body'
+- tapOn:
+    id: 'support-contact-title'
+- tapOn:
+    id: 'send-message-button'
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: 'support-submit-success'
+    timeout: 60000
+- tapOn:
+    id: 'support-success-close-button'

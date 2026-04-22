@@ -1,21 +1,22 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   Keyboard,
+  ScrollView,
   StyleSheet,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import {Modal, Snackbar, TextInput, ThemeProvider} from 'react-native-paper';
 import {
-  ActivityIndicator,
-  Button,
-  IconButton,
-  Modal,
-  Portal,
-  Snackbar,
-  Text,
-  TextInput,
-} from 'react-native-paper';
-import {theme} from '../theme/theme';
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalIconButton,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
 
 interface AddEditMatchModalProps {
   visible: boolean;
@@ -46,8 +47,12 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
   const [platformError, setPlatformError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
+  const {height: windowHeight} = useWindowDimensions();
+  const sheetMaxHeight = Math.min(Math.round(windowHeight * 0.88), 720);
+  /** ModalSheet inner uses flex:1; without minHeight the sheet collapses (gradient is absolute). */
+  const sheetMinHeight = Math.min(460, sheetMaxHeight);
+  const nameFieldRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
 
-  // Reset form when modal opens/closes
   React.useEffect(() => {
     if (visible) {
       setName(initialName);
@@ -98,148 +103,183 @@ const AddEditMatchModal: React.FC<AddEditMatchModalProps> = ({
     setPlatformError('');
   };
 
+  const submitDisabled =
+    !name.trim() ||
+    isLoading ||
+    (platform === 'other' && !otherPlatform.trim());
+
   return (
-    <Portal>
+    <>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View>
-            <View style={styles.header}>
-              <Text style={styles.title}>
-                {isEditing ? 'Edit Match' : 'Add New Match'}
-              </Text>
-              <IconButton icon="close" size={20} onPress={onDismiss} />
-            </View>
+        contentContainerStyle={paperModalContent.shell}>
+        <ThemeProvider theme={darkModalPaperTheme}>
+          <ModalSheet
+            padded
+            fillHeight
+            style={[
+              styles.card,
+              {maxHeight: sheetMaxHeight, minHeight: sheetMinHeight},
+            ]}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}>
+              <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View>
+                  <View style={styles.header}>
+                    <AppText
+                      testID="add-match-modal-title"
+                      variant="titleSm"
+                      color="hero"
+                      style={styles.title}>
+                      {isEditing ? 'Edit match' : 'Add a match'}
+                    </AppText>
+                    <ModalIconButton
+                      icon="close"
+                      size={40}
+                      onPress={onDismiss}
+                      testID="add-edit-match-close"
+                      accessibilityLabel="Close"
+                    />
+                  </View>
 
-            <View style={styles.content}>
-              <TextInput
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                style={styles.input}
-                mode="outlined"
-                disabled={isLoading}
-              />
+                  <View style={styles.content}>
+                    <View
+                      testID="add-match-name-input"
+                      accessibilityLabel="Match name field">
+                      <TextInput
+                        ref={(instance: React.ComponentRef<typeof TextInput> | null) => {
+                          nameFieldRef.current = instance;
+                        }}
+                        label="Name"
+                        value={name}
+                        onChangeText={setName}
+                        style={styles.input}
+                        mode="outlined"
+                        outlineStyle={styles.inputOutline}
+                        disabled={isLoading}
+                      />
+                    </View>
 
-              <Text style={styles.platformLabel}>Platform</Text>
-              <View style={styles.platformButtons}>
-                {PLATFORMS.map(p => (
-                  <Button
-                    key={p}
-                    mode={platform === p ? 'contained' : 'outlined'}
-                    onPress={() => handlePlatformSelect(p)}
-                    style={styles.platformButton}
-                    testID={`platform-${p}-button`}
-                    disabled={isLoading}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </Button>
-                ))}
-              </View>
+                    <AppText variant="label" color="heroMuted" style={styles.platformLabel}>
+                      Platform
+                    </AppText>
+                    <View style={styles.platformButtons}>
+                      {PLATFORMS.map(p => (
+                        <CharmrButton
+                          key={p}
+                          label={p.charAt(0).toUpperCase() + p.slice(1)}
+                          variant={platform === p ? 'primary' : 'outline'}
+                          compact
+                          onPress={() => handlePlatformSelect(p)}
+                          style={styles.platformButton}
+                          testID={`platform-${p}-button`}
+                          accessibilityState={{selected: platform === p}}
+                          disabled={isLoading}
+                        />
+                      ))}
+                    </View>
 
-              {platform === 'other' && (
-                <TextInput
-                  label="Enter Platform Name"
-                  value={otherPlatform}
-                  onChangeText={setOtherPlatform}
-                  style={styles.input}
-                  mode="outlined"
-                  disabled={isLoading}
-                />
-              )}
+                    {platform === 'other' && (
+                      <TextInput
+                        label="Enter Platform Name"
+                        value={otherPlatform}
+                        onChangeText={setOtherPlatform}
+                        style={styles.input}
+                        mode="outlined"
+                        outlineStyle={styles.inputOutline}
+                        disabled={isLoading}
+                        testID="platform-other-field"
+                      />
+                    )}
 
-              {platformError ? (
-                <Text style={styles.errorText} testID="platform-error">
-                  {platformError}
-                </Text>
-              ) : null}
+                    {platformError ? (
+                      <AppText variant="caption" color="danger" testID="platform-error">
+                        {platformError}
+                      </AppText>
+                    ) : null}
 
-              <Button
-                mode="contained"
-                onPress={handleAdd}
-                disabled={!name.trim() || isLoading}
-                style={styles.button}
-                testID="add-button">
-                {isLoading ? (
-                  <ActivityIndicator color={theme.colors.onPrimary} />
-                ) : isEditing ? (
-                  'Update Match'
-                ) : (
-                  'Add Match'
-                )}
-              </Button>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
+                    <CharmrButton
+                      label={isEditing ? 'Save changes' : 'Add match'}
+                      variant="primary"
+                      onPress={handleAdd}
+                      disabled={submitDisabled}
+                      loading={isLoading}
+                      testID={isEditing ? 'update-match-button' : 'add-button'}
+                      fullWidth
+                    />
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </ScrollView>
+          </ModalSheet>
+        </ThemeProvider>
       </Modal>
 
       <Snackbar
         visible={showSnackbar}
         onDismiss={() => setShowSnackbar(false)}
         duration={2000}
-        style={[styles.snackbar, {backgroundColor: 'rgba(0, 0, 0, 0.6)'}]}
+        style={styles.snackbar}
         action={{
           label: 'OK',
           onPress: () => setShowSnackbar(false),
         }}>
         Match updated successfully!
       </Snackbar>
-    </Portal>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.surface,
-    margin: 20,
-    borderRadius: 8,
-    padding: 16,
+  card: {
+    width: '100%',
+  },
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: tokens.space.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: tokens.space.lg,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    flex: 1,
   },
   content: {
-    gap: 16,
+    gap: tokens.space.md,
   },
   input: {
-    backgroundColor: 'transparent',
+    backgroundColor: tokens.color.brand.primary,
+    borderRadius: tokens.radii.paper,
+  },
+  inputOutline: {
+    borderWidth: 1,
   },
   platformLabel: {
-    fontSize: 16,
-    marginBottom: 8,
+    marginBottom: tokens.space.xs,
   },
   platformButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: tokens.space.sm,
   },
   platformButton: {
     width: '48%',
-    paddingHorizontal: 0,
-    marginVertical: 4,
-    marginBottom: 8,
-  },
-  errorText: {
-    color: theme.colors.error,
-    fontSize: 12,
-  },
-  button: {
-    marginTop: 8,
+    marginVertical: tokens.space.xxs,
   },
   snackbar: {
-    position: 'absolute',
-    bottom: '100%',
-    left: 0,
-    right: 0,
-    marginBottom: 8,
+    backgroundColor: tokens.color.surface.muted,
   },
 });
 

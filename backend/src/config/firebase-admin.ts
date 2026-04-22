@@ -6,6 +6,21 @@ import logger from '../utils/logger';
 const initializeFirebaseAdmin = () => {
   try {
     if (!admin.apps.length) {
+      if (
+        process.env.CHARMR_USE_FIREBASE_EMULATOR === '1' &&
+        process.env.FIRESTORE_EMULATOR_HOST
+      ) {
+        const projectId =
+          process.env.CHARMR_FIRESTORE_EMULATOR_PROJECT_ID ||
+          'charmr-firestore-test';
+        logger.info('Firebase Admin: Firestore emulator (no production credentials)', {
+          firestoreEmulatorHost: process.env.FIRESTORE_EMULATOR_HOST,
+          projectId,
+        });
+        admin.initializeApp({projectId});
+        return admin;
+      }
+
       let credential;
 
       // First try to get credentials from environment variable

@@ -1,0 +1,43 @@
+# Shared setup: anonymous user on Home, Dating Coach open, Select Match list with one row
+# "Maestro E2E Match". Consumed via runFlow from numbered flows only (not run alone by CI).
+appId: com.ninjadating.charmr
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Get Started'
+    timeout: 25000
+- tapOn: 'Get Started'
+- extendedWaitUntil:
+    visible: 'Enable Dating Keyboard'
+    timeout: 12000
+- tapOn:
+    id: 'skip-button'
+- extendedWaitUntil:
+    visible: 'Try Our Dating Coach'
+    timeout: 35000
+- tapOn:
+    id: 'dating-coach-button'
+- extendedWaitUntil:
+    visible: 'Select Match'
+    timeout: 12000
+- tapOn: 'Add New Match'
+- extendedWaitUntil:
+    visible: 'Add New Match'
+    timeout: 12000
+- tapOn:
+    id: 'add-match-name-input'
+- inputText: 'Maestro E2E Match'
+# Blur name field so platform + Add see committed value (Paper TextInput; hideKeyboard is flaky in RN).
+- tapOn:
+    id: 'add-match-modal-title'
+- tapOn:
+    id: 'platform-hinge-button'
+- tapOn:
+    id: 'add-button'
+- waitForAnimationToEnd
+# Prefer row testID: Paper + RN can make plain text visibility flaky in Maestro.
+- extendedWaitUntil:
+    visible:
+      id: match-list-first-row
+    timeout: 35000

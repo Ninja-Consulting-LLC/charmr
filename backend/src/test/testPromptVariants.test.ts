@@ -2,8 +2,6 @@ import axios from 'axios';
 import {default as admin, default as firebaseAdmin} from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
-import yargs from 'yargs';
-import {hideBin} from 'yargs/helpers';
 import {formatPrompt} from '../config/prompts';
 import {
   coachVariantA,
@@ -17,14 +15,8 @@ import {
 } from '../config/prompts/variantB';
 import {MessageMode, SubscriptionTier} from '../types/enums';
 
-// Parse command line arguments
-const argv = yargs(hideBin(process.argv))
-  .option('overwrite', {
-    type: 'boolean',
-    description: 'Overwrite existing results.json instead of appending',
-    default: false,
-  })
-  .parseSync();
+// Parse command line arguments (jest still passes argv when this file is loaded)
+const argv = {overwrite: process.argv.includes('--overwrite')};
 
 // Function to calculate composite score
 function calculateCompositeScore(scores: {
@@ -566,7 +558,7 @@ describe('Prompt Variant Integration Tests', () => {
         await Promise.all(
           batch.map(
             async ({testCase, variant, promptConfig, temperature, mode}) => {
-              let result: TestResult = {
+              const result: TestResult = {
                 testCase: {
                   matchId: testCase.matchId,
                   name: testCase.name,
@@ -602,8 +594,10 @@ describe('Prompt Variant Integration Tests', () => {
 
                 // Wait a moment for messageCost to be written
                 await new Promise(res => setTimeout(res, 1000));
-                const {assistantMessage, messageCost} =
-                  await getAssistantMessageAndCost(userId, testCase.matchId);
+                const {messageCost} = await getAssistantMessageAndCost(
+                  userId,
+                  testCase.matchId,
+                );
                 result.success = true;
                 result.response = response;
                 result.messageCost = messageCost;

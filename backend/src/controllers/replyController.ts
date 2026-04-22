@@ -1,53 +1,24 @@
 import {Request, Response} from 'express';
 import {config} from '../config/config';
-import {getDatabase} from '../db';
-import {getMessageRepository} from '../db/repositories';
 import {Database} from '../db/types';
-import {createGeminiService} from '../services/geminiService';
+import {processReplyImages} from './reply/processReplyImages';
 import {createMessageLimitService} from '../services/messageLimitService';
-import {createOpenAIService} from '../services/openaiService';
+import {createLlmProvider} from '../services/llm/llmProvider';
 import {createSummaryService} from '../services/summaryService';
 import {MessageMode} from '../types/enums';
 import {appendConversation, loadConversation} from '../utils/conversationUtils';
 import {calculateCost} from '../utils/costUtils';
 import logger from '../utils/logger';
-import {sanitizeImage} from '../utils/sanitizeImage';
-
-interface ChatGptImage {
-  type: 'image_url';
-  image_url: {
-    url: string;
-    detail: 'auto' | 'low' | 'high';
-  };
-}
-
-// Helper function to truncate image data
-const truncateImageData = (image: string): string => {
-  if (!image) return '';
-  // For base64 images, show first 20 chars and last 20 chars
-  if (image.startsWith('data:')) {
-    const base64Part = image.split(',')[1] || '';
-    return `data:image/...;base64,${base64Part.substring(
-      0,
-      20,
-    )}...${base64Part.substring(base64Part.length - 20)}`;
-  }
-  // For URLs, just show the first 50 chars
-  return image.substring(0, 50) + '...';
-};
 
 export const createReplyController = async (db: Database) => {
   const messageLimitService = createMessageLimitService(db);
-  const openaiService = createOpenAIService();
-  // const geminiService = createGeminiService();
-  const messageRepository = getMessageRepository(db);
+  const llmProvider = createLlmProvider(db, config.ai.defaultService as 'openai' | 'gemini');
   const summaryService = createSummaryService(db);
 
   const generateReplyHandler = async (req: Request, res: Response) => {
     try {
       const {prompt, images, userId, matchId, skipRateLimiting} = req.body;
 
-      // 1. Validate prompt
       if (
         (!prompt || typeof prompt !== 'string' || prompt.trim() === '') &&
         (!images || images.length === 0)
@@ -55,7 +26,6 @@ export const createReplyController = async (db: Database) => {
         return res.status(400).json({error: 'Prompt is required.'});
       }
 
-      // Main logic
       logger.debug('Generating reply - request payload', {
         userId,
         hasImages: images?.length > 0,
@@ -64,6 +34,15 @@ export const createReplyController = async (db: Database) => {
         mode: req.body.mode,
         regenerate: req.body.regenerate,
       });
+
+      if (process.env.CHARMR_E2E_FORCE_MESSAGE_LIMIT === 'true') {
+        const messageLimits = await messageLimitService.getMessageLimits(userId);
+        return res.status(429).json({
+          error: 'Message limit reached',
+          limits: messageLimits,
+          type: 'MESSAGE_LIMIT',
+        });
+      }
 
       let messageLimits = null;
       if (!skipRateLimiting) {
@@ -81,7 +60,6 @@ export const createReplyController = async (db: Database) => {
         }
       }
 
-      // Get user's plan
       const user = await db.getUser(userId);
       logger.debug('ReplyController: user lookup', {userId, user});
       if (!user) {
@@ -92,46 +70,32 @@ export const createReplyController = async (db: Database) => {
         return res.status(404).json({error: 'User not found'});
       }
 
-      // Sanitize images if present
+      if (process.env.CHARMR_E2E_STUB_LLM === 'true') {
+        const incrementOk =
+          await messageLimitService.incrementMessageCount(userId);
+        if (!incrementOk) {
+          const limits = await messageLimitService.getMessageLimits(userId);
+          return res.status(429).json({
+            error: 'Message limit reached',
+            limits,
+            type: 'MESSAGE_LIMIT',
+          });
+        }
+        const updatedLimits = await messageLimitService.getMessageLimits(userId);
+        return res.status(200).json({
+          reply: '[E2E_STUB] Deterministic coach reply',
+          limits: updatedLimits,
+          mode: req.body.mode ?? MessageMode.GENERATE,
+        });
+      }
+
       let sanitizedImages: string[] = [];
       let storedImages: string[] = [];
       if (images?.length > 0) {
         try {
-          const imagePromises = images.map(async (base64Image: string) => {
-            try {
-              // Convert base64 to buffer
-              const base64Data = base64Image.split(',')[1];
-              const imageBuffer = Buffer.from(base64Data, 'base64');
-
-              // Sanitize image for AI service (strip metadata)
-              const aiSanitized = await sanitizeImage(imageBuffer, {
-                stripMetadata: true,
-              });
-
-              // Sanitize image for storage (preserve metadata)
-              const storedSanitized = await sanitizeImage(imageBuffer, {
-                stripMetadata: false,
-              });
-
-              return {
-                aiImage: `data:image/png;base64,${aiSanitized.buffer.toString(
-                  'base64',
-                )}`,
-                storedImage: `data:image/png;base64,${storedSanitized.buffer.toString(
-                  'base64',
-                )}`,
-              };
-            } catch (error) {
-              logger.error('Error sanitizing image:', error);
-              throw new Error(
-                'Failed to process image. Please try again with a different image.',
-              );
-            }
-          });
-
-          const results = await Promise.all(imagePromises);
-          sanitizedImages = results.map(r => r.aiImage);
-          storedImages = results.map(r => r.storedImage);
+          const processed = await processReplyImages(images);
+          sanitizedImages = processed.sanitizedForAi;
+          storedImages = processed.storedWithMetadata;
         } catch (error) {
           logger.error('Error processing images:', error);
           return res.status(400).json({
@@ -144,12 +108,16 @@ export const createReplyController = async (db: Database) => {
         }
       }
 
-      // Load conversation history for the specified match if matchId is provided
       const conversationHistory = matchId
-        ? await loadConversation(userId, matchId, user.plan)
+        ? await loadConversation(
+            db,
+            userId,
+            matchId,
+            user.plan,
+            config.openai.maxCoachMessages * 4,
+          )
         : [];
 
-      // 2. Check if match exists (for message errors test)
       if (matchId) {
         const match = await db.getMatchById(userId, matchId);
         if (!match) {
@@ -169,7 +137,6 @@ export const createReplyController = async (db: Database) => {
         })),
       });
 
-      // Extract all assistant messages and summaries
       const previousAssistantMessages = conversationHistory
         .filter(msg => msg.role === 'assistant')
         .map(msg => msg.content)
@@ -194,14 +161,12 @@ export const createReplyController = async (db: Database) => {
         hasSummaries: !!previousSummaries,
       });
 
-      // Get the match summary if we have a matchId
       let matchSummary: string | undefined;
       if (matchId) {
         matchSummary = await summaryService.getMatchSummary(userId, matchId);
       }
 
-      // Determine which AI service to use
-      const service = config.ai.defaultService;
+      const service = config.ai.defaultService as 'openai' | 'gemini';
 
       logger.debug('Using AI service', {
         service,
@@ -210,28 +175,17 @@ export const createReplyController = async (db: Database) => {
         requestedModel: req.body.model,
       });
 
-      const response =
-        service === 'openai'
-          ? await openaiService.generateReply({
-              prompt,
-              images: sanitizedImages,
-              userId,
-              matchId,
-              model: req.body.model,
-              mode: req.body.mode,
-              regenerate: req.body.regenerate,
-              previousMessage: req.body.regenerate ? prompt : undefined,
-              matchSummary,
-            })
-          : await createGeminiService().generateReply({
-              prompt,
-              images: [],
-              userId,
-              matchId,
-              mode: req.body.mode,
-              regenerate: req.body.regenerate,
-              previousMessage: req.body.regenerate ? prompt : undefined,
-            });
+      const response = await llmProvider.generateReply({
+        prompt,
+        images: service === 'openai' ? sanitizedImages : [],
+        userId,
+        matchId,
+        model: req.body.model,
+        mode: req.body.mode,
+        regenerate: req.body.regenerate,
+        previousMessage: req.body.regenerate ? prompt : undefined,
+        matchSummary,
+      });
 
       logger.debug('AI service response', {
         userId,
@@ -257,12 +211,9 @@ export const createReplyController = async (db: Database) => {
         });
       }
 
-      // Save the message and its costs if not deleting after response
       if (!req.body.deleteAfterResponse) {
-        const db = await getDatabase();
         const timestamp = new Date().toISOString();
 
-        // Calculate costs
         const costBreakdown = calculateCost(
           req.body.model || config.openai.model,
           {
@@ -273,12 +224,12 @@ export const createReplyController = async (db: Database) => {
           },
         );
 
-        // Save the message with cost data embedded
-        const savedMessage = await appendConversation(
+        await appendConversation(
+          db,
           userId,
           matchId,
           response.reply,
-          storedImages, // Use images with preserved metadata for storage
+          storedImages,
           prompt,
           req.body.mode || MessageMode.GENERATE,
           response.promptVariant,
@@ -294,7 +245,6 @@ export const createReplyController = async (db: Database) => {
           },
         );
 
-        // Save the summary if we have one and a matchId
         if (response.summary && matchId) {
           await summaryService.updateMatchSummary(
             userId,
@@ -303,7 +253,6 @@ export const createReplyController = async (db: Database) => {
           );
         }
 
-        // Update user cost totals
         await db.updateUserCosts(userId, {
           totalCost: costBreakdown.totalCost,
           totalTokens: response.usage?.total_tokens || 0,
@@ -316,7 +265,6 @@ export const createReplyController = async (db: Database) => {
         replyLength: response.reply.length,
       });
 
-      // Increment message count after successful assistant reply
       const success = await messageLimitService.incrementMessageCount(userId);
       if (!success) {
         logger.warning('Failed to increment message count', {userId});
@@ -327,7 +275,6 @@ export const createReplyController = async (db: Database) => {
         });
       }
 
-      // Get updated message limits
       const updatedLimits = await messageLimitService.getMessageLimits(userId);
 
       if (res.headersSent) return;

@@ -1,7 +1,14 @@
 import React, {useState} from 'react';
-import {Platform, StyleSheet, View} from 'react-native';
-import {Button, Modal, Portal, Text} from 'react-native-paper';
-import {theme} from '../theme/theme';
+import {Platform, StyleSheet, useWindowDimensions, View} from 'react-native';
+import {Modal, Portal, ThemeProvider} from 'react-native-paper';
+import {
+  AppText,
+  CharmrButton,
+  darkModalPaperTheme,
+  ModalSheet,
+  paperModalContent,
+  tokens,
+} from '../design-system';
 import PhotoPermissionsModal from './PhotoPermissionsModal';
 
 interface PermissionHelpModalProps {
@@ -14,6 +21,8 @@ const PermissionHelpModal: React.FC<PermissionHelpModalProps> = ({
   onDismiss,
 }) => {
   const [showVisualGuide, setShowVisualGuide] = useState(false);
+  const {height: windowHeight} = useWindowDimensions();
+  const sheetMaxHeight = Math.round(windowHeight * 0.88);
 
   const iosSteps = [
     'Open your iPhone Settings',
@@ -40,35 +49,44 @@ const PermissionHelpModal: React.FC<PermissionHelpModalProps> = ({
     <Portal>
       <Modal
         visible={visible}
+        theme={darkModalPaperTheme}
         onDismiss={onDismiss}
-        contentContainerStyle={styles.modalContainer}>
-        <Text variant="titleLarge" style={styles.title}>
-          How to Grant Photo Access
-        </Text>
-        <View style={styles.stepsContainer}>
-          {steps.map((step, index) => (
-            <View key={index} style={styles.stepRow}>
-              <Text style={styles.stepNumber}>{index + 1}</Text>
-              <Text style={styles.stepText}>{step}</Text>
+        contentContainerStyle={paperModalContent.shell}>
+        <ThemeProvider theme={darkModalPaperTheme}>
+          <ModalSheet padded style={[styles.card, {maxHeight: sheetMaxHeight}]}>
+            <AppText variant="titleSm" color="hero" style={styles.title}>
+              Allow photo access
+            </AppText>
+            <View style={styles.stepsContainer}>
+              {steps.map((step, index) => (
+                <View key={index} style={styles.stepRow}>
+                  <View style={styles.stepNumberWrap}>
+                    <AppText variant="label" style={styles.stepNumber}>
+                      {index + 1}
+                    </AppText>
+                  </View>
+                  <AppText variant="body" color="heroMuted" style={styles.stepText}>
+                    {step}
+                  </AppText>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-        <View style={styles.buttonContainer}>
-          <Button
-            mode="contained"
-            onPress={onDismiss}
-            style={styles.button}
-            textColor={theme.colors.surface}>
-            Got it
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => setShowVisualGuide(true)}
-            style={styles.visualGuideButton}
-            textColor={theme.colors.secondary}>
-            See Visual Guide
-          </Button>
-        </View>
+            <View style={styles.buttonContainer}>
+              <CharmrButton
+                label="Got it"
+                variant="primary"
+                onPress={onDismiss}
+                fullWidth
+              />
+              <CharmrButton
+                label="See Visual Guide"
+                variant="outline"
+                onPress={() => setShowVisualGuide(true)}
+                fullWidth
+              />
+            </View>
+          </ModalSheet>
+        </ThemeProvider>
       </Modal>
 
       <PhotoPermissionsModal
@@ -80,48 +98,41 @@ const PermissionHelpModal: React.FC<PermissionHelpModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    backgroundColor: theme.colors.surface,
-    padding: 24,
-    margin: 20,
-    borderRadius: 12,
+  card: {
+    gap: tokens.space.md,
   },
   title: {
-    marginBottom: 16,
     textAlign: 'center',
-    color: theme.colors.onSurface,
   },
   stepsContainer: {
-    marginBottom: 24,
+    gap: tokens.space.sm,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: tokens.space.md,
+  },
+  stepNumberWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: tokens.color.accent.mintMuted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tokens.color.border.strong,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.secondary,
-    color: theme.colors.surface,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginRight: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: tokens.color.accent.mint,
+    letterSpacing: 0,
   },
   stepText: {
     flex: 1,
-    color: theme.colors.onSurface,
   },
   buttonContainer: {
-    gap: 12,
-  },
-  button: {
-    backgroundColor: theme.colors.secondary,
-  },
-  visualGuideButton: {
-    borderColor: theme.colors.secondary,
+    gap: tokens.space.sm,
+    marginTop: tokens.space.sm,
   },
 });
 

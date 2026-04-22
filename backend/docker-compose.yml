@@ -1,15 +1,17 @@
 services:
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - '3001:3001'
     env_file:
       - .env
+    working_dir: /app/backend
     volumes:
-      - ./src:/app/src
-      - /app/node_modules
-      - ./data:/app/data
-      - ./service-account.json:/app/service-account.json
+      - ./src:/app/backend/src
+      - ./data:/app/backend/data
+      - ./service-account.json:/app/backend/service-account.json
     command: sh -c "npm run build && node dist/index.js"
     depends_on:
       - mailhog
