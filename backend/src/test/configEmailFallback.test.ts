@@ -19,8 +19,8 @@ describe('config SMTP resolution', () => {
     process.env.SMTP_SECURE = 'false';
     process.env.SMTP_USER = 'smtp-user';
     process.env.SMTP_PASS = 'smtp-pass';
-    process.env.SMTP_FROM = 'support@charmrapp.com';
-    process.env.SMTP_REPLY_TO = 'replyto@charmrapp.com';
+    process.env.SMTP_FROM = 'sender@example.test';
+    process.env.SMTP_REPLY_TO = 'replyto@example.test';
 
     const {config} = await import('../config/config');
 
@@ -31,8 +31,8 @@ describe('config SMTP resolution', () => {
       user: 'smtp-user',
       pass: 'smtp-pass',
     });
-    expect(config.email.defaultFrom).toBe('support@charmrapp.com');
-    expect(config.email.defaultReplyTo).toBe('replyto@charmrapp.com');
+    expect(config.email.defaultFrom).toBe('sender@example.test');
+    expect(config.email.defaultReplyTo).toBe('replyto@example.test');
   });
 
   it('uses defaults when SMTP_* values are missing', async () => {
@@ -51,7 +51,7 @@ describe('config SMTP resolution', () => {
     expect(config.email.port).toBe(1025);
     expect(config.email.secure).toBe(false);
     expect(config.email.auth).toBeUndefined();
-    expect(config.email.defaultFrom).toBe('noreply@charmr.app');
-    expect(config.email.defaultReplyTo).toBe('support@charmr.app');
+    expect(config.email.defaultFrom).toBe('noreply@example.invalid');
+    expect(config.email.defaultReplyTo).toBe('support@example.invalid');
   });
 });

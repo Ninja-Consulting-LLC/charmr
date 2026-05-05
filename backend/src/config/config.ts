@@ -55,11 +55,11 @@ export const config = {
       process.env.SMTP_SECURE === 'true' ||
       resolvedEmailPort === '465',
     auth: resolvedEmailAuth,
-    defaultFrom: process.env.SMTP_FROM || 'noreply@charmr.app',
+    defaultFrom: process.env.SMTP_FROM || 'noreply@example.invalid',
     defaultReplyTo:
       process.env.SMTP_REPLY_TO ||
       process.env.SMTP_FROM ||
-      'support@charmr.app',
+      'support@example.invalid',
   },
   limits: {
     proDailyMessageLimit: parseInt(
@@ -67,7 +67,11 @@ export const config = {
       10,
     ),
   },
-  supportEmail: process.env.SUPPORT_EMAIL || 'support@charmrapp.com',
+  supportEmail:
+    process.env.SUPPORT_EMAIL ||
+    process.env.SMTP_REPLY_TO ||
+    process.env.SMTP_FROM ||
+    'support@example.invalid',
   prompt: {
     variant: process.env.PROMPT_VARIANT as PromptVariant | undefined,
   },
