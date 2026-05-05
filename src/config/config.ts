@@ -2,6 +2,8 @@ import {Platform} from 'react-native';
 import Config from 'react-native-config';
 import {logger} from '../utils/logger';
 
+const siteBaseUrl = 'https://ninja-consulting-llc.github.io/charmr';
+
 // For iOS simulator and Android emulator, localhost maps differently
 // TODO: this isn't actually used anywhere, remove eventually
 const getBaseUrl = () => {
@@ -43,6 +45,11 @@ export const config = {
   // API baseUrl is the domain without path
   // Some endpoints use /api/ prefix, but others (like /health) don't
   apiBaseUrl: getBaseUrl(),
+  siteBaseUrl,
+  legal: {
+    termsUrl: `${siteBaseUrl}/terms.html`,
+    privacyUrl: `${siteBaseUrl}/privacy.html`,
+  },
   googleWebClientId:
     '86028540367-i6tuu1bh4pkmekqahqdsqv4qj3a6eqvn.apps.googleusercontent.com',
   revenueCatApiKey: Platform.select({

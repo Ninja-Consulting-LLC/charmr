@@ -67,7 +67,11 @@ export const config = {
       10,
     ),
   },
-  supportEmail: process.env.SUPPORT_EMAIL || 'support@example.invalid',
+  supportEmail:
+    process.env.SUPPORT_EMAIL ||
+    process.env.SMTP_REPLY_TO ||
+    process.env.SMTP_FROM ||
+    'support@example.invalid',
   prompt: {
     variant: process.env.PROMPT_VARIANT as PromptVariant | undefined,
   },

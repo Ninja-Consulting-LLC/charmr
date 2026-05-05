@@ -14,6 +14,7 @@ import {
 import {Divider, IconButton, List, Portal, useTheme} from 'react-native-paper';
 import Purchases from 'react-native-purchases';
 import RevenueCatUI from 'react-native-purchases-ui';
+import {config} from '../config/config';
 import {signOut} from '../config/firebase';
 import {RootStackParamList} from '../navigation/types';
 import {clearAuthData} from '../services/authService';
@@ -582,7 +583,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 />
               )}
               onPress={() =>
-                Linking.openURL('https://example.invalid/terms.html')
+                Linking.openURL(config.legal.termsUrl)
               }
               titleStyle={[styles.legalText, {color: theme.colors.surface}]}
             />
@@ -596,7 +597,7 @@ const UserMenuSlideout: React.FC<UserMenuSlideoutProps> = ({
                 />
               )}
               onPress={() =>
-                Linking.openURL('https://example.invalid/privacy.html')
+                Linking.openURL(config.legal.privacyUrl)
               }
               titleStyle={[styles.legalText, {color: theme.colors.surface}]}
             />
