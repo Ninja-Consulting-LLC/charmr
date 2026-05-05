@@ -16,7 +16,8 @@
 
 ### Email Configuration
 
-The backend uses SendGrid for sending emails. To configure email functionality:
+The backend uses SMTP for sending emails. To configure email functionality with
+SendGrid or another SMTP provider:
 
 1. **SendGrid Setup**
 
@@ -29,20 +30,21 @@ The backend uses SendGrid for sending emails. To configure email functionality:
 2. **Required Environment Variables**
 
    ```
-   EMAIL_HOST=smtp.sendgrid.net
-   EMAIL_PORT=587
-   EMAIL_SECURE=false
-   EMAIL_USER=apikey
-   EMAIL_PASS=your_sendgrid_api_key
-   EMAIL_DEFAULT_FROM=your_verified_email@domain.com
-   EMAIL_DEFAULT_REPLY_TO=support@charmrapp.com
+   SMTP_HOST=smtp.sendgrid.net
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=apikey
+   SMTP_PASS=your_sendgrid_api_key
+   SMTP_FROM=your_verified_email@domain.com
+   SMTP_REPLY_TO=your_support_inbox@example.com
+   SUPPORT_EMAIL=your_support_inbox@example.com
    ```
 
 3. **Troubleshooting**
 
    - If you get a "550 The from address does not match a verified Sender Identity" error:
      - Make sure your sender email/domain is verified in SendGrid
-     - Check that EMAIL_DEFAULT_FROM matches your verified sender
+     - Check that SMTP_FROM matches your verified sender
      - Verify your SendGrid API key has the correct permissions
 
 4. **Development Mode**
@@ -50,9 +52,9 @@ The backend uses SendGrid for sending emails. To configure email functionality:
    - In development, you can use MailHog (included in docker-compose.yml)
    - Set these environment variables for local testing:
      ```
-     EMAIL_HOST=mailhog
-     EMAIL_PORT=1025
-     EMAIL_SECURE=false
+     SMTP_HOST=mailhog
+     SMTP_PORT=1025
+     SMTP_SECURE=false
      ```
    - Access MailHog web interface at http://localhost:8025
 
