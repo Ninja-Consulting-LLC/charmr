@@ -91,6 +91,9 @@ assets/pro_paywall.png
 
 # Firebase
 service-account.json
+*-service-account.json
+ai-dating-keyboard-*.json
+firebase-debug.log
 assets/screenshots/*
 keys/*
 firestore-debug.log

@@ -16,16 +16,14 @@
 
 ### Email Configuration
 
-The backend uses SMTP for sending emails. To configure email functionality with
-SendGrid or another SMTP provider:
+The backend uses SMTP for sending emails. Production is expected to use Amazon
+SES SMTP credentials.
 
-1. **SendGrid Setup**
+1. **Amazon SES Setup**
 
-   - Create a SendGrid account if you don't have one
-   - Go to SendGrid's "Sender Authentication" section
-   - Either:
-     a. Verify your domain (recommended)
-     b. Or verify a single sender email address
+   - Verify a sender identity in Amazon SES.
+   - Create SES SMTP credentials for the verified identity.
+   - Keep the SMTP username/password in private deployment secrets.
 
 2. **Required Environment Variables**
 
@@ -33,19 +31,19 @@ SendGrid or another SMTP provider:
    SMTP_HOST=email-smtp.us-east-1.amazonaws.com
    SMTP_PORT=587
    SMTP_SECURE=false
-   SMTP_USER=apikey
-   SMTP_PASS=your_sendgrid_api_key
-   SMTP_FROM=your_verified_email@domain.com
-   SMTP_REPLY_TO=your_support_inbox@example.com
-   SUPPORT_EMAIL=your_support_inbox@example.com
+   SMTP_USER=your_ses_smtp_username
+   SMTP_PASS=your_ses_smtp_password
+   SMTP_FROM=verified-sender@example.com
+   SMTP_REPLY_TO=support@example.com
+   SUPPORT_EMAIL=support@example.com
    ```
 
 3. **Troubleshooting**
 
-   - If you get a "550 The from address does not match a verified Sender Identity" error:
-     - Make sure your sender email/domain is verified in SendGrid
-     - Check that SMTP_FROM matches your verified sender
-     - Verify your SendGrid API key has the correct permissions
+   - If SES rejects the message:
+     - Make sure `SMTP_FROM` is a verified SES sender identity.
+     - Confirm the SES account is out of sandbox or the recipient is verified.
+     - Confirm `SMTP_USER` and `SMTP_PASS` are SES SMTP credentials, not raw AWS access keys.
 
 4. **Development Mode**
 
